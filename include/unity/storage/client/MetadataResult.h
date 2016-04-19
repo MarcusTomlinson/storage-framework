@@ -1,6 +1,8 @@
 #pragma once
 
-#include "Directory.h"
+#include "Variant.h"
+
+#include <chrono>
 
 namespace unity
 {
@@ -11,12 +13,6 @@ namespace storage
 namespace client
 {
 
-// How do we do metadata? As an object with a fixed set of strongly-typed accessors, one for each attribute?
-// As a boost::variant? As JSON?
-// Different providers have dramatically different metadata. Do we try to define a common set?
-
-typedef int MetadataMap;
-
 class MetadataResult
 {
 public:
@@ -26,7 +22,21 @@ public:
     MetadataResult(MetadataResult&&) = delete;
     MetadataResult& operator=(MetadataResult&&) = delete;
 
-    MetadataMap get_metadata() const;
+    VariantMap get_metadata() const;
+
+    /**
+    \brief Returns the time at which the item was last modified.
+    \throws DestroyedException if the item has been destroyed.
+    */
+    std::chrono::system_clock::time_point modified_time() const;
+
+    /**
+    \brief Returns the mime type of the item.
+    \returns For directories, the mime type is `inode/directory`. If the mime type is unknown, the returned string is empty.
+    \throws DestroyedException if the item has been destroyed.
+    */
+    std::string mime_type() const;
+
 
 private:
     MetadataResult();
