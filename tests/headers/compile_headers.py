@@ -168,4 +168,4 @@ def run():
         sys.exit(1)    # Errors were written earlier
 
 if __name__ == '__main__':
-   run()
+    run()

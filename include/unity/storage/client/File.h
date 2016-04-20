@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Downloader.h"
-#include "Item.h"
-#include "Uploader.h"
+#include <unity/storage/client/Downloader.h>
+#include <unity/storage/client/Item.h>
+#include <unity/storage/client/Uploader.h>
 
 namespace unity
 {
