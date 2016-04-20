@@ -1,0 +1,28 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+export DPKG_GENSYMBOLS_CHECK_LEVEL=4
+
+# http://ccache.samba.org/manual.html#_precompiled_headers
+export CCACHE_SLOPPINESS=time_macros
+
+export QT_SELECT=qt5
+
+%:
+	dh $@ --parallel --fail-missing
+
+override_dh_auto_configure:
+	dh_auto_configure -- -DCMAKE_INSTALL_SYSCONFDIR=/etc
+
+# Tests are not written to be run in parallel.
+# We ignore failing tests on PPC and s390x because the storage-framework is irrelevant there.
+test_args = --max-parallel=1 -- ARGS=\"--verbose\"
+override_dh_auto_test:
+ifneq (,$(filter powerpc ppc64el s390x,$(DEB_HOST_ARCH)))
+	dh_auto_test $(test_args) || :
+else
+	dh_auto_test $(test_args)
+endif
