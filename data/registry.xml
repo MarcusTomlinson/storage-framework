@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
+	<!-- com.canonical.StorageFramework.Registry:
+	     @short_description: Interface to query the backend registry and register new backends
+
+			 Inteface to query the repository of backends that are
+			 available. Here a backend that is starting should connect
+			 to the registry. Also, there are properties to allow
+			debugging a running registry service easily.
+	-->
+	<interface name="com.canonical.StorageFramework.Registry">
+
+		<!-- InstalledBackends: Lists all of the backends that are currently installed and usable. -->
+		<property name="InstalledBackends" type="a(ss)" access="read" />
+
+		<!-- RunningBackends: Lists the backends that are currently running. This is largely used for debugging the behavior of the service. -->
+		<property name="RunningBackends" type="a(ss)" access="read" />
+
+		<!-- Connect:
+		     @short_description: When a backend starts it needs to call the connect method to report it is ready for service.
+				 @path: Path that the backend interface is exported on
+		-->
+		<method name="Connect">
+			<arg type="o" name="path" direction="in" />
+		</method>
+
+		<!-- Disconnect:
+		     @short_description: A backend can cleanly disconnect by using this function, else it will also be disconnected when it drops off of DBus.
+				 @path: Path that the backend interface is exported on
+		-->
+		<method name="Disconnect">
+			<arg type="o" name="path" direction="in" />
+		</method>
+
+	</interface>
+</node>

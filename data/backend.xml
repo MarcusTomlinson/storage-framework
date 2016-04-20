@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
+	<!-- com.canonical.StorageFramework.Backend:
+	     @short_description: Interface exported by a backend so that the storage framework service can query it
+
+
+	-->
+	<interface name="com.canonical.StorageFramework.Backend">
+
+		<!-- Package: The package that the backend ships in. For scopes that are installed in the OS image this will be the null string. -->
+		<property name="Package" type="s" access="read" />
+
+		<!-- Appname: The appname associated with the backend. This is the name of the Snappy App or for OS installed backends the name of the configuration file. -->
+		<property name="Appname" type="s" access="read" />
+
+		<!-- Root: A document ID for the root of the document tree. Very often this is a null string or '/', but it is backend specific and should be gotten from this property. -->
+		<property name="Root" type="s" access="read" />
+
+		<!-- Accounts: Account IDs for the accounts that are supported by this backend. May be empty if no accounts are configured. The two strings are the ID and the human readable name. -->
+		<property name="Accounts" type="a(ss)" access="read" />
+
+		<!-- GetMetadata:
+		     @short_description: Function to get metadata for a specific set of documents.
+			 @account: ID of the account
+			 @documents: List of document IDs to get metadata for
+			 @metadata: Returned metadata by document ID
+
+			 Grabs all of the metadata for a list of documents. It is the
+			 responsibility of the backed to cache the metadata as it sees
+			 fit. There'll be no caching of metadata in the storage framework
+			 service.
+		-->
+		<method name="GetMetadata">
+			<arg type="s" name="account" direction="in" />
+			<arg type="as" name="documents" direction="in" />
+			<arg type="a(sa{sv})" name="metadata" direction="out" />
+		</method>
+
+		<!-- GetChildren:
+		     @short_description: Gets all the children of a document as well as the metadata for those children.
+			 @account: ID of the account
+			 @document: Document to use as the root document ID
+			 @metadata: Returned metadata by document ID
+
+			 Gets the information on the children of this document, which may
+			 be an array of zero items. Whether a document has children is also
+			 set in the metadata entry 'has-children' though requesting on a
+			 document that doesn't does not return an error.
+		-->
+		<method name="GetChildren">
+			<doc:doc><doc:description><doc:para>
+			</doc:para></doc:description></doc:doc>
+			<arg type="s" name="account" direction="in" />
+			<arg type="s" name="document" direction="in" />
+			<arg type="a(sa{sv})" name="metadata" direction="out" />
+		</method>
+
+		<!-- GetDocument:
+			 @short_description: Gets a socket which the data for the document will come through or a suggestion to use the cached version.
+			 @account: ID of the account
+			 @document: Document ID to use
+			 @cache_data: Timestamp on the entry of the cache, may be blank
+			 @cache_size: Size of the entry in the cache in bytes
+			 @socket: Socket to get the data, may be zero if @useCache
+			 @useChace: Whether the entry in the cache
+
+			 Gets a socket which the data for the document will come
+			 through or a suggestion to use the cached version. The cache
+			 state is given as the date it was last downloaded and the
+			 size of the file. It is expected that the backend wouldn't cache,
+			 but does control whether the cache is used.
+		-->
+		<method name="GetDocument">
+			<arg type="s" name="account" direction="in" />
+			<arg type="s" name="document" direction="in" />
+			<arg type="" name="cache_date" direction="in" />
+			<arg type="" name="cache_size" direction="in" />
+			<arg type="" name="socket" direction="out" />
+			<arg type="b" name="useCache" direction="out" />
+		</method>
+
+		<!-- Shutdown:
+			 @short_description: Request that the backend shutdown cleanly. Nice way to say goodbye. You won't like it when we're not nice.
+		-->
+		<method name="Shutdown" />
+
+		<!-- ClearCache:
+		     @short_description: Force an entry to removed from the cache
+			 @account: ID of the account
+			 @document: Document IDs to clear
+
+			 Backends have full control over the cache, so they're welcome to
+			 delete entries in the cache. This could be if an account is removed
+			 or other provider specified reasons.
+		-->
+		<signal name="ClearCache">
+			<arg type="s" name="account" direction="out" />
+			<arg type="as" name="documents" direction="out" />
+		</signal>
+	</interface>
+</node>

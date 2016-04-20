@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+	<!--
+		com.canonical.StorageFramework.Store:
+		@short_description: Interface for a client to access a store
+
+		This interface provides the meat of the connection for a
+		client to a specific document store. It provides querying the
+		data store to get specific documents or for adjusting the
+		data in them.
+
+		The first message to the interface should be to get the properties
+		of it, then start getting the information on the root document. In
+		this way the client application can go through the hierarchy of
+		the document store continuing to query information from the service.
+
+		Clients should assume that all method calls are connecting to the network
+		and set delays appropriately. Individual services may provide some
+		caching, but Clients shouldn't depend or assume that. Instead they
+		shouldn't block on calls as they may take an unexpected amount of
+		time to return depending on network conditions.
+	-->
+	<interface name="com.canonical.StorageFramework.Store">
+		<!-- Properties -->
+		<!-- Package: The Package ID of the service -->
+		<property name="Package" type="s" access="read" />
+
+		<!-- Appname: Appname of the store -->
+		<property name="Appname" type="s" access="read" />
+
+		<!-- StoreDescription: Human readable string to describe this store. -->
+		<property name="StoreDescription" type="s" access="read" />
+
+		<!-- Account: Account ID for the account of this store -->
+		<property name="Account" type="s" access="read" />
+
+		<!-- AccountDescription: Human readable string for this account -->
+		<property name="AccountDescription" type="s" access="read" />
+
+		<!-- RootDocument: Document ID for the root document of this store. -->
+		<property name="RootDocument" type="s" access="read" />
+
+		<!-- Methods -->
+		<!-- GetMetadata:
+				 @short_description: Function to get metadata for a specific set of documents.
+				 @documents: List of document IDs to get metadata for
+				 @metadata: Document ID and the metadata associated with that ID.
+
+				 Get the metadata for the document IDs requested. The keys will all
+				 be well known, and generally should be typed by the library implementing
+				 this interface. Specific service backends can have custom metadata
+				 fields, but those will all be of a specific set of base types.
+		-->
+		<method name="GetMetadata">
+			<arg type="as" name="documents" direction="in" />
+			<arg type="a(sa{sv})" name="metadata" direction="out" />
+		</method>
+
+		<!-- GetChildren:
+				 @short_description: Gets all the children of a document as well as the metadata for those children.
+				 @parent: Document ID of the parent node
+				 @children: Document ID and the metadata associated with that ID.
+
+				 Used to move down the heirarchy starting with a parent node. For
+				 starting out a client should use the #RootDocument property to get the
+				 first Document ID.
+		-->
+		<method name="GetChildren">
+			<arg type="s" name="parent" direction="in" />
+			<arg type="a(sa{sv})" name="children" direction="out" />
+		</method>
+
+		<!-- UpdateMetadata:
+			   @short_description: Change or add metadata on a document
+				 @document: Document ID to change
+				 @metadata: Metadata entries to update or add
+				 @removals: Metadata entries to remove
+
+				 Change the metadata on a document. Each value in the metadata
+				 field will be replaced or added. Each key in the removals array
+				 will be deleted. Either may contain no entries.
+		-->
+		<method name="UpdateMetadata">
+			<arg type="s" name="document" direction="in" />
+			<arg type="a{sv}" name="metadata" direction="in" />
+			<arg type="as" name="removals" direction="in" />
+		</method>
+
+		<!-- UploadDocument:
+			   @short_description: Transfer data for a document
+				 @document: Document ID for the docu
+				 @descriptor: File Descriptor for the document to be sucked from
+
+				 Either put in or replace the data related to a document ID. This
+				 function will setup a transfer to the local cache which should
+				 complete quickly, but may take longer to upload to the final service
+				 because of network or policy issues (no upload on cellular data).
+		-->
+		<method name="UploadDocument">
+			<arg type="s" name="document" direction="in" />
+			<arg type="h" name="descriptor" direction="in" />
+		</method>
+
+		<!-- GetDocument:
+				 @short_description: Getting a file descriptor for transfering the data from a document.
+				 @document: Document ID to get data for
+				 @descriptor: File descriptor to pull data from
+
+				 Gets the data section of a document as a file descriptor. This file
+				 may be local or remote, so data may not be available all at once. This
+				 function will return an error if the document is not local and requires
+				 a network to access the file and it's not available.
+	  -->
+		<method name="GetDocument">
+			<arg type="s" name="document" direction="in" />
+			<arg type="h" name="descriptor" direction="out" />
+		</method>
+
+		<!-- CreateDocument:
+		     @short_description: Creates a new document with a specific parent, metadata and even data if provided.
+				 @parent: Parent Document ID
+				 @metadata: Metadata to set for the created document
+				 @descriptor: Data channel to send data for the document
+				 @document: Document ID assigned to the newly created document
+
+				 Creates a document in the store. It should have a parent, but the
+				 metadata fields that are required are backend specific, and an error
+				 will be returned if the fields aren't submitted that are required. Data
+				 is optional for most services, but may be requred. A sucessful creation
+				 will result in a document ID being returned.
+		-->
+		<method name="CreateDocument">
+			<arg type="s" name="parent" direction="in" />
+			<arg type="a{sv}" name="metadata" direction="in" />
+			<arg type="h" name="descriptor" direction="in" />
+			<arg type="s" name="document" direction="out" />
+		</method>
+
+		<!-- FindDocuments:
+		     @short_description: Look for documents with certain data
+				 @rootid: Document ID to use as the root of the search
+				 @metadata: Metadata keys to use in the search
+				 @matches: Document ID and the metadata associated with that ID.
+
+				 Searches from a specified root for a set of documents that
+				 match certain metadata. Generally this can be used to find
+				 objects of a certain mimetype (all photos for instance) or
+				 of a certain name.
+	  -->
+		<method name="FindDocuments">
+			<arg type="s" name="rootid" direction="in" />
+			<arg type="a{sv}" name="metadata" direction="in" />
+			<arg type="a(sa{sv})" name="matches" direction="out" />
+		</method>
+
+		<!-- Signals -->
+		<!-- MetadataChanged:
+				 @short_description: Signaled when the metadata for a particular document has changed.
+				 @metadata: Document ID and the metadata associated with that ID.
+
+				 Backends can signal metadata changes for documents using this signal.
+				 The signal will only be signaled on document IDs that have been requested
+				 by the client either by explicitly checking or through GetChildren.
+		-->
+		<signal name="MetadataChanged">
+			<arg type="a(sa{sv})" name="metadata" direction="out" />
+		</signal>
+
+		<!-- DocumentChanged:
+			   @short_description: When the data behind the documents changes.
+				 @documents: List of document IDs that have changed
+
+				 Signaled when the data of the document has changed. This will only
+				 fire for documents that have been requested in the session.
+		-->
+		<signal name="DocumentChanged">
+			<arg type="as" name="documents" direction="out" />
+		</signal>
+
+
+	</interface>
+</node>

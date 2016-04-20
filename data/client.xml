@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
+	<!-- com.canonical.StorageFramework.Client:
+		 @short_description: Starting point for clients connecting
+
+		 The client interface exists on the per-client path of
+		 /com/canonical/StorageFramework/$(client package), and is
+		 the starting point to working with the storage frameworks
+		 for clients.
+
+		 Clients should then get the list of stores and can connect
+		 to each of them on the paths that are given. Each of those
+		 paths will implement the store interface.
+	-->
+	<interface name="com.canonical.StorageFramework.Client">
+		<!-- Stores: List of storages that are available
+
+			The list of stores that are available. Each tuple contains
+			the following information:
+
+			- package name
+			- app name
+			- account id
+			- store display name
+			- account display name
+			- object path for access
+
+			A client application can use this for showing a user a list of
+			available accounts to select one. Other access should be done
+			through the store interface on the object path.
+		-->
+		<property name="Stores" type="a(ssssso)" access="read" />
+
+		<!-- FindStore:
+			 @short_description: Find the path for a store based on saved info
+			 @package: Package name of backend
+			 @appname: Appanme of backend
+			 @account: Account ID for store
+			 @path: The DBus path for accessing the store
+
+			If the client has saved a package and appname it can find the
+			path for that store using this lookup function. Path names are
+			not required to be the same over time.
+		-->
+		<method name="FindStore">
+			<arg type="s" name="package" direction="in" />
+			<arg type="s" name="appname" direction="in" />
+			<arg type="s" name="account" direction="in" />
+
+			<arg type="o" name="path" direction="out" />
+		</method>
+
+	</interface>
+</node>
