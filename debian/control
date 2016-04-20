@@ -1,0 +1,17 @@
+Source: storage-framework
+Section: libdevel
+Priority: optional
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Standards-Version: 3.9.6
+Build-Depends: cmake,
+               cmake-extras (>= 0.4),
+               debhelper (>= 9),
+               devscripts,
+               google-mock,
+               libgtest-dev,
+               doxygen,
+Homepage: https://launchpad.net/storage-framework
+# if you don't have have commit access to this branch but would like to upload
+# directly to Ubuntu, don't worry: your changes will be merged back into the
+# upstream branch
+Vcs-Bzr: lp:storage-framework

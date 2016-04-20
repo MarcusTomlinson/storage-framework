@@ -75,4 +75,15 @@ endif()
 include(CTest)
 enable_testing()
 
+include(EnableCoverageReport)
+
 add_subdirectory(tests)
+
+enable_coverage_report(
+    TARGETS
+    FILTER
+        ${CMAKE_SOURCE_DIR}/tests/*
+        ${CMAKE_BINARY_DIR}/*
+    TESTS
+        ${UNIT_TEST_TARGETS}
+)
