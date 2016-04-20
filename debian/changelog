@@ -1,0 +1,5 @@
+storage-framework (VERSION) UNRELEASED; urgency=medium
+
+  * Initial release.
+
+ -- Michi Henning <michi.henning@canonical.com>  Wed, 20 Apr 2016 11:07:55 +1000
