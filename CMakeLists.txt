@@ -77,6 +77,7 @@ enable_testing()
 
 include(EnableCoverageReport)
 
+add_subdirectory(src)
 add_subdirectory(tests)
 
 enable_coverage_report(
