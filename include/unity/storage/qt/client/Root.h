@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unity/storage/client/Directory.h>
+#include <unity/storage/qt/client/Directory.h>
 
 namespace unity
 {
@@ -8,10 +8,13 @@ namespace unity
 namespace storage
 {
 
+namespace qt
+{
+
 namespace client
 {
 
-class Result;  // Same as CreateResult?
+class Account;
 
 /**
 \brief Class that represents a root directory.
@@ -28,16 +31,25 @@ public:
 
     typedef std::unique_ptr<Root> UPtr;
 
-    int64_t free_space_bytes() const;  // Needs to be async, make part of metadata?
-    int64_t used_space_bytes() const;  // Needs to be async, make part of metadata?
+    QFuture<int64_t> free_space_bytes() const;
+    QFuture<int64_t> used_space_bytes() const;
 
-    void get(std::string native_identity, std::function<void(Result)> result_callback) const;
+    QFuture<Item::UPtr> get(QString native_identity) const;
+
+    /**
+    \brief Returns the account for this item.
+    */
+    Account* account() const;
+
+    // TODO: Do we need a method to get lots of things?
 
 private:
     Root();
 };
 
 }  // namespace client
+
+}  // namespace qt
 
 }  // namespace storage
 

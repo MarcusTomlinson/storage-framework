@@ -5,12 +5,14 @@
 set(root_inc_dir ${CMAKE_SOURCE_DIR}/include)
 
 set(subdirs
-    unity/storage/client
+    unity/storage/qt/client
+    unity/storage/qt/client/internal
 )
 
+find_package(Qt5Core REQUIRED)
+set(extra_inc_dirs "${Qt5Core_INCLUDE_DIRS}")
+
 # TODO: commented out for now until we know what we need
-#find_package(Qt5Core REQUIRED)
-#set(extra_inc_dirs "${Qt5Core_INCLUDE_DIRS}")
 #find_package(Qt5Gui REQUIRED)
 #set(extra_inc_dirs "${extra_inc_dirs};${Qt5Gui_INCLUDE_DIRS}")
 #find_package(Qt5Network REQUIRED)

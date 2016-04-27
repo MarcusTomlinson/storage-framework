@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include <unity/storage/qt/client/Account.h>
 
 namespace unity
 {
@@ -8,10 +8,11 @@ namespace unity
 namespace storage
 {
 
-namespace client
+namespace qt
 {
 
-class AccountsResult;
+namespace client
+{
 
 class Runtime
 {
@@ -26,13 +27,15 @@ public:
 
     static UPtr create();
 
-    void get_accounts(std::function<void(AccountsResult const&)> accounts_callback);
+    QFuture<QVector<Account::UPtr>> get_accounts();
 
 private:
     Runtime();
 };
 
 }  // namespace client
+
+}  // namespace qt
 
 }  // namespace storage
 

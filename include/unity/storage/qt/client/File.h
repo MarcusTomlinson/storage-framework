@@ -1,13 +1,16 @@
 #pragma once
 
-#include <unity/storage/client/Downloader.h>
-#include <unity/storage/client/Item.h>
-#include <unity/storage/client/Uploader.h>
+#include <unity/storage/qt/client/Downloader.h>
+#include <unity/storage/qt/client/Item.h>
+#include <unity/storage/qt/client/Uploader.h>
 
 namespace unity
 {
 
 namespace storage
+{
+
+namespace qt
 {
 
 namespace client
@@ -41,18 +44,18 @@ public:
     /**
     \brief Creates an uploader for the file.
     \param policy The conflict resolution policy.
-    \param ready_callback The runtime calls ready_callback once the uploader is ready to accept data.
     */
-    void create_uploader(ConflictPolicy policy, std::function<void(Uploader::UPtr)> ready_callback);
+    QFuture<Uploader::UPtr> create_uploader(ConflictPolicy policy);
 
     /**
     \brief Creates a downloader for the file.
-    \param ready_callback The runtime calls ready_callback once the downloader is ready to deliver data.
     */
-    void create_downloader(std::function<void(Downloader::UPtr)> ready_callback);
+    QFuture<Downloader::UPtr> create_downloader();
 };
 
 }  // namespace client
+
+}  // namespace qt
 
 }  // namespace storage
 

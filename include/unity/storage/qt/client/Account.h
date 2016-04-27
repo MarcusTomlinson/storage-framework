@@ -1,7 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <vector>
+#include <unity/storage/qt/client/Root.h>
 
 namespace unity
 {
@@ -9,10 +8,11 @@ namespace unity
 namespace storage
 {
 
-namespace client
+namespace qt
 {
 
-class RootsResult;
+namespace client
+{
 
 /**
 \brief Class that represents an account.
@@ -29,21 +29,23 @@ public:
 
     typedef std::unique_ptr<Account> UPtr;
 
-    std::string owner() const;
-    std::string owner_id() const;
-    std::string description() const;
+    QString owner() const;
+    QString owner_id() const;
+    QString description() const;
 
-    // TODO: Will almost certainly need more here. Description? Other details?
+    // TODO: Will almost certainly need more here. Other details?
 
     /**
     \brief Returns the root directories for the account.
 
     An account can have more than one root directory (for providers that support the concept of multiple drives).
     */
-    void get_roots(std::function<void(RootsResult const&)> roots_callback) const;
+    QFuture<QVector<Root::UPtr>> get_roots() const;
 };
 
 }  // namespace client
+
+}  // namespace qt
 
 }  // namespace storage
 
