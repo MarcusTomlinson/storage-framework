@@ -9,20 +9,30 @@
 
 namespace unity
 {
-
 namespace storage
 {
-
 namespace qt
 {
-
 namespace client
 {
+
+namespace internal
+{
+
+class UploaderImpl;
+
+}  // namespace internal
 
 class Uploader
 {
 public:
+    /**
+    \brief Destroys the uploader.
+
+    The destructor implicitly calls cancel() if it has not been called already.
+    */
     ~Uploader();
+
     Uploader(Uploader const&) = delete;
     Uploader& operator=(Uploader const&) = delete;
     Uploader(Uploader&&);
@@ -43,6 +53,7 @@ public:
 
     After an error, the file is in an indeterminate state.
     \return A file descriptor open for writing.
+    \raises SomeException if fd() is called after a call to close() or cancel(). TODO
     */
     QFuture<int> fd() const;
 
@@ -65,13 +76,14 @@ public:
     QFuture<void> cancel();
 
 private:
-    Uploader();
+    Uploader(internal::UploaderImpl*);
+
+    std::unique_ptr<internal::UploaderImpl> p_;
+
+    friend class internal::UploaderImpl;
 };
 
 }  // namespace client
-
 }  // namespace qt
-
 }  // namespace storage
-
 }  // namespace unity

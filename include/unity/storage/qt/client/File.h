@@ -6,15 +6,19 @@
 
 namespace unity
 {
-
 namespace storage
 {
-
 namespace qt
 {
-
 namespace client
 {
+
+namespace internal
+{
+
+class FileImpl;
+
+}  // namespace internal
 
 enum class ConflictPolicy { error_if_conflict, overwrite };
 
@@ -23,7 +27,6 @@ enum class ConflictPolicy { error_if_conflict, overwrite };
 
 A file is a sequence of bytes.
 */
-
 class File : public Item
 {
 public:
@@ -51,12 +54,14 @@ public:
     \brief Creates a downloader for the file.
     */
     QFuture<Downloader::UPtr> create_downloader();
+
+private:
+    File(internal::FileImpl*);
+
+    friend class FileImpl;
 };
 
 }  // namespace client
-
 }  // namespace qt
-
 }  // namespace storage
-
 }  // namespace unity

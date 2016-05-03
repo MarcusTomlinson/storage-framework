@@ -6,7 +6,6 @@ set(root_inc_dir ${CMAKE_SOURCE_DIR}/include)
 
 set(subdirs
     unity/storage/qt/client
-    unity/storage/qt/client/internal
 )
 
 find_package(Qt5Core REQUIRED)

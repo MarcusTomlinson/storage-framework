@@ -4,20 +4,23 @@
 
 namespace unity
 {
-
 namespace storage
 {
-
 namespace qt
 {
-
 namespace client
 {
+
+namespace internal
+{
+
+class AccountImpl;
+
+}
 
 /**
 \brief Class that represents an account.
 */
-
 class Account
 {
 public:
@@ -41,12 +44,14 @@ public:
     An account can have more than one root directory (for providers that support the concept of multiple drives).
     */
     QFuture<QVector<Root::UPtr>> get_roots() const;
+
+private:
+    Account(internal::AccountImpl*);
+
+    std::unique_ptr<internal::AccountImpl> p_;
 };
 
 }  // namespace client
-
 }  // namespace qt
-
 }  // namespace storage
-
 }  // namespace unity

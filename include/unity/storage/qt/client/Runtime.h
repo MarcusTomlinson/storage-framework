@@ -7,17 +7,34 @@ namespace unity
 
 namespace storage
 {
-
 namespace qt
 {
-
 namespace client
 {
 
+namespace internal
+{
+
+class RuntimeImpl;
+
+}  // namespace internal
+
+/**
+TODO
+*/
 class Runtime
 {
 public:
+    /**
+    \brief Destroys the runtime.
+
+    The destructor implicitly calls shutdown().
+
+    \warning Do not invoke methods on any other part of the API once the runtime is destroyed;
+    doing so has undefined behavior.
+    */
     ~Runtime();
+
     Runtime(Runtime const&) = delete;
     Runtime& operator=(Runtime const&) = delete;
     Runtime(Runtime&&);
@@ -25,18 +42,32 @@ public:
 
     typedef std::unique_ptr<Runtime> UPtr;
 
+    /**
+    \brief Initializes the runtime.
+    */
     static UPtr create();
+
+    /**
+    \brief Shuts down the runtime.
+
+    This method shuts down the runtime. Calling shutdown() more than once is safe and does nothing.
+
+    The destructor implicitly calls shutdown(). This method is provide mainly to permit logging of any
+    errors that might arise during shut-down.
+    \throws Various exceptions, depending on the error. TODO
+    */
 
     QFuture<QVector<Account::UPtr>> get_accounts();
 
 private:
-    Runtime();
+    Runtime(internal::RuntimeImpl* p);
+
+    std::unique_ptr<internal::RuntimeImpl> p_;
+
+    friend class RuntimeImpl;
 };
 
 }  // namespace client
-
 }  // namespace qt
-
 }  // namespace storage
-
 }  // namespace unity

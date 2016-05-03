@@ -4,15 +4,19 @@
 
 namespace unity
 {
-
 namespace storage
 {
-
 namespace qt
 {
-
 namespace client
 {
+
+namespace internal
+{
+
+class DirectoryImpl;
+
+}  // namespace internal
 
 /**
 \brief Class that represents a directory.
@@ -20,7 +24,6 @@ namespace client
 A directory is an unordered set of files and/or directories. The names (as returned by Item::name())
 of the members of a directory are unique.
 */
-
 class Directory : public Item
 {
 public:
@@ -65,14 +68,13 @@ public:
     */
     QFuture<File::UPtr> create_file(QString const& name);
 
-private:
-    Directory();
+protected:
+    Directory(internal::DirectoryImpl*);
+
+    friend class DirectoryImpl;
 };
 
 }  // namespace client
-
 }  // namespace qt
-
 }  // namespace storage
-
 }  // namespace unity

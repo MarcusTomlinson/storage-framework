@@ -9,15 +9,19 @@
 
 namespace unity
 {
-
 namespace storage
 {
-
 namespace qt
 {
-
 namespace client
 {
+
+namespace internal
+{
+
+class DownloaderImpl;
+
+}  // namespace internal
 
 class Downloader
 {
@@ -25,7 +29,7 @@ public:
     /**
     \brief Destroys the downloader.
 
-    The destructor implicitly calls close() if it has not been called already.
+    The destructor implicitly calls cancel() if it has not been called already.
     */
     ~Downloader();
 
@@ -48,6 +52,7 @@ public:
     reads on the descriptor will fail as well.
 
     \return A file descriptor open for reading.
+    \raises SomeException if fd() is called after a call to close() or cancel(). TODO
     */
     QFuture<int> fd() const;
 
@@ -60,6 +65,7 @@ public:
     \warning Do not assume that a download completed successfully once you detect EOF on the file descriptor.
     If something goes wrong during a download on the server side, the file descriptor will return EOF
     for a partially-downloaded file.
+    \raises SomeException if close() is called while a download is in progress. TODO
     */
     QFuture<void> close();
 
@@ -74,13 +80,14 @@ public:
     QFuture<void> cancel();
 
 private:
-    Downloader();
+    Downloader(internal::DownloaderImpl*);
+
+    std::unique_ptr<internal::DownloaderImpl> p_;
+
+    friend class internal::DownloaderImpl;
 };
 
 }  // namespace client
-
 }  // namespace qt
-
 }  // namespace storage
-
 }  // namespace unity
