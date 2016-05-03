@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QDateTime>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
@@ -10,22 +11,25 @@
 
 namespace unity
 {
-
 namespace storage
 {
-
 namespace qt
 {
-
 namespace client
 {
 
 class Root;
 
+namespace internal
+{
+
+class ItemImpl;
+
+}
+
 /**
 \brief Base class for files and directories.
 */
-
 class Item
 {
 public:
@@ -49,6 +53,13 @@ public:
     may have changed it in some way (such as converting upper case characters to lower case).
     */
     QString name() const;
+
+    /**
+    \brief Returns the root directory for this item.
+
+    If this item is a root, the returned pointer points at this item.
+    */
+    Root* root() const;
 
     /**
     \brief Returns all names for this item.
@@ -81,26 +92,18 @@ public:
     QFuture<QString> mime_type() const;
 
     /**
-    \brief Returns the root directory for this item.
-
-    If this item is a root, the returned pointer points at this item.
-    */
-    Root* root() const;
-
-    /**
     \brief Permamently destroys the item.
     \warning Destroying a directory recursively destroys its contents.
     */
     QFuture<void> destroy();
 
 protected:
-    Item();
+    Item(internal::ItemImpl* p);
+
+    std::unique_ptr<internal::ItemImpl> p_;
 };
 
 }  // namespace client
-
 }  // namespace qt
-
 }  // namespace storage
-
 }  // namespace unity
