@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
+  <!--
+      com.canonical.StorageFramework.Provider:
+      @short_description: Interface providing access to a storage account
+
+      For methods dealing with metadata, the representation
+      "(ssssia{sv})" is used, where the struct members are:
+        - item_id
+        - parent_id
+        - title
+        - etag
+        - type (enum: file, folder, root)
+        - metadata
+  -->
+  <interface name="com.canonical.StorageFramework.Provider">
+    <!--
+        Roots:
+        @short_description: Get the list of roots for the storage account
+        @roots: Returned list of roots.
+
+        Returns the list of top level root items provided by the
+        storage account.  For providers that expose a single hierarchy
+        of files, this list will contain a single item.
+    -->
+    <method name="Roots">
+      <arg type="a(ssssia{sv})" name="roots" direction="out"/>
+    </method>
+
+    <!--
+        List:
+        @short_description: list the children of the given folder
+        @item_id: the ID identifying the folder
+        @page_token: if not empty, return the page of results identified by this token.
+        @children: returned list of children
+        @next_token: if not empty, a token that can be used to request more results.
+
+        Lists the contents of the folder identified by the given ID.
+        If the folder contains many children, a subset of results may
+        be returned together with a token that can be used in a
+        subsequent List call to request more results.
+    -->
+    <method name="List">
+      <arg type="s" name="item_id" direction="in"/>
+      <arg type="s" name="page_token" direction="in"/>
+      <arg type="a(ssssia{sv})" name="children" direction="out"/>
+      <arg type="s" name="next_token" direction="out"/>
+    </method>
+
+    <!--
+        Lookup:
+        @short_description: lookup a child in a folder by name
+        @parent_id: the ID of the parent folder
+        @name: the name of the child
+        @items: the matching items in the folder
+    -->
+    <method name="Lookup">
+      <arg type="s" name="parent_id" direction="in"/>
+      <arg type="s" name="name" direction="in"/>
+      <arg type="a(ssssia{sv})" name="items" direction="out"/>
+    </method>
+
+    <!--
+        Metadata:
+        @short_description: get metadata for an item
+        @item_id: the ID of the item
+        @metadata: the item metadata
+    -->
+    <method name="Metadata">
+      <arg type="s" name="item_id" direction="in"/>
+      <arg type="(ssssia{sv})" name="metadata" direction="out"/>
+    </method>
+
+    <!--
+        CreateFolder:
+        @short_description: create a new folder
+        @parent_id: the ID of the parent folder
+        @name: the name of the new folder
+        @metadata: the metadata for the new folder
+    -->
+    <method name="CreateFolder">
+      <arg type="s" name="parent_id" direction="in"/>
+      <arg type="s" name="name" direction="in"/>
+      <arg type="(ssssia{sv})" name="metadata" direction="out"/>
+    </method>
+
+    <!--
+        CreateFile:
+        @short_description: create a new file
+        @parent_id: the ID of the parent folder
+        @name: the name of the new file
+        @content_type: the content type of the new file
+        @allow_overwrite: if false, the file creation will fail if it
+        would overwrite an existing file.
+        @upload_id: the identifier for this upload job
+        @upload_fd: a file descriptor to write the file contents to
+
+        Begin the process of uploading a file.  To complete the
+        process, the application should write the file data to the
+        provided file descriptor, close it, and then call
+        CompleteUpload.
+    -->
+    <method name="CreateFile">
+      <arg type="s" name="parent_id" direction="in"/>
+      <arg type="s" name="name" direction="in"/>
+      <arg type="s" name="content_type" direction="in"/>
+      <arg type="b" name="allow_overwrite" direction="in"/>
+      <arg type="s" name="upload_id" direction="out"/>
+      <arg type="h" name="upload_fd" direction="out"/>
+    </method>
+
+    <!--
+        Update:
+        @short_description: update the contents of an existing file
+        @item_id: the ID of the file
+        @old_etag: if not empty, the expected etag of the old version
+        of the file.
+        @upload_id: the identifier for this upload job
+        @upload_fd: a file descriptor to write the file contents to
+
+        Begin the process of updating an existing file.  Like with
+        CreateFile, the application must write the file contents to
+        the provided file descriptor, close it, and call
+        CompleteUpload.
+
+        If old_etag is not empty, then the update will only succeed if
+        the current version of the file matches the given etag.  This
+        allows for lockless read-modify-update operations that detect
+        other writers.
+    -->
+    <method name="Update">
+      <arg type="s" name="item_id" direction="in"/>
+      <arg type="s" name="old_etag" direction="in"/>
+      <arg type="s" name="upload_id" direction="out"/>
+      <arg type="h" name="upload_fd" direction="out"/>
+    </method>
+
+    <!--
+        FinishUpload:
+        @short_description: finish a CreateFile or Update job
+        @upload_id: the identifier for this upload
+        @metadata: the metadata for the file after the upload
+        completes.
+
+        Finish off an upload job (whether it is creating a new file or
+        updating an existing one).  The application is expected to
+        have closed the file descriptor associated with its end of the
+        upload before calling this, and an error will be returned if
+        it remains open.
+    -->
+    <method name="FinishUpload">
+      <arg type="s" name="upload_id" direction="in"/>
+      <arg type="(ssssia{sv})" name="metadata" direction="out"/>
+    </method>
+
+    <!--
+        CancelUpload:
+        @short_description: cancel an in progress upload job.
+        @upload_id: the identifier for this upload
+
+        Cancel an in-progress upload job.  This will release any
+        resources allocated as part of the upload, and may also be
+        called while a CompleteUpload call is in progress (although it
+        might not have an effect).
+
+        If an application drops off the bus during an upload, the
+        storage provider will act as if an implicit CancelUpload
+        method call occurred.
+    -->
+    <method name="CancelUpload">
+      <arg type="s" name="upload_id" direction="in"/>
+    </method>
+
+    <!--
+        Download:
+        @short_description: download the contents of a file.
+        @item_id: the ID for the file
+        @download_id: an identifier for the download
+        @download_fd: a file descriptor used to read the contents
+
+        Start downloading the contents of a file.  The provided file
+        descriptor will be closed when the end of file is reached.
+        The application can check for errors in the download (e.g. if
+        the file was truncated) with the FinishDownload method.
+
+        The application can cancel the download by closing the file
+        descriptor early.
+    -->
+    <method name="Download">
+      <arg type="s" name="item_id" direction="in"/>
+      <arg type="s" name="download_id" direction="out"/>
+      <arg type="h" name="download_fd" direction="out"/>
+    </method>
+
+    <!--
+        FinishDownload:
+        @short_description: Finish a download and check for errors
+        @download_id: the identifier for the download
+    -->
+    <method name="FinishDownload">
+      <arg type="s" name="download_id" direction="in"/>
+    </method>
+
+    <!--
+        Delete:
+        @short_description: delete an item from storage
+        @item_id: the ID for the item
+
+        Delete an item from storage.  If the item is a folder, then
+        all children will be deleted too.
+    -->
+    <method name="Delete">
+      <arg type="s" name="item_id" direction="in"/>
+    </method>
+
+    <!--
+        Move:
+        @short_description: move an item to a new location
+        @item_id: the ID for the item
+        @new_parent_id: the ID for the new parent folder
+        @new_name: the new name for the item
+        @metadata: the metadata for the file in the new location
+    -->
+    <method name="Move">
+      <arg type="s" name="item_id" direction="in"/>
+      <arg type="s" name="new_parent_id" direction="in"/>
+      <arg type="s" name="new_name" direction="in"/>
+      <arg type="(ssssia{sv})" name="metadata" direction="out"/>
+    </method>
+
+    <!--
+        Copy:
+        @short_description: copy an item to a new location
+        @item_id: the ID for the item
+        @new_parent_id: the ID for the new parent folder
+        @new_name: the new name for the item
+        @metadata: the metadata for the file in the new location
+    -->
+    <method name="Copy">
+      <arg type="s" name="item_id" direction="in"/>
+      <arg type="s" name="new_parent_id" direction="in"/>
+      <arg type="s" name="new_name" direction="in"/>
+      <arg type="(ssssia{sv})" name="metadata" direction="out"/>
+    </method>
+
+  </interface>
+</node>
