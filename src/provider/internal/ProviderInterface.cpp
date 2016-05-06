@@ -1,11 +1,14 @@
 #include <unity/storage/provider/internal/ProviderInterface.h>
 
+using namespace std;
+
 namespace unity {
 namespace storage {
 namespace provider {
 namespace internal {
 
-ProviderInterface::ProviderInterface(QObject *parent) : QObject(parent)
+ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, QObject *parent)
+    : QObject(parent), provider(provider)
 {
 }
 

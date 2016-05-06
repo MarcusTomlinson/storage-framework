@@ -1,19 +1,32 @@
 
+#include <unity/storage/provider/ProviderBase.h>
+
 #include <QObject>
 #include <QList>
+#include <QDBusContext>
+#include <QDBusUnixFileDescriptor>
 
-namespace unity {
-namespace storage {
-namespace provider {
-namespace internal {
+#include <memory>
 
-struct ItemMetadata {
+namespace unity
+{
+namespace storage
+{
+namespace provider
+{
+namespace internal
+{
+
+struct ItemMetadata
+{
 };
 
-class ProviderInterface : public QObject{
+class ProviderInterface : public QObject, private QDBusContext
+{
     Q_OBJECT
 
-    explicit ProviderInterface(QObject *parent=nullptr);
+public:
+    ProviderInterface(std::shared_ptr<ProviderBase> const& provider, QObject *parent=nullptr);
     ~ProviderInterface();
 
 public Q_SLOTS:
@@ -32,6 +45,9 @@ public Q_SLOTS:
     void Delete(const QString &item_id);
     ItemMetadata Move(const QString &item_id, const QString &new_parent_id, const QString &new_name);
     ItemMetadata Copy(const QString &item_id, const QString &new_parent_id, const QString &new_name);
+
+private:
+    std::shared_ptr<ProviderBase> provider;
 };
 
 }
