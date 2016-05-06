@@ -1,4 +1,3 @@
-#define BOOST_THREAD_VERSION 4
 #include <boost/thread/future.hpp>
 
 #include <QObject>
@@ -24,11 +23,13 @@ class Handler : public QObject
 {
     Q_OBJECT
 public:
-    typedef std::function<boost::future<QDBusMessage>(ProviderBase *const, QDBusConnection const&, QDBusMessage const&)> Callback;
+    typedef std::function<boost::future<QDBusMessage>(ProviderBase *const, QDBusMessage const&)> Callback;
 
     Handler(std::shared_ptr<ProviderBase> const& provider,
             Callback const& callback,
             QDBusConnection const& bus, QDBusMessage const& message);
+
+    void begin();
 
 private Q_SLOTS:
     void send_reply();

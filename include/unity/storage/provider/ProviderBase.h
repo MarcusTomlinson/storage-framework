@@ -1,4 +1,3 @@
-#define BOOST_THREAD_VERSION 4
 #include <boost/thread/future.hpp>
 
 #include <string>
@@ -19,7 +18,7 @@ enum class ItemType
     root,
 };
 
-struct ItemMetadata
+struct Item
 {
     std::string item_id;
     std::string parent_id;
@@ -35,7 +34,7 @@ public:
     ProviderBase();
     virtual ~ProviderBase();
 
-    virtual boost::future<std::vector<ItemMetadata>> roots() = 0;
+    virtual boost::future<std::vector<Item>> roots() = 0;
 };
 
 }

@@ -1,4 +1,7 @@
 #include <unity/storage/provider/internal/ProviderInterface.h>
+#include <unity/storage/provider/internal/dbusmarshal.h>
+
+#include <QDebug>
 
 using namespace std;
 
@@ -8,14 +11,51 @@ namespace provider {
 namespace internal {
 
 ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, QObject *parent)
-    : QObject(parent), provider(provider)
+    : QObject(parent), provider_(provider)
 {
 }
 
 ProviderInterface::~ProviderInterface() = default;
 
+void ProviderInterface::queueRequest(Handler::Callback callback)
+{
+    unique_ptr<Handler> handler(new Handler(provider_, callback,
+                                            connection(), message()));
+    connect(handler.get(), &Handler::finished, this, &ProviderInterface::requestFinished);
+    setDelayedReply(true);
+    handler->begin();
+    requests_.emplace(handler.get(), std::move(handler));
+}
+
+void ProviderInterface::requestFinished()
+{
+    Handler* handler = static_cast<Handler*>(sender());
+    try
+    {
+        auto& h = requests_.at(handler);
+        h.release();
+        requests_.erase(handler);
+    }
+    // LCOV_EXCL_START
+    catch (std::out_of_range const& e)
+    {
+        qWarning() << "finished() called on unknown handler" << handler;
+    }
+    // LCOV_EXCL_STOP
+
+    // Queue deletion of handler once we re-enter the event loop.
+    handler->deleteLater();
+}
+
 QList<ItemMetadata> ProviderInterface::Roots()
 {
+    queueRequest([](ProviderBase* provider, QDBusMessage const& message) {
+            auto f = provider->roots();
+            return f.then([=](decltype(f) f) -> QDBusMessage{
+                    auto roots = f.get();
+                    return message.createReply(marshal_item_list(roots));
+                });
+        });
     return {};
 }
 

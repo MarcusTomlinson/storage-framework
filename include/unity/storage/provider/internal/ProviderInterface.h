@@ -1,11 +1,13 @@
 
 #include <unity/storage/provider/ProviderBase.h>
+#include <unity/storage/provider/internal/Handler.h>
 
 #include <QObject>
 #include <QList>
 #include <QDBusContext>
 #include <QDBusUnixFileDescriptor>
 
+#include <map>
 #include <memory>
 
 namespace unity
@@ -46,8 +48,14 @@ public Q_SLOTS:
     ItemMetadata Move(const QString &item_id, const QString &new_parent_id, const QString &new_name);
     ItemMetadata Copy(const QString &item_id, const QString &new_parent_id, const QString &new_name);
 
+private Q_SLOTS:
+    void requestFinished();
+
 private:
-    std::shared_ptr<ProviderBase> provider;
+    void queueRequest(Handler::Callback callback);
+
+    std::shared_ptr<ProviderBase> provider_;
+    std::map<Handler*, std::unique_ptr<Handler>> requests_;
 };
 
 }

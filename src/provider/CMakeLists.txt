@@ -1,7 +1,7 @@
 
 find_package(Qt5DBus REQUIRED)
 find_package(Boost COMPONENTS thread REQUIRED)
-
+add_definitions(-DBOOST_THREAD_VERSION=4)
 
 qt5_add_dbus_adaptor(generated_files ${CMAKE_SOURCE_DIR}/data/provider.xml unity/storage/provider/internal/ProviderInterface.h unity::storage::provider::internal::ProviderInterface)
 
@@ -11,6 +11,7 @@ qt5_add_dbus_interface(generated_files bus.xml businterface)
 add_library(storage-framework-provider SHARED
   internal/ProviderInterface.cpp
   internal/Handler.cpp
+  internal/dbusmarshal.cpp
   ${generated_files})
 
 set_target_properties(storage-framework-provider PROPERTIES AUTOMOC TRUE)

@@ -19,8 +19,12 @@ Handler::Handler(shared_ptr<ProviderBase> const& provider,
                  QDBusConnection const& bus, QDBusMessage const& message)
     : provider_(provider), callback_(callback), bus_(bus), message_(message)
 {
+}
+
+void Handler::begin()
+{
     // Need to put security check in here.
-    auto f = callback_(provider.get(), bus_, message_);
+    auto f = callback_(provider_.get(), message_);
     future_ = f.then([this](boost::future<QDBusMessage> f) {
             try
             {
@@ -36,7 +40,8 @@ Handler::Handler(shared_ptr<ProviderBase> const& provider,
         });
 }
 
-void Handler::send_reply() {
+void Handler::send_reply()
+{
     bus_.send(reply_);
     Q_EMIT finished();
 }
