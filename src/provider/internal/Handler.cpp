@@ -5,6 +5,11 @@
 
 using namespace std;
 
+namespace
+{
+char const ERROR[] = "com.canonical.StorageFramework.Provider.Error";
+}
+
 namespace unity
 {
 namespace storage
@@ -32,7 +37,7 @@ void Handler::begin()
             }
             catch (std::exception const& e)
             {
-                reply_ = message_.createErrorReply("xyz", e.what());
+                reply_ = message_.createErrorReply(ERROR, e.what());
             }
             // queue the call to send_reply so it happens in the event
             // loop thread.
