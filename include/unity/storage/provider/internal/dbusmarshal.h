@@ -14,14 +14,11 @@ namespace provider
 struct Item;
 
 QDBusArgument& operator<<(QDBusArgument& argument, Item const& item);
+QDBusArgument const& operator>>(QDBusArgument const& argument, Item& item);
 
-namespace internal
-{
+QDBusArgument& operator<<(QDBusArgument& argument, std::vector<Item> const& items);
+QDBusArgument const& operator>>(QDBusArgument const& argument, std::vector<Item>& items);
 
-QVariant marshal_item(Item const& item);
-QVariant marshal_item_list(std::vector<Item> const& list);
-
-}
 }
 }
 }

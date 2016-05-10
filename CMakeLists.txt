@@ -86,6 +86,7 @@ include_directories(include)
 
 add_subdirectory(src)
 add_subdirectory(tests)
+add_subdirectory(demo)
 
 enable_coverage_report(
     TARGETS

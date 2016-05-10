@@ -53,7 +53,7 @@ QList<ItemMetadata> ProviderInterface::Roots()
             auto f = provider->roots();
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto roots = f.get();
-                    return message.createReply(marshal_item_list(roots));
+                    return message.createReply(QVariant::fromValue(roots));
                 });
         });
     return {};
@@ -68,7 +68,7 @@ QList<ItemMetadata> ProviderInterface::List(const QString &item_id, const QStrin
                     string next_token;
                     tie(children, next_token) = f.get();
                     return message.createReply({
-                            marshal_item_list(children),
+                            QVariant::fromValue(children),
                             QVariant(QString::fromStdString(next_token)),
                         });
                 });
@@ -82,7 +82,7 @@ QList<ItemMetadata> ProviderInterface::Lookup(const QString &parent_id, const QS
             auto f = provider->lookup(parent_id.toStdString(), name.toStdString());
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto items = f.get();
-                    return message.createReply(marshal_item_list(items));
+                    return message.createReply(QVariant::fromValue(items));
                 });
         });
     return {};
@@ -94,7 +94,7 @@ ItemMetadata ProviderInterface::Metadata(const QString &item_id)
             auto f = provider->metadata(item_id.toStdString());
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
-                    return message.createReply(marshal_item(item));
+                    return message.createReply(QVariant::fromValue(item));
                 });
         });
     return {};

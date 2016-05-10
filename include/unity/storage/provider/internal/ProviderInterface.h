@@ -24,7 +24,7 @@ struct ItemMetadata
 {
 };
 
-class ProviderInterface : public QObject, private QDBusContext
+class ProviderInterface : public QObject, protected QDBusContext
 {
     Q_OBJECT
 

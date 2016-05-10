@@ -20,7 +20,7 @@ enum class ItemType
     root,
 };
 
-struct Item
+struct __attribute__((visibility("default"))) Item
 {
     std::string item_id;
     std::string parent_id;
@@ -31,7 +31,8 @@ struct Item
     std::map<std::string,std::string> metadata;
 };
 
-class ProviderBase {
+class __attribute__((visibility("default"))) ProviderBase
+{
 public:
     ProviderBase();
     virtual ~ProviderBase();

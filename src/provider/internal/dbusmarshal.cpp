@@ -2,6 +2,7 @@
 #include <unity/storage/provider/ProviderBase.h>
 
 #include <cstdint>
+#include <stdexcept>
 
 using namespace std;
 
@@ -32,29 +33,27 @@ QDBusArgument& operator<<(QDBusArgument& argument, Item const& item)
     return argument;
 }
 
-namespace internal
+QDBusArgument const& operator>>(QDBusArgument const& argument, Item& item)
 {
-
-QVariant marshal_item(Item const& item)
-{
-    QDBusArgument argument;
-    argument << item;
-    return argument.asVariant();
+    throw std::runtime_error("Item decode not implemented");
 }
 
-QVariant marshal_item_list(std::vector<Item> const& list)
+QDBusArgument& operator<<(QDBusArgument& argument, std::vector<Item> const& items)
 {
-    QDBusArgument argument;
     argument.beginArray(qMetaTypeId<Item>());
-    for (auto const& item : list)
+    for (auto const& item : items)
     {
         argument << item;
     }
     argument.endArray();
-    return argument.asVariant();
+    return argument;
 }
 
+QDBusArgument const& operator>>(QDBusArgument const& argument, std::vector<Item>& items)
+{
+    throw std::runtime_error("std::vector<Item> decode not implemented");
 }
+
 }
 }
 }

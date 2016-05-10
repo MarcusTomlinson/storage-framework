@@ -18,7 +18,8 @@ class ProviderInterface;
 
 class ProviderBase;
 
-class ServerBase {
+class __attribute__((visibility("default"))) ServerBase
+{
 public:
     ServerBase();
     virtual ~ServerBase();
@@ -34,7 +35,8 @@ private:
 };
 
 template <typename T>
-class Server : public ServerBase {
+class Server : public ServerBase
+{
 public:
     using ServerBase::ServerBase;
 protected:

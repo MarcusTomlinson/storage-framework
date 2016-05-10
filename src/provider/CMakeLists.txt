@@ -14,6 +14,8 @@ add_library(storage-framework-provider SHARED
   internal/ProviderInterface.cpp
   internal/Handler.cpp
   internal/dbusmarshal.cpp
+  ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/ProviderInterface.h
+  ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/Handler.h
   ${generated_files})
 
 set_target_properties(storage-framework-provider PROPERTIES AUTOMOC TRUE)

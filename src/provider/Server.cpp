@@ -1,6 +1,7 @@
 #include <unity/storage/provider/Server.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/internal/ProviderInterface.h>
+#include <unity/storage/provider/internal/dbusmarshal.h>
 #include "provideradaptor.h"
 
 #include <QCoreApplication>
@@ -28,11 +29,13 @@ void ServerBase::init(int& argc, char** argv)
     // this instance is managed by Qt's parent/child memory management
     new ProviderAdaptor(interface.get());
 
+    qDBusRegisterMetaType<Item>();
+    qDBusRegisterMetaType<std::vector<Item>>();
     auto bus = QDBusConnection::sessionBus();
     bus.registerObject("/provider", interface.get());
 
     // TODO: claim bus name
-    qDebug() << "Bus unique name:" << bus.name();
+    qDebug() << "Bus unique name:" << bus.baseService();
 }
 
 void ServerBase::run()
