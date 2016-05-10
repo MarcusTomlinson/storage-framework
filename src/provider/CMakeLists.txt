@@ -9,6 +9,8 @@ set_source_files_properties(bus.xml PROPERTIES CLASSNAME BusInterface)
 qt5_add_dbus_interface(generated_files bus.xml businterface)
 
 add_library(storage-framework-provider SHARED
+  ProviderBase.cpp
+  Server.cpp
   internal/ProviderInterface.cpp
   internal/Handler.cpp
   internal/dbusmarshal.cpp

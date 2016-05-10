@@ -51,7 +51,7 @@ QList<ItemMetadata> ProviderInterface::Roots()
 {
     queueRequest([](ProviderBase* provider, QDBusMessage const& message) {
             auto f = provider->roots();
-            return f.then([=](decltype(f) f) -> QDBusMessage{
+            return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto roots = f.get();
                     return message.createReply(marshal_item_list(roots));
                 });
@@ -61,16 +61,42 @@ QList<ItemMetadata> ProviderInterface::Roots()
 
 QList<ItemMetadata> ProviderInterface::List(const QString &item_id, const QString &page_token, QString &next_token)
 {
+    queueRequest([item_id, page_token](ProviderBase* provider, QDBusMessage const& message) {
+            auto f = provider->list(item_id.toStdString(), page_token.toStdString());
+            return f.then([=](decltype(f) f) -> QDBusMessage {
+                    vector<Item> children;
+                    string next_token;
+                    tie(children, next_token) = f.get();
+                    return message.createReply({
+                            marshal_item_list(children),
+                            QVariant(QString::fromStdString(next_token)),
+                        });
+                });
+        });
     return {};
 }
 
 QList<ItemMetadata> ProviderInterface::Lookup(const QString &parent_id, const QString &name)
 {
+    queueRequest([parent_id, name](ProviderBase* provider, QDBusMessage const& message) {
+            auto f = provider->lookup(parent_id.toStdString(), name.toStdString());
+            return f.then([=](decltype(f) f) -> QDBusMessage {
+                    auto items = f.get();
+                    return message.createReply(marshal_item_list(items));
+                });
+        });
     return {};
 }
 
 ItemMetadata ProviderInterface::Metadata(const QString &item_id)
 {
+    queueRequest([item_id](ProviderBase* provider, QDBusMessage const& message) {
+            auto f = provider->metadata(item_id.toStdString());
+            return f.then([=](decltype(f) f) -> QDBusMessage {
+                    auto item = f.get();
+                    return message.createReply(marshal_item(item));
+                });
+        });
     return {};
 }
 
@@ -91,6 +117,7 @@ QString ProviderInterface::Update(const QString &item_id, const QString &old_eta
 
 ItemMetadata ProviderInterface::FinishUpload(const QString &upload_id)
 {
+    return {};
 }
 
 void ProviderInterface::CancelUpload(const QString &upload_id)

@@ -1,3 +1,4 @@
+#pragma once
 
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/internal/Handler.h>
