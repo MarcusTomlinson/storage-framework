@@ -104,7 +104,7 @@
         Begin the process of uploading a file.  To complete the
         process, the application should write the file data to the
         provided file descriptor, close it, and then call
-        CompleteUpload.
+        FinishUpload.
     -->
     <method name="CreateFile">
       <arg type="s" name="parent_id" direction="in"/>
@@ -127,7 +127,7 @@
         Begin the process of updating an existing file.  Like with
         CreateFile, the application must write the file contents to
         the provided file descriptor, close it, and call
-        CompleteUpload.
+        FinishUpload.
 
         If old_etag is not empty, then the update will only succeed if
         the current version of the file matches the given etag.  This
@@ -167,7 +167,7 @@
 
         Cancel an in-progress upload job.  This will release any
         resources allocated as part of the upload, and may also be
-        called while a CompleteUpload call is in progress (although it
+        called while a FinishUpload call is in progress (although it
         might not have an effect).
 
         If an application drops off the bus during an upload, the
