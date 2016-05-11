@@ -18,14 +18,14 @@ int64_t FileImpl::size() const
     return 0;
 }
 
-QFuture<Uploader::UPtr> FileImpl::create_uploader(ConflictPolicy policy)
+QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
 {
-    return QFuture<Uploader::UPtr>();
+    return QFuture<shared_ptr<Uploader>>();
 }
 
-QFuture<Downloader::UPtr> FileImpl::create_downloader()
+QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
 {
-    return QFuture<Downloader::UPtr>();
+    return QFuture<shared_ptr<Downloader>>();
 }
 
 }  // namespace internal

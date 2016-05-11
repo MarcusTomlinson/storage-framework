@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unity/storage/qt/client/Directory.h>
+#include <unity/storage/qt/client/Folder.h>
 
 namespace unity
 {
@@ -11,19 +11,21 @@ namespace qt
 namespace client
 {
 
+class Account;
+class Item;
+
 namespace internal
 {
 
+class AccountImpl;
 class RootImpl;
 
 }
 
-class Account;
-
 /**
 \brief Class that represents a root directory.
 */
-class Root : public Directory
+class Root : public Folder
 {
 public:
     ~Root();
@@ -32,7 +34,7 @@ public:
     Root(Root&&);
     Root& operator=(Root&&);
 
-    typedef std::unique_ptr<Root> UPtr;
+    typedef std::shared_ptr<Root> SPtr;
 
     /**
     \brief Returns the account for this item.
@@ -42,7 +44,7 @@ public:
     QFuture<int64_t> free_space_bytes() const;
     QFuture<int64_t> used_space_bytes() const;
 
-    QFuture<Item::UPtr> get(QString native_identity) const;
+    QFuture<Item::SPtr> get(QString native_identity) const;
 
     // TODO: Do we need a method to get lots of things?
 
@@ -51,7 +53,7 @@ private:
 
     std::unique_ptr<internal::RootImpl> p_;
 
-    friend class internal::RootImpl;
+    friend class internal::AccountImpl;
 };
 
 }  // namespace client

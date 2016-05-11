@@ -16,22 +16,22 @@ namespace internal
 
 QString AccountImpl::owner() const
 {
-    return "";
+    return owner_;
 }
 
 QString AccountImpl::owner_id() const
 {
-    return "";
+    return owner_id_;
 }
 
 QString AccountImpl::description() const
 {
-    return "";
+    return description_;
 }
 
-QFuture<QVector<Root::UPtr>> AccountImpl::get_roots() const
+QFuture<QVector<shared_ptr<Root>>> AccountImpl::get_roots()
 {
-    return QFuture<QVector<Root::UPtr>>();
+    return QFuture<QVector<shared_ptr<Root>>>();
 }
 
 }  // namespace internal

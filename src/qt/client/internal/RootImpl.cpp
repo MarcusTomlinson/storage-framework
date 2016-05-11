@@ -28,9 +28,9 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
     return QFuture<int64_t>();
 }
 
-QFuture<Item::UPtr> RootImpl::get(QString native_identity) const
+QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 {
-    return QFuture<Item::UPtr>();
+    return QFuture<Item::SPtr>();
 }
 
 }  // namespace internal

@@ -39,7 +39,7 @@ public:
     Item(Item&&);
     Item& operator=(Item&&);
 
-    typedef std::unique_ptr<Item> UPtr;
+    typedef std::shared_ptr<Item> SPtr;
 
     /**
     \brief Returns the native identifier used by the provider.
@@ -68,7 +68,7 @@ public:
     within the same directory more than once.
     \return Returns all known names for this item within its parent directory, in no particular order.
     */
-    QVector<QString> all_names() const;
+    QFuture<QVector<QString>> all_names() const;
 
     /**
     \brief Returns metadata for the item.
@@ -77,7 +77,7 @@ public:
     for generic applications that must work with arbitrary backends.
     TODO: Needs a lot more doc. Should we provide this method at all?
     */
-    QFuture<QVariantMap> get_metadata() const;
+    QFuture<QVariantMap> metadata() const;
 
     /**
     \brief Returns the time at which the item was last modified.

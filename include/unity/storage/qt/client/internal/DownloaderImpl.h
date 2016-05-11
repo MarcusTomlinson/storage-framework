@@ -5,6 +5,10 @@
 #include <QFuture>
 #pragma GCC diagnostic pop
 
+#include <memory>
+
+class QLocalSocket;
+
 namespace unity
 {
 namespace storage
@@ -13,20 +17,32 @@ namespace qt
 {
 namespace client
 {
+
+class File;
+
 namespace internal
 {
 
 class DownloaderImpl
 {
 public:
-    DownloaderImpl() = default;
-    ~DownloaderImpl() = default;
+    DownloaderImpl(std::weak_ptr<File> file);
+    ~DownloaderImpl();
     DownloaderImpl(DownloaderImpl const&) = delete;
     DownloaderImpl& operator=(DownloaderImpl const&) = delete;
 
-    QFuture<int> fd() const;
+    std::shared_ptr<File> file() const;
+    QFuture<std::shared_ptr<QLocalSocket>> socket() const;
     QFuture<void> close();
     QFuture<void> cancel();
+
+private:
+    enum State { uninitialized, connected, finalized };
+
+    State state_ = uninitialized;
+    std::shared_ptr<File> file_;
+    std::shared_ptr<QLocalSocket> read_socket_;
+    std::shared_ptr<QLocalSocket> write_socket_;
 };
 
 }  // namespace internal

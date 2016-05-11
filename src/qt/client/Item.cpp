@@ -38,12 +38,12 @@ Root* Item::root() const
     return p_->root();
 }
 
-QVector<QString> Item::all_names() const
+QFuture<QVector<QString>> Item::all_names() const
 {
     return p_->all_names();
 }
 
-QFuture<QVariantMap> Item::get_metadata() const
+QFuture<QVariantMap> Item::metadata() const
 {
     return p_->get_metadata();
 }

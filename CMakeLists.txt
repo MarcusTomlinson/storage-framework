@@ -16,6 +16,11 @@ if (${IS_BUILD_TYPE_ACCEPTED} EQUAL -1)
     message(FATAL_ERROR "Invalid CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}\nValid types are: ${ACCEPTED_BUILD_TYPES}")
 endif()
 
+# Ensure that generated files can be linked with.
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+include_directories(include)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -Wall -pedantic -Wextra -fvisibility=hidden")
 
 # Some additional warnings not included by the general flags set above.
@@ -79,7 +84,13 @@ enable_testing()
 
 include(EnableCoverageReport)
 
-include_directories(include)
+find_package(Boost COMPONENTS filesystem thread REQUIRED)
+find_package(Qt5Core REQUIRED)
+find_package(Qt5Network REQUIRED)
+
+include(FindPkgConfig)
+pkg_check_modules(GLIB_DEPS REQUIRED glib-2.0)
+pkg_check_modules(GIO_DEPS REQUIRED gio-2.0 gio-unix-2.0)
 
 add_subdirectory(src)
 add_subdirectory(tests)

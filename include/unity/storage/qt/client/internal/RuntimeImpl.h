@@ -1,9 +1,9 @@
 #pragma once
 
-#include <unity/storage/qt/client/Account.h>
-
 #include <QFuture>
 #include <QVector>
+
+#include <memory>
 
 namespace unity
 {
@@ -13,6 +13,10 @@ namespace qt
 {
 namespace client
 {
+
+class Account;
+class Runtime;
+
 namespace internal
 {
 
@@ -24,7 +28,13 @@ public:
     RuntimeImpl(RuntimeImpl const&) = delete;
     RuntimeImpl& operator=(RuntimeImpl const&) = delete;
 
-    QFuture<QVector<Account::UPtr>> get_accounts();
+    QFuture<QVector<std::shared_ptr<Account>>> get_accounts();
+
+    void set_public_instance(std::weak_ptr<Runtime> p);
+
+private:
+    bool destroyed_ = false;
+    std::weak_ptr<Runtime> public_instance_;
 };
 
 }  // namespace internal

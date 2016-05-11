@@ -6,18 +6,12 @@ set(root_inc_dir ${CMAKE_SOURCE_DIR}/include)
 
 set(subdirs
     unity/storage/qt/client
+    unity/storage/common
 )
 
-find_package(Qt5Core REQUIRED)
 set(extra_inc_dirs "${Qt5Core_INCLUDE_DIRS}")
-
-# TODO: commented out for now until we know what we need
-#find_package(Qt5Gui REQUIRED)
-#set(extra_inc_dirs "${extra_inc_dirs};${Qt5Gui_INCLUDE_DIRS}")
-#find_package(Qt5Network REQUIRED)
-#set(extra_inc_dirs "${extra_inc_dirs};${Qt5Network_INCLUDE_DIRS}")
-#pkg_check_modules(GLIB REQUIRED glib-2.0)
-#set(extra_inc_dirs "${extra_inc_dirs};${GLIB_INCLUDE_DIRS}")
+set(extra_inc_dirs "${extra_inc_dirs};${Qt5Network_INCLUDE_DIRS}")
+set(extra_inc_dirs "${extra_inc_dirs};${GIO_DEPS_INCLUDE_DIRS}")
 
 # Replace ; with -I as the include directories are separated by ";"
 string(REPLACE ";" " -I/" extra_inc_dirs "${extra_inc_dirs}")

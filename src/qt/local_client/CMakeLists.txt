@@ -9,8 +9,8 @@ set(src
     ${CMAKE_CURRENT_SOURCE_DIR}/UploaderImpl.cpp
 )
 
-set(QT_CLIENT_INTERNAL_LIB_SRC ${QT_CLIENT_INTERNAL_LIB_SRC} ${src})
+include_directories(${GLIB_DEPS_INCLUDE_DIRS})
 
-add_library(storage-framework-qt-client-internal SHARED ${src})
-qt5_use_modules(storage-framework-qt-client-internal Core Network)
-target_link_libraries(storage-framework-qt-client-internal Qt5::Core Qt5::Network)
+add_library(storage-framework-qt-local-client-internal SHARED ${src})
+qt5_use_modules(storage-framework-qt-local-client-internal Core Network)
+target_link_libraries(storage-framework-qt-local-client-internal Qt5::Core Qt5::Network)

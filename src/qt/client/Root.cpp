@@ -14,7 +14,7 @@ namespace client
 using namespace internal;
 
 Root::Root(RootImpl* p)
-    : Directory(p)
+    : Folder(p)
 {
 }
 
@@ -35,7 +35,7 @@ QFuture<int64_t> Root::used_space_bytes() const
     return static_cast<RootImpl*>(p_.get())->used_space_bytes();
 }
 
-QFuture<Item::UPtr> Root::get(QString native_identity) const
+QFuture<Item::SPtr> Root::get(QString native_identity) const
 {
     return static_cast<RootImpl*>(p_.get())->get(native_identity);
 }

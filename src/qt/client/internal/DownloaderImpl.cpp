@@ -16,9 +16,9 @@ namespace client
 namespace internal
 {
 
-QFuture<int> DownloaderImpl::fd() const
+QFuture<shared_ptr<QLocalSocket>> DownloaderImpl::socket() const
 {
-    return QFuture<int>();
+    return QFuture<shared_ptr<QLocalSocket>>();
 }
 
 QFuture<void> DownloaderImpl::close()

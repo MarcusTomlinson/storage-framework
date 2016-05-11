@@ -1,6 +1,11 @@
 #pragma once
 
-#include <unity/storage/qt/client/Account.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#include <QFuture>
+#pragma GCC diagnostic pop
+
+#include <memory>
 
 namespace unity
 {
@@ -11,6 +16,8 @@ namespace qt
 {
 namespace client
 {
+
+class Account;
 
 namespace internal
 {
@@ -40,12 +47,12 @@ public:
     Runtime(Runtime&&);
     Runtime& operator=(Runtime&&);
 
-    typedef std::unique_ptr<Runtime> UPtr;
+    typedef std::shared_ptr<Runtime> SPtr;
 
     /**
     \brief Initializes the runtime.
     */
-    static UPtr create();
+    static SPtr create();
 
     /**
     \brief Shuts down the runtime.
@@ -56,8 +63,9 @@ public:
     errors that might arise during shut-down.
     \throws Various exceptions, depending on the error. TODO
     */
+    void shutdown();
 
-    QFuture<QVector<Account::UPtr>> get_accounts();
+    QFuture<QVector<std::shared_ptr<Account>>> accounts();
 
 private:
     Runtime(internal::RuntimeImpl* p);

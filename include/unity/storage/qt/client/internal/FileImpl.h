@@ -1,9 +1,7 @@
 #pragma once
 
-#include <unity/storage/qt/client/Downloader.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/ItemImpl.h>
-#include <unity/storage/qt/client/Uploader.h>
 
 namespace unity
 {
@@ -24,9 +22,11 @@ public:
     FileImpl(FileImpl const&) = delete;
     FileImpl& operator=(FileImpl const&) = delete;
 
+    virtual QFuture<void> destroy() override;
+
     int64_t size() const;
-    QFuture<Uploader::UPtr> create_uploader(ConflictPolicy policy);
-    QFuture<Downloader::UPtr> create_downloader();
+    QFuture<std::shared_ptr<Uploader>> create_uploader(ConflictPolicy policy);
+    QFuture<std::shared_ptr<Downloader>> create_downloader();
 };
 
 }  // namespace internal
