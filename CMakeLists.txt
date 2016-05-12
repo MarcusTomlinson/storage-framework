@@ -82,6 +82,14 @@ enable_testing()
 
 include(EnableCoverageReport)
 
+find_package(Qt5Core REQUIRED)
+find_package(Qt5DBus REQUIRED)
+find_package(Boost COMPONENTS thread REQUIRED)
+
+include(FindPkgConfig)
+pkg_check_modules(APPARMOR_DEPS REQUIRED libapparmor)
+
+add_definitions(-DQT_NO_KEYWORDS)
 include_directories(include)
 
 add_subdirectory(src)
