@@ -99,7 +99,7 @@
         @allow_overwrite: if false, the file creation will fail if it
         would overwrite an existing file.
         @upload_id: the identifier for this upload job
-        @upload_fd: a file descriptor to write the file contents to
+        @file_descriptor: a file descriptor to write the file contents to
 
         Begin the process of uploading a file.  To complete the
         process, the application should write the file data to the
@@ -112,7 +112,7 @@
       <arg type="s" name="content_type" direction="in"/>
       <arg type="b" name="allow_overwrite" direction="in"/>
       <arg type="s" name="upload_id" direction="out"/>
-      <arg type="h" name="upload_fd" direction="out"/>
+      <arg type="h" name="file_descriptor" direction="out"/>
     </method>
 
     <!--
@@ -122,7 +122,7 @@
         @old_etag: if not empty, the expected etag of the old version
         of the file.
         @upload_id: the identifier for this upload job
-        @upload_fd: a file descriptor to write the file contents to
+        @file_descriptor: a file descriptor to write the file contents to
 
         Begin the process of updating an existing file.  Like with
         CreateFile, the application must write the file contents to
@@ -138,7 +138,7 @@
       <arg type="s" name="item_id" direction="in"/>
       <arg type="s" name="old_etag" direction="in"/>
       <arg type="s" name="upload_id" direction="out"/>
-      <arg type="h" name="upload_fd" direction="out"/>
+      <arg type="h" name="file_descriptor" direction="out"/>
     </method>
 
     <!--
@@ -183,7 +183,7 @@
         @short_description: download the contents of a file.
         @item_id: the ID for the file
         @download_id: an identifier for the download
-        @download_fd: a file descriptor used to read the contents
+        @file_descriptor: a file descriptor used to read the contents
 
         Start downloading the contents of a file.  The provided file
         descriptor will be closed when the end of file is reached.
@@ -196,7 +196,7 @@
     <method name="Download">
       <arg type="s" name="item_id" direction="in"/>
       <arg type="s" name="download_id" direction="out"/>
-      <arg type="h" name="download_fd" direction="out"/>
+      <arg type="h" name="file_descriptor" direction="out"/>
     </method>
 
     <!--

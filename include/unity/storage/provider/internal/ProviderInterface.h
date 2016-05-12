@@ -39,11 +39,11 @@ public Q_SLOTS:
     QList<ItemMetadata> Lookup(QString const& parent_id, QString const& name);
     ItemMetadata Metadata(QString const& item_id);
     ItemMetadata CreateFolder(QString const& parent_id, QString const& name);
-    QString CreateFile(QString const& parent_id, QString const& name, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& upload_fd);
-    QString Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& upload_fd);
+    QString CreateFile(QString const& parent_id, QString const& name, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& file_descriptor);
+    QString Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& file_descriptor);
     ItemMetadata FinishUpload(QString const& upload_id);
     void CancelUpload(QString const& upload_id);
-    QString Download(QString const& item_id, QDBusUnixFileDescriptor& download_fd);
+    QString Download(QString const& item_id, QDBusUnixFileDescriptor& file_descriptor);
     void FinishDownload(QString const& download_id);
     void Delete(QString const& item_id);
     ItemMetadata Move(QString const& item_id, QString const& new_parent_id, QString const& new_name);

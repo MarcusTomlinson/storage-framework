@@ -105,12 +105,12 @@ ItemMetadata ProviderInterface::CreateFolder(QString const& parent_id, QString c
     return {};
 }
 
-QString ProviderInterface::CreateFile(QString const& parent_id, QString const& name, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& upload_fd)
+QString ProviderInterface::CreateFile(QString const& parent_id, QString const& name, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& file_descriptor)
 {
     return "";
 }
 
-QString ProviderInterface::Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& upload_fd)
+QString ProviderInterface::Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& file_descriptor)
 {
     return "";
 }
@@ -124,7 +124,7 @@ void ProviderInterface::CancelUpload(QString const& upload_id)
 {
 }
 
-QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescriptor& download_fd)
+QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescriptor& file_descriptor)
 {
     return "";
 }
