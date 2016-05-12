@@ -21,6 +21,8 @@ class ProviderBase;
 namespace internal
 {
 
+class CredentialsCache;
+
 class Handler : public QObject
 {
     Q_OBJECT
@@ -28,6 +30,7 @@ public:
     typedef std::function<boost::future<QDBusMessage>(ProviderBase *const, QDBusMessage const&)> Callback;
 
     Handler(std::shared_ptr<ProviderBase> const& provider,
+            std::shared_ptr<CredentialsCache> const& credentials,
             Callback const& callback,
             QDBusConnection const& bus, QDBusMessage const& message);
 
@@ -41,6 +44,7 @@ Q_SIGNALS:
 
 private:
     std::shared_ptr<ProviderBase> const provider_;
+    std::shared_ptr<CredentialsCache> const credentials_;
     Callback const callback_;
     QDBusConnection const bus_;
     QDBusMessage const message_;

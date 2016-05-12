@@ -1,4 +1,6 @@
 #include <unity/storage/provider/internal/ProviderInterface.h>
+#include <unity/storage/provider/ProviderBase.h>
+#include <unity/storage/provider/internal/CredentialsCache.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 
 #include <QDebug>
@@ -10,8 +12,8 @@ namespace storage {
 namespace provider {
 namespace internal {
 
-ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, QObject *parent)
-    : QObject(parent), provider_(provider)
+ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, shared_ptr<CredentialsCache> const& credentials, QObject *parent)
+    : QObject(parent), provider_(provider), credentials_(credentials)
 {
 }
 
@@ -19,7 +21,7 @@ ProviderInterface::~ProviderInterface() = default;
 
 void ProviderInterface::queueRequest(Handler::Callback callback)
 {
-    unique_ptr<Handler> handler(new Handler(provider_, callback,
+    unique_ptr<Handler> handler(new Handler(provider_, credentials_, callback,
                                             connection(), message()));
     connect(handler.get(), &Handler::finished, this, &ProviderInterface::requestFinished);
     setDelayedReply(true);

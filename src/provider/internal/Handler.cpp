@@ -1,4 +1,5 @@
 #include <unity/storage/provider/internal/Handler.h>
+#include <unity/storage/provider/internal/CredentialsCache.h>
 #include <unity/storage/provider/ProviderBase.h>
 
 #include <stdexcept>
@@ -20,9 +21,11 @@ namespace internal
 {
 
 Handler::Handler(shared_ptr<ProviderBase> const& provider,
+                 shared_ptr<CredentialsCache> const& credentials,
                  Callback const& callback,
                  QDBusConnection const& bus, QDBusMessage const& message)
-    : provider_(provider), callback_(callback), bus_(bus), message_(message)
+    : provider_(provider), credentials_(credentials),
+      callback_(callback), bus_(bus), message_(message)
 {
 }
 
