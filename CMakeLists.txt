@@ -16,6 +16,9 @@ if (${IS_BUILD_TYPE_ACCEPTED} EQUAL -1)
     message(FATAL_ERROR "Invalid CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}\nValid types are: ${ACCEPTED_BUILD_TYPES}")
 endif()
 
+# Ensure that generated files can be linked with.
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -Wall -pedantic -Wextra -fvisibility=hidden")
 
 # Some additional warnings not included by the general flags set above.
@@ -83,6 +86,7 @@ include_directories(include)
 
 add_subdirectory(src)
 add_subdirectory(tests)
+add_subdirectory(demo)
 
 enable_coverage_report(
     TARGETS
