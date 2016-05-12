@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unity/storage/provider/visibility.h>
+
 #include <memory>
 
 class QCoreApplication;
@@ -18,7 +20,7 @@ class ProviderInterface;
 
 class ProviderBase;
 
-class __attribute__((visibility("default"))) ServerBase
+class STORAGE_PROVIDER_EXPORT ServerBase
 {
 public:
     ServerBase();

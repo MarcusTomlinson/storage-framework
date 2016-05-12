@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unity/storage/provider/visibility.h>
+
 #include <boost/thread/future.hpp>
 
 #include <string>
@@ -20,7 +22,7 @@ enum class ItemType
     root,
 };
 
-struct __attribute__((visibility("default"))) Item
+struct STORAGE_PROVIDER_EXPORT Item
 {
     std::string item_id;
     std::string parent_id;
@@ -31,16 +33,18 @@ struct __attribute__((visibility("default"))) Item
     std::map<std::string,std::string> metadata;
 };
 
-class __attribute__((visibility("default"))) ProviderBase
+typedef std::vector<Item> ItemList;
+
+class STORAGE_PROVIDER_EXPORT ProviderBase
 {
 public:
     ProviderBase();
     virtual ~ProviderBase();
 
-    virtual boost::future<std::vector<Item>> roots() = 0;
-    virtual boost::future<std::tuple<std::vector<Item>,std::string>> list(
+    virtual boost::future<ItemList> roots() = 0;
+    virtual boost::future<std::tuple<ItemList,std::string>> list(
         std::string const& item_id, std::string const& page_token) = 0;
-    virtual boost::future<std::vector<Item>> lookup(
+    virtual boost::future<ItemList> lookup(
         std::string const& parent_id, std::string const& name) = 0;
     virtual boost::future<Item> metadata(std::string const& item_id) = 0;
 };

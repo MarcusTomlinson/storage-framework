@@ -59,7 +59,7 @@ QList<ItemMetadata> ProviderInterface::Roots()
     return {};
 }
 
-QList<ItemMetadata> ProviderInterface::List(const QString &item_id, const QString &page_token, QString &next_token)
+QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString const& page_token, QString& /*next_token*/)
 {
     queueRequest([item_id, page_token](ProviderBase* provider, QDBusMessage const& message) {
             auto f = provider->list(item_id.toStdString(), page_token.toStdString());
@@ -76,7 +76,7 @@ QList<ItemMetadata> ProviderInterface::List(const QString &item_id, const QStrin
     return {};
 }
 
-QList<ItemMetadata> ProviderInterface::Lookup(const QString &parent_id, const QString &name)
+QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString const& name)
 {
     queueRequest([parent_id, name](ProviderBase* provider, QDBusMessage const& message) {
             auto f = provider->lookup(parent_id.toStdString(), name.toStdString());
@@ -88,7 +88,7 @@ QList<ItemMetadata> ProviderInterface::Lookup(const QString &parent_id, const QS
     return {};
 }
 
-ItemMetadata ProviderInterface::Metadata(const QString &item_id)
+ItemMetadata ProviderInterface::Metadata(QString const& item_id)
 {
     queueRequest([item_id](ProviderBase* provider, QDBusMessage const& message) {
             auto f = provider->metadata(item_id.toStdString());
@@ -100,49 +100,49 @@ ItemMetadata ProviderInterface::Metadata(const QString &item_id)
     return {};
 }
 
-ItemMetadata ProviderInterface::CreateFolder(const QString &parent_id, const QString &name)
+ItemMetadata ProviderInterface::CreateFolder(QString const& parent_id, QString const& name)
 {
     return {};
 }
 
-QString ProviderInterface::CreateFile(const QString &parent_id, const QString &name, const QString &content_type, bool allow_overwrite, QDBusUnixFileDescriptor &upload_fd)
+QString ProviderInterface::CreateFile(QString const& parent_id, QString const& name, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& upload_fd)
 {
     return "";
 }
 
-QString ProviderInterface::Update(const QString &item_id, const QString &old_etag, QDBusUnixFileDescriptor &upload_fd)
+QString ProviderInterface::Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& upload_fd)
 {
     return "";
 }
 
-ItemMetadata ProviderInterface::FinishUpload(const QString &upload_id)
+ItemMetadata ProviderInterface::FinishUpload(QString const& upload_id)
 {
     return {};
 }
 
-void ProviderInterface::CancelUpload(const QString &upload_id)
+void ProviderInterface::CancelUpload(QString const& upload_id)
 {
 }
 
-QString ProviderInterface::Download(const QString &item_id, QDBusUnixFileDescriptor &download_fd)
+QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescriptor& download_fd)
 {
     return "";
 }
 
-void ProviderInterface::FinishDownload(const QString &download_id)
+void ProviderInterface::FinishDownload(QString const& download_id)
 {
 }
 
-void ProviderInterface::Delete(const QString &item_id)
+void ProviderInterface::Delete(QString const& item_id)
 {
 }
 
-ItemMetadata ProviderInterface::Move(const QString &item_id, const QString &new_parent_id, const QString &new_name)
+ItemMetadata ProviderInterface::Move(QString const& item_id, QString const& new_parent_id, QString const& new_name)
 {
     return {};
 }
 
-ItemMetadata ProviderInterface::Copy(const QString &item_id, const QString &new_parent_id, const QString &new_name)
+ItemMetadata ProviderInterface::Copy(QString const& item_id, QString const& new_parent_id, QString const& new_name)
 {
     return {};
 }

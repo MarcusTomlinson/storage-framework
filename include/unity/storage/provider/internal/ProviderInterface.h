@@ -35,19 +35,19 @@ public:
 public Q_SLOTS:
 
     QList<ItemMetadata> Roots();
-    QList<ItemMetadata> List(const QString &item_id, const QString &page_token, QString &next_token);
-    QList<ItemMetadata> Lookup(const QString &parent_id, const QString &name);
-    ItemMetadata Metadata(const QString &item_id);
-    ItemMetadata CreateFolder(const QString &parent_id, const QString &name);
-    QString CreateFile(const QString &parent_id, const QString &name, const QString &content_type, bool allow_overwrite, QDBusUnixFileDescriptor &upload_fd);
-    QString Update(const QString &item_id, const QString &old_etag, QDBusUnixFileDescriptor &upload_fd);
-    ItemMetadata FinishUpload(const QString &upload_id);
-    void CancelUpload(const QString &upload_id);
-    QString Download(const QString &item_id, QDBusUnixFileDescriptor &download_fd);
-    void FinishDownload(const QString &download_id);
-    void Delete(const QString &item_id);
-    ItemMetadata Move(const QString &item_id, const QString &new_parent_id, const QString &new_name);
-    ItemMetadata Copy(const QString &item_id, const QString &new_parent_id, const QString &new_name);
+    QList<ItemMetadata> List(QString const& item_id, QString const& page_token, QString& next_token);
+    QList<ItemMetadata> Lookup(QString const& parent_id, QString const& name);
+    ItemMetadata Metadata(QString const& item_id);
+    ItemMetadata CreateFolder(QString const& parent_id, QString const& name);
+    QString CreateFile(QString const& parent_id, QString const& name, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& upload_fd);
+    QString Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& upload_fd);
+    ItemMetadata FinishUpload(QString const& upload_id);
+    void CancelUpload(QString const& upload_id);
+    QString Download(QString const& item_id, QDBusUnixFileDescriptor& download_fd);
+    void FinishDownload(QString const& download_id);
+    void Delete(QString const& item_id);
+    ItemMetadata Move(QString const& item_id, QString const& new_parent_id, QString const& new_name);
+    ItemMetadata Copy(QString const& item_id, QString const& new_parent_id, QString const& new_name);
 
 private Q_SLOTS:
     void requestFinished();
