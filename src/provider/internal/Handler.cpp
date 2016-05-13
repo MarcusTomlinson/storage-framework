@@ -32,8 +32,16 @@ Handler::Handler(shared_ptr<ProviderBase> const& provider,
 void Handler::begin()
 {
     // Need to put security check in here.
-    auto f = callback_(provider_.get(), message_);
-    future_ = f.then([this](boost::future<QDBusMessage> f) {
+    auto cred_future = credentials_->get(message_.service());
+    boost::future<QDBusMessage> msg_future = cred_future.then([this](decltype(cred_future) f) -> boost::future<QDBusMessage> {
+            auto creds = f.get();
+            if (!creds.valid) {
+                throw std::runtime_error("Handler::begin(): could not retrieve credentials");
+            }
+            Context ctx{creds.uid, creds.pid, std::move(creds.label)};
+            return callback_(provider_.get(), ctx, message_);
+        });
+    future_ = msg_future.then([this](decltype(msg_future) f) {
             try
             {
                 reply_ = f.get();

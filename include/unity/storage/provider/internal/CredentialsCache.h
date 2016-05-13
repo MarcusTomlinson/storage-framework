@@ -50,8 +50,8 @@ public:
     struct Credentials
     {
         bool valid = false;
-        uid_t user = 0;
-        pid_t process = 0;
+        uid_t uid = 0;
+        pid_t pid = 0;
         // Not using QString, because this is not necessarily unicode.
         std::string label;
     };

@@ -144,8 +144,8 @@ void CredentialsCache::received_credentials(QString const& peer, QDBusPendingRep
         credentials.valid = true;
         // The contents of this map are described in the specification here:
         // http://dbus.freedesktop.org/doc/dbus-specification.html#bus-messages-get-connection-credentials
-        credentials.user = reply.value().value(UNIX_USER_ID).value<uint32_t>();
-        credentials.process = reply.value().value(PROCESS_ID).value<uint32_t>();
+        credentials.uid = reply.value().value(UNIX_USER_ID).value<uint32_t>();
+        credentials.pid = reply.value().value(PROCESS_ID).value<uint32_t>();
         if (apparmor_enabled_)
         {
             QByteArray label = reply.value().value(LINUX_SECURITY_LABEL).value<QByteArray>();
