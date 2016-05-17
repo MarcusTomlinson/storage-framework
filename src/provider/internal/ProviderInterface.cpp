@@ -1,4 +1,6 @@
 #include <unity/storage/provider/internal/ProviderInterface.h>
+#include <unity/storage/provider/ProviderBase.h>
+#include <unity/storage/provider/internal/CredentialsCache.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 
 #include <QDebug>
@@ -10,8 +12,8 @@ namespace storage {
 namespace provider {
 namespace internal {
 
-ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, QObject *parent)
-    : QObject(parent), provider_(provider)
+ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, shared_ptr<CredentialsCache> const& credentials, QObject *parent)
+    : QObject(parent), provider_(provider), credentials_(credentials)
 {
 }
 
@@ -19,7 +21,7 @@ ProviderInterface::~ProviderInterface() = default;
 
 void ProviderInterface::queueRequest(Handler::Callback callback)
 {
-    unique_ptr<Handler> handler(new Handler(provider_, callback,
+    unique_ptr<Handler> handler(new Handler(provider_, credentials_, callback,
                                             connection(), message()));
     connect(handler.get(), &Handler::finished, this, &ProviderInterface::requestFinished);
     setDelayedReply(true);
@@ -49,8 +51,8 @@ void ProviderInterface::requestFinished()
 
 QList<ItemMetadata> ProviderInterface::Roots()
 {
-    queueRequest([](ProviderBase* provider, QDBusMessage const& message) {
-            auto f = provider->roots();
+    queueRequest([](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
+            auto f = provider->roots(ctx);
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto roots = f.get();
                     return message.createReply(QVariant::fromValue(roots));
@@ -61,8 +63,8 @@ QList<ItemMetadata> ProviderInterface::Roots()
 
 QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString const& page_token, QString& /*next_token*/)
 {
-    queueRequest([item_id, page_token](ProviderBase* provider, QDBusMessage const& message) {
-            auto f = provider->list(item_id.toStdString(), page_token.toStdString());
+    queueRequest([item_id, page_token](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
+            auto f = provider->list(item_id.toStdString(), page_token.toStdString(), ctx);
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     vector<Item> children;
                     string next_token;
@@ -78,8 +80,8 @@ QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString cons
 
 QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString const& name)
 {
-    queueRequest([parent_id, name](ProviderBase* provider, QDBusMessage const& message) {
-            auto f = provider->lookup(parent_id.toStdString(), name.toStdString());
+    queueRequest([parent_id, name](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
+            auto f = provider->lookup(parent_id.toStdString(), name.toStdString(), ctx);
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto items = f.get();
                     return message.createReply(QVariant::fromValue(items));
@@ -90,8 +92,8 @@ QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString 
 
 ItemMetadata ProviderInterface::Metadata(QString const& item_id)
 {
-    queueRequest([item_id](ProviderBase* provider, QDBusMessage const& message) {
-            auto f = provider->metadata(item_id.toStdString());
+    queueRequest([item_id](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
+            auto f = provider->metadata(item_id.toStdString(), ctx);
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));

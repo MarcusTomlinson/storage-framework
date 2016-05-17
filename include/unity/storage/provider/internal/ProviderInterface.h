@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/internal/Handler.h>
 
 #include <QObject>
@@ -17,8 +16,13 @@ namespace storage
 {
 namespace provider
 {
+
+class ProviderBase;
+
 namespace internal
 {
+
+class CredentialsCache;
 
 struct ItemMetadata
 {
@@ -29,7 +33,7 @@ class ProviderInterface : public QObject, protected QDBusContext
     Q_OBJECT
 
 public:
-    ProviderInterface(std::shared_ptr<ProviderBase> const& provider, QObject *parent=nullptr);
+    ProviderInterface(std::shared_ptr<ProviderBase> const& provider, std::shared_ptr<CredentialsCache> const& credentials, QObject *parent=nullptr);
     ~ProviderInterface();
 
 public Q_SLOTS:
@@ -56,6 +60,7 @@ private:
     void queueRequest(Handler::Callback callback);
 
     std::shared_ptr<ProviderBase> provider_;
+    std::shared_ptr<CredentialsCache> credentials_;
     std::map<Handler*, std::unique_ptr<Handler>> requests_;
 };
 

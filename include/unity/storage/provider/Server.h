@@ -16,6 +16,7 @@ namespace provider
 namespace internal
 {
 class ProviderInterface;
+class CredentialsCache;
 }
 
 class ProviderBase;
@@ -32,8 +33,9 @@ public:
 protected:
     virtual std::shared_ptr<ProviderBase> make_provider() = 0;
 private:
-    std::unique_ptr<QCoreApplication> app;
-    std::unique_ptr<internal::ProviderInterface> interface;
+    std::unique_ptr<QCoreApplication> app_;
+    std::shared_ptr<internal::CredentialsCache> credentials_;
+    std::unique_ptr<internal::ProviderInterface> interface_;
 };
 
 template <typename T>
