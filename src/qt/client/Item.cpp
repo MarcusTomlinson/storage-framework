@@ -38,11 +38,6 @@ Root* Item::root() const
     return p_->root();
 }
 
-QFuture<QVector<QString>> Item::all_names() const
-{
-    return p_->all_names();
-}
-
 QFuture<QVariantMap> Item::metadata() const
 {
     return p_->get_metadata();
@@ -56,6 +51,15 @@ QFuture<QDateTime> Item::last_modified_time() const
 QFuture<QString> Item::mime_type() const
 {
     return p_->mime_type();
+}
+
+QFuture<Item::SPtr> Item::copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name)
+{
+    return p_->copy(new_parent, new_name);
+}
+QFuture<Item::SPtr> Item::move(std::shared_ptr<Folder> const& new_parent, QString const& new_name)
+{
+    return p_->move(new_parent, new_name);
 }
 
 QFuture<void> Item::destroy()

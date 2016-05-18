@@ -18,6 +18,7 @@ namespace qt
 namespace client
 {
 
+class Folder;
 class Root;
 
 namespace internal
@@ -62,15 +63,6 @@ public:
     Root* root() const;
 
     /**
-    \brief Returns all names for this item.
-
-    Depending on the storage provider, an item may have more than one name, and may even have the same name
-    within the same directory more than once.
-    \return Returns all known names for this item within its parent directory, in no particular order.
-    */
-    QFuture<QVector<QString>> all_names() const;
-
-    /**
     \brief Returns metadata for the item.
 
     \warning The returned metadata is specific to the storage backend. Do not use this method
@@ -90,6 +82,26 @@ public:
     the returned string is empty.
     */
     QFuture<QString> mime_type() const;
+
+    /**
+    \brief Copies this item.
+
+    Copying a directory recursively copies its contents.
+    \param new_parent The new parent folder for the item. If the item is to be copied within
+    its current directory, this parameter must designate the currently existing parent.
+    \param new_name The new name for the file.
+    */
+    QFuture<Item::SPtr> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
+
+    /**
+    \brief Renames and/or moves a file or folder.
+    \param new_parent The new parent folder for the item. If the item is to be renamed only,
+    this parameter must designate the currently existing parent.
+    \param new_name The new name for the item. If the item is to be moved to a new parent with
+    the same name, this parameter must designate the currently existing name.
+    \note It is not possible to move or rename the root folder.
+    */
+    QFuture<Item::SPtr> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
 
     /**
     \brief Permamently destroys the item.

@@ -19,7 +19,7 @@ namespace qt
 namespace client
 {
 
-class Directory;
+class Folder;
 class Item;
 class Root;
 
@@ -37,10 +37,11 @@ public:
     QString name() const;
     Root* root() const;
 
-    QFuture<QVector<QString>> all_names() const;
     QFuture<QVariantMap> get_metadata() const;
     QFuture<QDateTime> last_modified_time() const;
     QFuture<QString> mime_type() const;
+    QFuture<std::shared_ptr<Item>> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
+    QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
     virtual QFuture<void> destroy() = 0;
 
     void set_root(std::weak_ptr<Root> p);

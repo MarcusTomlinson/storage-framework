@@ -23,7 +23,7 @@ class RootImpl;
 }
 
 /**
-\brief Class that represents a root directory.
+\brief Class that represents a root folder.
 */
 class Root : public Folder
 {

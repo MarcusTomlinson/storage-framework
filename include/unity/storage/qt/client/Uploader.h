@@ -54,9 +54,9 @@ public:
     To upload the file contents, write to the returned socket.
     If an operation on the socket returns an error, the file is in an indeterminate state.
 
-    \return A file descriptor open for writing.
+    \return A socket open for writing.
     */
-    QFuture<std::shared_ptr<QLocalSocket>> socket() const;
+    std::shared_ptr<QLocalSocket> socket() const;
 
     /**
     \brief Finalizes the upload.

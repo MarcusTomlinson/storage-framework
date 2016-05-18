@@ -65,21 +65,6 @@ Root* ItemImpl::root() const
     throw DestroyedException();  // TODO
 }
 
-QFuture<QVector<QString>> ItemImpl::all_names() const
-{
-    QFutureInterface<QVector<QString>> qf;
-    if (destroyed_)
-    {
-        qf.reportException(DestroyedException());  // TODO
-        return qf.future();
-    }
-
-    QVector<QString> names;
-    names.append(name_);
-    qf.reportResult(names);
-    return qf.future();
-}
-
 QFuture<QVariantMap> ItemImpl::get_metadata() const
 {
     QFutureInterface<QVariantMap> qf;
@@ -134,6 +119,16 @@ QFuture<QString> ItemImpl::mime_type() const
         qf.reportException(StorageException());  // TODO
     }
     return qf.future();
+}
+
+QFuture<shared_ptr<Item>> copy(shared_ptr<Folder> const& new_parent, QString const& new_name)
+{
+    return QFuture<shared_ptr<Item>>();  // TODO
+}
+
+QFuture<shared_ptr<Item>> move(shared_ptr<Folder> const& new_parent, QString const& new_name)
+{
+    return QFuture<shared_ptr<Item>>();  // TODO
 }
 
 QFuture<void> ItemImpl::destroy()

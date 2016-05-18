@@ -32,7 +32,7 @@ public:
     DownloaderImpl& operator=(DownloaderImpl const&) = delete;
 
     std::shared_ptr<File> file() const;
-    QFuture<std::shared_ptr<QLocalSocket>> socket() const;
+    std::shared_ptr<QLocalSocket> socket() const;
     QFuture<void> close();
     QFuture<void> cancel();
 

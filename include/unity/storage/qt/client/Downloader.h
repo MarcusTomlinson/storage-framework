@@ -54,8 +54,9 @@ public:
     \brief Returns a socket that is open for reading.
 
     To download the file contents, read from the returned socket.
+    \return A socket open for reading.
     */
-    QFuture<std::shared_ptr<QLocalSocket>> socket() const;
+    std::shared_ptr<QLocalSocket> socket() const;
 
     /**
     \brief Finalizes the download.

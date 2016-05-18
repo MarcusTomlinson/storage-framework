@@ -41,9 +41,8 @@ shared_ptr<File> DownloaderImpl::file() const
     return file_;
 }
 
-QFuture<shared_ptr<QLocalSocket>> DownloaderImpl::socket() const
+shared_ptr<QLocalSocket> DownloaderImpl::socket() const
 {
-    QFutureInterface<shared_ptr<QLocalSocket>> qf;
     switch (state_)
     {
         case uninitialized:
@@ -54,33 +53,29 @@ QFuture<shared_ptr<QLocalSocket>> DownloaderImpl::socket() const
             int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
             if (rc == -1)
             {
-                qf.reportException(StorageException());  // TODO
-                return qf.future();
+                throw StorageException();  // TODO
             }
             auto This = const_cast<DownloaderImpl*>(this);
             This->read_socket_ = make_shared<QLocalSocket>();
             This->read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
             This->write_socket_ = make_shared<QLocalSocket>();
             This->write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
-            qf.reportResult(read_socket_);
-            break;
+            return This->read_socket_;
         }
         case connected:
         {
-            qf.reportResult(read_socket_);
-            break;
+            return read_socket_;
         }
         case finalized:
         {
-            qf.reportException(StorageException());  // TODO
-            break;
+            throw StorageException();  // TODO
         }
         default:
         {
             abort();  // Impossible
         }
     }
-    return qf.future();
+    // NOTREACHED
 }
 
 QFuture<void> DownloaderImpl::close()

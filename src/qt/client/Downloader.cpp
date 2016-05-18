@@ -16,7 +16,7 @@ std::shared_ptr<File> Downloader::file() const
     return p_->file();
 }
 
-QFuture<std::shared_ptr<QLocalSocket>> Downloader::socket() const
+std::shared_ptr<QLocalSocket> Downloader::socket() const
 {
     return p_->socket();
 }

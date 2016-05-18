@@ -16,9 +16,9 @@ namespace client
 namespace internal
 {
 
-QFuture<shared_ptr<QLocalSocket>> UploaderImpl::socket() const
+shared_ptr<QLocalSocket> UploaderImpl::socket() const
 {
-    return QFuture<shared_ptr<QLocalSocket>>();
+    return shared_ptr<QLocalSocket>();
 }
 
 QFuture<void> UploaderImpl::finish_upload()

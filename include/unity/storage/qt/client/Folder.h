@@ -22,7 +22,7 @@ class FolderImpl;
 \brief Class that represents a folder.
 
 A folder is an unordered set of files and/or folders. The names (as returned by Item::name())
-of the members of a folder are unique.
+of the members of a folder are not necessarily unique for some providers.
 */
 class Folder : public Item
 {
