@@ -48,9 +48,9 @@ QFuture<QDateTime> ItemImpl::last_modified_time() const
     return QFuture<QDateTime>();
 }
 
-QFuture<QString> ItemImpl::mime_type() const
+common::ItemType ItemImpl::type() const
 {
-    return QFuture<QString>();
+    return QFuture<common::ItemType>();
 }
 
 QFuture<shared_ptr<Item>> copy(shared_ptr<Folder> const& new_parent, QString const& new_name)

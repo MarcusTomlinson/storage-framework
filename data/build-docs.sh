@@ -5,7 +5,7 @@ set -e
 mkdir doc-temp || true
 cd doc-temp
 
-gdbus-codegen --generate-docbook=docbook ../registry.xml ../client.xml ../store.xml ../backend.xml
+gdbus-codegen --generate-docbook=docbook ../registry.xml ../provider.xml
 
 find . -name "docbook*.xml" -exec docbook2x-texi {} \;
 

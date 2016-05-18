@@ -1,37 +1,35 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
-	<!-- com.canonical.StorageFramework.Registry:
-	     @short_description: Interface to query the backend registry and register new backends
+  <!--
+      com.canonical.StorageFramework.Registry:
+      @short_description: Interface to query the backend registry
 
-			 Inteface to query the repository of backends that are
-			 available. Here a backend that is starting should connect
-			 to the registry. Also, there are properties to allow
-			debugging a running registry service easily.
-	-->
-	<interface name="com.canonical.StorageFramework.Registry">
+      Inteface to query the repository of backends that are
+      available.
+  -->
+  <interface name="com.canonical.StorageFramework.Registry">
 
-		<!-- InstalledBackends: Lists all of the backends that are currently installed and usable. -->
-		<property name="InstalledBackends" type="a(ss)" access="read" />
+    <!--
+        GetBackend:
+        @short_description: request access to a storage account
+        @service_id: if not empty, restrict results to accounts
+            matching this service ID.
+        @bus_name: the bus name of the storage provider
+        @path: the object path of the storage account at the provider
 
-		<!-- RunningBackends: Lists the backends that are currently running. This is largely used for debugging the behavior of the service. -->
-		<property name="RunningBackends" type="a(ss)" access="read" />
+        Interactively prompt the user to pick a storage account for
+        use by the application, and return the D-Bus endpoint that can
+        be used to communicate with the associated provider.
 
-		<!-- Connect:
-		     @short_description: When a backend starts it needs to call the connect method to report it is ready for service.
-				 @path: Path that the backend interface is exported on
-		-->
-		<method name="Connect">
-			<arg type="o" name="path" direction="in" />
-		</method>
+        As this involves user interaction, the caller should use a
+        relatively long time out for this method call.
+        -->
+    <method name="GetProvider">
+      <arg type="s" name="service_id" direction="in" />
 
-		<!-- Disconnect:
-		     @short_description: A backend can cleanly disconnect by using this function, else it will also be disconnected when it drops off of DBus.
-				 @path: Path that the backend interface is exported on
-		-->
-		<method name="Disconnect">
-			<arg type="o" name="path" direction="in" />
-		</method>
-
-	</interface>
+      <arg type="s" name="bus_name" direction="out" />
+      <arg type="o" name="path" direction="out" />
+    </method>
+  </interface>
 </node>

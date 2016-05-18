@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unity/storage/common/common.h>
+
 #include <QDateTime>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
@@ -77,11 +79,9 @@ public:
     QFuture<QDateTime> last_modified_time() const;
 
     /**
-    \brief Returns the mime type of the item.
-    \return For directories, the mime type is `inode/directory`. If the mime type is unknown,
-    the returned string is empty.
+    \brief Returns the type of the item.
     */
-    QFuture<QString> mime_type() const;
+    unity::storage::common::ItemType type() const;
 
     /**
     \brief Copies this item.

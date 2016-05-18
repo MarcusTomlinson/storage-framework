@@ -1,6 +1,5 @@
 #include <unity/storage/qt/client/internal/ItemImpl.h>
 
-#include <unity/storage/common/internal/mimetype.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/Root.h>
 
@@ -9,7 +8,6 @@
 #include <cassert>
 
 using namespace std;
-using namespace unity::storage::common::internal;
 
 namespace unity
 {
@@ -99,26 +97,14 @@ QFuture<QDateTime> ItemImpl::last_modified_time() const
     return qf.future();
 }
 
-QFuture<QString> ItemImpl::mime_type() const
+common::ItemType ItemImpl::type() const
 {
-    QFutureInterface<QString> qf;
     if (destroyed_)
     {
-        qf.reportException(DestroyedException());  // TODO
-        return qf.future();
+        throw DestroyedException();  // TODO
     }
 
-    try
-    {
-        // Synchronous is good enough for this simple implementation.
-        auto mt = get_mimetype(identity_.toStdString());
-        qf.reportResult(QString::fromStdString(mt));
-    }
-    catch (std::exception const&)
-    {
-        qf.reportException(StorageException());  // TODO
-    }
-    return qf.future();
+    return type_;
 }
 
 QFuture<shared_ptr<Item>> copy(shared_ptr<Folder> const& new_parent, QString const& new_name)

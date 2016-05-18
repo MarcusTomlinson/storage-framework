@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unity/storage/common/common.h>
+
 #include <QDateTime>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
@@ -35,11 +37,11 @@ public:
 
     QString native_identity() const;
     QString name() const;
+    unity::storage::common::ItemType type() const;
     Root* root() const;
 
     QFuture<QVariantMap> get_metadata() const;
     QFuture<QDateTime> last_modified_time() const;
-    QFuture<QString> mime_type() const;
     QFuture<std::shared_ptr<Item>> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
     QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
     virtual QFuture<void> destroy() = 0;
@@ -55,6 +57,7 @@ protected:
     QString identity_;
     QString name_;
     std::weak_ptr<Root> root_;
+    common::ItemType type_;
     std::weak_ptr<Item> public_instance_;
 };
 

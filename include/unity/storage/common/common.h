@@ -1,19 +1,19 @@
 #pragma once
 
-#include <string>
-
 namespace unity
 {
 namespace storage
 {
 namespace common
 {
-namespace internal
+
+enum class ItemType
 {
+    file,
+    folder,
+    root,
+};
 
-std::string get_mimetype(std::string const& filename);
-
-}  // namespace internal
 }  // namespace common
 }  // namespace storage
 }  // namespace unity

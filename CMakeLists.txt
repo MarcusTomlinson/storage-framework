@@ -86,16 +86,17 @@ include(EnableCoverageReport)
 
 find_package(Boost COMPONENTS filesystem thread REQUIRED)
 find_package(Qt5Core REQUIRED)
+find_package(Qt5DBus REQUIRED)
 find_package(Qt5Network REQUIRED)
 
 include(FindPkgConfig)
-pkg_check_modules(GLIB_DEPS REQUIRED glib-2.0)
-pkg_check_modules(GIO_DEPS REQUIRED gio-2.0 gio-unix-2.0)
+pkg_check_modules(APPARMOR_DEPS REQUIRED libapparmor)
 
 add_definitions(-DQT_NO_KEYWORDS)
 
 add_subdirectory(src)
 add_subdirectory(tests)
+add_subdirectory(demo)
 
 enable_coverage_report(
     TARGETS
