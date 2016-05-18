@@ -1,4 +1,4 @@
-set(src
+set(QT_CLIENT_LIB_INTERNAL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/AccountImpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DownloaderImpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FileImpl.cpp
@@ -9,8 +9,6 @@ set(src
     ${CMAKE_CURRENT_SOURCE_DIR}/UploaderImpl.cpp
 )
 
-set(QT_CLIENT_INTERNAL_LIB_SRC ${QT_CLIENT_INTERNAL_LIB_SRC} ${src})
-
-add_library(storage-framework-qt-client-internal SHARED ${src})
-qt5_use_modules(storage-framework-qt-client-internal Core Network)
-target_link_libraries(storage-framework-qt-client-internal Qt5::Core Qt5::Network)
+add_library(storage-framework-qt-client SHARED ${QT_CLIENT_LIB_PUBLIC_SRC} ${QT_CLIENT_LIB_INTERNAL_SRC})
+qt5_use_modules(storage-framework-qt-client Core Network)
+target_link_libraries(storage-framework-qt-client Qt5::Core Qt5::Network)
