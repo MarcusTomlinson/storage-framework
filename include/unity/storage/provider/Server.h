@@ -4,8 +4,6 @@
 
 #include <memory>
 
-class QCoreApplication;
-
 namespace unity
 {
 namespace storage
@@ -15,8 +13,7 @@ namespace provider
 
 namespace internal
 {
-class ProviderInterface;
-class CredentialsCache;
+class ServerImpl;
 }
 
 class ProviderBase;
@@ -33,9 +30,9 @@ public:
 protected:
     virtual std::shared_ptr<ProviderBase> make_provider() = 0;
 private:
-    std::unique_ptr<QCoreApplication> app_;
-    std::shared_ptr<internal::CredentialsCache> credentials_;
-    std::unique_ptr<internal::ProviderInterface> interface_;
+    std::unique_ptr<internal::ServerImpl> p_;
+
+    friend class internal::ServerImpl;
 };
 
 template <typename T>
