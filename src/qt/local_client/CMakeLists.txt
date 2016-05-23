@@ -11,6 +11,8 @@ set(QT_LOCAL_CLIENT_LIB_INTERNAL_SRC
 
 include_directories(${GLIB_DEPS_INCLUDE_DIRS})
 
-add_library(storage-framework-qt-local-client SHARED ${QT_CLIENT_LIB_PUBLIC_SRC} ${QT_LOCAL_CLIENT_LIB_INTERNAL_SRC})
-qt5_use_modules(storage-framework-qt-local-client Core Network)
-target_link_libraries(storage-framework-qt-local-client Qt5::Core Qt5::Network)
+add_library(storage-framework-qt-local-client SHARED
+    $<TARGET_OBJECTS:qt-client-lib-public>
+    ${QT_LOCAL_CLIENT_LIB_INTERNAL_SRC})
+qt5_use_modules(storage-framework-qt-local-client Concurrent Core Network)
+target_link_libraries(storage-framework-qt-local-client Qt5::Concurrent Qt5::Core Qt5::Network)

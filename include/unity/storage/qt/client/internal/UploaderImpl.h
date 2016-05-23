@@ -26,7 +26,7 @@ namespace internal
 class UploaderImpl
 {
 public:
-    UploaderImpl() = default;
+    UploaderImpl(std::weak_ptr<File> file);
     ~UploaderImpl() = default;
     UploaderImpl(UploaderImpl const&) = delete;
     UploaderImpl& operator=(UploaderImpl const&) = delete;
@@ -35,6 +35,14 @@ public:
     std::shared_ptr<QLocalSocket> socket() const;
     QFuture<void> finish_upload();
     QFuture<void> cancel();
+
+private:
+    enum State { uninitialized, connected, finalized };
+
+    State state_ = uninitialized;
+    std::shared_ptr<File> file_;
+    std::shared_ptr<QLocalSocket> read_socket_;
+    std::shared_ptr<QLocalSocket> write_socket_;
 };
 
 }  // namespace internal

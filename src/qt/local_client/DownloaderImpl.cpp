@@ -33,7 +33,14 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
 
 DownloaderImpl::~DownloaderImpl()
 {
-    cancel();
+    try
+    {
+        cancel();
+    }
+    catch (std::exception const&)
+    {
+        // TODO, log this
+    }
 }
 
 shared_ptr<File> DownloaderImpl::file() const

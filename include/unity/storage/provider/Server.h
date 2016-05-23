@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unity/storage/provider/visibility.h>
+#include <unity/storage/common/visibility.h>
 
 #include <memory>
 
@@ -21,7 +21,7 @@ class CredentialsCache;
 
 class ProviderBase;
 
-class STORAGE_PROVIDER_EXPORT ServerBase
+class UNITY_STORAGE_EXPORT ServerBase
 {
 public:
     ServerBase();

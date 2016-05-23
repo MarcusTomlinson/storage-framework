@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unity/storage/common/visibility.h>
+
 #include <QException>
 
 namespace unity
@@ -14,7 +16,7 @@ namespace client
 /**
 \brief Base exception class for all exceptions returned by the API.
 */
-class StorageException : public QException
+class UNITY_STORAGE_EXPORT StorageException : public QException
 {
 public:
     StorageException();
@@ -27,7 +29,7 @@ public:
 /**
 \brief Indicates errors in the communication with the storage provider service.
 */
-class LocalCommsException : public StorageException
+class UNITY_STORAGE_EXPORT LocalCommsException : public StorageException
 {
 public:
     LocalCommsException();
@@ -40,7 +42,7 @@ public:
 /**
 \brief Indicates errors in the communication between the storage provider and the cloud service.
 */
-class RemoteCommsException : public StorageException
+class UNITY_STORAGE_EXPORT RemoteCommsException : public StorageException
 {
 public:
     RemoteCommsException();
@@ -53,13 +55,39 @@ public:
 /**
 \brief Indicates that the caller invoked an operation on an item that was destroyed.
 */
-class DestroyedException : public StorageException
+class UNITY_STORAGE_EXPORT DestroyedException : public StorageException
 {
 public:
     DestroyedException();
     ~DestroyedException();
 
     virtual DestroyedException* clone() const override;
+    virtual void raise() const override;
+};
+
+/**
+\brief Indicates that the caller destroyed the runtime.
+*/
+class UNITY_STORAGE_EXPORT RuntimeDestroyedException : public StorageException
+{
+public:
+    RuntimeDestroyedException();
+    ~RuntimeDestroyedException();
+
+    virtual RuntimeDestroyedException* clone() const override;
+    virtual void raise() const override;
+};
+
+/**
+\brief Indicates that an item does not exist.
+*/
+class UNITY_STORAGE_EXPORT NotExistException : public StorageException
+{
+public:
+    NotExistException();
+    ~NotExistException();
+
+    virtual NotExistException* clone() const override;
     virtual void raise() const override;
 };
 

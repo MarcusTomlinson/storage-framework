@@ -24,11 +24,12 @@ class RuntimeImpl
 {
 public:
     RuntimeImpl() = default;
-    ~RuntimeImpl() = default;
+    ~RuntimeImpl();
     RuntimeImpl(RuntimeImpl const&) = delete;
     RuntimeImpl& operator=(RuntimeImpl const&) = delete;
 
-    QFuture<QVector<std::shared_ptr<Account>>> get_accounts();
+    void shutdown();
+    QFuture<QVector<std::shared_ptr<Account>>> accounts();
 
     void set_public_instance(std::weak_ptr<Runtime> p);
 

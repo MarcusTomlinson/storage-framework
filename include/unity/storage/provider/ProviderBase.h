@@ -1,7 +1,7 @@
 #pragma once
 
 #include <unity/storage/common/common.h>
-#include <unity/storage/provider/visibility.h>
+#include <unity/storage/common/visibility.h>
 
 #include <boost/thread/future.hpp>
 
@@ -17,7 +17,7 @@ namespace storage
 namespace provider
 {
 
-struct STORAGE_PROVIDER_EXPORT Item
+struct UNITY_STORAGE_EXPORT Item
 {
     std::string item_id;
     std::string parent_id;
@@ -28,7 +28,7 @@ struct STORAGE_PROVIDER_EXPORT Item
     std::map<std::string,std::string> metadata;
 };
 
-struct STORAGE_PROVIDER_EXPORT Context
+struct UNITY_STORAGE_EXPORT Context
 {
     uid_t uid;
     pid_t pid;
@@ -37,7 +37,7 @@ struct STORAGE_PROVIDER_EXPORT Context
 
 typedef std::vector<Item> ItemList;
 
-class STORAGE_PROVIDER_EXPORT ProviderBase
+class UNITY_STORAGE_EXPORT ProviderBase
 {
 public:
     ProviderBase();

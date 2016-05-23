@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unity/storage/common/common.h>
+#include <unity/storage/common/visibility.h>
 
 #include <QDateTime>
 #pragma GCC diagnostic push
@@ -33,7 +34,7 @@ class ItemImpl;
 /**
 \brief Base class for files and directories.
 */
-class Item
+class UNITY_STORAGE_EXPORT Item
 {
 public:
     ~Item();
@@ -65,6 +66,11 @@ public:
     Root* root() const;
 
     /**
+    \brief Returns the type of the item.
+    */
+    unity::storage::common::ItemType type() const;
+
+    /**
     \brief Returns metadata for the item.
 
     \warning The returned metadata is specific to the storage backend. Do not use this method
@@ -79,9 +85,13 @@ public:
     QFuture<QDateTime> last_modified_time() const;
 
     /**
-    \brief Returns the type of the item.
+    \brief Returns (a possibly partial) list of parent folders of this folder.
+    \return A vector of parents or, if this folder does not have parents,
+    an empty vector. Not all parent folders may be returned by a particular call; if
+    there is a large number of parent folders, the returned future may become
+    ready more than once. (See QFutureWatcher for more information.)
     */
-    unity::storage::common::ItemType type() const;
+    QFuture<QVector<std::shared_ptr<Folder>>> parents() const;
 
     /**
     \brief Copies this item.
@@ -112,7 +122,7 @@ public:
 protected:
     Item(internal::ItemImpl* p);
 
-    std::unique_ptr<internal::ItemImpl> p_;
+    std::shared_ptr<internal::ItemImpl> p_;
 };
 
 }  // namespace client

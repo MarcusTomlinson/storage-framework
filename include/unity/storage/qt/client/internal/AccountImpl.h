@@ -35,7 +35,7 @@ public:
     QString owner() const;
     QString owner_id() const;
     QString description() const;
-    QFuture<QVector<std::shared_ptr<Root>>> get_roots();
+    QFuture<QVector<std::shared_ptr<Root>>> roots();
 
     void set_runtime(std::weak_ptr<Runtime> p);
     void set_public_instance(std::weak_ptr<Account> p);

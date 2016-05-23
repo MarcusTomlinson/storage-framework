@@ -17,7 +17,7 @@ namespace internal
 class FileImpl : public ItemImpl
 {
 public:
-    FileImpl() = default;
+    FileImpl(QString const& identity);
     ~FileImpl() = default;
     FileImpl(FileImpl const&) = delete;
     FileImpl& operator=(FileImpl const&) = delete;

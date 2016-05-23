@@ -12,6 +12,8 @@
 
 #include <cassert>
 
+#include <iostream>  // TODO: remove this
+
 using namespace std;
 
 namespace unity
@@ -31,6 +33,8 @@ namespace
 
 // Return ${STORAGE_FRAMEWORK_ROOT}/storage-framework. If STORAGE_FRAMEWORK_ROOT
 // is not set, return ${XDG_DATA_HOME}/storage-framework.
+// ${STORAGE_FRAMEWORK_ROOT} or ${XDG_DATA_HOME} must exist and be a directory.
+// If the storage-framework underneath that data directory does not exist, it is created.
 
 string get_data_dir()
 {
@@ -39,8 +43,27 @@ string get_data_dir()
     {
         dir = g_get_user_data_dir();
     }
+
+    boost::system::error_code ec;
+
+    // The directory must exist.
+    bool is_dir = boost::filesystem::is_directory(dir, ec);
+    if (ec || !is_dir)
+    {
+        throw StorageException();  // TODO
+    }
+
+    // Create the storage-framework directory if it doesn't exist yet.
     string data_dir(dir);
     data_dir += "/storage-framework";
+    if (!boost::filesystem::exists(data_dir))
+    {
+        boost::filesystem::create_directories(data_dir, ec);
+        if (ec)
+        {
+            throw StorageException();  // TODO
+        }
+    }
     return data_dir;
 }
 
@@ -82,13 +105,19 @@ QString AccountImpl::description() const
     return description_;
 }
 
-QFuture<QVector<Root::SPtr>> AccountImpl::get_roots()
+QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {
     using namespace boost::filesystem;
 
     QFutureInterface<QVector<Root::SPtr>> qf;
 
-    if (roots_.isEmpty())
+    if (!roots_.isEmpty())
+    {
+        qf.reportResult(roots_);
+        return qf.future();
+    }
+
+    try
     {
         // Create the root on first access.
         auto rpath = canonical(get_data_dir()).native();
@@ -96,23 +125,13 @@ QFuture<QVector<Root::SPtr>> AccountImpl::get_roots()
         Root::SPtr root(new Root(impl));
         impl->set_root(root);
         impl->set_public_instance(root);
-        try
-        {
-            file_status st = status(roots_[0]->native_identity().toStdString());
-            if (!is_directory(st))
-            {
-                qf.reportException(StorageException());  // TODO
-                return qf.future();
-            }
-        }
-        catch (std::exception const&)
-        {
-            qf.reportException(StorageException());  // TODO
-            return qf.future();
-        }
         roots_.append(root);
     }
-
+    catch (std::exception const&)
+    {
+        qf.reportException(StorageException());  // TODO
+        return qf.future();
+    }
     qf.reportResult(roots_);
     return qf.future();
 }

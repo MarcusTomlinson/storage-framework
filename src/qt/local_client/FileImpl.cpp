@@ -6,6 +6,7 @@
 #include <unity/storage/qt/client/internal/DownloaderImpl.h>
 
 #include <boost/filesystem.hpp>
+#include <QtConcurrent>
 
 using namespace std;
 
@@ -20,26 +21,36 @@ namespace client
 namespace internal
 {
 
+FileImpl::FileImpl(QString const& identity)
+    : ItemImpl(identity, common::ItemType::file)
+{
+}
+
 QFuture<void> FileImpl::destroy()
 {
-    QFutureInterface<void> qf;
     if (destroyed_)
     {
+        QFutureInterface<void> qf;
         qf.reportException(DestroyedException());
         return qf.future();
     }
 
-    int rc = ::unlink(identity_.toStdString().c_str());
-    if (rc == 0)
+    auto This = static_pointer_cast<FileImpl>(shared_from_this());  // Keep this file alive while the lambda is alive.
+    auto destroy = [This]()
     {
-        destroyed_ = true;
-        qf.reportFinished();
-    }
-    else
-    {
-        qf.reportException(StorageException());
-    }
-    return qf.future();
+        using namespace boost::filesystem;
+
+        try
+        {
+            This->destroyed_ = true;
+            remove(This->native_identity().toStdString());
+        }
+        catch (std::exception const&)
+        {
+            throw StorageException();  // TODO
+        }
+    };
+    return QtConcurrent::run(destroy);
 }
 
 int64_t FileImpl::size() const

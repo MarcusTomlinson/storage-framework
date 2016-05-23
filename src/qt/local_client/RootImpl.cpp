@@ -18,6 +18,31 @@ namespace client
 namespace internal
 {
 
+RootImpl::RootImpl(QString const& identity)
+    : FolderImpl(identity, common::ItemType::root)
+{
+}
+
+QString RootImpl::name() const
+{
+    return "/";
+}
+
+QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
+{
+    QFutureInterface<QVector<Folder::SPtr>> qf;
+    if (destroyed_)
+    {
+        qf.reportException(DestroyedException());
+        return qf.future();
+    }
+
+    QVector<Folder::SPtr> results;
+    results.append(root_.lock());
+    qf.reportResult(results);
+    return qf.future();
+}
+
 QFuture<void> RootImpl::destroy()
 {
     // Cannot destroy root.
@@ -26,16 +51,26 @@ QFuture<void> RootImpl::destroy()
 
 Account* RootImpl::account() const
 {
+    if (destroyed_)
+    {
+        throw DestroyedException();  // TODO
+    }
+
     if (auto acc = account_.lock())
     {
         return acc.get();
     }
-    throw DestroyedException();  // TODO
+    throw RuntimeDestroyedException();
 }
 
 QFuture<int64_t> RootImpl::free_space_bytes() const
 {
     using namespace boost::filesystem;
+
+    if (destroyed_)
+    {
+        throw DestroyedException();  // TODO
+    }
 
     QFutureInterface<int64_t> qf;
     try
@@ -54,6 +89,11 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
 {
     using namespace boost::filesystem;
 
+    if (destroyed_)
+    {
+        throw DestroyedException();  // TODO
+    }
+
     QFutureInterface<int64_t> qf;
     try
     {
@@ -69,6 +109,11 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 {
+    if (destroyed_)
+    {
+        throw DestroyedException();  // TODO
+    }
+
     return QFuture<Item::SPtr>();  // TODO
 }
 

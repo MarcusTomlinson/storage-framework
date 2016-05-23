@@ -23,6 +23,8 @@ public:
     RootImpl(RootImpl const&) = delete;
     RootImpl& operator=(RootImpl const&) = delete;
 
+    virtual QString name() const override;
+    virtual QFuture<QVector<Folder::SPtr>> parents() const override;
     virtual QFuture<void> destroy() override;
 
     Account* account() const;

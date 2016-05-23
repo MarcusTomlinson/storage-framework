@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unity/storage/common/visibility.h>
 #include <unity/storage/qt/client/Item.h>
 
 namespace unity
@@ -18,6 +19,7 @@ namespace internal
 {
 
 class FileImpl;
+class FolderImpl;
 
 }  // namespace internal
 
@@ -28,7 +30,7 @@ enum class ConflictPolicy { error_if_conflict, overwrite };
 
 A file is a sequence of bytes.
 */
-class File : public Item
+class UNITY_STORAGE_EXPORT File : public Item
 {
 public:
     ~File();
@@ -37,7 +39,7 @@ public:
     File(File&&);
     File& operator=(File&&);
 
-    typedef std::unique_ptr<File> SPtr;
+    typedef std::shared_ptr<File> SPtr;
 
     /**
     \brief Returns the size of the file in bytes.
@@ -59,7 +61,9 @@ public:
 private:
     File(internal::FileImpl*);
 
-    friend class FileImpl;
+    friend class internal::FileImpl;
+    friend class internal::FolderImpl;
+    friend class internal::ItemImpl;
 };
 
 }  // namespace client

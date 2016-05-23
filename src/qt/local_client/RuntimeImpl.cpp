@@ -5,6 +5,11 @@
 
 #include <QFutureInterface>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#include <glib.h>
+#pragma GCC diagnostic pop
+
 #include <cassert>
 #include <cstdlib>
 
@@ -23,11 +28,31 @@ namespace client
 namespace internal
 {
 
-QFuture<QVector<Account::SPtr>> RuntimeImpl::get_accounts()
+RuntimeImpl::~RuntimeImpl()
+{
+    try
+    {
+        shutdown();
+    }
+    catch (std::exception const&)
+    {
+    }
+}
+
+void RuntimeImpl::shutdown()
+{
+    if (destroyed_)
+    {
+        return;
+    }
+    destroyed_ = true;
+}
+
+QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 {
 
-    char* user = getlogin();
-    assert(user && *user != '\0');
+    char const* user = g_get_user_name();
+    assert(*user != '\0');
     QString owner = user;
 
     QString owner_id;
@@ -38,7 +63,7 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::get_accounts()
     auto impl = new AccountImpl(owner, owner_id, description);
     Account::SPtr acc(new Account(impl));
     impl->set_public_instance(weak_ptr<Account>(acc));
-    impl->set_runtime(public_instance_);  // TODO, this is broken
+    impl->set_runtime(public_instance_);
 
     QVector<Account::SPtr> accounts;
     accounts.append(acc);

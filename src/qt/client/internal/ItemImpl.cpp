@@ -38,6 +38,11 @@ Root* ItemImpl::root() const
     return nullptr;
 }
 
+common::ItemType ItemImpl::type() const
+{
+    return QFuture<common::ItemType>();
+}
+
 QFuture<QVariantMap> ItemImpl::get_metadata() const
 {
     return QFuture<QVariantMap>();
@@ -46,11 +51,6 @@ QFuture<QVariantMap> ItemImpl::get_metadata() const
 QFuture<QDateTime> ItemImpl::last_modified_time() const
 {
     return QFuture<QDateTime>();
-}
-
-common::ItemType ItemImpl::type() const
-{
-    return QFuture<common::ItemType>();
 }
 
 QFuture<shared_ptr<Item>> copy(shared_ptr<Folder> const& new_parent, QString const& new_name)

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unity/storage/common/visibility.h>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
@@ -29,7 +31,7 @@ class RuntimeImpl;
 /**
 TODO
 */
-class Runtime
+class UNITY_STORAGE_EXPORT Runtime
 {
 public:
     /**

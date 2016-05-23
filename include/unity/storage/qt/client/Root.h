@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unity/storage/common/visibility.h>
 #include <unity/storage/qt/client/Folder.h>
 
 namespace unity
@@ -25,7 +26,7 @@ class RootImpl;
 /**
 \brief Class that represents a root folder.
 */
-class Root : public Folder
+class UNITY_STORAGE_EXPORT Root : public Folder
 {
 public:
     ~Root();
@@ -37,7 +38,7 @@ public:
     typedef std::shared_ptr<Root> SPtr;
 
     /**
-    \brief Returns the account for this item.
+    \brief Returns the account for this root.
     */
     Account* account() const;
 

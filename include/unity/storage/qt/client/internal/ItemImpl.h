@@ -21,6 +21,7 @@ namespace qt
 namespace client
 {
 
+class File;
 class Folder;
 class Item;
 class Root;
@@ -28,15 +29,17 @@ class Root;
 namespace internal
 {
 
-class ItemImpl
+class ItemImpl : public std::enable_shared_from_this<ItemImpl>
 {
 public:
+    ItemImpl(QString const& identity);
+    ItemImpl(QString const& identity, common::ItemType type);
     virtual ~ItemImpl();
     ItemImpl(ItemImpl const&) = delete;
     ItemImpl& operator=(ItemImpl const&) = delete;
 
     QString native_identity() const;
-    QString name() const;
+    virtual QString name() const;
     unity::storage::common::ItemType type() const;
     Root* root() const;
 
@@ -44,15 +47,17 @@ public:
     QFuture<QDateTime> last_modified_time() const;
     QFuture<std::shared_ptr<Item>> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
     QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
+    virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const;
     virtual QFuture<void> destroy() = 0;
 
     void set_root(std::weak_ptr<Root> p);
     void set_public_instance(std::weak_ptr<Item> p);
     std::weak_ptr<Item> public_instance() const;
 
-protected:
-    ItemImpl(QString const& identity);
+    static std::shared_ptr<Folder> make_folder(QString const& identity, std::weak_ptr<Root> root);
+    static std::shared_ptr<File> make_file(QString const& identity, std::weak_ptr<Root> root);
 
+protected:
     bool destroyed_ = false;
     QString identity_;
     QString name_;

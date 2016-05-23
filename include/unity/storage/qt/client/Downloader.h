@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unity/storage/common/visibility.h>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
@@ -28,7 +30,7 @@ class FileImpl;
 
 }  // namespace internal
 
-class Downloader
+class UNITY_STORAGE_EXPORT Downloader
 {
 public:
     /**

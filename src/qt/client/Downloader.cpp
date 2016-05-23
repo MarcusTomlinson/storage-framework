@@ -11,6 +11,13 @@ namespace qt
 namespace client
 {
 
+Downloader::Downloader(internal::DownloaderImpl* p)
+    : p_(p)
+{
+}
+
+Downloader::~Downloader() = default;
+
 std::shared_ptr<File> Downloader::file() const
 {
     return p_->file();
