@@ -16,9 +16,9 @@ namespace client
 namespace internal
 {
 
-QFuture<QVector<Account::UPtr>> RuntimeImpl::get_accounts()
+QFuture<QVector<shared_ptr<Account>>> RuntimeImpl::get_accounts()
 {
-    return QFuture<QVector<Account::UPtr>>();
+    return QFuture<QVector<shared_ptr<Account>>>();
 }
 
 }  // namespace internal

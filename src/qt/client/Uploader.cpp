@@ -10,15 +10,19 @@ namespace qt
 {
 namespace client
 {
-
-QFuture<int> Uploader::fd() const
+std::shared_ptr<File> Uploader::file() const
 {
-    return p_->fd();
+    return p_->file();
 }
 
-QFuture<void> Uploader::close()
+std::shared_ptr<QLocalSocket> Uploader::socket() const
 {
-    return p_->close();
+    return p_->socket();
+}
+
+QFuture<void> Uploader::finish_upload()
+{
+    return p_->finish_upload();
 }
 
 QFuture<void> Uploader::cancel()

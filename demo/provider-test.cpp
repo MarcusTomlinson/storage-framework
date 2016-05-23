@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <stdexcept>
 
+using namespace unity::storage::common;
 using namespace unity::storage::provider;
 
 class MyProvider : public ProviderBase

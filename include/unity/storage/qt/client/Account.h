@@ -1,6 +1,10 @@
 #pragma once
 
-#include <unity/storage/qt/client/Root.h>
+#include <QFuture>
+#include <QString>
+#include <QVector>
+
+#include <memory>
 
 namespace unity
 {
@@ -11,10 +15,15 @@ namespace qt
 namespace client
 {
 
+class Runtime;
+
+class Root;
+
 namespace internal
 {
 
 class AccountImpl;
+class RuntimeImpl;
 
 }
 
@@ -30,7 +39,9 @@ public:
     Account(Account&&);
     Account& operator=(Account&&);
 
-    typedef std::unique_ptr<Account> UPtr;
+    typedef std::shared_ptr<Account> SPtr;
+
+    Runtime* runtime() const;
 
     QString owner() const;
     QString owner_id() const;
@@ -43,12 +54,14 @@ public:
 
     An account can have more than one root directory (for providers that support the concept of multiple drives).
     */
-    QFuture<QVector<Root::UPtr>> get_roots() const;
+    QFuture<QVector<std::shared_ptr<Root>>> get_roots() const;
 
 private:
     Account(internal::AccountImpl*);
 
     std::unique_ptr<internal::AccountImpl> p_;
+
+    friend class internal::RuntimeImpl;
 };
 
 }  // namespace client

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unity/storage/common/common.h>
 #include <unity/storage/provider/visibility.h>
 
 #include <boost/thread/future.hpp>
@@ -16,20 +17,13 @@ namespace storage
 namespace provider
 {
 
-enum class ItemType
-{
-    file,
-    folder,
-    root,
-};
-
 struct STORAGE_PROVIDER_EXPORT Item
 {
     std::string item_id;
     std::string parent_id;
     std::string title;
     std::string etag;
-    ItemType type;
+    unity::storage::common::ItemType type;
     // Should be map<string,variant>
     std::map<std::string,std::string> metadata;
 };

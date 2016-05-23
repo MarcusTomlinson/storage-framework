@@ -7,6 +7,8 @@
 
 #include <memory>
 
+class QLocalSocket;
+
 namespace unity
 {
 namespace storage
@@ -16,10 +18,13 @@ namespace qt
 namespace client
 {
 
+class File;
+
 namespace internal
 {
 
 class DownloaderImpl;
+class FileImpl;
 
 }  // namespace internal
 
@@ -38,36 +43,33 @@ public:
     Downloader(Downloader&&);
     Downloader& operator=(Downloader&&);
 
-    typedef std::unique_ptr<Downloader> UPtr;
+    typedef std::shared_ptr<Downloader> SPtr;
 
     /**
-    \brief Returns a file descriptor that is open for reading.
-
-    To download the file contents, read from the returned file descriptor. The descriptor
-    may not be able to deliver arbitrarily large amounts of data without blocking. If the
-    code that reads from the descriptor cannot block, use non-blocking reads. Once the
-    descriptor indicates EOF, call close() to check for errors.
-
-    If a read on the descriptor returns an error, this indicates a fatal error condition, and further
-    reads on the descriptor will fail as well.
-
-    \return A file descriptor open for reading.
-    \raises SomeException if fd() is called after a call to close() or cancel(). TODO
+    \brief Returns the file for this downloader.
     */
-    QFuture<int> fd() const;
+    std::shared_ptr<File> file() const;
+
+    /**
+    \brief Returns a socket that is open for reading.
+
+    To download the file contents, read from the returned socket.
+    \return A socket open for reading.
+    */
+    std::shared_ptr<QLocalSocket> socket() const;
 
     /**
     \brief Finalizes the download.
 
-    Once the descriptor returned by fd() indicates EOF, you must call close().
-    Call result() on the returned future to check for errors.
+    Once the returned socket indicates EOF, you must call finish_download(), which closes
+    the socket. Call result() on the returned future to check for errors.
 
-    \warning Do not assume that a download completed successfully once you detect EOF on the file descriptor.
-    If something goes wrong during a download on the server side, the file descriptor will return EOF
+    // TODO: is this correct? If the provider puts its socket into an error state, what does the client see?
+    \warning Do not assume that a download completed successfully once you detect EOF on the socket.
+    If something goes wrong during a download on the server side, the socket will return EOF
     for a partially-downloaded file.
-    \raises SomeException if close() is called while a download is in progress. TODO
     */
-    QFuture<void> close();
+    QFuture<void> finish_download();
 
     /**
     \brief Cancels a download.
@@ -75,7 +77,7 @@ public:
     Calling cancel() informs the provider that the download is no longer needed. The provider
     will make a best-effort attempt to cancel the download from the remote service.
 
-    Calling cancel() more than once, or calling cancel() after a call to close() is safe and does nothing.
+    Calling cancel() more than once, or calling cancel() after a call to finish_download() is safe and does nothing.
     */
     QFuture<void> cancel();
 
@@ -84,7 +86,7 @@ private:
 
     std::unique_ptr<internal::DownloaderImpl> p_;
 
-    friend class internal::DownloaderImpl;
+    friend class internal::FileImpl;
 };
 
 }  // namespace client

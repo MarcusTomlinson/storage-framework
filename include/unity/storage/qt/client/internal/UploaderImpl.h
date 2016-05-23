@@ -5,6 +5,10 @@
 #include <QFuture>
 #pragma GCC diagnostic pop
 
+#include <memory>
+
+class QLocalSocket;
+
 namespace unity
 {
 namespace storage
@@ -13,6 +17,9 @@ namespace qt
 {
 namespace client
 {
+
+class File;
+
 namespace internal
 {
 
@@ -24,8 +31,9 @@ public:
     UploaderImpl(UploaderImpl const&) = delete;
     UploaderImpl& operator=(UploaderImpl const&) = delete;
 
-    QFuture<int> fd() const;
-    QFuture<void> close();
+    std::shared_ptr<File> file() const;
+    std::shared_ptr<QLocalSocket> socket() const;
+    QFuture<void> finish_upload();
     QFuture<void> cancel();
 };
 

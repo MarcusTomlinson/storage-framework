@@ -11,12 +11,17 @@ namespace qt
 namespace client
 {
 
-QFuture<int> Downloader::fd() const
+std::shared_ptr<File> Downloader::file() const
 {
-    return p_->fd();
+    return p_->file();
 }
 
-QFuture<void> Downloader::close()
+std::shared_ptr<QLocalSocket> Downloader::socket() const
+{
+    return p_->socket();
+}
+
+QFuture<void> Downloader::finish_download()
 {
     return p_->close();
 }

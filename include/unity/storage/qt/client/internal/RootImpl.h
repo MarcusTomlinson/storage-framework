@@ -1,7 +1,7 @@
 #pragma once
 
 #include <unity/storage/qt/client/Root.h>
-#include <unity/storage/qt/client/internal/DirectoryImpl.h>
+#include <unity/storage/qt/client/internal/FolderImpl.h>
 
 namespace unity
 {
@@ -15,20 +15,25 @@ namespace client
 namespace internal
 {
 
-class RootImpl : public DirectoryImpl
+class RootImpl : public FolderImpl
 {
 public:
-    RootImpl() = default;
+    RootImpl(QString const& identity);
     ~RootImpl() = default;
     RootImpl(RootImpl const&) = delete;
     RootImpl& operator=(RootImpl const&) = delete;
 
+    virtual QFuture<void> destroy() override;
+
     Account* account() const;
     QFuture<int64_t> free_space_bytes() const;
     QFuture<int64_t> used_space_bytes() const;
-    QFuture<Item::UPtr> get(QString native_identity) const;
+    QFuture<Item::SPtr> get(QString native_identity) const;
 
 private:
+    std::weak_ptr<Account> account_;
+
+    friend class AccountImpl;
 };
 
 }  // namespace internal

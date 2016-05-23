@@ -19,6 +19,8 @@ endif()
 # Ensure that generated files can be linked with.
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+include_directories(include)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -Wall -pedantic -Wextra -fvisibility=hidden")
 
 # Some additional warnings not included by the general flags set above.
@@ -82,15 +84,16 @@ enable_testing()
 
 include(EnableCoverageReport)
 
+find_package(Boost COMPONENTS filesystem thread REQUIRED)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5DBus REQUIRED)
-find_package(Boost COMPONENTS thread REQUIRED)
+find_package(Qt5Network REQUIRED)
 
 include(FindPkgConfig)
 pkg_check_modules(APPARMOR_DEPS REQUIRED libapparmor)
+pkg_check_modules(GLIB_DEPS REQUIRED glib-2.0)
 
 add_definitions(-DQT_NO_KEYWORDS)
-include_directories(include)
 
 add_subdirectory(src)
 add_subdirectory(tests)

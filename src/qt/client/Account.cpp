@@ -23,9 +23,24 @@ Account::Account(internal::AccountImpl* p)
 
 Account::~Account() = default;
 
+Runtime* Account::runtime() const
+{
+    return p_->runtime();
+}
+
 QString Account::owner() const
 {
     return p_->owner();
+}
+
+QString Account::owner_id() const
+{
+    return p_->owner_id();
+}
+
+QString Account::description() const
+{
+    return p_->description();
 }
 
 }  // namespace client

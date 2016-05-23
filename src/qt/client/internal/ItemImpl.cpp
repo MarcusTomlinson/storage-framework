@@ -1,5 +1,7 @@
 #include <unity/storage/qt/client/internal/ItemImpl.h>
 
+#include <cassert>
+
 using namespace std;
 
 namespace unity
@@ -13,7 +15,11 @@ namespace client
 namespace internal
 {
 
-ItemImpl::ItemImpl() = default;
+ItemImpl::ItemImpl(QString const& identity)
+    : identity_(identity)
+{
+    assert(!identity.isEmpty());
+}
 
 ItemImpl::~ItemImpl() = default;
 
@@ -32,11 +38,6 @@ Root* ItemImpl::root() const
     return nullptr;
 }
 
-QVector<QString> ItemImpl::all_names() const
-{
-    return QVector<QString>();
-}
-
 QFuture<QVariantMap> ItemImpl::get_metadata() const
 {
     return QFuture<QVariantMap>();
@@ -47,9 +48,19 @@ QFuture<QDateTime> ItemImpl::last_modified_time() const
     return QFuture<QDateTime>();
 }
 
-QFuture<QString> ItemImpl::mime_type() const
+common::ItemType ItemImpl::type() const
 {
-    return QFuture<QString>();
+    return QFuture<common::ItemType>();
+}
+
+QFuture<shared_ptr<Item>> copy(shared_ptr<Folder> const& new_parent, QString const& new_name)
+{
+    return QFuture<shared_ptr<Item>>();
+}
+
+QFuture<shared_ptr<Item>> move(shared_ptr<Folder> const& new_parent, QString const& new_name)
+{
+    return QFuture<shared_ptr<Item>>();
 }
 
 QFuture<void> ItemImpl::destroy()

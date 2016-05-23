@@ -21,12 +21,15 @@ Runtime::Runtime(internal::RuntimeImpl* p)
     assert(p != nullptr);
 }
 
-Runtime::UPtr Runtime::create()
+Runtime::SPtr Runtime::create()
 {
-    return Runtime::UPtr(new Runtime(new internal::RuntimeImpl));
+    auto impl = new internal::RuntimeImpl;
+    Runtime::SPtr runtime(new Runtime(impl));
+    impl->set_public_instance(weak_ptr<Runtime>(runtime));
+    return runtime;
 }
 
-QFuture<QVector<Account::UPtr>> Runtime::get_accounts()
+QFuture<QVector<shared_ptr<Account>>> Runtime::accounts()
 {
     return p_->get_accounts();
 }

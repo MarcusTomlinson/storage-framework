@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unity/storage/common/common.h>
+
 #include <QDateTime>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
@@ -18,6 +20,7 @@ namespace qt
 namespace client
 {
 
+class Folder;
 class Root;
 
 namespace internal
@@ -39,7 +42,7 @@ public:
     Item(Item&&);
     Item& operator=(Item&&);
 
-    typedef std::unique_ptr<Item> UPtr;
+    typedef std::shared_ptr<Item> SPtr;
 
     /**
     \brief Returns the native identifier used by the provider.
@@ -62,22 +65,13 @@ public:
     Root* root() const;
 
     /**
-    \brief Returns all names for this item.
-
-    Depending on the storage provider, an item may have more than one name, and may even have the same name
-    within the same directory more than once.
-    \return Returns all known names for this item within its parent directory, in no particular order.
-    */
-    QVector<QString> all_names() const;
-
-    /**
     \brief Returns metadata for the item.
 
     \warning The returned metadata is specific to the storage backend. Do not use this method
     for generic applications that must work with arbitrary backends.
     TODO: Needs a lot more doc. Should we provide this method at all?
     */
-    QFuture<QVariantMap> get_metadata() const;
+    QFuture<QVariantMap> metadata() const;
 
     /**
     \brief Returns the time at which the item was last modified.
@@ -85,11 +79,29 @@ public:
     QFuture<QDateTime> last_modified_time() const;
 
     /**
-    \brief Returns the mime type of the item.
-    \return For directories, the mime type is `inode/directory`. If the mime type is unknown,
-    the returned string is empty.
+    \brief Returns the type of the item.
     */
-    QFuture<QString> mime_type() const;
+    unity::storage::common::ItemType type() const;
+
+    /**
+    \brief Copies this item.
+
+    Copying a directory recursively copies its contents.
+    \param new_parent The new parent folder for the item. If the item is to be copied within
+    its current directory, this parameter must designate the currently existing parent.
+    \param new_name The new name for the file.
+    */
+    QFuture<Item::SPtr> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
+
+    /**
+    \brief Renames and/or moves a file or folder.
+    \param new_parent The new parent folder for the item. If the item is to be renamed only,
+    this parameter must designate the currently existing parent.
+    \param new_name The new name for the item. If the item is to be moved to a new parent with
+    the same name, this parameter must designate the currently existing name.
+    \note It is not possible to move or rename the root folder.
+    */
+    QFuture<Item::SPtr> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
 
     /**
     \brief Permamently destroys the item.
