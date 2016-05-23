@@ -28,6 +28,7 @@ namespace internal
 {
 
 class AccountImpl;
+class ItemImpl;
 class RuntimeImpl;
 
 }
@@ -66,6 +67,7 @@ private:
 
     std::unique_ptr<internal::AccountImpl> p_;
 
+    friend class internal::ItemImpl;
     friend class internal::RuntimeImpl;
 };
 

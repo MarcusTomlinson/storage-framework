@@ -43,12 +43,12 @@ common::ItemType Item::type() const
     return p_->type();
 }
 
-QFuture<QVariantMap> Item::metadata() const
+QVariantMap Item::metadata() const
 {
-    return p_->get_metadata();
+    return p_->metadata();
 }
 
-QFuture<QDateTime> Item::last_modified_time() const
+QDateTime Item::last_modified_time() const
 {
     return p_->last_modified_time();
 }

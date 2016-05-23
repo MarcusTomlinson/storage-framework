@@ -121,18 +121,14 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
     {
         // Create the root on first access.
         auto rpath = canonical(get_data_dir()).native();
-        auto impl = new RootImpl(QString::fromStdString(rpath));
-        Root::SPtr root(new Root(impl));
-        impl->set_root(root);
-        impl->set_public_instance(root);
+        auto root = RootImpl::make_root(QString::fromStdString(rpath));
         roots_.append(root);
+        qf.reportResult(roots_);
     }
     catch (std::exception const&)
     {
         qf.reportException(StorageException());  // TODO
-        return qf.future();
     }
-    qf.reportResult(roots_);
     return qf.future();
 }
 
@@ -144,6 +140,26 @@ void AccountImpl::set_runtime(weak_ptr<Runtime> p)
 void AccountImpl::set_public_instance(weak_ptr<Account> p)
 {
     public_instance_ = p;
+}
+
+AccountImpl::RecursiveCopyGuard AccountImpl::get_copy_guard()
+{
+    return RecursiveCopyGuard(this);
+}
+
+AccountImpl::RecursiveCopyGuard::RecursiveCopyGuard(AccountImpl* account)
+    : account_(account)
+{
+    if (account_->copy_in_progress_)
+    {
+        throw StorageException();  // TODO
+    }
+    account_->copy_in_progress_ = true;
+}
+
+AccountImpl::RecursiveCopyGuard::~RecursiveCopyGuard()
+{
+    account_->copy_in_progress_ = false;
 }
 
 }  // namespace internal

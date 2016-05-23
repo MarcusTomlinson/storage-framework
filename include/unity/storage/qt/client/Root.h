@@ -19,6 +19,7 @@ namespace internal
 {
 
 class AccountImpl;
+class ItemImpl;
 class RootImpl;
 
 }
@@ -55,6 +56,8 @@ private:
     std::unique_ptr<internal::RootImpl> p_;
 
     friend class internal::AccountImpl;
+    friend class internal::ItemImpl;
+    friend class internal::RootImpl;
 };
 
 }  // namespace client

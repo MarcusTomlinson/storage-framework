@@ -30,6 +30,8 @@ public:
     QFuture<Item::SPtr> lookup(QString const& name) const;
     QFuture<Folder::SPtr> create_folder(QString const& name);
     QFuture<std::shared_ptr<Uploader>> create_file(QString const& name);
+
+    static std::shared_ptr<Folder> make_folder(QString const& identity, std::weak_ptr<Root> root);
 };
 
 }  // namespace internal

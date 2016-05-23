@@ -84,11 +84,11 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
                 QString path = QString::fromStdString(dirent.path().native());
                 if (is_directory(s))
                 {
-                   results.append(This->make_folder(path, This->root_));
+                    results.append(make_folder(path, This->root_));
                 }
                 else if (is_regular_file(s))
                 {
-                   results.append(This->make_file(path, This->root_));
+                    results.append(FileImpl::make_file(path, This->root_));
                 }
                 else
                 {
@@ -126,11 +126,11 @@ QFuture<Item::SPtr> FolderImpl::lookup(QString const& name) const
             file_status s = status(p);
             if (is_directory(s))
             {
-                return This->make_folder(QString::fromStdString(p.native()), This->root_);
+                return make_folder(QString::fromStdString(p.native()), This->root_);
             }
             if (is_regular_file(s))
             {
-                return This->make_file(QString::fromStdString(p.native()), This->root_);
+                return FileImpl::make_file(QString::fromStdString(p.native()), This->root_);
             }
             throw NotExistException();  // TODO
         }
@@ -161,7 +161,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
             path p = This->native_identity().toStdString();
             p += name.toStdString();
             create_directory(p);
-            return This->make_folder(QString::fromStdString(p.native()), This->root_);
+            return make_folder(QString::fromStdString(p.native()), This->root_);
         }
         catch (std::exception const&)
         {
@@ -180,6 +180,15 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         return qf.future();
     }
     return QFuture<shared_ptr<Uploader>>();
+}
+
+Folder::SPtr FolderImpl::make_folder(QString const& identity, weak_ptr<Root> root)
+{
+    auto impl = new FolderImpl(identity);
+    Folder::SPtr folder(new Folder(impl));
+    impl->set_root(root);
+    impl->set_public_instance(folder);
+    return folder;
 }
 
 }  // namespace internal

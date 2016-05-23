@@ -40,6 +40,20 @@ public:
     void set_runtime(std::weak_ptr<Runtime> p);
     void set_public_instance(std::weak_ptr<Account> p);
 
+    class RecursiveCopyGuard
+    {
+    public:
+        RecursiveCopyGuard(AccountImpl*);
+        ~RecursiveCopyGuard();
+        RecursiveCopyGuard(RecursiveCopyGuard&&) = default;
+        RecursiveCopyGuard& operator=(RecursiveCopyGuard&&) = default;
+
+    private:
+        AccountImpl* account_;
+    };
+
+    RecursiveCopyGuard get_copy_guard();
+
 private:
     QString owner_;
     QString owner_id_;
@@ -47,6 +61,9 @@ private:
     QVector<std::shared_ptr<Root>> roots_;
     std::weak_ptr<Runtime> runtime_;
     std::weak_ptr<Account> public_instance_;
+    bool copy_in_progress_ = false;
+
+    friend class RecursiveCopyGuard;
 };
 
 }  // namespace internal

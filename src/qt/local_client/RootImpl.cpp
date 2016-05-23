@@ -117,6 +117,15 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
     return QFuture<Item::SPtr>();  // TODO
 }
 
+Root::SPtr RootImpl::make_root(QString const& identity)
+{
+    auto impl = new RootImpl(identity);
+    Root::SPtr root(new Root(impl));
+    impl->set_root(root);
+    impl->set_public_instance(root);
+    return root;
+}
+
 }  // namespace internal
 }  // namespace client
 }  // namespace qt

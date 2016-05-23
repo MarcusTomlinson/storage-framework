@@ -73,16 +73,14 @@ public:
     /**
     \brief Returns metadata for the item.
 
-    \warning The returned metadata is specific to the storage backend. Do not use this method
-    for generic applications that must work with arbitrary backends.
-    TODO: Needs a lot more doc. Should we provide this method at all?
+    TODO: Needs a lot more doc. Explain standard and prodier-specific metadata.
     */
-    QFuture<QVariantMap> metadata() const;
+    QVariantMap metadata() const;
 
     /**
     \brief Returns the time at which the item was last modified.
     */
-    QFuture<QDateTime> last_modified_time() const;
+    QDateTime last_modified_time() const;
 
     /**
     \brief Returns (a possibly partial) list of parent folders of this folder.

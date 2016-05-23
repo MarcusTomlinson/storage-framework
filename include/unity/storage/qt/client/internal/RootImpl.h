@@ -32,6 +32,8 @@ public:
     QFuture<int64_t> used_space_bytes() const;
     QFuture<Item::SPtr> get(QString native_identity) const;
 
+    static std::shared_ptr<Root> make_root(QString const& identity);
+
 private:
     std::weak_ptr<Account> account_;
 

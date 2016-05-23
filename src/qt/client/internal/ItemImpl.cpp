@@ -43,14 +43,14 @@ common::ItemType ItemImpl::type() const
     return QFuture<common::ItemType>();
 }
 
-QFuture<QVariantMap> ItemImpl::get_metadata() const
+QVariantMap ItemImpl::metadata() const
 {
-    return QFuture<QVariantMap>();
+    return QVariantMap();
 }
 
-QFuture<QDateTime> ItemImpl::last_modified_time() const
+QDateTime ItemImpl::last_modified_time() const
 {
-    return QFuture<QDateTime>();
+    return QDateTime();
 }
 
 QFuture<shared_ptr<Item>> copy(shared_ptr<Folder> const& new_parent, QString const& new_name)

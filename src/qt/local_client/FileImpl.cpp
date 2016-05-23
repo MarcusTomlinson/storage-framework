@@ -100,6 +100,15 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
     return qf.future();
 }
 
+File::SPtr FileImpl::make_file(QString const& identity, weak_ptr<Root> root)
+{
+    auto impl = new FileImpl(identity);
+    File::SPtr file(new File(impl));
+    impl->set_root(root);
+    impl->set_public_instance(file);
+    return file;
+}
+
 }  // namespace internal
 }  // namespace client
 }  // namespace qt
