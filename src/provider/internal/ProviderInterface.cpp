@@ -12,8 +12,9 @@ namespace storage {
 namespace provider {
 namespace internal {
 
-ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, shared_ptr<CredentialsCache> const& credentials, QObject *parent)
-    : QObject(parent), provider_(provider), credentials_(credentials)
+ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, shared_ptr<CredentialsCache> const& credentials, OnlineAccounts::Account* account, QObject *parent)
+    : QObject(parent), provider_(provider), credentials_(credentials),
+      account_(account)
 {
 }
 

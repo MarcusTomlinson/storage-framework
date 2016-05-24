@@ -1,12 +1,7 @@
 #include <unity/storage/provider/internal/ServerImpl.h>
 #include <unity/storage/provider/ProviderBase.h>
-#include <unity/storage/provider/Server.h>
-#include <unity/storage/provider/internal/CredentialsCache.h>
-#include <unity/storage/provider/internal/ProviderInterface.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 #include "provideradaptor.h"
-
-#include <QCoreApplication>
 
 using namespace std;
 
@@ -19,10 +14,11 @@ namespace provider
 namespace internal
 {
 
-
 ServerImpl::ServerImpl(ServerBase* server)
     : server_(server)
 {
+    qDBusRegisterMetaType<Item>();
+    qDBusRegisterMetaType<std::vector<Item>>();
 }
 
 ServerImpl::~ServerImpl() = default;
@@ -30,28 +26,36 @@ ServerImpl::~ServerImpl() = default;
 void ServerImpl::init(int& argc, char **argv)
 {
     app_.reset(new QCoreApplication(argc, argv));
-
-    qDBusRegisterMetaType<Item>();
-    qDBusRegisterMetaType<std::vector<Item>>();
     auto bus = QDBusConnection::sessionBus();
-
     credentials_ = make_shared<CredentialsCache>(bus);
 
-    // TODO: We should be creating multiple provider instances: one
-    // for each account.
-    interface_.reset(new ProviderInterface(server_->make_provider(), credentials_));
-    // this instance is managed by Qt's parent/child memory management
-    new ProviderAdaptor(interface_.get());
-
-    bus.registerObject("/provider", interface_.get());
-
-    // TODO: claim bus name
-    qDebug() << "Bus unique name:" << bus.baseService();
+    manager_.reset(new OnlineAccounts::Manager(""));
+    connect(manager_.get(), &OnlineAccounts::Manager::ready,
+                     this, &ServerImpl::account_manager_ready);
 }
 
 void ServerImpl::run()
 {
     app_->exec();
+}
+
+void ServerImpl::account_manager_ready()
+{
+    auto bus = QDBusConnection::sessionBus();
+    for (const auto& account : manager_->availableAccounts("google-drive-scope"))
+    {
+        qDebug() << "Found account" << account->id() << "for service" << account->serviceId();
+        unique_ptr<ProviderInterface> iface(
+            new ProviderInterface(server_->make_provider(), credentials_, account));
+        // this instance is managed by Qt's parent/child memory management
+        new ProviderAdaptor(iface.get());
+
+        bus.registerObject(QStringLiteral("/provider/%1").arg(account->id()), iface.get());
+        interfaces_.emplace(account->id(), std::move(iface));
+    }
+
+    // TODO: claim bus name
+    qDebug() << "Bus unique name:" << bus.baseService();
 }
 
 }

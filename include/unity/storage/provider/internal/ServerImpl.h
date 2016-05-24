@@ -1,8 +1,17 @@
 #pragma once
 
-#include <memory>
+#include <unity/storage/provider/Server.h>
+#include <unity/storage/provider/internal/CredentialsCache.h>
+#include <unity/storage/provider/internal/ProviderInterface.h>
 
-class QCoreApplication;
+#include <OnlineAccounts/Manager>
+#include <OnlineAccounts/Account>
+#include <QObject>
+#include <QCoreApplication>
+#include <QDBusConnection>
+
+#include <map>
+#include <memory>
 
 namespace unity
 {
@@ -11,15 +20,11 @@ namespace storage
 namespace provider
 {
 
-class ServerBase;
-
 namespace internal
 {
 
-class CredentialsCache;
-class ProviderInterface;
-
-class ServerImpl {
+class ServerImpl : public QObject {
+    Q_OBJECT
 public:
     ServerImpl(ServerBase* server);
     ~ServerImpl();
@@ -27,11 +32,16 @@ public:
     void init(int& argc, char **argv);
     void run();
 
+private Q_SLOTS:
+    void account_manager_ready();
+
 private:
+
     ServerBase* const server_;
     std::unique_ptr<QCoreApplication> app_;
+    std::unique_ptr<OnlineAccounts::Manager> manager_;
     std::shared_ptr<CredentialsCache> credentials_;
-    std::unique_ptr<ProviderInterface> interface_;
+    std::map<OnlineAccounts::AccountId,std::unique_ptr<ProviderInterface>> interfaces_;
 };
 
 }

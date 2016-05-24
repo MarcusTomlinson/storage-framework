@@ -2,6 +2,7 @@
 
 #include <unity/storage/provider/internal/Handler.h>
 
+#include <OnlineAccounts/Account>
 #include <QObject>
 #include <QList>
 #include <QDBusContext>
@@ -33,7 +34,7 @@ class ProviderInterface : public QObject, protected QDBusContext
     Q_OBJECT
 
 public:
-    ProviderInterface(std::shared_ptr<ProviderBase> const& provider, std::shared_ptr<CredentialsCache> const& credentials, QObject *parent=nullptr);
+    ProviderInterface(std::shared_ptr<ProviderBase> const& provider, std::shared_ptr<CredentialsCache> const& credentials, OnlineAccounts::Account* account, QObject *parent=nullptr);
     ~ProviderInterface();
 
 public Q_SLOTS:
@@ -59,8 +60,9 @@ private Q_SLOTS:
 private:
     void queueRequest(Handler::Callback callback);
 
-    std::shared_ptr<ProviderBase> provider_;
-    std::shared_ptr<CredentialsCache> credentials_;
+    std::shared_ptr<ProviderBase> const provider_;
+    std::shared_ptr<CredentialsCache> const credentials_;
+    OnlineAccounts::Account* const account_;
     std::map<Handler*, std::unique_ptr<Handler>> requests_;
 };
 

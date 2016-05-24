@@ -88,6 +88,7 @@ find_package(Boost COMPONENTS thread REQUIRED)
 
 include(FindPkgConfig)
 pkg_check_modules(APPARMOR_DEPS REQUIRED libapparmor)
+pkg_check_modules(ONLINEACCOUNTS_DEPS REQUIRED OnlineAccountsQt)
 
 add_definitions(-DQT_NO_KEYWORDS)
 include_directories(include)
