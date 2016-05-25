@@ -3,6 +3,8 @@
 #include <unity/storage/provider/internal/dbusmarshal.h>
 #include "provideradaptor.h"
 
+#include <stdexcept>
+
 using namespace std;
 
 namespace unity
@@ -14,8 +16,8 @@ namespace provider
 namespace internal
 {
 
-ServerImpl::ServerImpl(ServerBase* server)
-    : server_(server)
+ServerImpl::ServerImpl(ServerBase* server, string const& bus_name, string const& account_service_id)
+    : server_(server), bus_name_(bus_name), service_id_(account_service_id)
 {
     qDBusRegisterMetaType<Item>();
     qDBusRegisterMetaType<std::vector<Item>>();
@@ -42,7 +44,7 @@ void ServerImpl::run()
 void ServerImpl::account_manager_ready()
 {
     auto bus = QDBusConnection::sessionBus();
-    for (const auto& account : manager_->availableAccounts("google-drive-scope"))
+    for (const auto& account : manager_->availableAccounts(QString::fromStdString(service_id_)))
     {
         qDebug() << "Found account" << account->id() << "for service" << account->serviceId();
         unique_ptr<ProviderInterface> iface(
@@ -54,6 +56,10 @@ void ServerImpl::account_manager_ready()
         interfaces_.emplace(account->id(), std::move(iface));
     }
 
+    if (!bus.registerService(QString::fromStdString(bus_name_)))
+    {
+        throw runtime_error("Could not acquire bus name: " + bus_name_);
+    }
     // TODO: claim bus name
     qDebug() << "Bus unique name:" << bus.baseService();
 }

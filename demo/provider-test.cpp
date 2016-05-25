@@ -90,7 +90,7 @@ boost::future<Item> MyProvider::metadata(std::string const& item_id,
 
 int main(int argc, char **argv)
 {
-    Server<MyProvider> server;
+    Server<MyProvider> server("com.canonical.StorageFramework.Provider.ProviderTest", "google-drive-scope");
     server.init(argc, argv);
     server.run();
 }

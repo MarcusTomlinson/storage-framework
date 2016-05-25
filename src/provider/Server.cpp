@@ -12,8 +12,8 @@ namespace storage
 namespace provider
 {
 
-ServerBase::ServerBase()
-    : p_(new internal::ServerImpl(this))
+ServerBase::ServerBase(std::string const& bus_name, std::string const& account_service_id)
+    : p_(new internal::ServerImpl(this, bus_name, account_service_id))
 {
 }
 

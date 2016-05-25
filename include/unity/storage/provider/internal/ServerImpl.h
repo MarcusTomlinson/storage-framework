@@ -12,6 +12,7 @@
 
 #include <map>
 #include <memory>
+#include <string>
 
 namespace unity
 {
@@ -26,7 +27,7 @@ namespace internal
 class ServerImpl : public QObject {
     Q_OBJECT
 public:
-    ServerImpl(ServerBase* server);
+    ServerImpl(ServerBase* server, std::string const& bus_name, std::string const& account_service_id);
     ~ServerImpl();
 
     void init(int& argc, char **argv);
@@ -36,8 +37,10 @@ private Q_SLOTS:
     void account_manager_ready();
 
 private:
-
     ServerBase* const server_;
+    std::string const bus_name_;
+    std::string const service_id_;
+
     std::unique_ptr<QCoreApplication> app_;
     std::unique_ptr<OnlineAccounts::Manager> manager_;
     std::shared_ptr<CredentialsCache> credentials_;

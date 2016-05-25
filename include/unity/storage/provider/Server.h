@@ -3,6 +3,7 @@
 #include <unity/storage/provider/visibility.h>
 
 #include <memory>
+#include <string>
 
 namespace unity
 {
@@ -21,7 +22,7 @@ class ProviderBase;
 class STORAGE_PROVIDER_EXPORT ServerBase
 {
 public:
-    ServerBase();
+    ServerBase(std::string const& bus_name, std::string const& account_service_id);
     virtual ~ServerBase();
 
     void init(int& argc, char** argv);
