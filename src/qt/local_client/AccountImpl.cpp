@@ -1,7 +1,6 @@
 #include <unity/storage/qt/client/internal/AccountImpl.h>
 
 #include <unity/storage/qt/client/Exceptions.h>
-#include <unity/storage/qt/client/Root.h>
 #include <unity/storage/qt/client/internal/RootImpl.h>
 
 #include <boost/filesystem.hpp>

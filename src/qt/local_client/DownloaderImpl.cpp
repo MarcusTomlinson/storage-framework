@@ -2,7 +2,6 @@
 
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
-#include <unity/storage/qt/client/StorageSocket.h>
 
 #include <cassert>
 

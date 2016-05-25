@@ -2,9 +2,9 @@
 
 #include <unity/storage/qt/client/Downloader.h>
 #include <unity/storage/qt/client/Exceptions.h>
-#include <unity/storage/qt/client/Uploader.h>
 #include <unity/storage/qt/client/internal/DownloaderImpl.h>
 #include <unity/storage/qt/client/internal/UploaderImpl.h>
+#include <unity/storage/qt/client/Uploader.h>
 
 #include <boost/filesystem.hpp>
 #include <QtConcurrent>
