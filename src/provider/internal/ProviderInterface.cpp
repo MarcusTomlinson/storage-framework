@@ -3,6 +3,7 @@
 #include <unity/storage/provider/internal/CredentialsCache.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 
+#include <OnlineAccounts/AuthenticationData>
 #include <QDebug>
 
 using namespace std;
@@ -16,21 +17,92 @@ ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, s
     : QObject(parent), provider_(provider), credentials_(credentials),
       account_(account)
 {
+    authenticate_account(false);
 }
 
 ProviderInterface::~ProviderInterface() = default;
 
-void ProviderInterface::queueRequest(Handler::Callback callback)
+void ProviderInterface::authenticate_account(bool interactive)
+{
+    OnlineAccounts::AuthenticationData auth_data(
+        account_->authenticationMethod());
+    auth_data.setInteractive(interactive);
+    OnlineAccounts::PendingCall call = account_->authenticate(auth_data);
+    auth_watcher_.reset(new OnlineAccounts::PendingCallWatcher(call));
+    connect(auth_watcher_.get(), &OnlineAccounts::PendingCallWatcher::finished,
+            this, &ProviderInterface::account_authenticated);
+}
+
+void ProviderInterface::account_authenticated()
+{
+    switch (account_->authenticationMethod()) {
+    case OnlineAccounts::AuthenticationMethodOAuth1:
+    {
+        OnlineAccounts::OAuth1Reply reply(*auth_watcher_);
+        if (reply.hasError())
+        {
+            qDebug() << "Failed to authenticate:" << reply.error().text();
+        }
+        else
+        {
+            // TODO: pass auth data to provider_.
+            qDebug() << "Got OAuth1 token:" << reply.token();
+        }
+    }
+    case OnlineAccounts::AuthenticationMethodOAuth2:
+    {
+        OnlineAccounts::OAuth2Reply reply(*auth_watcher_);
+        if (reply.hasError())
+        {
+            qDebug() << "Failed to authenticate:" << reply.error().text();
+        }
+        else
+        {
+            // TODO: pass auth data to provider_.
+            qDebug() << "Got OAuth2 token:" << reply.accessToken();
+        }
+    }
+    case OnlineAccounts::AuthenticationMethodPassword:
+    {
+        OnlineAccounts::PasswordReply reply(*auth_watcher_);
+        if (reply.hasError())
+        {
+            qDebug() << "Failed to authenticate:" << reply.error().text();
+        }
+        else
+        {
+            // TODO: pass auth data to provider_.
+            qDebug() << "Got username:" << reply.username();
+        }
+    }
+    default:
+        qDebug() << "Unhandled authentication method:"
+                 << account_->authenticationMethod();
+    }
+    auth_watcher_.reset();
+}
+
+void ProviderInterface::queue_request(Handler::Callback callback)
 {
     unique_ptr<Handler> handler(new Handler(provider_, credentials_, callback,
                                             connection(), message()));
-    connect(handler.get(), &Handler::finished, this, &ProviderInterface::requestFinished);
+    connect(handler.get(), &Handler::finished, this, &ProviderInterface::request_finished);
     setDelayedReply(true);
-    handler->begin();
+    // If we haven't retrieved the authentication details from
+    // OnlineAccounts, delay processing the handler until then.
+    if (auth_watcher_)
+    {
+        connect(auth_watcher_.get(), &OnlineAccounts::PendingCallWatcher::finished,
+                handler.get(), &Handler::begin);
+    }
+    else
+    {
+        handler->begin();
+    }
     requests_.emplace(handler.get(), std::move(handler));
 }
 
-void ProviderInterface::requestFinished()
+void ProviderInterface::request_finished()
 {
     Handler* handler = static_cast<Handler*>(sender());
     try
@@ -52,7 +124,7 @@ void ProviderInterface::requestFinished()
 
 QList<ItemMetadata> ProviderInterface::Roots()
 {
-    queueRequest([](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
+    queue_request([](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
             auto f = provider->roots(ctx);
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto roots = f.get();
@@ -64,7 +136,7 @@ QList<ItemMetadata> ProviderInterface::Roots()
 
 QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString const& page_token, QString& /*next_token*/)
 {
-    queueRequest([item_id, page_token](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
+    queue_request([item_id, page_token](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
             auto f = provider->list(item_id.toStdString(), page_token.toStdString(), ctx);
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     vector<Item> children;
@@ -81,7 +153,7 @@ QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString cons
 
 QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString const& name)
 {
-    queueRequest([parent_id, name](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
+    queue_request([parent_id, name](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
             auto f = provider->lookup(parent_id.toStdString(), name.toStdString(), ctx);
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto items = f.get();
@@ -93,7 +165,7 @@ QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString 
 
 ItemMetadata ProviderInterface::Metadata(QString const& item_id)
 {
-    queueRequest([item_id](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
+    queue_request([item_id](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
             auto f = provider->metadata(item_id.toStdString(), ctx);
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();

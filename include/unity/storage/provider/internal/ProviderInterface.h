@@ -3,6 +3,7 @@
 #include <unity/storage/provider/internal/Handler.h>
 
 #include <OnlineAccounts/Account>
+#include <OnlineAccounts/PendingCallWatcher>
 #include <QObject>
 #include <QList>
 #include <QDBusContext>
@@ -55,14 +56,17 @@ public Q_SLOTS:
     ItemMetadata Copy(QString const& item_id, QString const& new_parent_id, QString const& new_name);
 
 private Q_SLOTS:
-    void requestFinished();
+    void account_authenticated();
+    void request_finished();
 
 private:
-    void queueRequest(Handler::Callback callback);
+    void authenticate_account(bool interactive);
+    void queue_request(Handler::Callback callback);
 
     std::shared_ptr<ProviderBase> const provider_;
     std::shared_ptr<CredentialsCache> const credentials_;
     OnlineAccounts::Account* const account_;
+    std::unique_ptr<OnlineAccounts::PendingCallWatcher> auth_watcher_;
     std::map<Handler*, std::unique_ptr<Handler>> requests_;
 };
 
