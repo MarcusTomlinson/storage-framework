@@ -35,9 +35,9 @@ Use a QSocketNotifier to receive signals when a socket is ready for reading or w
 class UNITY_STORAGE_EXPORT StorageSocket : public QLocalSocket
 {
 public:
-    // @cond
+    /// @cond
     virtual ~StorageSocket();
-    // @endcond
+    /// @endcond
 
     /**
     \brief Re-implemented method of `QLocalSocket`.

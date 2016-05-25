@@ -32,6 +32,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
     assert(file_);
 
     // Set up socket pair.
+    // TODO: Don't leak fds if something below throws.
     int fds[2];
     int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
     if (rc == -1)
@@ -49,7 +50,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
         throw StorageException();
     }
 
-    // Monitor write socket for write and error events.
+    // Monitor read socket for read and error events.
     read_notifier_.reset(new QSocketNotifier(read_socket_->socketDescriptor(), QSocketNotifier::Read));
     connect(read_notifier_.get(), &QSocketNotifier::activated, this, &UploaderImpl::on_ready);
     error_notifier_.reset(new QSocketNotifier(read_socket_->socketDescriptor(), QSocketNotifier::Exception));
@@ -99,15 +100,15 @@ QFuture<TransferState> UploaderImpl::finish_upload()
             try
             {
                 check_modified_time();  // Throws if time stamps don't match
-                state_ = finalized;
-                qf.reportResult(TransferState::ok);
                 string oldpath = string("/proc/self/fd/") + to_string(fd_);
                 string newpath = file_->native_identity().toStdString();
-                ::unlink(oldpath.c_str());  // linkat() will not remove existing file. See http://lwn.net/Articles/559969/
+                ::unlink(oldpath.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
                 if (linkat(-1, oldpath.c_str(), fd_, newpath.c_str(), 0) == -1)
                 {
                     throw StorageException();  // TODO
                 }
+                state_ = finalized;
+                qf.reportResult(TransferState::ok);
             }
             catch (std::exception const&)
             {

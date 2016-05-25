@@ -36,12 +36,13 @@ class RuntimeImpl;
 /**
 \brief Class that represents an account.
 */
-class UNITY_STORAGE_EXPORT Account
+class UNITY_STORAGE_EXPORT Account final
 {
 public:
+    /// @cond
     ~Account();
-    Account(Account const&) = delete;
-    Account& operator=(Account const&) = delete;
+    /// @endcond
+
     Account(Account&&);
     Account& operator=(Account&&);
 

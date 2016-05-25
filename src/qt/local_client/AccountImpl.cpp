@@ -75,6 +75,7 @@ AccountImpl::AccountImpl(QString const& owner,
     : owner_(owner)
     , owner_id_(owner_id)
     , description_(description)
+    , copy_in_progress_(false)
 {
     assert(!owner.isEmpty());
     assert(!owner_id.isEmpty());
@@ -152,11 +153,10 @@ AccountImpl::RecursiveCopyGuard AccountImpl::get_copy_guard()
 AccountImpl::RecursiveCopyGuard::RecursiveCopyGuard(AccountImpl* account)
     : account_(account)
 {
-    if (account_->copy_in_progress_)
+    if (account_->copy_in_progress_.exchange(true))
     {
         throw StorageException();  // TODO
     }
-    account_->copy_in_progress_ = true;
 }
 
 AccountImpl::RecursiveCopyGuard::~RecursiveCopyGuard()

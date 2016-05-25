@@ -37,12 +37,16 @@ class ItemImpl;
 class UNITY_STORAGE_EXPORT Item
 {
 public:
+    /// @cond
     virtual ~Item();
-    Item(Item const&) = delete;
-    Item& operator=(Item const&) = delete;
+    /// @endcond
+
     Item(Item&&);
     Item& operator=(Item&&);
 
+    /**
+    \brief Convenience type definition.
+    */
     typedef std::shared_ptr<Item> SPtr;
 
     /**
@@ -73,7 +77,7 @@ public:
     /**
     \brief Returns metadata for the item.
 
-    TODO: Needs a lot more doc. Explain standard and prodier-specific metadata.
+    TODO: Needs a lot more doc. Explain standard and provider-specific metadata.
     */
     QVariantMap metadata() const;
 
@@ -83,11 +87,10 @@ public:
     QDateTime last_modified_time() const;
 
     /**
-    \brief Returns (a possibly partial) list of parent folders of this folder.
+    \brief Returns a list of parent folders of this folder.
     \return A vector of parents or, if this folder does not have parents,
-    an empty vector. Not all parent folders may be returned by a particular call; if
-    there is a large number of parent folders, the returned future may become
-    ready more than once. (See QFutureWatcher for more information.)
+    an empty vector. If there is a large number of parent folders, the returned future
+    may become ready more than once. (See QFutureWatcher for more information.)
     */
     QFuture<QVector<std::shared_ptr<Folder>>> parents() const;
 

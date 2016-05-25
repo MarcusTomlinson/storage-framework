@@ -26,7 +26,7 @@ class RootImpl;
 /**
 \brief Class that represents a root folder.
 */
-class UNITY_STORAGE_EXPORT Root : public Folder
+class UNITY_STORAGE_EXPORT Root final : public Folder
 {
 public:
     virtual ~Root();
