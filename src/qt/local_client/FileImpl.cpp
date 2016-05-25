@@ -4,6 +4,7 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/Uploader.h>
 #include <unity/storage/qt/client/internal/DownloaderImpl.h>
+#include <unity/storage/qt/client/internal/UploaderImpl.h>
 
 #include <boost/filesystem.hpp>
 #include <QtConcurrent>
@@ -81,7 +82,22 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
         qf.reportFinished();
         return qf.future();
     }
-    return QFuture<Uploader::SPtr>();  // TODO
+
+    try
+    {
+        auto pi = public_instance_.lock();
+        assert(pi);
+        auto file_ptr = static_pointer_cast<File>(pi);
+        auto impl = new UploaderImpl(file_ptr, policy);
+        Uploader::SPtr ul(new Uploader(impl));
+        qf.reportResult(ul);
+    }
+    catch (std::exception const&)
+    {
+        qf.reportException(StorageException());  // TODO
+    }
+    qf.reportFinished();
+    return qf.future();
 }
 
 QFuture<Downloader::SPtr> FileImpl::create_downloader()
@@ -99,7 +115,7 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
         auto pi = public_instance_.lock();
         assert(pi);
         auto file_ptr = static_pointer_cast<File>(pi);
-        auto impl = new DownloaderImpl(file_ptr);  // TODO: missing params
+        auto impl = new DownloaderImpl(file_ptr);
         Downloader::SPtr dl(new Downloader(impl));
         qf.reportResult(dl);
     }

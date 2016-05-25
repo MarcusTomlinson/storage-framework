@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unity/storage/common.h>
 #include <unity/storage/visibility.h>
 
 #pragma GCC diagnostic push
@@ -24,6 +25,7 @@ class File;
 namespace internal
 {
 
+class FileImpl;
 class UploaderImpl;
 
 }  // namespace internal
@@ -38,8 +40,6 @@ public:
     */
     ~Uploader();
 
-    Uploader(Uploader const&) = delete;
-    Uploader& operator=(Uploader const&) = delete;
     Uploader(Uploader&&);
     Uploader& operator=(Uploader&&);
 
@@ -64,9 +64,11 @@ public:
     \brief Finalizes the upload.
 
     Once you have written the file contents to the socket returned by socket(), you must call finish_upload(),
-    which closes the socket. Call result() on the returned future to check for errors.
+    which closes the socket. Call result() on the returned future to check for errors. If an error
+    occurred, `result()` throws an exception. Otherwise, it returns the transfer state to
+    indicate whether the upload finished normally or was cancelled.
     */
-    QFuture<void> finish_upload();
+    QFuture<TransferState> finish_upload();
 
     /**
     \brief Cancels an upload.
@@ -83,7 +85,7 @@ private:
 
     std::unique_ptr<internal::UploaderImpl> p_;
 
-    friend class internal::UploaderImpl;
+    friend class internal::FileImpl;
 };
 
 }  // namespace client

@@ -8,6 +8,7 @@ set(QT_LOCAL_CLIENT_LIB_INTERNAL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/RuntimeImpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/UploaderImpl.cpp
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/DownloaderImpl.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/UploaderImpl.h
 )
 
 include_directories(${GLIB_DEPS_INCLUDE_DIRS})

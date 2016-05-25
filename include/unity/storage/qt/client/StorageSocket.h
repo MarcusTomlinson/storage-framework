@@ -20,6 +20,7 @@ namespace internal
 {
 
 class DownloaderImpl;
+class UploaderImpl;
 
 }  // namespace internal
 
@@ -57,6 +58,7 @@ private:
     StorageSocket(QObject* parent = nullptr);
 
     friend class internal::DownloaderImpl;
+    friend class internal::UploaderImpl;
 };
 
 }  // namespace client

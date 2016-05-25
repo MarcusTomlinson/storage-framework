@@ -15,7 +15,13 @@ enum class ItemType
 enum class TransferState
 {
     ok,
-    cancelled
+    cancelled,
+};
+
+enum class ConflictPolicy
+{
+    error_if_conflict,
+    overwrite,
 };
 
 }  // namespace storage

@@ -58,6 +58,7 @@ protected:
     bool destroyed_ = false;
     QString identity_;
     QString name_;
+    QDateTime modified_time_;
     std::weak_ptr<Root> root_;
     QVariantMap metadata_;
     ItemType type_;

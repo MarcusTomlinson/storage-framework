@@ -1,6 +1,5 @@
 #include <unity/storage/qt/client/internal/DownloaderImpl.h>
 
-#include <unity/storage/common.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/StorageSocket.h>

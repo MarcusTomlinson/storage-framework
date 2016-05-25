@@ -22,8 +22,6 @@ class FolderImpl;
 
 }  // namespace internal
 
-enum class ConflictPolicy { error_if_conflict, overwrite };
-
 /**
 \brief Class that represents a file.
 

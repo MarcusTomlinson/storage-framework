@@ -16,17 +16,17 @@ namespace client
 namespace internal
 {
 
-shared_ptr<QLocalSocket> UploaderImpl::socket() const
+shared_ptr<StorageSocket> UploaderImpl::socket() const
 {
-    return shared_ptr<QLocalSocket>();
+    return shared_ptr<StorageSocket>();
 }
 
-QFuture<void> UploaderImpl::finish_upload()
+QFuture<TransferState> UploaderImpl::finish_upload()
 {
-    return QFuture<void>();
+    return QFuture<TransferState>();
 }
 
-QFuture<void> UploaderImpl::cancel()
+QFuture<void> UploaderImpl::cancel() noexcept
 {
     return QFuture<void>();
 }

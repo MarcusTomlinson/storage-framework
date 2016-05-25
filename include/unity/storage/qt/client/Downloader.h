@@ -40,8 +40,6 @@ public:
     */
     ~Downloader();
 
-    Downloader(Downloader const&) = delete;
-    Downloader& operator=(Downloader const&) = delete;
     Downloader(Downloader&&);
     Downloader& operator=(Downloader&&);
 
