@@ -22,7 +22,7 @@ namespace internal
 {
 
 FileImpl::FileImpl(QString const& identity)
-    : ItemImpl(identity, common::ItemType::file)
+    : ItemImpl(identity, ItemType::file)
 {
 }
 
@@ -32,6 +32,7 @@ QFuture<void> FileImpl::destroy()
     {
         QFutureInterface<void> qf;
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
     }
 
@@ -77,6 +78,7 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
     if (destroyed_)
     {
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
     }
     return QFuture<Uploader::SPtr>();  // TODO
@@ -88,15 +90,24 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
     if (destroyed_)
     {
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
     }
 
-    auto pi = public_instance_.lock();
-    assert(pi);
-    auto file_ptr = static_pointer_cast<File>(pi);
-    auto impl = new DownloaderImpl(file_ptr);  // TODO: missing params
-    Downloader::SPtr dl(new Downloader(impl));
-    qf.reportResult(dl);
+    try
+    {
+        auto pi = public_instance_.lock();
+        assert(pi);
+        auto file_ptr = static_pointer_cast<File>(pi);
+        auto impl = new DownloaderImpl(file_ptr);  // TODO: missing params
+        Downloader::SPtr dl(new Downloader(impl));
+        qf.reportResult(dl);
+    }
+    catch (std::exception const&)
+    {
+        qf.reportException(StorageException());  // TODO
+    }
+    qf.reportFinished();
     return qf.future();
 }
 

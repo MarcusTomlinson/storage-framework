@@ -1,7 +1,7 @@
 #pragma once
 
-#include <unity/storage/common/common.h>
-#include <unity/storage/common/visibility.h>
+#include <unity/storage/common.h>
+#include <unity/storage/visibility.h>
 
 #include <boost/thread/future.hpp>
 
@@ -23,7 +23,7 @@ struct UNITY_STORAGE_EXPORT Item
     std::string parent_id;
     std::string title;
     std::string etag;
-    unity::storage::common::ItemType type;
+    unity::storage::ItemType type;
     // Should be map<string,variant>
     std::map<std::string,std::string> metadata;
 };

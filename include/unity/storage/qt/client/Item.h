@@ -1,7 +1,7 @@
 #pragma once
 
-#include <unity/storage/common/common.h>
-#include <unity/storage/common/visibility.h>
+#include <unity/storage/common.h>
+#include <unity/storage/visibility.h>
 
 #include <QDateTime>
 #pragma GCC diagnostic push
@@ -37,7 +37,7 @@ class ItemImpl;
 class UNITY_STORAGE_EXPORT Item
 {
 public:
-    ~Item();
+    virtual ~Item();
     Item(Item const&) = delete;
     Item& operator=(Item const&) = delete;
     Item(Item&&);
@@ -68,7 +68,7 @@ public:
     /**
     \brief Returns the type of the item.
     */
-    unity::storage::common::ItemType type() const;
+    ItemType type() const;
 
     /**
     \brief Returns metadata for the item.

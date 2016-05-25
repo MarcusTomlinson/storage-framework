@@ -38,9 +38,9 @@ Root* ItemImpl::root() const
     return nullptr;
 }
 
-common::ItemType ItemImpl::type() const
+ItemType ItemImpl::type() const
 {
-    return QFuture<common::ItemType>();
+    return QFuture<ItemType>();
 }
 
 QVariantMap ItemImpl::metadata() const

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unity/storage/common/common.h>
+#include <unity/storage/common.h>
 
 #include <QDateTime>
 #pragma GCC diagnostic push
@@ -33,14 +33,14 @@ class ItemImpl : public std::enable_shared_from_this<ItemImpl>
 {
 public:
     ItemImpl(QString const& identity);
-    ItemImpl(QString const& identity, common::ItemType type);
+    ItemImpl(QString const& identity, ItemType type);
     virtual ~ItemImpl();
     ItemImpl(ItemImpl const&) = delete;
     ItemImpl& operator=(ItemImpl const&) = delete;
 
     QString native_identity() const;
     virtual QString name() const;
-    unity::storage::common::ItemType type() const;
+    ItemType type() const;
     Root* root() const;
     QVariantMap metadata() const;
     QDateTime last_modified_time() const;
@@ -60,7 +60,7 @@ protected:
     QString name_;
     std::weak_ptr<Root> root_;
     QVariantMap metadata_;
-    common::ItemType type_;
+    ItemType type_;
     std::weak_ptr<Item> public_instance_;
 };
 

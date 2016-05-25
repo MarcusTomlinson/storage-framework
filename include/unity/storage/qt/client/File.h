@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unity/storage/common/visibility.h>
 #include <unity/storage/qt/client/Item.h>
 
 namespace unity
@@ -33,7 +32,7 @@ A file is a sequence of bytes.
 class UNITY_STORAGE_EXPORT File : public Item
 {
 public:
-    ~File();
+    virtual ~File();
     File(File const&) = delete;
     File& operator=(File const&) = delete;
     File(File&&);

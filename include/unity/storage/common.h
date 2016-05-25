@@ -4,8 +4,6 @@ namespace unity
 {
 namespace storage
 {
-namespace common
-{
 
 enum class ItemType
 {
@@ -14,6 +12,11 @@ enum class ItemType
     root,
 };
 
-}  // namespace common
+enum class TransferState
+{
+    ok,
+    cancelled
+};
+
 }  // namespace storage
 }  // namespace unity

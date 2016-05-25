@@ -19,7 +19,7 @@ namespace internal
 {
 
 RootImpl::RootImpl(QString const& identity)
-    : FolderImpl(identity, common::ItemType::root)
+    : FolderImpl(identity, ItemType::root)
 {
 }
 
@@ -34,12 +34,14 @@ QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
     if (destroyed_)
     {
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
     }
 
     QVector<Folder::SPtr> results;
     results.append(root_.lock());
     qf.reportResult(results);
+    qf.reportFinished();
     return qf.future();
 }
 
@@ -82,6 +84,7 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
     {
         qf.reportException(StorageException());  // TODO
     }
+    qf.reportFinished();
     return qf.future();
 }
 
@@ -104,6 +107,7 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
     {
         qf.reportException(StorageException());  // TODO
     }
+    qf.reportFinished();
     return qf.future();
 }
 

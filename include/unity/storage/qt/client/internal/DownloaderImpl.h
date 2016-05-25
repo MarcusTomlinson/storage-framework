@@ -1,13 +1,16 @@
 #pragma once
 
+#include <unity/storage/common.h>
+#include <unity/storage/qt/client/StorageSocket.h>
+
+#include <QFile>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
 #pragma GCC diagnostic pop
+#include <QSocketNotifier>
 
 #include <memory>
-
-class QLocalSocket;
 
 namespace unity
 {
@@ -23,8 +26,10 @@ class File;
 namespace internal
 {
 
-class DownloaderImpl
+class DownloaderImpl : public QObject
 {
+    Q_OBJECT
+
 public:
     DownloaderImpl(std::weak_ptr<File> file);
     ~DownloaderImpl();
@@ -32,17 +37,30 @@ public:
     DownloaderImpl& operator=(DownloaderImpl const&) = delete;
 
     std::shared_ptr<File> file() const;
-    std::shared_ptr<QLocalSocket> socket() const;
-    QFuture<void> close();
-    QFuture<void> cancel();
+    std::shared_ptr<StorageSocket> socket() const;
+    QFuture<TransferState> finish_download();
+    QFuture<void> cancel() noexcept;
+
+private Q_SLOTS:
+    void on_ready();
+    void on_error();
 
 private:
-    enum State { uninitialized, connected, finalized };
+    void handle_error();
 
-    State state_ = uninitialized;
+    enum State { connected, completed, finalized, cancelled, error };
+
+    State state_ = connected;
     std::shared_ptr<File> file_;
-    std::shared_ptr<QLocalSocket> read_socket_;
-    std::shared_ptr<QLocalSocket> write_socket_;
+    std::shared_ptr<StorageSocket> read_socket_;
+    std::shared_ptr<StorageSocket> write_socket_;
+    std::unique_ptr<QSocketNotifier> write_notifier_;
+    std::unique_ptr<QSocketNotifier> error_notifier_;
+    QFile input_file_;
+    char buf_[StorageSocket::CHUNK_SIZE];
+    int end_ = 0;
+    int pos_ = 0;
+    bool eof_ = false;
 };
 
 }  // namespace internal

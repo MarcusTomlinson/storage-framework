@@ -13,20 +13,22 @@ namespace qt
 namespace client
 {
 
+class StorageSocket;
+
 namespace internal
 {
 
-shared_ptr<QLocalSocket> DownloaderImpl::socket() const
+shared_ptr<StorageSocket> DownloaderImpl::socket() const
 {
-    return shared_ptr<QLocalSocket>();
+    return shared_ptr<StorageSocket>();
 }
 
-QFuture<void> DownloaderImpl::close()
+QFuture<TransferState> DownloaderImpl::finish_download()
 {
-    return QFuture<void>();
+    return QFuture<TransferState>();
 }
 
-QFuture<void> DownloaderImpl::cancel()
+QFuture<void> DownloaderImpl::cancel() noexcept
 {
     return QFuture<void>();
 }

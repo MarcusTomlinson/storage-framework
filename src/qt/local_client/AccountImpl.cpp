@@ -114,6 +114,7 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
     if (!roots_.isEmpty())
     {
         qf.reportResult(roots_);
+        qf.reportFinished();
         return qf.future();
     }
 
@@ -129,6 +130,7 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
     {
         qf.reportException(StorageException());  // TODO
     }
+    qf.reportFinished();
     return qf.future();
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unity/storage/common/visibility.h>
+#include <unity/storage/visibility.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"

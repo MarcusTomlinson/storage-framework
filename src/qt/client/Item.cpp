@@ -38,7 +38,7 @@ Root* Item::root() const
     return p_->root();
 }
 
-common::ItemType Item::type() const
+ItemType Item::type() const
 {
     return p_->type();
 }

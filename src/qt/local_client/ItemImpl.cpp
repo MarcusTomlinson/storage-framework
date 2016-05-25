@@ -26,7 +26,7 @@ namespace client
 namespace internal
 {
 
-ItemImpl::ItemImpl(QString const& identity, common::ItemType type)
+ItemImpl::ItemImpl(QString const& identity, ItemType type)
     : type_(type)
 {
     assert(!identity.isEmpty());
@@ -70,7 +70,7 @@ Root* ItemImpl::root() const
     throw RuntimeDestroyedException();
 }
 
-common::ItemType ItemImpl::type() const
+ItemType ItemImpl::type() const
 {
     if (destroyed_)
     {
@@ -159,7 +159,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
             path target_path = parent_path;
             target_path += new_name.toStdString();
 
-            if (This->type_ == common::ItemType::file)
+            if (This->type_ == ItemType::file)
             {
                 copy_file(source_path, target_path);
                 return FileImpl::make_file(QString::fromStdString(target_path.native()), new_parent->p_->root_);
@@ -231,7 +231,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
                 // Can't do cross-account move.
                 throw StorageException();  // TODO
             }
-            if (This->type_ == common::ItemType::root)
+            if (This->type_ == ItemType::root)
             {
                 // Can't move a root.
                 throw StorageException();  // TODO
@@ -245,7 +245,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
             }
             rename(This->native_identity().toStdString(), target_path);
             This->destroyed_ = true;
-            if (This->type_ == common::ItemType::folder)
+            if (This->type_ == ItemType::folder)
             {
                 return FolderImpl::make_folder(QString::fromStdString(target_path.native()), new_parent->p_->root_);
             }
@@ -270,7 +270,7 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
 
     using namespace boost::filesystem;
 
-    // Doing this synchronously because we don't need to hit the file system.
+    // We do this synchronously because we don't need to hit the file system.
     path p = native_identity().toStdString();
     QString parent = QString::fromStdString(p.parent_path().native());
     auto parent_folder = FolderImpl::make_folder(parent, root_);

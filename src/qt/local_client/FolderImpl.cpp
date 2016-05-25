@@ -22,11 +22,11 @@ namespace internal
 {
 
 FolderImpl::FolderImpl(QString const& identity)
-    : ItemImpl(identity, common::ItemType::folder)
+    : ItemImpl(identity, ItemType::folder)
 {
 }
 
-FolderImpl::FolderImpl(QString const& identity, common::ItemType type)
+FolderImpl::FolderImpl(QString const& identity, ItemType type)
     : ItemImpl(identity, type)
 {
 }
@@ -39,6 +39,7 @@ QFuture<void> FolderImpl::destroy()
     {
         QFutureInterface<QVector<Item::SPtr>> qf;
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
     }
 
@@ -66,6 +67,7 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
     {
         QFutureInterface<QVector<Item::SPtr>> qf;
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
     }
 
@@ -105,12 +107,43 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
     return QtConcurrent::run(list);
 }
 
+namespace
+{
+
+// Throw if name contains more than one path component.
+// Otherwise, return the relative path for the name.
+// This is to make sure that calling, say, create_file()
+// with a name such as "../../whatever" cannot lead
+// outside the root.
+
+boost::filesystem::path sanitize(QString const& name)
+{
+    using namespace boost::filesystem;
+
+    path p = name.toStdString();
+    if (!p.parent_path().empty())
+    {
+        // name contains more than one component.
+        throw StorageException();  // TODO.
+    }
+    path filename = p.filename();
+    if (filename.empty() || filename == "." || filename == "..")
+    {
+        // Not an allowable file name.
+        throw StorageException();  // TODO.
+    }
+    return p;
+}
+
+}  // namespace
+
 QFuture<Item::SPtr> FolderImpl::lookup(QString const& name) const
 {
     if (destroyed_)
     {
         QFutureInterface<Item::SPtr> qf;
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
     }
 
@@ -122,7 +155,7 @@ QFuture<Item::SPtr> FolderImpl::lookup(QString const& name) const
             using namespace boost::filesystem;
 
             path p = This->native_identity().toStdString();
-            p += name.toStdString();
+            p += sanitize(name);
             file_status s = status(p);
             if (is_directory(s))
             {
@@ -148,6 +181,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     {
         QFutureInterface<Folder::SPtr> qf;
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
     }
 
@@ -159,7 +193,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         try
         {
             path p = This->native_identity().toStdString();
-            p += name.toStdString();
+            p += sanitize(name);
             create_directory(p);
             return make_folder(QString::fromStdString(p.native()), This->root_);
         }
@@ -177,6 +211,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
     {
         QFutureInterface<shared_ptr<Uploader>> qf;
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
     }
     return QFuture<shared_ptr<Uploader>>();

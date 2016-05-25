@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unity/storage/common/visibility.h>
 #include <unity/storage/qt/client/File.h>
 
 namespace unity
@@ -29,7 +28,7 @@ of the members of a folder are not necessarily unique for some providers.
 class UNITY_STORAGE_EXPORT Folder : public Item
 {
 public:
-    ~Folder();
+    virtual ~Folder();
     Folder(Folder const&) = delete;
     Folder& operator=(Folder const&) = delete;
     Folder(Folder&&);

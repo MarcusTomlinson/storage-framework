@@ -19,7 +19,7 @@ class FolderImpl : public ItemImpl
 {
 public:
     FolderImpl(QString const& identity);
-    FolderImpl(QString const& identity, common::ItemType type);
+    FolderImpl(QString const& identity, ItemType type);
     ~FolderImpl();
     FolderImpl(FolderImpl const&) = delete;
     FolderImpl& operator=(FolderImpl const&) = delete;

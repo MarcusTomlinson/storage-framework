@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unity/storage/common/visibility.h>
+#include <unity/storage/visibility.h>
 
 #include <QException>
 

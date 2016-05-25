@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unity/storage/common/visibility.h>
+#include <unity/storage/visibility.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
@@ -61,7 +61,7 @@ public:
 
     This method shuts down the runtime. Calling shutdown() more than once is safe and does nothing.
 
-    The destructor implicitly calls shutdown(). This method is provide mainly to permit logging of any
+    The destructor implicitly calls shutdown(). This method is provided mainly to permit logging of any
     errors that might arise during shut-down.
     \throws Various exceptions, depending on the error. TODO
     */

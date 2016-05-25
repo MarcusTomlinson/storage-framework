@@ -1,6 +1,8 @@
 #pragma once
 
-#include <unity/storage/common/visibility.h>
+#include <unity/storage/common.h>
+#include <unity/storage/qt/client/StorageSocket.h>
+#include <unity/storage/visibility.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
@@ -8,8 +10,6 @@
 #pragma GCC diagnostic pop
 
 #include <memory>
-
-class QLocalSocket;
 
 namespace unity
 {
@@ -58,20 +58,21 @@ public:
     To download the file contents, read from the returned socket.
     \return A socket open for reading.
     */
-    std::shared_ptr<QLocalSocket> socket() const;
+    std::shared_ptr<StorageSocket> socket() const;
 
     /**
     \brief Finalizes the download.
 
     Once the returned socket indicates EOF, you must call finish_download(), which closes
-    the socket. Call result() on the returned future to check for errors.
+    the socket. Call `result()` on the returned future to check for errors. If an error
+    occurred, `result()` throws an exception. Otherwise, it returns the transfer state to
+    indicate whether the download finished normally or was cancelled.
 
-    // TODO: is this correct? If the provider puts its socket into an error state, what does the client see?
     \warning Do not assume that a download completed successfully once you detect EOF on the socket.
     If something goes wrong during a download on the server side, the socket will return EOF
     for a partially-downloaded file.
     */
-    QFuture<void> finish_download();
+    QFuture<TransferState> finish_download();
 
     /**
     \brief Cancels a download.

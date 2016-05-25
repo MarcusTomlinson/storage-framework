@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unity/storage/common/visibility.h>
 #include <unity/storage/qt/client/Folder.h>
 
 namespace unity
@@ -30,7 +29,7 @@ class RootImpl;
 class UNITY_STORAGE_EXPORT Root : public Folder
 {
 public:
-    ~Root();
+    virtual ~Root();
     Root(Root const&) = delete;
     Root& operator=(Root const&) = delete;
     Root(Root&&);

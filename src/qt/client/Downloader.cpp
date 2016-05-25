@@ -23,14 +23,14 @@ std::shared_ptr<File> Downloader::file() const
     return p_->file();
 }
 
-std::shared_ptr<QLocalSocket> Downloader::socket() const
+std::shared_ptr<StorageSocket> Downloader::socket() const
 {
     return p_->socket();
 }
 
-QFuture<void> Downloader::finish_download()
+QFuture<TransferState> Downloader::finish_download()
 {
-    return p_->close();
+    return p_->finish_download();
 }
 
 QFuture<void> Downloader::cancel()

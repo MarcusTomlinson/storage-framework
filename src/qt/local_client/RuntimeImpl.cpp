@@ -70,6 +70,7 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 
     QFutureInterface<QVector<Account::SPtr>> qf;
     qf.reportResult(accounts);
+    qf.reportFinished();
     return qf.future();
 }
 
