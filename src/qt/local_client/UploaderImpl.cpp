@@ -103,7 +103,7 @@ QFuture<TransferState> UploaderImpl::finish_upload()
                 qf.reportResult(TransferState::ok);
                 string oldpath = string("/proc/self/fd/") + to_string(fd_);
                 string newpath = file_->native_identity().toStdString();
-                ::unlink(oldpath.c_str());  // linkat() will not remove existing file.
+                ::unlink(oldpath.c_str());  // linkat() will not remove existing file. See http://lwn.net/Articles/559969/
                 if (linkat(-1, oldpath.c_str(), fd_, newpath.c_str(), 0) == -1)
                 {
                     throw StorageException();  // TODO
