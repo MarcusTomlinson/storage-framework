@@ -27,15 +27,19 @@ class FolderImpl;
 
 A file is a sequence of bytes.
 */
-class UNITY_STORAGE_EXPORT File : public Item
+class UNITY_STORAGE_EXPORT File final : public Item
 {
 public:
+    /// @cond
     virtual ~File();
-    File(File const&) = delete;
-    File& operator=(File const&) = delete;
+    /// @endcond
+
     File(File&&);
     File& operator=(File&&);
 
+    /**
+    \brief Convenience type definition.
+    */
     typedef std::shared_ptr<File> SPtr;
 
     /**

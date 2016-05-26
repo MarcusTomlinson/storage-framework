@@ -30,7 +30,7 @@ class UploaderImpl;
 
 }  // namespace internal
 
-class UNITY_STORAGE_EXPORT Uploader
+class UNITY_STORAGE_EXPORT Uploader final
 {
 public:
     /**
@@ -43,6 +43,9 @@ public:
     Uploader(Uploader&&);
     Uploader& operator=(Uploader&&);
 
+    /**
+    \brief Convenience type definition.
+    */
     typedef std::shared_ptr<Uploader> SPtr;
 
     /**
@@ -64,7 +67,7 @@ public:
     \brief Finalizes the upload.
 
     Once you have written the file contents to the socket returned by socket(), you must call finish_upload(),
-    which closes the socket. Call result() on the returned future to check for errors. If an error
+    which closes the socket. Call `result()` on the returned future to check for errors. If an error
     occurred, `result()` throws an exception. Otherwise, it returns the transfer state to
     indicate whether the upload finished normally or was cancelled.
     */

@@ -15,8 +15,9 @@ namespace client
 namespace internal
 {
 
-ItemImpl::ItemImpl(QString const& identity)
+ItemImpl::ItemImpl(QString const& identity, ItemType type)
     : identity_(identity)
+    , type_(type)
 {
     assert(!identity.isEmpty());
 }

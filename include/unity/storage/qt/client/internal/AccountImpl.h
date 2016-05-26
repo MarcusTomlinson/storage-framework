@@ -3,6 +3,7 @@
 #include <QFuture>
 #include <QVector>
 
+#include <atomic>
 #include <memory>
 
 namespace unity
@@ -61,7 +62,7 @@ private:
     QVector<std::shared_ptr<Root>> roots_;
     std::weak_ptr<Runtime> runtime_;
     std::weak_ptr<Account> public_instance_;
-    bool copy_in_progress_ = false;
+    std::atomic_bool copy_in_progress_;
 
     friend class RecursiveCopyGuard;
 };

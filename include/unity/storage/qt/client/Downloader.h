@@ -30,7 +30,7 @@ class FileImpl;
 
 }  // namespace internal
 
-class UNITY_STORAGE_EXPORT Downloader
+class UNITY_STORAGE_EXPORT Downloader final
 {
 public:
     /**
@@ -43,6 +43,9 @@ public:
     Downloader(Downloader&&);
     Downloader& operator=(Downloader&&);
 
+    /**
+    \brief Convenience type definition.
+    */
     typedef std::shared_ptr<Downloader> SPtr;
 
     /**

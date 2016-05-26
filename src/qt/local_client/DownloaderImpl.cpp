@@ -2,7 +2,6 @@
 
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
-#include <unity/storage/qt/client/StorageSocket.h>
 
 #include <cassert>
 
@@ -30,6 +29,7 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     assert(file_);
 
     // Set up socket pair.
+    // TODO: Don't leak fds if something below throws.
     int fds[2];
     int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
     if (rc == -1)

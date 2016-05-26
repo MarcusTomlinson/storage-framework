@@ -11,7 +11,6 @@
 
 namespace unity
 {
-
 namespace storage
 {
 namespace qt
@@ -31,7 +30,7 @@ class RuntimeImpl;
 /**
 TODO
 */
-class UNITY_STORAGE_EXPORT Runtime
+class UNITY_STORAGE_EXPORT Runtime final
 {
 public:
     /**
@@ -44,8 +43,6 @@ public:
     */
     ~Runtime();
 
-    Runtime(Runtime const&) = delete;
-    Runtime& operator=(Runtime const&) = delete;
     Runtime(Runtime&&);
     Runtime& operator=(Runtime&&);
 

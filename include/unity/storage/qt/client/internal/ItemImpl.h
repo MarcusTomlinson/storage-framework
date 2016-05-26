@@ -32,7 +32,6 @@ namespace internal
 class ItemImpl : public std::enable_shared_from_this<ItemImpl>
 {
 public:
-    ItemImpl(QString const& identity);
     ItemImpl(QString const& identity, ItemType type);
     virtual ~ItemImpl();
     ItemImpl(ItemImpl const&) = delete;
