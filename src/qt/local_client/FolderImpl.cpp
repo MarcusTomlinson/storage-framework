@@ -6,6 +6,8 @@
 #include <boost/filesystem.hpp>
 #include <QtConcurrent>
 
+#include <fcntl.h>
+
 #include <QDebug>  // TODO: remove this
 
 using namespace std;
@@ -214,7 +216,34 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         qf.reportFinished();
         return qf.future();
     }
-    return QFuture<shared_ptr<Uploader>>();
+
+    auto This = static_pointer_cast<FolderImpl>(shared_from_this());  // Keep this folder alive while the lambda is alive.
+    auto create_file = [This, name]()
+    {
+        using namespace boost::filesystem;
+
+        try
+        {
+            path p = This->native_identity().toStdString();
+            p += sanitize(name);
+            int fd = open(p.native().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if file already exists.
+            if (fd == -1)
+            {
+                throw StorageException();  // TODO
+            }
+            if (close(fd) == -1)
+            {
+                throw StorageException();  // TODO
+            }
+            auto file = FileImpl::make_file(QString::fromStdString(p.native()), This->root_);
+            return file->create_uploader(ConflictPolicy::overwrite);
+        }
+        catch (std::exception const&)
+        {
+            throw StorageException();  // TODO
+        }
+    };
+    return QtConcurrent::run(create_file);
 }
 
 Folder::SPtr FolderImpl::make_folder(QString const& identity, weak_ptr<Root> root)
