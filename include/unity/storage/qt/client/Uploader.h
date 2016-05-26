@@ -86,7 +86,7 @@ public:
 private:
     Uploader(internal::UploaderImpl*);
 
-    std::unique_ptr<internal::UploaderImpl> p_;
+    std::shared_ptr<internal::UploaderImpl> p_;
 
     friend class internal::FileImpl;
 };

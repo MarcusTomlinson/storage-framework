@@ -88,7 +88,7 @@ public:
 private:
     Downloader(internal::DownloaderImpl*);
 
-    std::unique_ptr<internal::DownloaderImpl> p_;
+    std::shared_ptr<internal::DownloaderImpl> p_;
 
     friend class internal::FileImpl;
 };

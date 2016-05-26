@@ -9,6 +9,7 @@
 #include <QFuture>
 #pragma GCC diagnostic pop
 
+#include <atomic>
 #include <memory>
 
 class QSocketNotifier;
@@ -29,7 +30,7 @@ namespace internal
 
 // TODO: UploaderImpl and DownloaderImpl share a lot of code. Factor that out.
 
-class UploaderImpl : public QObject
+class UploaderImpl : public QObject, public std::enable_shared_from_this<UploaderImpl>
 {
     Q_OBJECT
 
@@ -52,17 +53,17 @@ private:
     void handle_error();
     void check_modified_time() const;
 
-    enum State { connected, completed, finalized, cancelled, error };
+    enum State { connected, finalized, cancelled, error };
 
-    State state_ = connected;
-    std::shared_ptr<File> file_;
-    ConflictPolicy policy_;
-    std::shared_ptr<StorageSocket> read_socket_;
-    std::shared_ptr<StorageSocket> write_socket_;
-    std::unique_ptr<QSocketNotifier> read_notifier_;
-    std::unique_ptr<QSocketNotifier> error_notifier_;
-    int fd_;
-    QFile output_file_;
+    std::atomic<State> state_;
+    std::shared_ptr<File> file_;                       // Immutable
+    ConflictPolicy policy_;                            // Immutable
+    std::shared_ptr<StorageSocket> read_socket_;       // Immutable
+    std::shared_ptr<StorageSocket> write_socket_;      // Immutable
+    std::unique_ptr<QSocketNotifier> read_notifier_;   // Immutable
+    std::unique_ptr<QSocketNotifier> error_notifier_;  // Immutable
+    int fd_;                                           // Immutable
+    QFile output_file_;                                // Immutable
     char buf_[StorageSocket::CHUNK_SIZE];
     int end_ = 0;
     int pos_ = 0;

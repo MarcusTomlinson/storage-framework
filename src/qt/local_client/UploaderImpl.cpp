@@ -5,6 +5,7 @@
 
 #include <boost/filesystem.hpp>
 #include <QSocketNotifier>
+#include <QtConcurrent>
 
 #include <cassert>
 
@@ -26,6 +27,7 @@ namespace internal
 
 UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
     : QObject(nullptr)
+    , state_(connected)
     , file_(file.lock())
     , policy_(policy)
 {
@@ -91,64 +93,52 @@ shared_ptr<StorageSocket> UploaderImpl::socket() const
 
 QFuture<TransferState> UploaderImpl::finish_upload()
 {
-    QFutureInterface<TransferState> qf;
-    switch (state_)
+    auto This = shared_from_this();  // Keep this uploader alive while the lambda is alive.
+    auto finish = [This]()
     {
-        case connected:
+        switch (This->state_)
         {
-            qf.reportException(StorageException());  // TODO, logic error
-            break;
-        }
-        case completed:
-        {
-            try
+            case connected:
             {
-                check_modified_time();  // Throws if time stamps don't match
-                if (!output_file_.flush())
+                This->write_socket_->disconnectFromServer();
+                // TODO: Unfortunately, this emits a warning: https://bugreports.qt.io/browse/QTBUG-50711
+                This->write_socket_->waitForDisconnected(-1);
+                This->check_modified_time();  // Throws if time stamps don't match
+                if (!This->output_file_.flush())
                 {
+                    This->state_ = error;
                     throw StorageException();  // TODO
                 }
-                output_file_.close();
-                string oldpath = string("/proc/self/fd/") + to_string(fd_);
-                string newpath = file_->native_identity().toStdString();
+                string oldpath = string("/proc/self/fd/") + to_string(This->fd_);
+                string newpath = This->file_->native_identity().toStdString();
                 ::unlink(newpath.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
-                if (linkat(-1, oldpath.c_str(), fd_, newpath.c_str(), 0) == -1)
+                if (linkat(-1, oldpath.c_str(), This->fd_, newpath.c_str(), 0) == -1)
                 {
+                    This->state_ = error;
                     throw StorageException();  // TODO
                 }
-                state_ = finalized;
-                qf.reportResult(TransferState::ok);
+                This->state_ = finalized;
+                return TransferState::ok;
             }
-            catch (std::exception const&)
+            case finalized:
             {
-                state_ = error;
-                qf.reportException(StorageException());  // TODO
+                throw StorageException();  // TODO, logic error
             }
-            // TODO: time stamp and linkat
-            break;
+            case error:
+            {
+                throw StorageException();  // TODO, report details
+            }
+            case cancelled:
+            {
+                return TransferState::cancelled;
+            }
+            default:
+            {
+                abort();  // Impossible
+            }
         }
-        case finalized:
-        {
-            qf.reportException(StorageException());  // TODO, logic error
-            break;
-        }
-        case error:
-        {
-            qf.reportException(StorageException());  // TODO, report details
-            break;
-        }
-        case cancelled:
-        {
-            qf.reportResult(TransferState::cancelled);
-            break;
-        }
-        default:
-        {
-            abort();  // Impossible
-        }
-    }
-    qf.reportFinished();
-    return qf.future();
+    };
+    return QtConcurrent::run(finish);
 }
 
 QFuture<void> UploaderImpl::cancel() noexcept
@@ -167,10 +157,14 @@ QFuture<void> UploaderImpl::cancel() noexcept
 
 void UploaderImpl::on_ready()
 {
-    assert(state_ == connected);
     assert(pos_ >= 0);
     assert(pos_ <= end_);
     assert(end_ >= 0);
+
+    if (state_ != connected)
+    {
+        return;
+    }
 
     if (!eof_ && pos_ == end_)
     {
@@ -203,7 +197,6 @@ void UploaderImpl::on_ready()
         read_notifier_->setEnabled(false);
         error_notifier_->setEnabled(false);
         read_socket_->disconnectFromServer();
-        state_ = completed;
     }
 }
 
