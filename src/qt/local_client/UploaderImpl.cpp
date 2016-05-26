@@ -64,6 +64,8 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
     int fd_ = open(parent_path.native().c_str(), O_TMPFILE | O_WRONLY, 0600);
     if (fd_ == -1)
     {
+        // TODO: O_TMPFILE may not work with some kernels. Fall back to conventional
+        //       tmp file creation here in that case.
         throw StorageException();  // TODO
     }
     output_file_.open(fd_, QIODevice::WriteOnly, QFileDevice::AutoCloseHandle);
@@ -172,7 +174,7 @@ void UploaderImpl::on_ready()
             handle_error();
             return;
         }
-        eof_ = end_ < StorageSocket::CHUNK_SIZE;
+        eof_ = read_socket_->atEnd();
         pos_ = 0;
     }
 
