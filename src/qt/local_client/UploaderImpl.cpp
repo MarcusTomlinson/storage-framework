@@ -4,6 +4,7 @@
 #include <unity/storage/qt/client/File.h>
 
 #include <boost/filesystem.hpp>
+#include <QSocketNotifier>
 
 #include <cassert>
 
@@ -20,7 +21,6 @@ namespace qt
 {
 namespace client
 {
-
 namespace internal
 {
 
@@ -32,7 +32,6 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
     assert(file_);
 
     // Set up socket pair.
-    // TODO: Don't leak fds if something below throws.
     int fds[2];
     int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
     if (rc == -1)
@@ -42,11 +41,14 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
     read_socket_.reset(new StorageSocket);
     if (!read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly))
     {
+        close(fds[0]);
+        close(fds[1]);
         throw StorageException();
     }
     write_socket_.reset(new StorageSocket);
     if (!write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly))
     {
+        close(fds[1]);
         throw StorageException();
     }
 
@@ -102,9 +104,14 @@ QFuture<TransferState> UploaderImpl::finish_upload()
             try
             {
                 check_modified_time();  // Throws if time stamps don't match
+                if (!output_file_.flush())
+                {
+                    throw StorageException();  // TODO
+                }
+                output_file_.close();
                 string oldpath = string("/proc/self/fd/") + to_string(fd_);
                 string newpath = file_->native_identity().toStdString();
-                ::unlink(oldpath.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
+                ::unlink(newpath.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
                 if (linkat(-1, oldpath.c_str(), fd_, newpath.c_str(), 0) == -1)
                 {
                     throw StorageException();  // TODO

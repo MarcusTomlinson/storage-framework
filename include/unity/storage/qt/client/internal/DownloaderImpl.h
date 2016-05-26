@@ -8,9 +8,10 @@
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
 #pragma GCC diagnostic pop
-#include <QSocketNotifier>
 
 #include <memory>
+
+class QSocketNotifier;
 
 namespace unity
 {

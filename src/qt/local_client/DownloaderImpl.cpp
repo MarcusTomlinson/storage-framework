@@ -3,10 +3,13 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
 
+#include <QSocketNotifier>
+
 #include <cassert>
 
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 using namespace unity::storage::qt::client;
 using namespace std;
@@ -29,7 +32,6 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     assert(file_);
 
     // Set up socket pair.
-    // TODO: Don't leak fds if something below throws.
     int fds[2];
     int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
     if (rc == -1)
@@ -39,11 +41,14 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     read_socket_.reset(new StorageSocket);
     if (!read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly))
     {
+        close(fds[0]);
+        close(fds[1]);
         throw StorageException();
     }
     write_socket_.reset(new StorageSocket);
     if (!write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly))
     {
+        close(fds[1]);
         throw StorageException();
     }
 
