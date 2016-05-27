@@ -24,8 +24,6 @@ public:
     FolderImpl(FolderImpl const&) = delete;
     FolderImpl& operator=(FolderImpl const&) = delete;
 
-    virtual QFuture<void> destroy() override;
-
     QFuture<QVector<Item::SPtr>> list() const;
     QFuture<Item::SPtr> lookup(QString const& name) const;
     QFuture<Folder::SPtr> create_folder(QString const& name);

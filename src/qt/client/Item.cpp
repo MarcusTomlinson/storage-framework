@@ -72,6 +72,11 @@ QFuture<void> Item::destroy()
     return p_->destroy();
 }
 
+bool Item::equal_to(Item::SPtr const& other) const noexcept
+{
+    return p_->operator==(*other->p_);
+}
+
 }  // namespace client
 }  // namespace qt
 }  // namespace storage

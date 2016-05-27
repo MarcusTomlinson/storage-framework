@@ -35,34 +35,6 @@ FolderImpl::FolderImpl(QString const& identity, ItemType type)
 
 FolderImpl::~FolderImpl() = default;
 
-QFuture<void> FolderImpl::destroy()
-{
-    if (destroyed_)
-    {
-        QFutureInterface<QVector<Item::SPtr>> qf;
-        qf.reportException(DestroyedException());
-        qf.reportFinished();
-        return qf.future();
-    }
-
-    auto This = static_pointer_cast<FolderImpl>(shared_from_this());  // Keep this folder alive while the lambda is alive.
-    auto destroy = [This]()
-    {
-        using namespace boost::filesystem;
-
-        try
-        {
-            This->destroyed_ = true;
-            remove_all(This->native_identity().toStdString());
-        }
-        catch (std::exception const&)
-        {
-            throw StorageException();  // TODO
-        }
-    };
-    return QtConcurrent::run(destroy);
-}
-
 QFuture<QVector<Item::SPtr>> FolderImpl::list() const
 {
     if (destroyed_)

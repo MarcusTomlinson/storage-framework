@@ -22,8 +22,6 @@ public:
     FileImpl(FileImpl const&) = delete;
     FileImpl& operator=(FileImpl const&) = delete;
 
-    virtual QFuture<void> destroy() override;
-
     int64_t size() const;
     QFuture<std::shared_ptr<Uploader>> create_uploader(ConflictPolicy policy);
     QFuture<std::shared_ptr<Downloader>> create_downloader();

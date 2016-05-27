@@ -27,34 +27,6 @@ FileImpl::FileImpl(QString const& identity)
 {
 }
 
-QFuture<void> FileImpl::destroy()
-{
-    if (destroyed_)
-    {
-        QFutureInterface<void> qf;
-        qf.reportException(DestroyedException());
-        qf.reportFinished();
-        return qf.future();
-    }
-
-    auto This = static_pointer_cast<FileImpl>(shared_from_this());  // Keep this file alive while the lambda is alive.
-    auto destroy = [This]()
-    {
-        using namespace boost::filesystem;
-
-        try
-        {
-            This->destroyed_ = true;
-            remove(This->native_identity().toStdString());
-        }
-        catch (std::exception const&)
-        {
-            throw StorageException();  // TODO
-        }
-    };
-    return QtConcurrent::run(destroy);
-}
-
 int64_t FileImpl::size() const
 {
     if (destroyed_)

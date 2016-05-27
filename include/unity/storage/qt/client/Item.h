@@ -120,6 +120,8 @@ public:
     */
     QFuture<void> destroy();
 
+    bool equal_to(Item::SPtr const& other) const noexcept;
+
 protected:
     Item(internal::ItemImpl* p);
 

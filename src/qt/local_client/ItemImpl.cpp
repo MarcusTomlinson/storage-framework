@@ -25,7 +25,8 @@ namespace internal
 {
 
 ItemImpl::ItemImpl(QString const& identity, ItemType type)
-    : type_(type)
+    : destroyed_(false)
+    , type_(type)
 {
     assert(!identity.isEmpty());
     auto path = boost::filesystem::canonical(identity.toStdString());
@@ -274,6 +275,34 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
     return qf.future();
 }
 
+QFuture<void> ItemImpl::destroy()
+{
+    if (destroyed_)
+    {
+        QFutureInterface<void> qf;
+        qf.reportException(DestroyedException());
+        qf.reportFinished();
+        return qf.future();
+    }
+
+    auto This = shared_from_this();  // Keep this item alive while the lambda is alive.
+    auto destroy = [This]()
+    {
+        using namespace boost::filesystem;
+
+        try
+        {
+            remove_all(This->identity_.toStdString());
+            This->destroyed_ = true;
+        }
+        catch (std::exception const& e)
+        {
+            throw StorageException();  // TODO
+        }
+    };
+    return QtConcurrent::run(destroy);
+}
+
 void ItemImpl::set_root(weak_ptr<Root> p)
 {
     assert(p.lock());
@@ -290,6 +319,15 @@ weak_ptr<Item> ItemImpl::public_instance() const
 {
     assert(public_instance_.lock());
     return public_instance_;
+}
+
+bool ItemImpl::operator==(ItemImpl const& other) const noexcept
+{
+    if (destroyed_ || other.destroyed_)
+    {
+        return false;
+    }
+    return identity_ == other.identity_;
 }
 
 }  // namespace internal

@@ -28,6 +28,11 @@ namespace client
 namespace internal
 {
 
+RuntimeImpl::RuntimeImpl()
+    : destroyed_(false)
+{
+}
+
 RuntimeImpl::~RuntimeImpl()
 {
     try

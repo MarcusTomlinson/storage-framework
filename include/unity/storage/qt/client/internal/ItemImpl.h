@@ -10,6 +10,7 @@
 #include <QString>
 #include <QVariantMap>
 
+#include <atomic>
 #include <memory>
 
 namespace unity
@@ -47,21 +48,23 @@ public:
     QFuture<std::shared_ptr<Item>> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
     QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
     virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const;
-    virtual QFuture<void> destroy() = 0;
+    virtual QFuture<void> destroy();
 
     void set_root(std::weak_ptr<Root> p);
     void set_public_instance(std::weak_ptr<Item> p);
     std::weak_ptr<Item> public_instance() const;
 
+    bool operator==(ItemImpl const& other) const noexcept;
+
 protected:
-    bool destroyed_ = false;
-    QString identity_;
-    QString name_;
-    QDateTime modified_time_;
-    std::weak_ptr<Root> root_;
-    QVariantMap metadata_;
-    ItemType type_;
-    std::weak_ptr<Item> public_instance_;
+    std::atomic_bool destroyed_;
+    QString identity_;                     // Immutable
+    QString name_;                         // Immutable
+    QDateTime modified_time_;              // Immutable
+    std::weak_ptr<Root> root_;             // Immutable
+    QVariantMap metadata_;                 // Immutable
+    ItemType type_;                        // Immutable
+    std::weak_ptr<Item> public_instance_;  // Immutable
 };
 
 }  // namespace internal
