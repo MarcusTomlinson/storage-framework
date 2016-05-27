@@ -157,7 +157,7 @@ QFuture<Item::SPtr> FolderImpl::lookup(QString const& name) const
             using namespace boost::filesystem;
 
             path p = This->native_identity().toStdString();
-            p += sanitize(name);
+            p /= sanitize(name);
             file_status s = status(p);
             if (is_directory(s))
             {
@@ -195,7 +195,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         try
         {
             path p = This->native_identity().toStdString();
-            p += sanitize(name);
+            p /= sanitize(name);
             create_directory(p);
             return make_folder(QString::fromStdString(p.native()), This->root_);
         }
@@ -225,7 +225,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         try
         {
             path p = This->native_identity().toStdString();
-            p += sanitize(name);
+            p /= sanitize(name);
             int fd = open(p.native().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if file already exists.
             if (fd == -1)
             {

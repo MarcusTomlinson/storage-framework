@@ -122,7 +122,7 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
     {
         // Create the root on first access.
         auto rpath = canonical(get_data_dir()).native();
-        auto root = RootImpl::make_root(QString::fromStdString(rpath));
+        auto root = RootImpl::make_root(QString::fromStdString(rpath), public_instance_);
         roots_.append(root);
         qf.reportResult(roots_);
     }
@@ -141,6 +141,7 @@ void AccountImpl::set_runtime(weak_ptr<Runtime> p)
 
 void AccountImpl::set_public_instance(weak_ptr<Account> p)
 {
+    assert(p.lock());
     public_instance_ = p;
 }
 

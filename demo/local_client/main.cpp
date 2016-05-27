@@ -139,6 +139,8 @@ int main(int argc, char* argv[])
 {
     try
     {
+        QCoreApplication app(argc, argv);
+
         // Initialize the runtime.
         auto runtime = Runtime::create();
 
@@ -158,7 +160,21 @@ int main(int argc, char* argv[])
         auto list_ready = [&watcher, &lister]{ lister.show_list_result(watcher); };
         QObject::connect(&watcher, &QFutureWatcher<QVector<Item::SPtr>>::finished, &lister, list_ready);
 
-        QCoreApplication app(argc, argv);
+        auto item_fut = root->lookup("x");
+        auto item = item_fut.result();
+        auto file = dynamic_pointer_cast<File>(item);
+        assert(file);
+
+        auto upload_fut = file->create_uploader(ConflictPolicy::overwrite);
+        qDebug() << "called create";
+        auto uploader = upload_fut.result();
+        qDebug() << "got uploader";
+        std::string s(1000000, 'a');
+        uploader->socket()->writeData(&s[0], s.size());
+        qDebug() << "wrote data";
+        auto finish_fut = uploader->finish_upload();
+        qDebug() << "finish_fut:" << int(finish_fut.result());
+
         return app.exec();
     }
     catch (std::exception const& e)

@@ -60,16 +60,22 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 
     QString description = "Account for " + owner + " (" + owner_id + ")";
 
+    QFutureInterface<QVector<Account::SPtr>> qf;
+
+    if (!accounts_.isEmpty())
+    {
+        qf.reportResult(accounts_);
+        qf.reportFinished();
+        return qf.future();
+    }
+
+    // Create accounts_ on first access.
     auto impl = new AccountImpl(owner, owner_id, description);
     Account::SPtr acc(new Account(impl));
     impl->set_public_instance(weak_ptr<Account>(acc));
     impl->set_runtime(public_instance_);
-
-    QVector<Account::SPtr> accounts;
-    accounts.append(acc);
-
-    QFutureInterface<QVector<Account::SPtr>> qf;
-    qf.reportResult(accounts);
+    accounts_.append(acc);
+    qf.reportResult(accounts_);
     qf.reportFinished();
     return qf.future();
 }

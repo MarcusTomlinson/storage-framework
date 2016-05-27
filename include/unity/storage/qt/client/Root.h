@@ -52,9 +52,7 @@ public:
 private:
     Root(internal::RootImpl*);
 
-    std::unique_ptr<internal::RootImpl> p_;
-
-    friend class internal::AccountImpl;
+    //friend class internal::AccountImpl;
     friend class internal::ItemImpl;
     friend class internal::RootImpl;
 };

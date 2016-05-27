@@ -35,6 +35,7 @@ public:
 
 private:
     bool destroyed_ = false;
+    QVector<std::shared_ptr<Account>> accounts_;
     std::weak_ptr<Runtime> public_instance_;
 };
 

@@ -157,6 +157,7 @@ QFuture<void> UploaderImpl::cancel() noexcept
 
 void UploaderImpl::on_ready()
 {
+    qDebug() << "on_ready";
     assert(pos_ >= 0);
     assert(pos_ <= end_);
     assert(end_ >= 0);
@@ -178,6 +179,7 @@ void UploaderImpl::on_ready()
         }
         eof_ = read_socket_->atEnd();
         pos_ = 0;
+        qDebug() << "read" << end_;
     }
 
     int bytes_to_write = end_ - pos_;

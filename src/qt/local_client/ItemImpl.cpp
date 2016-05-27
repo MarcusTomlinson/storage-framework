@@ -122,7 +122,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         {
             path source_entry = it->path();
             path target_entry = target;
-            target_entry += source_entry.filename();
+            target_entry /= source_entry.filename();
             copy_recursively(source_entry, target_entry);
         }
     };
@@ -145,7 +145,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
             path source_path = This->native_identity().toStdString();
             path parent_path = new_parent->native_identity().toStdString();
             path target_path = parent_path;
-            target_path += new_name.toStdString();
+            target_path /= new_name.toStdString();
 
             if (This->type_ == ItemType::file)
             {
@@ -155,7 +155,13 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
 
             // Allow only one recursive copy per account at a time, otherwise source and destination
             // sub-trees for recursive copies could potentially overlap, creating chaos due to iterator invalidation.
-            auto guard = This->root()->p_->account()->p_->get_copy_guard();
+            auto root_impl = static_pointer_cast<Root>(This->root_.lock());
+            if (!root_impl)
+            {
+                throw RuntimeDestroyedException();
+            }
+
+            auto guard = root_impl->account()->p_->get_copy_guard();
 
             if (exists(target_path))
             {
@@ -166,7 +172,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
             // everything into the temporary directory. This ensures that we don't invalidate directory iterators
             // by creating things while we are iterating, potentially getting trapped in an infinite loop.
             path tmp_path = canonical(parent_path);
-            tmp_path += unique_path(".%%%%-%%%%-%%%%-%%%%");
+            tmp_path /= unique_path(".%%%%-%%%%-%%%%-%%%%");
             create_directories(tmp_path);
             for (directory_iterator it(source_path); it != directory_iterator(); ++it)
             {
@@ -179,7 +185,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
                 {
                     path source_entry = it->path();
                     path target_entry = parent_path;
-                    target_entry += source_entry.filename();
+                    target_entry /= source_entry.filename();
                     copy_recursively(source_entry, target_entry);
                 }
             }
@@ -226,7 +232,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
             }
 
             path target_path = new_parent->native_identity().toStdString();
-            target_path += new_name.toStdString();
+            target_path /= new_name.toStdString();
             if (exists(target_path))
             {
                 throw StorageException();  // TODO

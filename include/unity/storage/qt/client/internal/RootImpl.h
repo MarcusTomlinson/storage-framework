@@ -11,14 +11,13 @@ namespace qt
 {
 namespace client
 {
-
 namespace internal
 {
 
 class RootImpl : public FolderImpl
 {
 public:
-    RootImpl(QString const& identity);
+    RootImpl(QString const& identity, std::weak_ptr<Account> const& account);
     ~RootImpl() = default;
     RootImpl(RootImpl const&) = delete;
     RootImpl& operator=(RootImpl const&) = delete;
@@ -32,7 +31,7 @@ public:
     QFuture<int64_t> used_space_bytes() const;
     QFuture<Item::SPtr> get(QString native_identity) const;
 
-    static std::shared_ptr<Root> make_root(QString const& identity);
+    static std::shared_ptr<Root> make_root(QString const& identity, std::weak_ptr<Account> const& account);
 
 private:
     std::weak_ptr<Account> account_;
