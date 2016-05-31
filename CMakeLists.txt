@@ -92,6 +92,7 @@ find_package(Qt5Network REQUIRED)
 include(FindPkgConfig)
 pkg_check_modules(APPARMOR_DEPS REQUIRED libapparmor)
 pkg_check_modules(GLIB_DEPS REQUIRED glib-2.0)
+pkg_check_modules(ONLINEACCOUNTS_DEPS REQUIRED OnlineAccountsQt)
 
 add_definitions(-DQT_NO_KEYWORDS)
 
