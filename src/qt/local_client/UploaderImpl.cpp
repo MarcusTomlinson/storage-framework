@@ -61,12 +61,10 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
     connect(error_notifier_.get(), &QSocketNotifier::activated, this, &UploaderImpl::on_error);
 
     // Monitor write socket for disconnection. The disconnected signal can arrive while
-    // data still remains to be read.
+    // data still remains to be read. We also monitor bytesWritten so, if the socket is
+    // disconnected without ever having been written to, we can detect that we are at EOF.
     connect(write_socket_.get(), &QLocalSocket::disconnected, this, &UploaderImpl::on_disconnect);
-
-    // on_eof() does the final flush of the output file,
-    // which might take a while, so we do it asynchronously.
-    connect(this, &UploaderImpl::eof, this, &UploaderImpl::on_eof);
+    connect(write_socket_.get(), &QLocalSocket::bytesWritten, this, &UploaderImpl::on_write);
 
     using namespace boost::filesystem;
 
@@ -86,8 +84,6 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
 
 UploaderImpl::~UploaderImpl()
 {
-    read_notifier_->setEnabled(false);
-    error_notifier_->setEnabled(false);
     cancel();  // noexcept
 }
 
@@ -148,7 +144,7 @@ QFuture<void> UploaderImpl::cancel() noexcept
     if (state_ == connected)
     {
         state_ = cancelled;
-        read_socket_->abort();
+        write_socket_->abort();
     }
     QFutureInterface<void> qf;
     qf.reportFinished();
@@ -162,7 +158,7 @@ void UploaderImpl::on_ready()
     // all the data that is available.
 
     char buf[StorageSocket::CHUNK_SIZE];
-    int64_t bytes_read;
+    qint64 bytes_read;
     do
     {
         bytes_read = read_socket_->readData(buf, sizeof(buf));
@@ -185,8 +181,18 @@ void UploaderImpl::on_ready()
     } while (bytes_read > 0);
     if (disconnected_)
     {
-        Q_EMIT eof();
+        finalize();
     }
+}
+
+void UploaderImpl::on_write(qint64 /* bytes_written */)
+{
+    // Record when the client writes to the socket, so we finalize
+    // correctly if the client calls finish_upload() without
+    // having written anything.
+    bytes_written_ = true;
+    // We don't need to handle this signal anymore.
+    disconnect(write_socket_.get(), &QLocalSocket::bytesWritten, this, &UploaderImpl::on_write);
 }
 
 void UploaderImpl::on_error()
@@ -197,9 +203,15 @@ void UploaderImpl::on_error()
 void UploaderImpl::on_disconnect()
 {
     disconnected_ = true;
+    // If nothing was ever written, we need to call finalize() here
+    // because on_ready() will not have been called.
+    if (!bytes_written_)
+    {
+        finalize();
+    }
 }
 
-void UploaderImpl::on_eof()
+void UploaderImpl::finalize()
 {
     try
     {
@@ -239,7 +251,6 @@ void UploaderImpl::on_eof()
 
 void UploaderImpl::handle_error()
 {
-    qDebug() << "handle_error";
     if (state_ == connected)
     {
         output_file_.close();  // Dubious

@@ -27,7 +27,7 @@ namespace internal
 
 // TODO: UploaderImpl and DownloaderImpl share a lot of code. Factor that out.
 
-class UploaderImpl : public QObject, public std::enable_shared_from_this<UploaderImpl>
+class UploaderImpl : public QObject
 {
     Q_OBJECT
 
@@ -44,14 +44,12 @@ public:
 
 private Q_SLOTS:
     void on_ready();
+    void on_write(qint64 bytes_written);
     void on_error();
     void on_disconnect();
-    void on_eof();
-
-Q_SIGNALS:
-    void eof();
 
 private:
+    void finalize();
     void handle_error();
     void check_modified_time() const;
 
@@ -68,6 +66,7 @@ private:
     QFile output_file_;
     bool disconnected_ = false;
     bool eof_ = false;
+    bool bytes_written_ = false;
     QFutureInterface<TransferState> qf_;
 };
 

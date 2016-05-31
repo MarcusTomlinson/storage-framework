@@ -9,7 +9,6 @@
 #include <QFuture>
 #pragma GCC diagnostic pop
 
-#include <atomic>
 #include <memory>
 
 class QSocketNotifier;
@@ -28,7 +27,7 @@ class File;
 namespace internal
 {
 
-class DownloaderImpl : public QObject, public std::enable_shared_from_this<DownloaderImpl>
+class DownloaderImpl : public QObject
 {
     Q_OBJECT
 
@@ -46,23 +45,25 @@ public:
 private Q_SLOTS:
     void on_ready();
     void on_error();
+    void on_disconnect();
 
 private:
     void handle_error();
 
     enum State { connected, finalized, cancelled, error };
 
-    std::atomic<State> state_;
-    std::shared_ptr<File> file_;                       // Immutable
-    std::shared_ptr<StorageSocket> read_socket_;       // Immutable
-    std::shared_ptr<StorageSocket> write_socket_;      // Immutable
-    std::unique_ptr<QSocketNotifier> write_notifier_;  // Immutable
-    std::unique_ptr<QSocketNotifier> error_notifier_;  // Immutable
-    QFile input_file_;                                 // Immutable
+    State state_ = connected;
+    std::shared_ptr<File> file_;
+    std::shared_ptr<StorageSocket> read_socket_;
+    std::shared_ptr<StorageSocket> write_socket_;
+    std::unique_ptr<QSocketNotifier> write_notifier_;
+    std::unique_ptr<QSocketNotifier> error_notifier_;
+    QFile input_file_;
     char buf_[StorageSocket::CHUNK_SIZE];
     int end_ = 0;
     int pos_ = 0;
     bool eof_ = false;
+    QFutureInterface<TransferState> qf_;
 };
 
 }  // namespace internal

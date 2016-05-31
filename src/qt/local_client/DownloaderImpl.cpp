@@ -60,6 +60,9 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     error_notifier_.reset(new QSocketNotifier(write_socket_->socketDescriptor(), QSocketNotifier::Exception));
     connect(error_notifier_.get(), &QSocketNotifier::activated, this, &DownloaderImpl::on_error);
 
+    // Monitor write socket for disconnection, so we can wait until all pending data was written.
+    connect(write_socket_.get(), &QLocalSocket::disconnected, this, &DownloaderImpl::on_disconnect);
+
     // Open file for reading.
     int fd = open(file_->native_identity().toStdString().c_str(), O_RDONLY);
     if (fd == -1)
@@ -86,37 +89,37 @@ shared_ptr<StorageSocket> DownloaderImpl::socket() const
 
 QFuture<TransferState> DownloaderImpl::finish_download()
 {
-    auto This = shared_from_this();  // Keep this downloader alive while the lambda is alive.
-    auto finish = [This]()
+    switch (state_)
     {
-        switch (This->state_)
+        case connected:
         {
-            case connected:
-            {
-                // TODO: Unfortunately, this emits a warning: https://bugreports.qt.io/browse/QTBUG-50711
-                This->write_socket_->waitForDisconnected(-1);
-                This->state_ = finalized;
-                return TransferState::ok;
-            }
-            case finalized:
-            {
-                throw StorageException();  // TODO, logic error
-            }
-            case error:
-            {
-                throw StorageException();  // TODO, report details
-            }
-            case cancelled:
-            {
-                return TransferState::cancelled;
-            }
-            default:
-            {
-                abort();  // Impossible
-            }
+            // Do nothing, on_disconnect() makes the future ready.
+            break;
         }
-    };
-    return QtConcurrent::run(finish);
+        case finalized:
+        {
+            qf_.reportException(StorageException());  // TODO, logic error
+            qf_.reportFinished();
+            break;
+        }
+        case error:
+        {
+            qf_.reportException(StorageException());  // TODO, report details
+            qf_.reportFinished();
+            break;
+        }
+        case cancelled:
+        {
+            qf_.reportResult(TransferState::cancelled);
+            qf_.reportFinished();
+            break;
+        }
+        default:
+        {
+            abort();  // Impossible
+        }
+    }
+    return qf_.future();
 }
 
 QFuture<void> DownloaderImpl::cancel() noexcept
@@ -135,15 +138,6 @@ QFuture<void> DownloaderImpl::cancel() noexcept
 
 void DownloaderImpl::on_ready()
 {
-    assert(pos_ >= 0);
-    assert(pos_ <= end_);
-    assert(end_ >= 0);
-
-    if (state_ != connected)
-    {
-        return;
-    }
-
     if (!eof_ && pos_ == end_)
     {
         // Buffer empty, need to read a chunk.
@@ -181,6 +175,13 @@ void DownloaderImpl::on_ready()
 void DownloaderImpl::on_error()
 {
     handle_error();
+}
+
+void DownloaderImpl::on_disconnect()
+{
+    qf_.reportResult(TransferState::ok);
+    qf_.reportFinished();
+    disconnect(write_socket_.get(), &QLocalSocket::disconnected, this, &DownloaderImpl::on_disconnect);
 }
 
 void DownloaderImpl::handle_error()
