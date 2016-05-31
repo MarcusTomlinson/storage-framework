@@ -4,12 +4,8 @@
 #include <unity/storage/qt/client/StorageSocket.h>
 
 #include <QFile>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#include <QFuture>
-#pragma GCC diagnostic pop
+#include <QFutureInterface>
 
-#include <atomic>
 #include <memory>
 
 class QSocketNotifier;
@@ -24,6 +20,7 @@ namespace client
 {
 
 class File;
+class Uploader;
 
 namespace internal
 {
@@ -48,26 +45,30 @@ public:
 private Q_SLOTS:
     void on_ready();
     void on_error();
+    void on_disconnect();
+    void on_eof();
+
+Q_SIGNALS:
+    void eof();
 
 private:
     void handle_error();
     void check_modified_time() const;
 
-    enum State { connected, finalized, cancelled, error };
+    enum State { connected, disconnected, finalized, cancelled, error };
 
-    std::atomic<State> state_;
-    std::shared_ptr<File> file_;                       // Immutable
-    ConflictPolicy policy_;                            // Immutable
-    std::shared_ptr<StorageSocket> read_socket_;       // Immutable
-    std::shared_ptr<StorageSocket> write_socket_;      // Immutable
-    std::unique_ptr<QSocketNotifier> read_notifier_;   // Immutable
-    std::unique_ptr<QSocketNotifier> error_notifier_;  // Immutable
-    int fd_;                                           // Immutable
-    QFile output_file_;                                // Immutable
-    char buf_[StorageSocket::CHUNK_SIZE];
-    int end_ = 0;
-    int pos_ = 0;
+    State state_;
+    std::shared_ptr<File> file_;
+    ConflictPolicy policy_;
+    std::shared_ptr<StorageSocket> read_socket_;
+    std::shared_ptr<StorageSocket> write_socket_;
+    std::unique_ptr<QSocketNotifier> read_notifier_;
+    std::unique_ptr<QSocketNotifier> error_notifier_;
+    int fd_;
+    QFile output_file_;
+    bool disconnected_ = false;
     bool eof_ = false;
+    QFutureInterface<TransferState> qf_;
 };
 
 }  // namespace internal

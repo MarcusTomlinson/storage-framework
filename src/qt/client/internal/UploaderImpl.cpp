@@ -1,5 +1,10 @@
 #include <unity/storage/qt/client/internal/UploaderImpl.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#include <QFuture>
+#pragma GCC diagnostic pop
+
 #include <cassert>
 
 using namespace std;
@@ -12,7 +17,6 @@ namespace qt
 {
 namespace client
 {
-
 namespace internal
 {
 

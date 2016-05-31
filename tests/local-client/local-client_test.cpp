@@ -11,13 +11,15 @@
 #include <glib.h>
 #pragma GCC diagnostic pop
 
-#include <iostream> // TODO: remove this
+#include <fstream>
 
 using namespace unity::storage;
 using namespace unity::storage::qt::client;
 using namespace std;
 
 static constexpr int SIGNAL_WAIT_TIME = 1000;
+
+// Bunch of helper function to reduce the amount of noise in the tests.
 
 Account::SPtr get_account(Runtime::SPtr const& runtime)
 {
@@ -68,7 +70,39 @@ Folder::SPtr create_folder(QString const& name, Folder::SPtr const& parent)
     return create_folder_fut.result();
 }
 
-TEST(runtime, lifecycle)
+QVector<Item::SPtr> list_contents(Folder::SPtr const& folder)
+{
+    auto list_fut = folder->list();
+    QFutureWatcher<QVector<Item::SPtr>> w;
+    QSignalSpy spy(&w, &decltype(w)::finished);
+    w.setFuture(list_fut);
+    spy.wait(SIGNAL_WAIT_TIME);
+    return list_fut.result();
+}
+
+Folder::SPtr get_parent(Item::SPtr const& item)
+{
+    auto parents_fut = item->parents();
+    QFutureWatcher<QVector<Folder::SPtr>> w;
+    QSignalSpy spy(&w, &decltype(w)::finished);
+    w.setFuture(parents_fut);
+    spy.wait(SIGNAL_WAIT_TIME);
+    auto parents = parents_fut.result();
+    assert(parents.size() == 1);
+    return parents[0];
+}
+
+void destroy(Item::SPtr item)
+{
+    auto destroy_fut = item->destroy();
+    QFutureWatcher<void> w;
+    QSignalSpy spy(&w, &decltype(w)::finished);
+    w.setFuture(destroy_fut);
+    spy.wait(SIGNAL_WAIT_TIME);
+    w.future().waitForFinished();
+}
+
+TEST(Runtime, lifecycle)
 {
     auto runtime = Runtime::create();
     runtime->shutdown();
@@ -126,16 +160,7 @@ TEST(Root, basic)
     EXPECT_EQ(ItemType::root, root->type());
     EXPECT_EQ("", root->name());
 
-    auto parents_fut = root->parents();
-    {
-        QFutureWatcher<QVector<Folder::SPtr>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(parents_fut);
-        spy.wait(SIGNAL_WAIT_TIME);
-    }
-    auto parents = parents_fut.result();
-    ASSERT_EQ(1, parents.size());
-    auto parent = parents[0];
+    auto parent = get_parent(root);
     EXPECT_EQ(parent->type(), root->type());
     EXPECT_EQ(parent->name(), root->name());
     EXPECT_EQ(parent->native_identity(), root->native_identity());
@@ -184,14 +209,7 @@ TEST(Folder, basic)
     auto root = get_root(runtime);
 
     // Test always starts out with an empty root.
-    auto list_fut = root->list();
-    {
-        QFutureWatcher<QVector<Item::SPtr>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(list_fut);
-        spy.wait(SIGNAL_WAIT_TIME);
-    }
-    auto items = list_fut.result();
+    auto items = list_contents(root);
     EXPECT_TRUE(items.isEmpty());
 
     // Create a file and check that it was created with correct type, name, and size 0.
@@ -235,14 +253,7 @@ TEST(Folder, basic)
     EXPECT_EQ("folder1", folder->name());
 
     // Check that list() returns file1 and folder1.
-    list_fut = root->list();
-    {
-        QFutureWatcher<QVector<Item::SPtr>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(list_fut);
-        spy.wait(SIGNAL_WAIT_TIME);
-    }
-    items = list_fut.result();
+    items = list_contents(root);
     ASSERT_EQ(2, items.size());
     auto left = items[0];
     auto right = items[1];
@@ -264,45 +275,203 @@ TEST(Folder, basic)
     EXPECT_TRUE(file->root()->equal_to(root));
     EXPECT_TRUE(folder->root()->equal_to(root));
 
+    // Parent of both file and folder must be the root.
+    EXPECT_EQ("", get_parent(file)->name());
+    EXPECT_EQ("", get_parent(folder)->name());
+
     // Destroy the file and check that only the directory is left.
-    auto destroy_fut = file->destroy();
-    {
-        QFutureWatcher<void> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(destroy_fut);
-        spy.wait(SIGNAL_WAIT_TIME);
-    }
-    list_fut = root->list();
-    {
-        QFutureWatcher<QVector<Item::SPtr>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(list_fut);
-        spy.wait(SIGNAL_WAIT_TIME);
-    }
-    items = list_fut.result();
+    destroy(file);
+    items = list_contents(root);
     ASSERT_EQ(1, items.size());
     folder = dynamic_pointer_cast<Folder>(items[0]);
     ASSERT_NE(nullptr, folder);
     EXPECT_EQ("folder1", folder->name());;
 
     // Destroy the folder and check that the root is empty.
-    destroy_fut = folder->destroy();
-    {
-        QFutureWatcher<void> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(destroy_fut);
-        spy.wait(SIGNAL_WAIT_TIME);
-    }
-    list_fut = root->list();
-    {
-        QFutureWatcher<QVector<Item::SPtr>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(list_fut);
-        spy.wait(SIGNAL_WAIT_TIME);
-    }
-    items = list_fut.result();
+    destroy(folder);
+    items = list_contents(root);
     ASSERT_EQ(0, items.size());
 }
+
+TEST(Folder, nested)
+{
+    auto runtime = Runtime::create();
+
+    auto acc = get_account(runtime);
+    auto root = get_root(runtime);
+
+    auto d1 = create_folder("d1", root);
+    auto d2 = create_folder("d2", d1);
+
+    // Parent of d2 must be d1.
+    EXPECT_TRUE(get_parent(d2)->equal_to(d1));
+
+    // Destroy is recursive
+    destroy(d1);
+    auto items = list_contents(root);
+    ASSERT_EQ(0, items.size());
+}
+
+TEST(Item, move)
+{
+    auto runtime = Runtime::create();
+
+    auto acc = get_account(runtime);
+    auto root = get_root(runtime);
+
+    // Check that rename works within the same folder.
+    auto f1 = create_file("f1", root)->file();
+    auto move_fut = f1->move(root, "f2");
+    {
+        QFutureWatcher<Item::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(move_fut);
+        spy.wait(SIGNAL_WAIT_TIME);
+    }
+    auto f2 = move_fut.result();
+    EXPECT_EQ("f2", f2->name());
+    EXPECT_THROW(f1->name(), DestroyedException);
+
+    // File must be found under new name.
+    auto items = list_contents(root);
+    ASSERT_EQ(1, items.size());
+    f2 = dynamic_pointer_cast<File>(items[0]);
+    ASSERT_FALSE(f2 == nullptr);
+
+    // Make a folder and move f2 into it.
+    auto folder = create_folder("folder", root);
+    move_fut = f2->move(folder, "f2");
+    {
+        QFutureWatcher<Item::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(move_fut);
+        spy.wait(SIGNAL_WAIT_TIME);
+    }
+    f2 = move_fut.result();
+    EXPECT_TRUE(get_parent(f2)->equal_to(folder));
+
+    // Move the folder
+    move_fut = folder->move(root, "folder2");
+    {
+        QFutureWatcher<Item::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(move_fut);
+        spy.wait(SIGNAL_WAIT_TIME);
+    }
+    folder = dynamic_pointer_cast<Folder>(move_fut.result());
+    EXPECT_EQ("folder2", folder->name());
+}
+
+bool content_matches(File::SPtr const& file, string const& expected)
+{
+    ifstream is(file->native_identity().toStdString(), ifstream::binary);
+    is.seekg(0, is.end);
+    string::size_type len = is.tellg();
+    if (len != expected.size())
+    {
+        return false;
+    }
+    is.seekg(0, is.beg);
+    string buf;
+    buf.resize(expected.size());
+    is.read(&buf[0], expected.size());
+    if (!is.good())
+    {
+        return false;
+    }
+    return buf == expected;
+}
+
+TEST(File, upload)
+{
+    auto runtime = Runtime::create();
+
+    auto acc = get_account(runtime);
+    auto root = get_root(runtime);
+
+    File::SPtr file;
+    {
+        auto uploader = create_file("new_file", root);
+        file = uploader->file();
+        string const contents = "Hello\n";
+        uploader->socket()->writeData(contents.c_str(), contents.size());
+        auto finish_fut = uploader->finish_upload();
+        {
+            QFutureWatcher<TransferState> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(finish_fut);
+            spy.wait(SIGNAL_WAIT_TIME);
+        }
+        auto state = finish_fut.result();
+        EXPECT_EQ(TransferState::ok, state);
+        EXPECT_EQ(contents.size(), uploader->file()->size());
+        EXPECT_TRUE(content_matches(uploader->file(), contents));
+    }
+
+    {
+        // Upload exactly CHUNK_SIZE bytes.
+        auto uploader_fut = file->create_uploader(ConflictPolicy::overwrite);
+        {
+            QFutureWatcher<Uploader::SPtr> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(uploader_fut);
+            spy.wait(SIGNAL_WAIT_TIME);
+        }
+        auto uploader = uploader_fut.result();
+        string contents(StorageSocket::CHUNK_SIZE, 'a');
+        auto written = uploader->socket()->writeData(&contents[0], contents.size());
+        EXPECT_EQ(written, contents.size());
+
+        auto finish_fut = uploader->finish_upload();
+        {
+            QFutureWatcher<TransferState> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(finish_fut);
+            spy.wait(SIGNAL_WAIT_TIME);
+        }
+        auto state = finish_fut.result();
+        EXPECT_EQ(TransferState::ok, state);
+        EXPECT_EQ(contents.size(), uploader->file()->size());
+        EXPECT_TRUE(content_matches(uploader->file(), contents));
+    }
+
+    {
+        // Upload CHUNK_SIZE + 1 bytes.
+        auto uploader_fut = file->create_uploader(ConflictPolicy::overwrite);
+        {
+            QFutureWatcher<Uploader::SPtr> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(uploader_fut);
+            spy.wait(SIGNAL_WAIT_TIME);
+        }
+        auto uploader = uploader_fut.result();
+        string contents(StorageSocket::CHUNK_SIZE + 1, 'a');
+        auto written = uploader->socket()->writeData(&contents[0], contents.size());
+        EXPECT_EQ(written, contents.size());
+
+        auto finish_fut = uploader->finish_upload();
+        {
+            QFutureWatcher<TransferState> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(finish_fut);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
+        auto state = finish_fut.result();
+        EXPECT_EQ(TransferState::ok, state);
+        EXPECT_EQ(contents.size(), uploader->file()->size());
+        EXPECT_TRUE(content_matches(uploader->file(), contents));
+    }
+}
+
+#if 0
+TEST(Item, copy)
+{
+    auto runtime = Runtime::create();
+
+    auto acc = get_account(runtime);
+    auto root = get_root(runtime);
+}
+#endif
 
 TEST(Item, comparison)
 {
@@ -327,7 +496,7 @@ TEST(Item, comparison)
     }
     auto item = lookup_fut.result();
     auto other_file1 = dynamic_pointer_cast<File>(item);
-    EXPECT_NE(file1, other_file1);             // Compares shared_ptr values
+    EXPECT_NE(file1, other_file1);              // Compares shared_ptr values
     EXPECT_TRUE(file1->equal_to(other_file1));  // Deep comparison
 }
 

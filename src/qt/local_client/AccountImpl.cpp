@@ -23,7 +23,6 @@ namespace qt
 {
 namespace client
 {
-
 namespace internal
 {
 

@@ -60,7 +60,7 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
         auto pi = public_instance_.lock();
         assert(pi);
         auto file_ptr = static_pointer_cast<File>(pi);
-        auto impl = new UploaderImpl(file_ptr, policy);
+        auto impl(new UploaderImpl(file_ptr, policy));
         Uploader::SPtr ul(new Uploader(impl));
         qf.reportResult(ul);
     }

@@ -60,7 +60,7 @@ protected:
     std::atomic_bool destroyed_;
     QString identity_;                     // Immutable
     QString name_;                         // Immutable
-    QDateTime modified_time_;              // Immutable
+    QDateTime modified_time_;              // TODO, this can race with a downloader thread
     std::weak_ptr<Root> root_;             // Immutable
     QVariantMap metadata_;                 // Immutable
     ItemType type_;                        // Immutable

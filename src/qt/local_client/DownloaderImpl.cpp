@@ -54,7 +54,7 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
         throw StorageException();
     }
 
-    // Monitor write socket for write and error events.
+    // Monitor write socket for ready-to-write and error events.
     write_notifier_.reset(new QSocketNotifier(write_socket_->socketDescriptor(), QSocketNotifier::Write));
     connect(write_notifier_.get(), &QSocketNotifier::activated, this, &DownloaderImpl::on_ready);
     error_notifier_.reset(new QSocketNotifier(write_socket_->socketDescriptor(), QSocketNotifier::Exception));

@@ -54,19 +54,25 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
         throw StorageException();
     }
 
-    // Monitor read socket for read and error events.
+    // Monitor read socket for ready-to-read and error events.
     read_notifier_.reset(new QSocketNotifier(read_socket_->socketDescriptor(), QSocketNotifier::Read));
     connect(read_notifier_.get(), &QSocketNotifier::activated, this, &UploaderImpl::on_ready);
     error_notifier_.reset(new QSocketNotifier(read_socket_->socketDescriptor(), QSocketNotifier::Exception));
     connect(error_notifier_.get(), &QSocketNotifier::activated, this, &UploaderImpl::on_error);
 
-    check_modified_time();  // Throws if file has been changed on disk and policy is error_if_conflict.
+    // Monitor write socket for disconnection. The disconnected signal can arrive while
+    // data still remains to be read.
+    connect(write_socket_.get(), &QLocalSocket::disconnected, this, &UploaderImpl::on_disconnect);
+
+    // on_eof() does the final flush of the output file,
+    // which might take a while, so we do it asynchronously.
+    connect(this, &UploaderImpl::eof, this, &UploaderImpl::on_eof);
 
     using namespace boost::filesystem;
 
     // Open tmp file for writing.
     auto parent_path = path(file_->native_identity().toStdString()).parent_path();
-    int fd_ = open(parent_path.native().c_str(), O_TMPFILE | O_WRONLY, 0600);
+    fd_ = open(parent_path.native().c_str(), O_TMPFILE | O_WRONLY, 0600);
     if (fd_ == -1)
     {
         // TODO: O_TMPFILE may not work with some kernels. Fall back to conventional
@@ -74,10 +80,14 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
         throw StorageException();  // TODO
     }
     output_file_.open(fd_, QIODevice::WriteOnly, QFileDevice::AutoCloseHandle);
+
+    check_modified_time();  // Throws if file has been changed on disk and policy is error_if_conflict.
 }
 
 UploaderImpl::~UploaderImpl()
 {
+    read_notifier_->setEnabled(false);
+    error_notifier_->setEnabled(false);
     cancel();  // noexcept
 }
 
@@ -93,62 +103,52 @@ shared_ptr<StorageSocket> UploaderImpl::socket() const
 
 QFuture<TransferState> UploaderImpl::finish_upload()
 {
-    auto This = shared_from_this();  // Keep this uploader alive while the lambda is alive.
-    auto finish = [This]()
+    switch (state_)
     {
-        switch (This->state_)
+        case connected:
         {
-            case connected:
-            {
-                This->write_socket_->disconnectFromServer();
-                // TODO: Unfortunately, this emits a warning: https://bugreports.qt.io/browse/QTBUG-50711
-                This->write_socket_->waitForDisconnected(-1);
-                This->check_modified_time();  // Throws if time stamps don't match
-                if (!This->output_file_.flush())
-                {
-                    This->state_ = error;
-                    throw StorageException();  // TODO
-                }
-                string oldpath = string("/proc/self/fd/") + to_string(This->fd_);
-                string newpath = This->file_->native_identity().toStdString();
-                ::unlink(newpath.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
-                if (linkat(-1, oldpath.c_str(), This->fd_, newpath.c_str(), 0) == -1)
-                {
-                    This->state_ = error;
-                    throw StorageException();  // TODO
-                }
-                This->state_ = finalized;
-                return TransferState::ok;
-            }
-            case finalized:
-            {
-                throw StorageException();  // TODO, logic error
-            }
-            case error:
-            {
-                throw StorageException();  // TODO, report details
-            }
-            case cancelled:
-            {
-                return TransferState::cancelled;
-            }
-            default:
-            {
-                abort();  // Impossible
-            }
+            write_socket_->disconnectFromServer();
+            state_ = disconnected;
+            break;
         }
-    };
-    return QtConcurrent::run(finish);
+        case disconnected:
+        {
+            qf_.reportException(StorageException());  // TODO, logic error
+            qf_.reportFinished();
+            break;
+        }
+        case finalized:
+        {
+            qf_.reportException(StorageException());  // TODO, logic error
+            qf_.reportFinished();
+            break;
+        }
+        case error:
+        {
+            qf_.reportException(StorageException());  // TODO, report details
+            qf_.reportFinished();
+            break;
+        }
+        case cancelled:
+        {
+            qf_.reportResult(TransferState::cancelled);
+            qf_.reportFinished();
+            break;
+        }
+        default:
+        {
+            abort();  // Impossible
+        }
+    }
+    return qf_.future();
 }
 
 QFuture<void> UploaderImpl::cancel() noexcept
 {
     if (state_ == connected)
     {
-        read_notifier_->setEnabled(false);
-        error_notifier_->setEnabled(false);
-        read_socket_->abort();
         state_ = cancelled;
+        read_socket_->abort();
     }
     QFutureInterface<void> qf;
     qf.reportFinished();
@@ -157,48 +157,35 @@ QFuture<void> UploaderImpl::cancel() noexcept
 
 void UploaderImpl::on_ready()
 {
-    qDebug() << "on_ready";
-    assert(pos_ >= 0);
-    assert(pos_ <= end_);
-    assert(end_ >= 0);
+    // on_ready() may not pop after disconnecting the write socket even though
+    // more data remains to be read. So, each time we get on_ready, we read
+    // all the data that is available.
 
-    if (state_ != connected)
+    char buf[StorageSocket::CHUNK_SIZE];
+    int64_t bytes_read;
+    do
     {
-        return;
-    }
-
-    if (!eof_ && pos_ == end_)
-    {
-        // Buffer empty, need to read a chunk.
-        end_ = read_socket_->readData(buf_, StorageSocket::CHUNK_SIZE);
-        if (end_ == -1)
+        bytes_read = read_socket_->readData(buf, sizeof(buf));
+        if (bytes_read == -1)
         {
             // TODO: Store error details.
             handle_error();
             return;
         }
-        eof_ = read_socket_->atEnd();
-        pos_ = 0;
-        qDebug() << "read" << end_;
-    }
-
-    int bytes_to_write = end_ - pos_;
-    if (bytes_to_write > 0)
-    {
-        int bytes_written = output_file_.write(buf_, bytes_to_write);
-        if (bytes_written == -1)
+        if (bytes_read != 0)
         {
-            // TODO: Store error details.
-            handle_error();
-            return;
+            auto bytes_written = output_file_.write(buf, bytes_read);
+            if (bytes_written < bytes_read)
+            {
+                // TODO: Store error details.
+                handle_error();
+                return;
+            }
         }
-        pos_ += bytes_written;
-    }
-    if (eof_ && pos_ == end_)
+    } while (bytes_read > 0);
+    if (disconnected_)
     {
-        read_notifier_->setEnabled(false);
-        error_notifier_->setEnabled(false);
-        read_socket_->disconnectFromServer();
+        Q_EMIT eof();
     }
 }
 
@@ -207,13 +194,55 @@ void UploaderImpl::on_error()
     handle_error();
 }
 
+void UploaderImpl::on_disconnect()
+{
+    disconnected_ = true;
+}
+
+void UploaderImpl::on_eof()
+{
+    try
+    {
+        check_modified_time();  // Throws if time stamps don't match
+    }
+    catch (std::exception const&)
+    {
+        qf_.reportException(StorageException());  // TODO, version mismatch
+        qf_.reportFinished();
+        return;
+    }
+
+    if (!output_file_.flush())
+    {
+        qf_.reportException(StorageException());  // TODO: Store error details.
+        qf_.reportFinished();
+        return;
+    }
+
+    // Link the anonymous tmp file into the file system.
+    string oldpath = string("/proc/self/fd/") + std::to_string(fd_);
+    string newpath = file_->native_identity().toStdString();
+    ::unlink(newpath.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
+    if (linkat(AT_FDCWD, oldpath.c_str(), AT_FDCWD, newpath.c_str(), AT_SYMLINK_FOLLOW) == -1)
+    {
+        state_ = error;
+        qf_.reportException(StorageException());  // TODO
+        qf_.reportFinished();
+        return;
+    }
+
+    output_file_.close();
+    state_ = finalized;
+    qf_.reportResult(TransferState::ok);
+    qf_.reportFinished();
+}
+
 void UploaderImpl::handle_error()
 {
+    qDebug() << "handle_error";
     if (state_ == connected)
     {
-        output_file_.close();
-        read_notifier_->setEnabled(false);
-        error_notifier_->setEnabled(false);
+        output_file_.close();  // Dubious
         read_socket_->abort();
     }
     state_ = error;

@@ -105,6 +105,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
     {
         QFutureInterface<shared_ptr<Item>> qf;
         qf.reportException(DestroyedException());  // TODO
+        qf.reportFinished();
         return qf.future();
     }
 
@@ -207,6 +208,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
     {
         QFutureInterface<shared_ptr<Item>> qf;
         qf.reportException(DestroyedException());  // TODO
+        qf.reportFinished();
         return qf.future();
     }
 
@@ -260,18 +262,33 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
     if (destroyed_)
     {
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
+    }
+
+    Root::SPtr root = root_.lock();
+    if (!root)
+    {
+        throw RuntimeDestroyedException();
     }
 
     using namespace boost::filesystem;
 
     // We do this synchronously because we don't need to hit the file system.
     path p = native_identity().toStdString();
-    QString parent = QString::fromStdString(p.parent_path().native());
-    auto parent_folder = FolderImpl::make_folder(parent, root_);
+    QString parent_path = QString::fromStdString(p.parent_path().native());
+
     QVector<Folder::SPtr> results;
-    results.append(parent_folder);
+    if (parent_path == root->p_->identity_)
+    {
+        results.append(root);
+    }
+    else
+    {
+        results.append(FolderImpl::make_folder(parent_path, root_));
+    }
     qf.reportResult(results);
+    qf.reportFinished();
     return qf.future();
 }
 

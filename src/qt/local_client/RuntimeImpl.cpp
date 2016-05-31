@@ -3,6 +3,7 @@
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/internal/AccountImpl.h>
 
+#include <QAbstractSocket>
 #include <QFutureInterface>
 
 #pragma GCC diagnostic push
@@ -31,6 +32,7 @@ namespace internal
 RuntimeImpl::RuntimeImpl()
     : destroyed_(false)
 {
+    qRegisterMetaType<QAbstractSocket::SocketState>();  // Qt doesn't do this for us.
 }
 
 RuntimeImpl::~RuntimeImpl()

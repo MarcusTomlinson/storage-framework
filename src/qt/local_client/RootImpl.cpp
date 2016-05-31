@@ -15,7 +15,6 @@ namespace qt
 {
 namespace client
 {
-
 namespace internal
 {
 
@@ -133,7 +132,8 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         }
         if (!std::equal(root_path.begin(), root_path.end(), id_path.begin()))
         {
-            // Not all path components at the start of id_path are the same as the components of root_path.
+            // id_path differs from root path in some path component, so id_path
+            // does not point at a location that's contained in root_path.
             throw StorageException();
         }
 
