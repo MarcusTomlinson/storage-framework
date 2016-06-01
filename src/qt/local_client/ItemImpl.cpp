@@ -292,17 +292,35 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
     QString parent_path = QString::fromStdString(p.parent_path().native());
 
     QVector<Folder::SPtr> results;
-    if (parent_path == root->p_->identity_)
+    if (parent_path != root->p_->identity_)
     {
-        results.append(root);
+        results.append(FolderImpl::make_folder(parent_path, root_));
     }
     else
     {
-        results.append(FolderImpl::make_folder(parent_path, root_));
+        results.append(root);
     }
     qf.reportResult(results);
     qf.reportFinished();
     return qf.future();
+}
+
+QVector<QString> ItemImpl::parent_ids() const
+{
+    if (destroyed_)
+    {
+        throw DestroyedException();
+    }
+
+    using namespace boost::filesystem;
+
+    // We do this synchronously because we don't need to hit the file system.
+    path p = native_identity().toStdString();
+    QString parent_path = QString::fromStdString(p.parent_path().native());
+
+    QVector<QString> results;
+    results.append(parent_path);
+    return results;
 }
 
 QFuture<void> ItemImpl::destroy()

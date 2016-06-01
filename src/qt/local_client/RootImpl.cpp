@@ -48,12 +48,15 @@ QString RootImpl::name() const
 
 QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 {
-    QVector<Folder::SPtr> results;
-    results.append(root_.lock());
     QFutureInterface<QVector<Folder::SPtr>> qf;
-    qf.reportResult(results);
+    qf.reportResult(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
     qf.reportFinished();
     return qf.future();
+}
+
+QVector<QString> RootImpl::parent_ids() const
+{
+    return QVector<QString>();  // For the root, we return an empty vector.
 }
 
 QFuture<void> RootImpl::destroy()

@@ -49,6 +49,7 @@ public:
     QFuture<std::shared_ptr<Item>> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
     QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
     virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const;
+    virtual QVector<QString> parent_ids() const;
     virtual QFuture<void> destroy();
 
     void set_root(std::weak_ptr<Root> p);

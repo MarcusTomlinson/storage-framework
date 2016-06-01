@@ -24,6 +24,7 @@ public:
 
     virtual QString name() const override;
     virtual QFuture<QVector<Folder::SPtr>> parents() const override;
+    virtual QVector<QString> parent_ids() const override;
     virtual QFuture<void> destroy() override;
 
     Account* account() const;

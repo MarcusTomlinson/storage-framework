@@ -38,8 +38,8 @@ Root::SPtr get_root(Runtime::SPtr const& runtime)
 
 Folder::SPtr get_parent(Item::SPtr const& item)
 {
+    assert(item->type() != ItemType::root);
     auto parents = item->parents().result();
-    assert(parents.size() == 1);
     return parents[0];
 }
 
@@ -125,10 +125,9 @@ TEST(Root, basic)
     EXPECT_EQ(ItemType::root, root->type());
     EXPECT_EQ("", root->name());
 
-    auto parent = get_parent(root);
-    EXPECT_EQ(parent->type(), root->type());
-    EXPECT_EQ(parent->name(), root->name());
-    EXPECT_EQ(parent->native_identity(), root->native_identity());
+    auto parents = root->parents().result();
+    EXPECT_TRUE(parents.isEmpty());
+    EXPECT_TRUE(root->parent_ids().isEmpty());
 
     // get(<root-path>) must return the root.
     auto item = root->get(root->native_identity()).result();
@@ -206,8 +205,10 @@ TEST(Folder, basic)
     EXPECT_TRUE(folder->root()->equal_to(root));
 
     // Parent of both file and folder must be the root.
-    EXPECT_EQ("", get_parent(file)->name());
-    EXPECT_EQ("", get_parent(folder)->name());
+    EXPECT_TRUE(root->equal_to(get_parent(file)));
+    EXPECT_TRUE(root->equal_to(get_parent(folder)));
+    EXPECT_EQ(root->native_identity(), file->parent_ids()[0]);
+    EXPECT_EQ(root->native_identity(), folder->parent_ids()[0]);
 
     // Destroy the file and check that only the directory is left.
     file->destroy().waitForFinished();
@@ -236,6 +237,7 @@ TEST(Folder, nested)
 
     // Parent of d2 must be d1.
     EXPECT_TRUE(get_parent(d2)->equal_to(d1));
+    EXPECT_TRUE(d2->parent_ids()[0] == d1->native_identity());
 
     // Destroy is recursive
     d1->destroy().waitForFinished();

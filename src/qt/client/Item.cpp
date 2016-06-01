@@ -58,6 +58,11 @@ QFuture<QVector<std::shared_ptr<Folder>>> Item::parents() const
     return p_->parents();
 }
 
+QVector<QString> Item::parent_ids() const
+{
+    return p_->parent_ids();
+}
+
 QFuture<Item::SPtr> Item::copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name)
 {
     return p_->copy(new_parent, new_name);

@@ -87,12 +87,16 @@ public:
     QDateTime last_modified_time() const;
 
     /**
-    \brief Returns a list of parent folders of this folder.
-    \return A vector of parents or, if this folder does not have parents,
-    an empty vector. If there is a large number of parent folders, the returned future
-    may become ready more than once. (See QFutureWatcher for more information.)
+    \brief Returns a list of parent folders of this item.
+    \return A vector of parents. For a root, the returned vector is empty.
     */
     QFuture<QVector<std::shared_ptr<Folder>>> parents() const;
+
+    /**
+    \brief Returns the native identities of the parents of this item.
+    \return A vector of parent identities. For a root, the returned vector is empty.
+    */
+    QVector<QString> parent_ids() const;
 
     /**
     \brief Copies this item.
