@@ -14,10 +14,12 @@ add_library(storage-framework-provider SHARED
   ProviderBase.cpp
   Server.cpp
   internal/CredentialsCache.cpp
+  internal/DisconnectWatcher.cpp
   internal/Handler.cpp
   internal/ProviderInterface.cpp
   internal/ServerImpl.cpp
   internal/dbusmarshal.cpp
+  ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/DisconnectWatcher.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/Handler.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/ProviderInterface.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/ServerImpl.h
