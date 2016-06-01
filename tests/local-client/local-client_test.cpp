@@ -3,6 +3,7 @@
 #include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
 #include <QCoreApplication>
+#include <QFile>
 #include <QFutureWatcher>
 #include <QSignalSpy>
 
@@ -52,33 +53,23 @@ void clear_folder(Folder::SPtr folder)
     }
 }
 
-bool content_matches(File::SPtr const& file, string const& expected)
+bool content_matches(File::SPtr const& file, QByteArray const& expected)
 {
-    ifstream is(file->native_identity().toStdString(), ifstream::binary);
-    is.seekg(0, is.end);
-    string::size_type len = is.tellg();
-    if (len != expected.size())
-    {
-        return false;
-    }
-    is.seekg(0, is.beg);
-    string buf;
-    buf.resize(expected.size());
-    is.read(&buf[0], expected.size());
-    if (!is.good())
-    {
-        return false;
-    }
+    QFile f(file->native_identity());
+    assert(f.open(QIODevice::ReadOnly));
+    QByteArray buf = f.readAll();
     return buf == expected;
 }
 
-void write_file(Folder::SPtr const& folder, string const& name, string const& contents)
+void write_file(Folder::SPtr const& folder, QString const& name, QByteArray const& contents)
 {
-    string ofile = folder->native_identity().toStdString() + "/" + name;
-    ofstream os(ofile, ios::trunc | ios::binary);
-    os << contents;
-    assert(os.good());
-    os.close();
+    QString ofile = folder->native_identity() + "/" + name;
+    QFile f(ofile);
+    assert(f.open(QIODevice::Truncate | QIODevice::WriteOnly));
+    if (!contents.isEmpty())
+    {
+        assert(f.write(contents));
+    }
 }
 
 TEST(Runtime, lifecycle)
@@ -258,8 +249,8 @@ TEST(File, upload)
         // Upload a few bytes.
         auto uploader = root->create_file("new_file").result();
         file = uploader->file();
-        string const contents = "Hello\n";
-        uploader->socket()->writeData(contents.c_str(), contents.size());
+        QByteArray const contents = "Hello\n";
+        uploader->socket()->write(contents);
         auto finish_fut = uploader->finish_upload();
         {
             QFutureWatcher<TransferState> w;
@@ -283,8 +274,8 @@ TEST(File, upload)
             spy.wait(SIGNAL_WAIT_TIME);
         }
         auto uploader = uploader_fut.result();
-        string contents(StorageSocket::CHUNK_SIZE, 'a');
-        auto written = uploader->socket()->writeData(&contents[0], contents.size());
+        QByteArray contents(StorageSocket::CHUNK_SIZE, 'a');
+        auto written = uploader->socket()->write(contents);
         EXPECT_EQ(written, contents.size());
 
         auto finish_fut = uploader->finish_upload();
@@ -310,8 +301,8 @@ TEST(File, upload)
             spy.wait(SIGNAL_WAIT_TIME);
         }
         auto uploader = uploader_fut.result();
-        string contents(StorageSocket::CHUNK_SIZE + 1, 'a');
-        auto written = uploader->socket()->writeData(&contents[0], contents.size());
+        QByteArray contents(StorageSocket::CHUNK_SIZE + 1, 'a');
+        auto written = uploader->socket()->write(contents);
         EXPECT_EQ(written, contents.size());
 
         auto finish_fut = uploader->finish_upload();
@@ -361,7 +352,7 @@ TEST(File, download)
 
     {
         // Download a few bytes.
-        string const contents = "hello\n";
+        QByteArray const contents = "hello\n";
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
@@ -382,10 +373,8 @@ TEST(File, download)
         }
         EXPECT_TRUE(file->equal_to(downloader->file()));
 
-        string buf;
-        buf.resize(StorageSocket::CHUNK_SIZE);
-        EXPECT_EQ(contents.size(), downloader->socket()->readData(&buf[0], buf.size()));
-        buf.resize(contents.size());
+        auto buf = downloader->socket()->read(1000000);
+        EXPECT_EQ(contents, buf);
 
         auto finish_fut = downloader->finish_download();
         {
@@ -396,12 +385,11 @@ TEST(File, download)
         }
         auto state = finish_fut.result();
         EXPECT_EQ(TransferState::ok, state);
-        EXPECT_EQ(contents, buf);
     }
 
     {
         // Download exactly CHUNK_SIZE bytes.
-        string const contents(StorageSocket::CHUNK_SIZE, 'a');
+        QByteArray const contents(StorageSocket::CHUNK_SIZE, 'a');
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
@@ -422,10 +410,8 @@ TEST(File, download)
         }
         EXPECT_TRUE(file->equal_to(downloader->file()));
 
-        string buf;
-        buf.resize(StorageSocket::CHUNK_SIZE);
-        EXPECT_EQ(contents.size(), downloader->socket()->readData(&buf[0], buf.size()));
-        buf.resize(contents.size());
+        auto buf = downloader->socket()->read(1000000);
+        EXPECT_EQ(contents, buf);
 
         auto finish_fut = downloader->finish_download();
         {
@@ -436,12 +422,11 @@ TEST(File, download)
         }
         auto state = finish_fut.result();
         EXPECT_EQ(TransferState::ok, state);
-        EXPECT_EQ(contents, buf);
     }
 
     {
         // Download CHUNK_SIZE + 1 bytes.
-        string const contents(StorageSocket::CHUNK_SIZE + 1, 'a');
+        QByteArray const contents(StorageSocket::CHUNK_SIZE + 1, 'a');
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
@@ -462,10 +447,8 @@ TEST(File, download)
         }
         EXPECT_TRUE(file->equal_to(downloader->file()));
 
-        string buf;
-        buf.resize(StorageSocket::CHUNK_SIZE * 2);
-        EXPECT_EQ(contents.size(), downloader->socket()->readData(&buf[0], buf.size()));
-        buf.resize(contents.size());
+        auto buf = downloader->socket()->read(1000000);
+        EXPECT_EQ(contents, buf);
 
         auto finish_fut = downloader->finish_download();
         {
@@ -476,12 +459,11 @@ TEST(File, download)
         }
         auto state = finish_fut.result();
         EXPECT_EQ(TransferState::ok, state);
-        EXPECT_EQ(contents, buf);
     }
 
     {
         // Download zero bytes.
-        string const contents;
+        QByteArray const contents;
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
@@ -555,7 +537,7 @@ TEST(Item, copy)
     auto root = get_root(runtime);
     clear_folder(root);
 
-    string const contents = "hello\n";
+    QByteArray const contents = "hello\n";
     write_file(root, "file", contents);
 
     auto item = root->lookup("file").result();
@@ -563,7 +545,7 @@ TEST(Item, copy)
     EXPECT_EQ("copy_of_file", copied_item->name());
     File::SPtr copied_file = dynamic_pointer_cast<File>(item);
     ASSERT_NE(nullptr, copied_file);
-    EXPECT_EQ(contents.size(), copied_file->size());
+    EXPECT_TRUE(content_matches(copied_file, contents));
 }
 
 TEST(Item, recursive_copy)

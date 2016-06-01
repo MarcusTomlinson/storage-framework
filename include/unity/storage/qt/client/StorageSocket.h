@@ -26,10 +26,6 @@ class UploaderImpl;
 
 /**
 \brief Socket for downloading and uploading of file contents.
-
-This class implements `QLocalSocket` and provides public readData() and writeData()
-methods for downloading and uploading of file contents, respectively.
-Use a QSocketNotifier to receive signals when a socket is ready for reading or writing.
 */
 
 class UNITY_STORAGE_EXPORT StorageSocket : public QLocalSocket
@@ -40,19 +36,13 @@ public:
     /// @endcond
 
     /**
-    \brief Re-implemented method of `QLocalSocket`.
-    */
-    virtual qint64 readData(char* data, qint64 c) override;
-
-    /**
-    \brief Re-implemented method of `QLocalSocket`.
-    */
-    virtual qint64 writeData(char const* data, qint64 c) override;
-
-    /**
     \brief The service end of a StorageSocket reads and writes data in CHUNK_SIZE blocks.
     */
     static constexpr qint64 CHUNK_SIZE = 64 * 1024;
+
+protected:
+    virtual qint64 readData(char* data, qint64 c) override;
+    virtual qint64 writeData(char const* data, qint64 c) override;
 
 private:
     StorageSocket(QObject* parent = nullptr);
