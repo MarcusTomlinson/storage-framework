@@ -602,6 +602,24 @@ TEST(Item, recursive_copy)
     EXPECT_NO_THROW(folder2->lookup("file").result());
 }
 
+TEST(Item, modified_time)
+{
+    auto runtime = Runtime::create();
+
+    auto acc = get_account(runtime);
+    auto root = get_root(runtime);
+    clear_folder(root);
+
+    auto now = QDateTime::currentDateTimeUtc();
+    // Need to sleep because time_t only provides 1-second resolution.
+    sleep(1);
+    auto file = root->create_file("file").result()->file();
+    auto t = file->last_modified_time();
+    // Rough check that the time is sane.
+    EXPECT_LE(now, t);
+    EXPECT_LE(t, now.addSecs(5));
+}
+
 TEST(Item, comparison)
 {
     auto runtime = Runtime::create();

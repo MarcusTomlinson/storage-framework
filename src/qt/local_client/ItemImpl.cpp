@@ -33,8 +33,6 @@ ItemImpl::ItemImpl(QString const& identity, ItemType type)
     auto path = boost::filesystem::canonical(identity.toStdString());
     identity_ = QString::fromStdString(path.native());
     name_ = QString::fromStdString(path.filename().native());
-    auto mtime = boost::filesystem::last_write_time(native_identity().toStdString());
-    modified_time_.setTime_t(mtime);
 }
 
 ItemImpl::~ItemImpl() = default;
@@ -95,7 +93,8 @@ QDateTime ItemImpl::last_modified_time() const
     {
         throw DestroyedException();  // TODO
     }
-    return modified_time_;
+    auto mtime = boost::filesystem::last_write_time(native_identity().toStdString());
+    return QDateTime::fromTime_t(mtime);
 }
 
 namespace
@@ -249,7 +248,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
             }
 
             path target_path = new_parent->native_identity().toStdString();
-            target_path /= new_name.toStdString();
+            target_path /= sanitize(new_name);
             if (exists(target_path))
             {
                 throw StorageException();  // TODO
