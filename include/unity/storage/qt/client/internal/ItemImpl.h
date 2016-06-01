@@ -2,6 +2,7 @@
 
 #include <unity/storage/common.h>
 
+#include <boost/filesystem.hpp>
 #include <QDateTime>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
@@ -57,6 +58,8 @@ public:
     bool operator==(ItemImpl const& other) const noexcept;
 
 protected:
+    static boost::filesystem::path sanitize(QString const& name);
+
     std::atomic_bool destroyed_;
     QString identity_;                     // Immutable
     QString name_;                         // Immutable

@@ -38,20 +38,24 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
     if (rc == -1)
     {
-        throw StorageException();  // TODO
+        throw StorageException();  // LCOV_EXCL_LINE  // TODO
     }
     read_socket_.reset(new StorageSocket);
     if (!read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly))
     {
+        // LCOV_EXCL_START
         close(fds[0]);
         close(fds[1]);
-        throw StorageException();
+        throw StorageException();  // TODO
+        // LCOV_EXCL_STOP
     }
     write_socket_.reset(new StorageSocket);
     if (!write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly))
     {
+        // LCOV_EXCL_START
         close(fds[1]);
-        throw StorageException();
+        throw StorageException();  // TODO
+        // LCOV_EXCL_STOP
     }
 
     // Monitor write socket for ready-to-write and error events.

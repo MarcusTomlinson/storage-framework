@@ -10,6 +10,7 @@
 #include <QtConcurrent>
 
 #include <cassert>
+#include <iostream>  // TODO: remove this
 
 using namespace std;
 
@@ -97,6 +98,38 @@ QDateTime ItemImpl::last_modified_time() const
     return modified_time_;
 }
 
+namespace
+{
+
+using namespace boost::filesystem;
+
+void copy_recursively(path const& source, path const& target)
+{
+    auto s = status(source);
+    if (is_regular_file(s))
+    {
+        copy_file(source, target);
+        return;
+    }
+    else if (is_directory(s))
+    {
+        copy_directory(source, target);  // Poorly named in boost; this creates the target dir without recursion
+        for (directory_iterator it(source); it != directory_iterator(); ++it)
+        {
+            path source_entry = it->path();
+            path target_entry = target;
+            target_entry /= source_entry.filename();
+            copy_recursively(source_entry, target_entry);
+        }
+    }
+    else
+    {
+        // Ignore everything that's not a directory or file.
+    }
+}
+
+}  // namespace
+
 QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, QString const& new_name)
 {
     using namespace boost::filesystem;
@@ -109,28 +142,8 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         return qf.future();
     }
 
-    function<void(path const&, path const&)> copy_recursively = [copy_recursively](path const& source, path const& target)
-    {
-        using namespace boost::filesystem;
-
-        if (is_regular_file(status(source)))
-        {
-            copy_file(source, target);
-            return;
-        }
-
-        copy_directory(source, target);  // Poorly named in boost; this creates the target dir without recursion
-        for (directory_iterator it(source); it != directory_iterator(); ++it)
-        {
-            path source_entry = it->path();
-            path target_entry = target;
-            target_entry /= source_entry.filename();
-            copy_recursively(source_entry, target_entry);
-        }
-    };
-
     auto This = static_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
-    auto copy = [This, new_parent, new_name, copy_recursively]() -> Item::SPtr
+    auto copy = [This, new_parent, new_name]() -> Item::SPtr
     {
         try
         {
@@ -147,7 +160,8 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
             path source_path = This->native_identity().toStdString();
             path parent_path = new_parent->native_identity().toStdString();
             path target_path = parent_path;
-            target_path /= new_name.toStdString();
+            path sanitized_name = sanitize(new_name);
+            target_path /= sanitized_name;
 
             if (This->type_ == ItemType::file)
             {
@@ -186,7 +200,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
                 if (is_directory(s) || is_regular_file(s))
                 {
                     path source_entry = it->path();
-                    path target_entry = parent_path;
+                    path target_entry = tmp_path;
                     target_entry /= source_entry.filename();
                     copy_recursively(source_entry, target_entry);
                 }
@@ -345,6 +359,31 @@ bool ItemImpl::operator==(ItemImpl const& other) const noexcept
         return false;
     }
     return identity_ == other.identity_;
+}
+
+// Throw if name contains more than one path component.
+// Otherwise, return the relative path for the name.
+// This is to make sure that calling, say, create_file()
+// with a name such as "../../whatever" cannot lead
+// outside the root.
+
+boost::filesystem::path ItemImpl::sanitize(QString const& name)
+{
+    using namespace boost::filesystem;
+
+    path p = name.toStdString();
+    if (!p.parent_path().empty())
+    {
+        // name contains more than one component.
+        throw StorageException();  // TODO.
+    }
+    path filename = p.filename();
+    if (filename.empty() || filename == "." || filename == "..")
+    {
+        // Not an allowable file name.
+        throw StorageException();  // TODO.
+    }
+    return p;
 }
 
 }  // namespace internal

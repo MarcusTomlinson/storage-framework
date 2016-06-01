@@ -3,7 +3,6 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/FileImpl.h>
 
-#include <boost/filesystem.hpp>
 #include <QtConcurrent>
 
 #include <fcntl.h>
@@ -80,36 +79,6 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
     };
     return QtConcurrent::run(list);
 }
-
-namespace
-{
-
-// Throw if name contains more than one path component.
-// Otherwise, return the relative path for the name.
-// This is to make sure that calling, say, create_file()
-// with a name such as "../../whatever" cannot lead
-// outside the root.
-
-boost::filesystem::path sanitize(QString const& name)
-{
-    using namespace boost::filesystem;
-
-    path p = name.toStdString();
-    if (!p.parent_path().empty())
-    {
-        // name contains more than one component.
-        throw StorageException();  // TODO.
-    }
-    path filename = p.filename();
-    if (filename.empty() || filename == "." || filename == "..")
-    {
-        // Not an allowable file name.
-        throw StorageException();  // TODO.
-    }
-    return p;
-}
-
-}  // namespace
 
 QFuture<Item::SPtr> FolderImpl::lookup(QString const& name) const
 {
