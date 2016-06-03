@@ -132,6 +132,8 @@ QFuture<void> DownloaderImpl::cancel() noexcept
         write_socket_->abort();
         state_ = cancelled;
     }
+    finish_download();
+
     QFutureInterface<void> qf;
     qf.reportFinished();
     return qf.future();
@@ -201,5 +203,3 @@ void DownloaderImpl::handle_error()
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "DownloaderImpl.moc"

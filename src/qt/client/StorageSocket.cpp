@@ -32,5 +32,3 @@ qint64 StorageSocket::writeData(char const* data, qint64 c)
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "StorageSocket.moc"

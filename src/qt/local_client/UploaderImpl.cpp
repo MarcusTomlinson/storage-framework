@@ -64,7 +64,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
         //       tmp file creation here in that case.
         throw StorageException();  // TODO
     }
-    output_file_.open(tmp_fd_.get(), QIODevice::WriteOnly, QFileDevice::DontCloseHandle); // TODO: use Auto and handle()?
+    output_file_.open(tmp_fd_.get(), QIODevice::WriteOnly, QFileDevice::DontCloseHandle);
 
     check_modified_time();  // Throws if file has been changed on disk and policy is error_if_conflict.
 }
@@ -142,6 +142,8 @@ QFuture<void> UploaderImpl::cancel() noexcept
         state_ = cancelled;
         read_socket_->abort();
     }
+    finish_upload();
+
     QFutureInterface<void> qf;
     qf.reportFinished();
     return qf.future();
@@ -240,5 +242,3 @@ void UploaderImpl::check_modified_time() const
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "UploaderImpl.moc"
