@@ -1,5 +1,6 @@
 #include <unity/storage/provider/internal/ProviderInterface.h>
 #include <unity/storage/provider/ProviderBase.h>
+#include <unity/storage/provider/UploadJob.h>
 #include <unity/storage/provider/internal/CredentialsCache.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 
@@ -180,8 +181,24 @@ ItemMetadata ProviderInterface::CreateFolder(QString const& parent_id, QString c
     return {};
 }
 
-QString ProviderInterface::CreateFile(QString const& parent_id, QString const& name, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& file_descriptor)
+QString ProviderInterface::CreateFile(QString const& parent_id, QString const& title, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& file_descriptor)
 {
+    queue_request([parent_id, title, content_type, allow_overwrite](ProviderBase *provider, Context const& ctx, QDBusMessage const& message) {
+            auto f = provider->create_file(
+                parent_id.toStdString(), title.toStdString(),
+                content_type.toStdString(), allow_overwrite, ctx);
+            return f.then([=](decltype(f) f) -> QDBusMessage {
+                    auto job = f.get();
+                    QDBusUnixFileDescriptor file_desc;
+                    int fd = job->take_write_socket();
+                    file_desc.setFileDescriptor(fd);
+                    close(fd);
+                    return message.createReply({
+                            QVariant(QString::fromStdString(job->upload_id())),
+                            QVariant::fromValue(file_desc),
+                        });
+                });
+        });
     return "";
 }
 

@@ -1,6 +1,7 @@
 
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/Server.h>
+#include <unity/storage/provider/UploadJob.h>
 
 #include <cstdio>
 #include <stdexcept>
@@ -22,6 +23,11 @@ public:
         Context const& ctx) override;
     boost::future<Item> metadata(
         std::string const& item_id, Context const& ctx) override;
+
+    boost::future<std::unique_ptr<UploadJob>> create_file(
+        std::string const& parent_id, std::string const& title,
+        std::string const& content_type, bool allow_overwrite,
+        Context const& ctx) override;
 };
 
 MyProvider::MyProvider()
@@ -88,6 +94,16 @@ boost::future<Item> MyProvider::metadata(std::string const& item_id,
     }
     return boost::make_exceptional_future<Item>(std::runtime_error("no such file"));
 }
+
+boost::future<std::unique_ptr<UploadJob>> MyProvider::create_file(
+    std::string const& parent_id, std::string const& title,
+    std::string const& content_type, bool allow_overwrite,
+    Context const& ctx)
+{
+    printf("create_file('%s', '%s', '%s', %d) called by %s (%d)\n", parent_id.c_str(), title.c_str(), content_type.c_str(), allow_overwrite, ctx.security_label.c_str(), ctx.pid);
+    return boost::make_ready_future(std::unique_ptr<UploadJob>());
+}
+
 
 int main(int argc, char **argv)
 {

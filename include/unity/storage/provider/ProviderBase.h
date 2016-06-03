@@ -17,6 +17,8 @@ namespace storage
 namespace provider
 {
 
+class UploadJob;
+
 struct STORAGE_PROVIDER_EXPORT Item
 {
     std::string item_id;
@@ -51,6 +53,11 @@ public:
         std::string const& parent_id, std::string const& name,
         Context const& context) = 0;
     virtual boost::future<Item> metadata(std::string const& item_id,
+        Context const& context) = 0;
+
+    virtual boost::future<std::unique_ptr<UploadJob>> create_file(
+        std::string const& parent_id, std::string const& title,
+        std::string const& content_type, bool allow_overwrite,
         Context const& context) = 0;
 };
 
