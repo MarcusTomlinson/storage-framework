@@ -1,5 +1,6 @@
 #include <unity/storage/provider/internal/ServerImpl.h>
 #include <unity/storage/provider/ProviderBase.h>
+#include <unity/storage/provider/internal/MainLoopExecutor.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 #include "provideradaptor.h"
 
@@ -30,6 +31,9 @@ void ServerImpl::init(int& argc, char **argv)
     app_.reset(new QCoreApplication(argc, argv));
     auto bus = QDBusConnection::sessionBus();
     credentials_ = make_shared<CredentialsCache>(bus);
+
+    // Ensure the executor is instantiated in the main thread.
+    MainLoopExecutor::instance();
 
     manager_.reset(new OnlineAccounts::Manager(""));
     connect(manager_.get(), &OnlineAccounts::Manager::ready,

@@ -38,9 +38,6 @@ public:
 public Q_SLOTS:
     void begin();
 
-private Q_SLOTS:
-    void send_reply();
-
 Q_SIGNALS:
     void finished();
 
@@ -52,7 +49,6 @@ private:
     QDBusMessage const message_;
 
     boost::future<void> future_;
-    QDBusMessage reply_;
 };
 
 }

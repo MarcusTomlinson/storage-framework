@@ -1,6 +1,7 @@
 
 add_definitions(
   -DBOOST_THREAD_VERSION=4
+  -DBOOST_THREAD_PROVIDES_EXECUTORS
   ${APPARMOR_DEPS_CFLAGS}
   ${ONLINEACCOUNTS_DEPS_CFLAGS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -18,6 +19,7 @@ add_library(storage-framework-provider SHARED
   internal/CredentialsCache.cpp
   internal/DisconnectWatcher.cpp
   internal/Handler.cpp
+  internal/MainLoopExecutor.cpp
   internal/ProviderInterface.cpp
   internal/ServerImpl.cpp
   internal/TempfileUploadJobImpl.cpp
@@ -26,6 +28,7 @@ add_library(storage-framework-provider SHARED
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/DisconnectWatcher.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/Handler.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/ProviderInterface.h
+  ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/MainLoopExecutor.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/ServerImpl.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/TempfileUploadJobImpl.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/UploadJobImpl.h

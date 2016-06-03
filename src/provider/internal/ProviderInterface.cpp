@@ -2,6 +2,7 @@
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/UploadJob.h>
 #include <unity/storage/provider/internal/CredentialsCache.h>
+#include <unity/storage/provider/internal/MainLoopExecutor.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 
 #include <OnlineAccounts/AuthenticationData>
@@ -127,7 +128,9 @@ QList<ItemMetadata> ProviderInterface::Roots()
 {
     queue_request([](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
             auto f = provider->roots(ctx);
-            return f.then([=](decltype(f) f) -> QDBusMessage {
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
                     auto roots = f.get();
                     return message.createReply(QVariant::fromValue(roots));
                 });
@@ -139,7 +142,9 @@ QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString cons
 {
     queue_request([item_id, page_token](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
             auto f = provider->list(item_id.toStdString(), page_token.toStdString(), ctx);
-            return f.then([=](decltype(f) f) -> QDBusMessage {
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
                     vector<Item> children;
                     string next_token;
                     tie(children, next_token) = f.get();
@@ -168,7 +173,9 @@ ItemMetadata ProviderInterface::Metadata(QString const& item_id)
 {
     queue_request([item_id](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
             auto f = provider->metadata(item_id.toStdString(), ctx);
-            return f.then([=](decltype(f) f) -> QDBusMessage {
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));
                 });
@@ -187,7 +194,9 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& t
             auto f = provider->create_file(
                 parent_id.toStdString(), title.toStdString(),
                 content_type.toStdString(), allow_overwrite, ctx);
-            return f.then([=](decltype(f) f) -> QDBusMessage {
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
                     QDBusUnixFileDescriptor file_desc;
                     int fd = job->take_write_socket();
