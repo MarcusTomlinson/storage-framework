@@ -23,7 +23,7 @@ std::shared_ptr<File> Downloader::file() const
     return p_->file();
 }
 
-std::shared_ptr<StorageSocket> Downloader::socket() const
+std::shared_ptr<QLocalSocket> Downloader::socket() const
 {
     return p_->socket();
 }

@@ -35,11 +35,6 @@ public:
     virtual ~StorageSocket();
     /// @endcond
 
-    /**
-    \brief The service end of a StorageSocket reads and writes data in CHUNK_SIZE blocks.
-    */
-    static constexpr qint64 CHUNK_SIZE = 64 * 1024;
-
 protected:
     virtual qint64 readData(char* data, qint64 c) override;
     virtual qint64 writeData(char const* data, qint64 c) override;

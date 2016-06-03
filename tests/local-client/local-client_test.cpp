@@ -244,91 +244,96 @@ TEST(File, upload)
     auto root = get_root(runtime);
     clear_folder(root);
 
-    File::SPtr file;
     {
         // Upload a few bytes.
         auto uploader = root->create_file("new_file").result();
-        file = uploader->file();
+        auto file = uploader->file();
         QByteArray const contents = "Hello\n";
-        uploader->socket()->write(contents);
-        auto finish_fut = uploader->finish_upload();
-        {
-            QFutureWatcher<TransferState> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(finish_fut);
-            spy.wait(SIGNAL_WAIT_TIME);
-        }
-        auto state = finish_fut.result();
-        EXPECT_EQ(TransferState::ok, state);
-        EXPECT_EQ(contents.size(), uploader->file()->size());
-        EXPECT_TRUE(content_matches(uploader->file(), contents));
-    }
-
-    {
-        // Upload exactly CHUNK_SIZE bytes.
-        auto uploader_fut = file->create_uploader(ConflictPolicy::overwrite);
-        {
-            QFutureWatcher<Uploader::SPtr> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(uploader_fut);
-            spy.wait(SIGNAL_WAIT_TIME);
-        }
-        auto uploader = uploader_fut.result();
-        QByteArray contents(StorageSocket::CHUNK_SIZE, 'a');
         auto written = uploader->socket()->write(contents);
-        EXPECT_EQ(written, contents.size());
-
-        auto finish_fut = uploader->finish_upload();
+        EXPECT_EQ(contents.size(), written);
         {
-            QFutureWatcher<TransferState> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(finish_fut);
-            spy.wait(SIGNAL_WAIT_TIME);
-        }
-        auto state = finish_fut.result();
-        EXPECT_EQ(TransferState::ok, state);
-        EXPECT_EQ(contents.size(), uploader->file()->size());
-        EXPECT_TRUE(content_matches(uploader->file(), contents));
-    }
-
-    {
-        // Upload CHUNK_SIZE + 1 bytes.
-        auto uploader_fut = file->create_uploader(ConflictPolicy::overwrite);
-        {
-            QFutureWatcher<Uploader::SPtr> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(uploader_fut);
-            spy.wait(SIGNAL_WAIT_TIME);
-        }
-        auto uploader = uploader_fut.result();
-        QByteArray contents(StorageSocket::CHUNK_SIZE + 1, 'a');
-        auto written = uploader->socket()->write(contents);
-        EXPECT_EQ(written, contents.size());
-
-        auto finish_fut = uploader->finish_upload();
-        {
-            QFutureWatcher<TransferState> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(finish_fut);
+            QSignalSpy spy(uploader->socket().get(), &QLocalSocket::bytesWritten);
             ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
         }
+        uploader->socket()->disconnectFromServer();
+
+        auto finish_fut = uploader->finish_upload();
+        {
+            QFutureWatcher<TransferState> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(finish_fut);
+            spy.wait(SIGNAL_WAIT_TIME);
+        }
         auto state = finish_fut.result();
         EXPECT_EQ(TransferState::ok, state);
         EXPECT_EQ(contents.size(), uploader->file()->size());
         EXPECT_TRUE(content_matches(uploader->file(), contents));
+
+        file->destroy().waitForFinished();
+    }
+
+    {
+        // Upload exactly 64 KB.
+        auto uploader = root->create_file("new_file").result();
+        auto file = uploader->file();
+        QByteArray const contents(64 * 1024, 'a');
+        auto written = uploader->socket()->write(contents);
+        EXPECT_EQ(contents.size(), written);
+        {
+            QSignalSpy spy(uploader->socket().get(), &QLocalSocket::bytesWritten);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
+        uploader->socket()->disconnectFromServer();
+
+        auto finish_fut = uploader->finish_upload();
+        {
+            QFutureWatcher<TransferState> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(finish_fut);
+            spy.wait(SIGNAL_WAIT_TIME);
+        }
+        auto state = finish_fut.result();
+        EXPECT_EQ(TransferState::ok, state);
+        EXPECT_EQ(contents.size(), uploader->file()->size());
+        EXPECT_TRUE(content_matches(uploader->file(), contents));
+
+        file->destroy().waitForFinished();
+    }
+
+    {
+        // Upload 100 KB.
+        auto uploader = root->create_file("new_file").result();
+        auto file = uploader->file();
+        QByteArray const contents(100 * 1024, 'a');
+        auto written = uploader->socket()->write(contents);
+        EXPECT_EQ(contents.size(), written);
+        {
+            QSignalSpy spy(uploader->socket().get(), &QLocalSocket::bytesWritten);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
+        uploader->socket()->disconnectFromServer();
+
+        auto finish_fut = uploader->finish_upload();
+        {
+            QFutureWatcher<TransferState> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(finish_fut);
+            spy.wait(SIGNAL_WAIT_TIME);
+        }
+        auto state = finish_fut.result();
+        EXPECT_EQ(TransferState::ok, state);
+        EXPECT_EQ(contents.size(), uploader->file()->size());
+        EXPECT_TRUE(content_matches(uploader->file(), contents));
+
+        file->destroy().waitForFinished();
     }
 
     {
         // Don't upload anything.
-        auto uploader_fut = file->create_uploader(ConflictPolicy::overwrite);
-        {
-            QFutureWatcher<Uploader::SPtr> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(uploader_fut);
-            spy.wait(SIGNAL_WAIT_TIME);
-        }
-        auto uploader = uploader_fut.result();
-        // No write here.
+        auto uploader = root->create_file("new_file").result();
+        auto file = uploader->file();
+        uploader->socket()->disconnectFromServer();
+
         auto finish_fut = uploader->finish_upload();
         {
             QFutureWatcher<TransferState> w;
@@ -339,6 +344,15 @@ TEST(File, upload)
         auto state = finish_fut.result();
         EXPECT_EQ(TransferState::ok, state);
         EXPECT_EQ(0, uploader->file()->size());
+
+        file->destroy().waitForFinished();
+    }
+
+    {
+        // Let the uploader go out of scope and check
+        // that the file was created regardless.
+        auto file = root->create_file("new_file").result()->file();
+        EXPECT_EQ(0, file->size());
     }
 }
 
@@ -352,117 +366,108 @@ TEST(File, download)
 
     {
         // Download a few bytes.
-        QByteArray const contents = "hello\n";
+        QByteArray const contents = "Hello\n";
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
-        auto downloader_fut = file->create_downloader();
+        auto downloader = file->create_downloader().result();
+        EXPECT_TRUE(file->equal_to(downloader->file()));
+
+        auto socket = downloader->socket();
+        QByteArray buf;
+        do
         {
-            QFutureWatcher<Downloader::SPtr> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(downloader_fut);
-            spy.wait(SIGNAL_WAIT_TIME);
-        }
-        auto downloader = downloader_fut.result();
-        {
+            // Need to pump the event loop while the socket does its thing.
             QSignalSpy spy(downloader->socket().get(), &QIODevice::readyRead);
             ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
-        EXPECT_TRUE(file->equal_to(downloader->file()));
+            auto bytes_to_read = socket->bytesAvailable();
+            buf.append(socket->read(bytes_to_read));
+        } while (buf.size() < contents.size());
 
-        auto buf = downloader->socket()->read(1000000);
-        EXPECT_EQ(contents, buf);
+        // Wait for disconnect signal.
+        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto finish_fut = downloader->finish_download();
-        {
-            QFutureWatcher<TransferState> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(finish_fut);
-            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
-        auto state = finish_fut.result();
+        auto state = downloader->finish_download().result();
         EXPECT_EQ(TransferState::ok, state);
+
+        // Contents must match.
+        EXPECT_EQ(contents, buf);
     }
 
     {
-        // Download exactly CHUNK_SIZE bytes.
-        QByteArray const contents(StorageSocket::CHUNK_SIZE, 'a');
+        // Download exactly 64 KB.
+        QByteArray const contents(64 * 1024, 'a');
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
-        auto downloader_fut = file->create_downloader();
+        auto downloader = file->create_downloader().result();
+        EXPECT_TRUE(file->equal_to(downloader->file()));
+
+        auto socket = downloader->socket();
+        QByteArray buf;
+        do
         {
-            QFutureWatcher<Downloader::SPtr> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(downloader_fut);
-            spy.wait(SIGNAL_WAIT_TIME);
-        }
-        auto downloader = downloader_fut.result();
-        {
+            // Need to pump the event loop while the socket does its thing.
             QSignalSpy spy(downloader->socket().get(), &QIODevice::readyRead);
             ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
-        EXPECT_TRUE(file->equal_to(downloader->file()));
+            auto bytes_to_read = socket->bytesAvailable();
+            buf.append(socket->read(bytes_to_read));
+        } while (buf.size() < contents.size());
 
-        auto buf = downloader->socket()->read(1000000);
-        EXPECT_EQ(contents, buf);
+        // Wait for disconnect signal.
+        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto finish_fut = downloader->finish_download();
-        {
-            QFutureWatcher<TransferState> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(finish_fut);
-            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
-        auto state = finish_fut.result();
+        auto state = downloader->finish_download().result();
         EXPECT_EQ(TransferState::ok, state);
+
+        // Contents must match
+        EXPECT_EQ(contents, buf);
     }
 
     {
-        // Download CHUNK_SIZE + 1 bytes.
-        QByteArray const contents(StorageSocket::CHUNK_SIZE + 1, 'a');
+        // Download 100 KB.
+        QByteArray const contents(100 * 1024, 'a');
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
-        auto downloader_fut = file->create_downloader();
-        {
-            QFutureWatcher<Downloader::SPtr> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(downloader_fut);
-            spy.wait(SIGNAL_WAIT_TIME);
-        }
-        auto downloader = downloader_fut.result();
-        {
-            QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
-            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
+        auto downloader = file->create_downloader().result();
         EXPECT_TRUE(file->equal_to(downloader->file()));
 
-        auto buf = downloader->socket()->read(1000000);
-        EXPECT_EQ(contents, buf);
-
-        auto finish_fut = downloader->finish_download();
+        auto socket = downloader->socket();
+        QByteArray buf;
+        do
         {
-            QFutureWatcher<TransferState> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(finish_fut);
+            // Need to pump the event loop while the socket does its thing.
+            QSignalSpy spy(downloader->socket().get(), &QIODevice::readyRead);
             ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
-        auto state = finish_fut.result();
+            auto bytes_to_read = socket->bytesAvailable();
+            buf.append(socket->read(bytes_to_read));
+        } while (buf.size() < contents.size());
+
+        // Wait for disconnect signal.
+        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+
+        auto state = downloader->finish_download().result();
         EXPECT_EQ(TransferState::ok, state);
+
+        // Contents must match
+        EXPECT_EQ(contents, buf);
     }
 
     {
-        // Download zero bytes.
+        // Download file containing zero bytes
         QByteArray const contents;
         write_file(root, "file", contents);
 
@@ -470,31 +475,52 @@ TEST(File, download)
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
-        auto downloader_fut = file->create_downloader();
-        {
-            QFutureWatcher<Downloader::SPtr> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(downloader_fut);
-            spy.wait(SIGNAL_WAIT_TIME);
-        }
-        auto downloader = downloader_fut.result();
-        {
-            QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
-            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
+        auto downloader = file->create_downloader().result();
         EXPECT_TRUE(file->equal_to(downloader->file()));
 
-        // No read here.
+        auto socket = downloader->socket();
 
-        auto finish_fut = downloader->finish_download();
-        {
-            QFutureWatcher<TransferState> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(finish_fut);
-            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
-        auto state = finish_fut.result();
+        // No readyRead every arrives in this case, just wait for disconnected.
+        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+
+        auto state = downloader->finish_download().result();
         EXPECT_EQ(TransferState::ok, state);
+    }
+
+    {
+        // Don't ever call read on non-empty file.
+        QByteArray const contents("some contents");
+        write_file(root, "file", contents);
+
+        auto item = root->lookup("file").result();
+        File::SPtr file = dynamic_pointer_cast<File>(item);
+        ASSERT_FALSE(file == nullptr);
+
+        auto downloader = file->create_downloader().result();
+        EXPECT_TRUE(file->equal_to(downloader->file()));
+
+        try
+        {
+            downloader->finish_download().result();
+            FAIL();
+        }
+        catch (StorageException const&)
+        {
+            // TODO: check exception details
+        }
+    }
+
+    {
+        // Let downloader go out of scope.
+        QByteArray const contents("some contents");
+        write_file(root, "file", contents);
+
+        auto item = root->lookup("file").result();
+        File::SPtr file = dynamic_pointer_cast<File>(item);
+        ASSERT_FALSE(file == nullptr);
+
+        auto downloader = file->create_downloader().result();
     }
 }
 

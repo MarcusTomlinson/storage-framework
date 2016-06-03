@@ -23,7 +23,7 @@ std::shared_ptr<File> Uploader::file() const
     return p_->file();
 }
 
-std::shared_ptr<StorageSocket> Uploader::socket() const
+std::shared_ptr<QLocalSocket> Uploader::socket() const
 {
     return p_->socket();
 }

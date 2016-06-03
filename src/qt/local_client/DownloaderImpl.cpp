@@ -2,9 +2,9 @@
 
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
+#include <unity/storage/qt/client/StorageSocket.h>
 
-#include <QSocketNotifier>
-#include <QtConcurrent>
+#include <QLocalSocket>
 
 #include <cassert>
 
@@ -28,7 +28,6 @@ namespace internal
 
 DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     : QObject(nullptr)
-    , state_(connected)
     , file_(file.lock())
 {
     assert(file_);
@@ -40,40 +39,33 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     {
         throw StorageException();  // LCOV_EXCL_LINE  // TODO
     }
+
     read_socket_.reset(new StorageSocket);
-    if (!read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly))
-    {
-        // LCOV_EXCL_START
-        close(fds[0]);
-        close(fds[1]);
-        throw StorageException();  // TODO
-        // LCOV_EXCL_STOP
-    }
+    read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
     write_socket_.reset(new StorageSocket);
-    if (!write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly))
-    {
-        // LCOV_EXCL_START
-        close(fds[1]);
-        throw StorageException();  // TODO
-        // LCOV_EXCL_STOP
-    }
+    write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 
-    // Monitor write socket for ready-to-write and error events.
-    write_notifier_.reset(new QSocketNotifier(write_socket_->socketDescriptor(), QSocketNotifier::Write));
-    connect(write_notifier_.get(), &QSocketNotifier::activated, this, &DownloaderImpl::on_ready);
-    error_notifier_.reset(new QSocketNotifier(write_socket_->socketDescriptor(), QSocketNotifier::Exception));
-    connect(error_notifier_.get(), &QSocketNotifier::activated, this, &DownloaderImpl::on_error);
-
-    // Monitor write socket for disconnection, so we can wait until all pending data was written.
-    connect(write_socket_.get(), &QLocalSocket::disconnected, this, &DownloaderImpl::on_disconnect);
+    // Monitor write socket for ready-to-write, disconnected, and error events.
+    connect(write_socket_.get(), &QLocalSocket::bytesWritten, this, &DownloaderImpl::on_bytes_written);
+    connect(write_socket_.get(), &QLocalSocket::disconnected, this, &DownloaderImpl::on_disconnected);
+    connect(write_socket_.get(), static_cast<void(QLocalSocket::*)(QLocalSocket::LocalSocketError)>(&QLocalSocket::error),
+            this, &DownloaderImpl::on_error);
 
     // Open file for reading.
-    int fd = open(file_->native_identity().toStdString().c_str(), O_RDONLY);
-    if (fd == -1)
+    input_file_.reset(new QFile(file_->native_identity()));
+    if (!input_file_->open(QIODevice::ReadOnly))
     {
         throw StorageException();  // TODO
     }
-    input_file_.open(fd, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle);
+    bytes_to_write_ = input_file_->size();
+    if (bytes_to_write_ == 0)
+    {
+        write_socket_->disconnectFromServer();  // So the client gets EOF for empty files.
+    }
+    else
+    {
+        Q_EMIT on_ready();  // Kick off the read-write cycle.
+    }
 }
 
 DownloaderImpl::~DownloaderImpl()
@@ -86,7 +78,7 @@ shared_ptr<File> DownloaderImpl::file() const
     return file_;
 }
 
-shared_ptr<StorageSocket> DownloaderImpl::socket() const
+shared_ptr<QLocalSocket> DownloaderImpl::socket() const
 {
     return read_socket_;
 }
@@ -95,13 +87,20 @@ QFuture<TransferState> DownloaderImpl::finish_download()
 {
     switch (state_)
     {
-        case connected:
+        case in_progress:
         {
-            // Do nothing, on_disconnect() makes the future ready.
+            if (bytes_to_write_ > 0)
+            {
+                // Still unread data left, caller abandoned download early without cancelling.
+                qf_.reportException(StorageException());  // TODO: logic error
+                qf_.reportFinished();
+            }
+            // Else do nothing; on_disconnected() will make the future ready.
             break;
         }
         case finalized:
         {
+            // finish_download() called more than once.
             qf_.reportException(StorageException());  // TODO, logic error
             qf_.reportFinished();
             break;
@@ -128,10 +127,8 @@ QFuture<TransferState> DownloaderImpl::finish_download()
 
 QFuture<void> DownloaderImpl::cancel() noexcept
 {
-    if (state_ == connected)
+    if (state_ == in_progress)
     {
-        write_notifier_->setEnabled(false);
-        error_notifier_->setEnabled(false);
         write_socket_->abort();
         state_ = cancelled;
     }
@@ -142,38 +139,46 @@ QFuture<void> DownloaderImpl::cancel() noexcept
 
 void DownloaderImpl::on_ready()
 {
-    if (!eof_ && pos_ == end_)
-    {
-        // Buffer empty, need to read a chunk.
-        end_ = input_file_.read(buf_, StorageSocket::CHUNK_SIZE);
-        if (end_ == -1)
-        {
-            // TODO: Store error details.
-            handle_error();
-            return;
-        }
-        eof_ = end_ < StorageSocket::CHUNK_SIZE;
-        pos_ = 0;
-    }
+    qint64 const READ_SIZE = 64 * 1024;
 
-    int bytes_to_write = end_ - pos_;
-    if (bytes_to_write > 0)
+    QByteArray buf;
+    buf.resize(READ_SIZE);
+    auto bytes_read = input_file_->read(buf.data(), buf.size());
+    if (bytes_read == -1)
     {
-        int bytes_written = write_socket_->writeData(buf_, bytes_to_write);
-        if (bytes_written == -1)
-        {
-            // TODO: Store error details.
-            handle_error();
-            return;
-        }
-        pos_ += bytes_written;
+        // TODO: Store error details.
+        handle_error();
+        return;
     }
-    if (eof_ && pos_ == end_)
+    buf.resize(bytes_read);
+
+    auto bytes_written = write_socket_->write(buf);
+    if (bytes_written == -1)
     {
-        write_notifier_->setEnabled(false);
-        error_notifier_->setEnabled(false);
+        // TODO: Store error details.
+        handle_error();
+        return;
+    }
+}
+
+void DownloaderImpl::on_bytes_written(qint64 bytes)
+{
+    bytes_to_write_ -= bytes;
+    assert(bytes_to_write_ >= 0);
+    if (bytes_to_write_ > 0)
+    {
+        Q_EMIT on_ready();
+    }
+    else
+    {
         write_socket_->disconnectFromServer();
     }
+}
+
+void DownloaderImpl::on_disconnected()
+{
+    qf_.reportResult(TransferState::ok);
+    qf_.reportFinished();
 }
 
 void DownloaderImpl::on_error()
@@ -181,23 +186,12 @@ void DownloaderImpl::on_error()
     handle_error();
 }
 
-void DownloaderImpl::on_disconnect()
-{
-    qf_.reportResult(TransferState::ok);
-    qf_.reportFinished();
-    disconnect(write_socket_.get(), &QLocalSocket::disconnected, this, &DownloaderImpl::on_disconnect);
-}
-
 void DownloaderImpl::handle_error()
 {
-    if (state_ == connected)
+    if (state_ == in_progress)
     {
-        input_file_.close();
-        write_notifier_->setEnabled(false);
-        error_notifier_->setEnabled(false);
+        input_file_->close();
         write_socket_->abort();
-        end_ = 0;
-        pos_ = 0;
     }
     state_ = error;
 }

@@ -120,32 +120,29 @@ QFuture<Item::SPtr> FolderImpl::lookup(QString const& name) const
 
 QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
 {
+    QFutureInterface<Folder::SPtr> qf;
     if (destroyed_)
     {
-        QFutureInterface<Folder::SPtr> qf;
         qf.reportException(DestroyedException());
         qf.reportFinished();
         return qf.future();
     }
 
-    auto This = static_pointer_cast<FolderImpl>(shared_from_this());  // Keep this folder alive while the lambda is alive.
-    auto create_folder = [This, name]()
-    {
-        using namespace boost::filesystem;
+    using namespace boost::filesystem;
 
-        try
-        {
-            path p = This->native_identity().toStdString();
-            p /= sanitize(name);
-            create_directory(p);
-            return make_folder(QString::fromStdString(p.native()), This->root_);
-        }
-        catch (std::exception const&)
-        {
-            throw StorageException();  // TODO
-        }
-    };
-    return QtConcurrent::run(create_folder);
+    try
+    {
+        path p = native_identity().toStdString();
+        p /= sanitize(name);
+        create_directory(p);
+        qf.reportResult(make_folder(QString::fromStdString(p.native()), root_));
+    }
+    catch (std::exception const&)
+    {
+        qf.reportException(StorageException());  // TODO
+    }
+    qf.reportFinished();
+    return qf.future();
 }
 
 QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
@@ -158,33 +155,32 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         return qf.future();
     }
 
-    auto This = static_pointer_cast<FolderImpl>(shared_from_this());  // Keep this folder alive while the lambda is alive.
-    auto create_file = [This, name]()
-    {
-        using namespace boost::filesystem;
+    using namespace boost::filesystem;
 
-        try
-        {
-            path p = This->native_identity().toStdString();
-            p /= sanitize(name);
-            int fd = open(p.native().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if file already exists.
-            if (fd == -1)
-            {
-                throw StorageException();  // TODO
-            }
-            if (close(fd) == -1)
-            {
-                throw StorageException();  // TODO
-            }
-            auto file = FileImpl::make_file(QString::fromStdString(p.native()), This->root_);
-            return file->create_uploader(ConflictPolicy::overwrite);
-        }
-        catch (std::exception const&)
+    try
+    {
+        path p = native_identity().toStdString();
+        p /= sanitize(name);
+        int fd = open(p.native().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if file already exists.
+        if (fd == -1)
         {
             throw StorageException();  // TODO
         }
-    };
-    return QtConcurrent::run(create_file);
+        if (close(fd) == -1)
+        {
+            throw StorageException();  // TODO
+        }
+        auto file = FileImpl::make_file(QString::fromStdString(p.native()), root_);
+        return file->create_uploader(ConflictPolicy::overwrite);
+    }
+    catch (std::exception const&)
+    {
+        QFutureInterface<shared_ptr<Uploader>> qf;
+        qf.reportException(StorageException());  // TODO
+        qf.reportFinished();
+        return qf.future();
+    }
+    // NOTREACHED
 }
 
 Folder::SPtr FolderImpl::make_folder(QString const& identity, weak_ptr<Root> root)

@@ -10,6 +10,8 @@
 
 #include <memory>
 
+class QLocalSocket;
+
 namespace unity
 {
 namespace storage
@@ -20,7 +22,6 @@ namespace client
 {
 
 class File;
-class StorageSocket;
 
 namespace internal
 {
@@ -61,7 +62,7 @@ public:
 
     \return A socket open for writing.
     */
-    std::shared_ptr<StorageSocket> socket() const;
+    std::shared_ptr<QLocalSocket> socket() const;
 
     /**
     \brief Finalizes the upload.

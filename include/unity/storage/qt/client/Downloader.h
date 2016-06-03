@@ -1,7 +1,6 @@
 #pragma once
 
 #include <unity/storage/common.h>
-#include <unity/storage/qt/client/StorageSocket.h>
 #include <unity/storage/visibility.h>
 
 #pragma GCC diagnostic push
@@ -10,6 +9,8 @@
 #pragma GCC diagnostic pop
 
 #include <memory>
+
+class QLocalSocket;
 
 namespace unity
 {
@@ -59,7 +60,7 @@ public:
     To download the file contents, read from the returned socket.
     \return A socket open for reading.
     */
-    std::shared_ptr<StorageSocket> socket() const;
+    std::shared_ptr<QLocalSocket> socket() const;
 
     /**
     \brief Finalizes the download.
