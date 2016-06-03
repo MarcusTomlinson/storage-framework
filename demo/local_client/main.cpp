@@ -60,8 +60,8 @@ void Printer::downloader_ready()
 
 void Printer::chunk_ready()
 {
-    char buf[StorageSocket::CHUNK_SIZE];
-    auto bytes_read = downloader_->socket()->readData(buf, sizeof(buf));
+    char buf[64 * 1024];
+    auto bytes_read = downloader_->socket()->read(buf, sizeof(buf));
     if (bytes_read == -1)
     {
         abort();
@@ -164,16 +164,6 @@ int main(int argc, char* argv[])
         auto item = item_fut.result();
         auto file = dynamic_pointer_cast<File>(item);
         assert(file);
-
-        auto upload_fut = file->create_uploader(ConflictPolicy::overwrite);
-        qDebug() << "called create";
-        auto uploader = upload_fut.result();
-        qDebug() << "got uploader";
-        std::string s(1000000, 'a');
-        uploader->socket()->writeData(&s[0], s.size());
-        qDebug() << "wrote data";
-        auto finish_fut = uploader->finish_upload();
-        qDebug() << "finish_fut:" << int(finish_fut.result());
 
         return app.exec();
     }

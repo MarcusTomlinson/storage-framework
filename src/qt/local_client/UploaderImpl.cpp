@@ -99,18 +99,14 @@ QFuture<TransferState> UploaderImpl::finish_upload()
     {
         case in_progress:
         {
-            if (received_something_)
+            if (!disconnected_ && received_something_)
             {
-                // Caller wrote some bytes, but never disconnected, so we are asked
-                // to finish an incomplete transfer.
+                // Caller created an uploader and wrote something, but did not
+                // disconnect the socket, so the transfer is incomplete.
                 qf_.reportException(StorageException());  // TODO, logic error
                 qf_.reportFinished();
             }
-            break;
-        }
-        case disconnected:
-        {
-            // finalize() makes the future ready
+            // Else do nothing; on_disconnected() will make the future ready.
             break;
         }
         case finalized:
@@ -167,7 +163,7 @@ void UploaderImpl::on_ready()
 
 void UploaderImpl::on_disconnected()
 {
-    state_ = disconnected;
+    disconnected_ = true;
     finalize();
 }
 

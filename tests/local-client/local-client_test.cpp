@@ -267,7 +267,7 @@ TEST(File, upload)
         auto state = finish_fut.result();
         EXPECT_EQ(TransferState::ok, state);
         EXPECT_EQ(contents.size(), uploader->file()->size());
-        EXPECT_TRUE(content_matches(uploader->file(), contents));
+        ASSERT_TRUE(content_matches(uploader->file(), contents));
 
         file->destroy().waitForFinished();
     }
@@ -295,7 +295,7 @@ TEST(File, upload)
         auto state = finish_fut.result();
         EXPECT_EQ(TransferState::ok, state);
         EXPECT_EQ(contents.size(), uploader->file()->size());
-        EXPECT_TRUE(content_matches(uploader->file(), contents));
+        ASSERT_TRUE(content_matches(uploader->file(), contents));
 
         file->destroy().waitForFinished();
     }
@@ -323,7 +323,7 @@ TEST(File, upload)
         auto state = finish_fut.result();
         EXPECT_EQ(TransferState::ok, state);
         EXPECT_EQ(contents.size(), uploader->file()->size());
-        EXPECT_TRUE(content_matches(uploader->file(), contents));
+        ASSERT_TRUE(content_matches(uploader->file(), contents));
 
         file->destroy().waitForFinished();
     }
@@ -343,7 +343,7 @@ TEST(File, upload)
         }
         auto state = finish_fut.result();
         EXPECT_EQ(TransferState::ok, state);
-        EXPECT_EQ(0, uploader->file()->size());
+        ASSERT_EQ(0, uploader->file()->size());
 
         file->destroy().waitForFinished();
     }
@@ -352,7 +352,66 @@ TEST(File, upload)
         // Let the uploader go out of scope and check
         // that the file was created regardless.
         auto file = root->create_file("new_file").result()->file();
-        EXPECT_EQ(0, file->size());
+        ASSERT_EQ(0, file->size());
+    }
+}
+
+TEST(File, create_uploader)
+{
+    auto runtime = Runtime::create();
+
+    auto acc = get_account(runtime);
+    auto root = get_root(runtime);
+    clear_folder(root);
+
+    auto file = root->create_file("new_file").result()->file();
+
+    {
+        auto uploader = file->create_uploader(ConflictPolicy::overwrite).result();
+
+        auto finish_fut = uploader->finish_upload();
+        {
+            QFutureWatcher<TransferState> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(finish_fut);
+            // We never disconnected from the socket, so the transfer is still in progress.
+            ASSERT_FALSE(spy.wait(SIGNAL_WAIT_TIME));
+        }
+        uploader->socket()->disconnectFromServer();
+        {
+            QFutureWatcher<TransferState> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(finish_fut);
+            // Now that we have disconnected, the future must become ready.
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
+        EXPECT_EQ(TransferState::ok, finish_fut.result());
+    }
+
+    // Same test again, but this time we write a bunch of data and don't disconnect.
+    {
+        auto uploader = file->create_uploader(ConflictPolicy::overwrite).result();
+
+        std::string s(1000000, 'a');
+        uploader->socket()->write(&s[0], s.size());
+
+        auto finish_fut = uploader->finish_upload();
+        {
+            QFutureWatcher<TransferState> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(finish_fut);
+            // We never disconnected from the socket, so the transfer is still in progress.
+            ASSERT_FALSE(spy.wait(SIGNAL_WAIT_TIME));
+        }
+        uploader->socket()->disconnectFromServer();
+        {
+            QFutureWatcher<TransferState> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(finish_fut);
+            // Now that we have disconnected, the future must become ready.
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
+        EXPECT_EQ(TransferState::ok, finish_fut.result());
     }
 }
 

@@ -20,9 +20,9 @@ namespace client
 namespace internal
 {
 
-shared_ptr<StorageSocket> UploaderImpl::socket() const
+shared_ptr<QLocalSocket> UploaderImpl::socket() const
 {
-    return shared_ptr<StorageSocket>();
+    return shared_ptr<QLocalSocket>();
 }
 
 QFuture<TransferState> UploaderImpl::finish_upload()

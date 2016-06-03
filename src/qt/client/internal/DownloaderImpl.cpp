@@ -4,6 +4,8 @@
 
 using namespace std;
 
+class QLocalSocket;
+
 namespace unity
 {
 namespace storage
@@ -13,14 +15,12 @@ namespace qt
 namespace client
 {
 
-class StorageSocket;
-
 namespace internal
 {
 
-shared_ptr<StorageSocket> DownloaderImpl::socket() const
+shared_ptr<QLocalSocket> DownloaderImpl::socket() const
 {
-    return shared_ptr<StorageSocket>();
+    return shared_ptr<QLocalSocket>();
 }
 
 QFuture<TransferState> DownloaderImpl::finish_download()

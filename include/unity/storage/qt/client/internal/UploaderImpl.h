@@ -50,7 +50,7 @@ private:
     void handle_error();
     void check_modified_time() const;
 
-    enum State { in_progress, disconnected, finalized, cancelled, error };
+    enum State { in_progress, finalized, cancelled, error };
 
     State state_ = in_progress;
     std::shared_ptr<File> file_;
@@ -61,6 +61,7 @@ private:
     unity::util::ResourcePtr<int, std::function<void(int)>> tmp_fd_;
     bool eof_ = false;
     bool received_something_ = false;
+    bool disconnected_ = false;
     QFutureInterface<TransferState> qf_;
 };
 

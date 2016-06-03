@@ -2,6 +2,8 @@
 
 #include <unity/storage/qt/client/internal/UploaderImpl.h>
 
+class QLocalSocket;
+
 namespace unity
 {
 namespace storage
