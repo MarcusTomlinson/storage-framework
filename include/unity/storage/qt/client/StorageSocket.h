@@ -20,6 +20,7 @@ namespace internal
 {
 
 class DownloaderImpl;
+class DownloadWorker;
 class UploaderImpl;
 
 }  // namespace internal
@@ -43,6 +44,7 @@ private:
     StorageSocket(QObject* parent = nullptr);
 
     friend class internal::DownloaderImpl;
+    friend class internal::DownloadWorker;
     friend class internal::UploaderImpl;
 };
 

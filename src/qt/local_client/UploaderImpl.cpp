@@ -72,6 +72,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
 UploaderImpl::~UploaderImpl()
 {
     read_socket_.reset();  // Disconnect everything
+    // TODO: No, don't want this
     if (!received_something_ && state_ == in_progress)
     {
         // Caller never wrote anything and just let the uploader go
@@ -99,6 +100,9 @@ QFuture<TransferState> UploaderImpl::finish_upload()
     {
         case in_progress:
         {
+            qDebug() << "state:" << int(state_);
+#if 0
+            // TODO: received_something is redundant
             if (!disconnected_ && received_something_)
             {
                 // Caller created an uploader and wrote something, but did not
@@ -106,7 +110,21 @@ QFuture<TransferState> UploaderImpl::finish_upload()
                 qf_.reportException(StorageException());  // TODO, logic error
                 qf_.reportFinished();
             }
-            // Else do nothing; on_disconnected() will make the future ready.
+#endif
+#if 0
+            if (!received_something_)
+            {
+                qDebug() << "client never wrote anything";
+                // If the client never wrote anything, we don't get a disconnected signal.
+                qf_.reportResult(TransferState::ok);
+                qf_.reportFinished();
+            }
+            else
+            {
+                // TODO: HACK: on_disconnected() may not have arrived yet.
+                read_socket_->waitForDisconnected();
+            }
+#endif
             break;
         }
         case finalized:
@@ -142,7 +160,7 @@ QFuture<void> UploaderImpl::cancel() noexcept
         state_ = cancelled;
         read_socket_->abort();
     }
-    finish_upload();
+    finish_upload(); // Really?
 
     QFutureInterface<void> qf;
     qf.reportFinished();
@@ -151,6 +169,7 @@ QFuture<void> UploaderImpl::cancel() noexcept
 
 void UploaderImpl::on_ready()
 {
+    qDebug() << "on_ready";
     received_something_ = true;
 
     auto buf = read_socket_->read(read_socket_->bytesAvailable());
