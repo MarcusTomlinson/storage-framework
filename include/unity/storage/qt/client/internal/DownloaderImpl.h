@@ -41,12 +41,12 @@ public Q_SLOTS:
     void do_cancel();
 
 private Q_SLOTS:
-    void write_chunk();
     void on_bytes_written(qint64 bytes);
     void on_disconnected();
     void on_error();
 
 private:
+    void read_and_write_chunk();
     void handle_error();
 
     enum State { in_progress, finalized, cancelled, error };

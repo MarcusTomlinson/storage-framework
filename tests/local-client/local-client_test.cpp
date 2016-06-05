@@ -470,8 +470,8 @@ TEST(File, download)
     }
 
     {
-        // Download 100 KB.
-        QByteArray const contents(100 * 1024, 'a');
+        // Download 1 MB + 1 bytes.
+        QByteArray const contents(1024 * 1024 + 1, 'a');
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
@@ -574,7 +574,7 @@ TEST(File, download)
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
-        auto downloader = file->create_downloader();
+        auto downloader = file->create_downloader().result();
     }
 
     {
@@ -586,7 +586,7 @@ TEST(File, download)
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
-        auto downloader = file->create_downloader().result();
+        auto downloader_fut = file->create_downloader();
     }
 }
 
@@ -687,7 +687,7 @@ TEST(Item, modified_time)
     clear_folder(root);
 
     auto now = QDateTime::currentDateTimeUtc();
-    // Need to sleep because time_t only provides 1-second resolution.
+    // Need to sleep because time_t provides only 1-second resolution.
     sleep(1);
     auto file = root->create_file("file").result()->file();
     auto t = file->last_modified_time();

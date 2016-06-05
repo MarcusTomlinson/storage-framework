@@ -4,14 +4,9 @@
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/StorageSocket.h>
 
-#include <QLocalSocket>
-#include <QtConcurrent>
-
 #include <cassert>
 
-#include <fcntl.h>
 #include <sys/socket.h>
-#include <unistd.h>
 
 using namespace unity::storage::qt::client;
 using namespace std;
@@ -62,11 +57,11 @@ void DownloadWorker::start_downloading()
     }
     else
     {
-        write_chunk();  // Kick off the read-write cycle.
+        read_and_write_chunk();  // Kick off the read-write cycle.
     }
 }
 
-// Called once we know the outcome of the download, or when the client
+// Called once we know the outcome of the download, or via a signal when the client
 // calls finish_download(). This makes the future ready with the appropriate
 // result or error information.
 
@@ -132,9 +127,39 @@ void DownloadWorker::do_cancel()
     }
 }
 
+// Called each time we get rid of a chunk of data, to kick off the next chunk.
+
+void DownloadWorker::on_bytes_written(qint64 bytes)
+{
+    bytes_to_write_ -= bytes;
+    assert(bytes_to_write_ >= 0);
+    if (bytes_to_write_ == 0)
+    {
+        input_file_->close();
+        write_socket_->disconnectFromServer();
+    }
+    else
+    {
+        read_and_write_chunk();
+    }
+}
+
+// Sets the outcome of the download in the future once we have written
+// the last of the data and have disconnected.
+
+void DownloadWorker::on_disconnected()
+{
+    do_finish();
+}
+
+void DownloadWorker::on_error()
+{
+    handle_error();
+}
+
 // Read the next chunk of data from the input file and write it to the socket.
 
-void DownloadWorker::write_chunk()
+void DownloadWorker::read_and_write_chunk()
 {
     static qint64 constexpr READ_SIZE = 64 * 1024;
 
@@ -156,36 +181,6 @@ void DownloadWorker::write_chunk()
         handle_error();
         return;
     }
-}
-
-// Called each time we get rid of a chunk of data, to kick off the next chunk.
-
-void DownloadWorker::on_bytes_written(qint64 bytes)
-{
-    bytes_to_write_ -= bytes;
-    assert(bytes_to_write_ >= 0);
-    if (bytes_to_write_ == 0)
-    {
-        input_file_->close();
-        write_socket_->disconnectFromServer();
-    }
-    else
-    {
-        write_chunk();
-    }
-}
-
-// Sets the outcome of the download in the future once we written the last
-// of the data and disconnected.
-
-void DownloadWorker::on_disconnected()
-{
-    do_finish();
-}
-
-void DownloadWorker::on_error()
-{
-    handle_error();
 }
 
 void DownloadWorker::handle_error()
@@ -234,7 +229,7 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     connect(this, &DownloaderImpl::do_finish, worker_.get(), &DownloadWorker::do_finish);
     connect(this, &DownloaderImpl::do_cancel, worker_.get(), &DownloadWorker::do_cancel);
 
-    // Make sure that worker slots are called from the download thread.
+    // Create download thread and make sure that worker slots are called from the download thread.
     download_thread_.reset(new DownloadThread(worker_.get()));
     worker_->moveToThread(download_thread_.get());
 

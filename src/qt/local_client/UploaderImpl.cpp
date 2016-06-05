@@ -5,8 +5,6 @@
 #include <unity/storage/qt/client/StorageSocket.h>
 
 #include <boost/filesystem.hpp>
-#include <QSocketNotifier>
-#include <QtConcurrent>
 
 #include <cassert>
 
