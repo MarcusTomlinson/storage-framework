@@ -56,7 +56,6 @@ public:
 
     void set_root(std::weak_ptr<Root> p);
     void set_public_instance(std::weak_ptr<Item> p);
-    std::weak_ptr<Item> public_instance() const;
 
     bool operator==(ItemImpl const& other) const noexcept;
 

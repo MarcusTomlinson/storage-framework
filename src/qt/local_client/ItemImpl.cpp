@@ -372,12 +372,6 @@ void ItemImpl::set_public_instance(weak_ptr<Item> p)
     public_instance_ = p;
 }
 
-weak_ptr<Item> ItemImpl::public_instance() const
-{
-    assert(public_instance_.lock());
-    return public_instance_;
-}
-
 bool ItemImpl::operator==(ItemImpl const& other) const noexcept
 {
     if (destroyed_ || other.destroyed_)
