@@ -35,7 +35,7 @@ void DownloadWorker::start_downloading()
     write_socket_.reset(new StorageSocket);
     write_socket_->setSocketDescriptor(write_fd_, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 
-    // Monitor write socket for ready-to-write events.
+    // Monitor write socket for ready-to-write, disconnected, and error events.
     connect(write_socket_.get(), &QLocalSocket::bytesWritten, this, &DownloadWorker::on_bytes_written);
     connect(write_socket_.get(), &QLocalSocket::disconnected, this, &DownloadWorker::on_disconnected);
     connect(write_socket_.get(), static_cast<void(QLocalSocket::*)(QLocalSocket::LocalSocketError)>(&QLocalSocket::error),
@@ -50,6 +50,8 @@ void DownloadWorker::start_downloading()
         return;
     }
     bytes_to_write_ = input_file_->size();
+
+    qf_.reportStarted();
 
     if (bytes_to_write_ == 0)
     {
@@ -93,21 +95,21 @@ void DownloadWorker::do_finish()
             qf_.reportFinished();
             break;
         }
-        case error:
-        {
-            qf_.reportException(StorageException());  // TODO, report details
-            qf_.reportFinished();
-            break;
-        }
         case cancelled:
         {
             qf_.reportResult(TransferState::cancelled);
             qf_.reportFinished();
             break;
         }
+        case error:
+        {
+            qf_.reportException(StorageException());  // TODO, report details
+            qf_.reportFinished();
+            break;
+        }
         default:
         {
-            abort();  // Impossible
+            abort();  // LCOV_EXCL_LINE  // Impossible
         }
     }
     assert(qf_.future().isFinished());
@@ -120,6 +122,7 @@ void DownloadWorker::do_cancel()
 {
     if (state_ == in_progress)
     {
+        disconnect(write_socket_.get(), nullptr, this, nullptr);
         write_socket_->abort();
         bytes_to_write_ = 0;
         state_ = cancelled;
@@ -187,7 +190,6 @@ void DownloadWorker::handle_error()
 {
     if (state_ == in_progress)
     {
-        input_file_->close();
         write_socket_->abort();
     }
     state_ = error;
@@ -235,7 +237,10 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
 
     download_thread_->start();
 
-    qf_.reportStarted();
+    // TODO: can probably do this with a signal?
+    // This is no waitForStarted() on QFutureInterface or QFuture.
+    while (!qf_.isStarted())
+        ;
 }
 
 DownloaderImpl::~DownloaderImpl()

@@ -93,6 +93,20 @@ void NotExistException::raise() const
     throw *this;
 }
 
+ConflictException::ConflictException() = default;
+
+ConflictException::~ConflictException() = default;
+
+ConflictException* ConflictException::clone() const
+{
+    return new ConflictException(*this);
+}
+
+void ConflictException::raise() const
+{
+    throw *this;
+}
+
 }  // namespace client
 }  // namespace qt
 }  // namespace storage
