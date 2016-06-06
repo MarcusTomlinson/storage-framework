@@ -32,7 +32,6 @@ namespace internal
 RuntimeImpl::RuntimeImpl()
     : destroyed_(false)
 {
-    qRegisterMetaType<QAbstractSocket::SocketState>();  // Qt doesn't do this for us.
 }
 
 RuntimeImpl::~RuntimeImpl()
@@ -48,11 +47,10 @@ RuntimeImpl::~RuntimeImpl()
 
 void RuntimeImpl::shutdown()
 {
-    if (destroyed_)
+    if (destroyed_.exchange(true))
     {
         return;
     }
-    destroyed_ = true;
 }
 
 QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()

@@ -122,7 +122,7 @@ void ProviderInterface::request_finished()
     handler->deleteLater();
 }
 
-QList<ItemMetadata> ProviderInterface::Roots()
+QList<ProviderInterface::IMD> ProviderInterface::Roots()
 {
     queue_request([](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
             auto f = provider->roots(ctx);
@@ -134,7 +134,7 @@ QList<ItemMetadata> ProviderInterface::Roots()
     return {};
 }
 
-QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString const& page_token, QString& /*next_token*/)
+QList<ProviderInterface::IMD> ProviderInterface::List(QString const& item_id, QString const& page_token, QString& /*next_token*/)
 {
     queue_request([item_id, page_token](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
             auto f = provider->list(item_id.toStdString(), page_token.toStdString(), ctx);
@@ -151,7 +151,7 @@ QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString cons
     return {};
 }
 
-QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString const& name)
+QList<ProviderInterface::IMD> ProviderInterface::Lookup(QString const& parent_id, QString const& name)
 {
     queue_request([parent_id, name](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
             auto f = provider->lookup(parent_id.toStdString(), name.toStdString(), ctx);
@@ -163,7 +163,7 @@ QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString 
     return {};
 }
 
-ItemMetadata ProviderInterface::Metadata(QString const& item_id)
+ProviderInterface::IMD ProviderInterface::Metadata(QString const& item_id)
 {
     queue_request([item_id](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
             auto f = provider->metadata(item_id.toStdString(), ctx);
@@ -175,7 +175,7 @@ ItemMetadata ProviderInterface::Metadata(QString const& item_id)
     return {};
 }
 
-ItemMetadata ProviderInterface::CreateFolder(QString const& parent_id, QString const& name)
+ProviderInterface::IMD ProviderInterface::CreateFolder(QString const& parent_id, QString const& name)
 {
     return {};
 }
@@ -190,7 +190,7 @@ QString ProviderInterface::Update(QString const& item_id, QString const& old_eta
     return "";
 }
 
-ItemMetadata ProviderInterface::FinishUpload(QString const& upload_id)
+ProviderInterface::IMD ProviderInterface::FinishUpload(QString const& upload_id)
 {
     return {};
 }
@@ -212,12 +212,12 @@ void ProviderInterface::Delete(QString const& item_id)
 {
 }
 
-ItemMetadata ProviderInterface::Move(QString const& item_id, QString const& new_parent_id, QString const& new_name)
+ProviderInterface::IMD ProviderInterface::Move(QString const& item_id, QString const& new_parent_id, QString const& new_name)
 {
     return {};
 }
 
-ItemMetadata ProviderInterface::Copy(QString const& item_id, QString const& new_parent_id, QString const& new_name)
+ProviderInterface::IMD ProviderInterface::Copy(QString const& item_id, QString const& new_parent_id, QString const& new_name)
 {
     return {};
 }
