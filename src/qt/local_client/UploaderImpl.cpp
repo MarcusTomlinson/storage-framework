@@ -2,6 +2,7 @@
 
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
+#include <unity/storage/qt/client/internal/ItemImpl.h>
 #include <unity/storage/qt/client/StorageSocket.h>
 
 #include <boost/filesystem.hpp>
@@ -37,7 +38,7 @@ UploadWorker::UploadWorker(int read_fd,
     assert(read_fd > 0);
 }
 
-void UploadWorker::start_uploading()
+void UploadWorker::start_uploading() noexcept
 {
     read_socket_.reset(new StorageSocket);
     read_socket_->setSocketDescriptor(read_fd_, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
@@ -48,29 +49,16 @@ void UploadWorker::start_uploading()
     connect(read_socket_.get(), static_cast<void(QLocalSocket::*)(QLocalSocket::LocalSocketError)>(&QLocalSocket::error),
             this, &UploadWorker::on_error);
 
-    try
-    {
-        using namespace boost::filesystem;
+    using namespace boost::filesystem;
 
-        // Open tmp file for writing.
-        auto parent_path = path(file_->native_identity().toStdString()).parent_path();
-        tmp_fd_.reset(open(parent_path.native().c_str(), O_TMPFILE | O_WRONLY, 0600));
-        if (tmp_fd_.get() == -1)
-        {
-            // TODO: O_TMPFILE may not work with some kernels. Fall back to conventional
-            //       tmp file creation here in that case.
-            // TODO store details
-            throw StorageException();
-        }
-        output_file_.reset(new QFile);
-        output_file_->open(tmp_fd_.get(), QIODevice::WriteOnly, QFileDevice::DontCloseHandle);
-
-        check_modified_time();  // Throws if file has been changed on disk and policy is error_if_conflict.
-    }
-    catch (std::exception const&)
-    {
-        handle_error();
-    }
+    // Open tmp file for writing.
+    auto parent_path = path(file_->native_identity().toStdString()).parent_path();
+    tmp_fd_.reset(open(parent_path.native().c_str(), O_TMPFILE | O_WRONLY, 0600));
+    // TODO: O_TMPFILE may not work with some kernels. Fall back to conventional
+    //       tmp file creation here in that case.
+    assert(tmp_fd_.get() != -1);
+    output_file_.reset(new QFile);
+    output_file_->open(tmp_fd_.get(), QIODevice::WriteOnly, QFileDevice::DontCloseHandle);
 
     qf_.reportStarted();
 }
@@ -175,7 +163,7 @@ void UploadWorker::finalize()
     }
     catch (std::exception const&)
     {
-        qf_.reportException(StorageException());  // TODO, version mismatch
+        qf_.reportException(ConflictException());  // TODO: store error details.
         qf_.reportFinished();
         return;
     }
@@ -200,6 +188,8 @@ void UploadWorker::finalize()
     }
 
     state_ = finalized;
+    output_file_->close();
+    file_->p_->update_modified_time();
     qf_.reportResult(TransferState::ok);
     qf_.reportFinished();
 }
@@ -208,7 +198,7 @@ void UploadWorker::handle_error()
 {
     if (state_ == in_progress)
     {
-        output_file_->close();  // Dubious
+        output_file_->close();
         read_socket_->abort();
     }
     state_ = error;
@@ -271,7 +261,6 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
     worker_->moveToThread(upload_thread_.get());
 
     upload_thread_->start();
-    // TODO: wait until thread is ready or has failed.
 
     // TODO: can probably do this with a signal?
     // There is no waitForStarted() on QFutureInterface or QFuture.

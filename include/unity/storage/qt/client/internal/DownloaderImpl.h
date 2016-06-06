@@ -34,7 +34,7 @@ class DownloadWorker : public QObject
 
 public:
     DownloadWorker(int write_fd, QString const& filename, QFutureInterface<TransferState>& qf);
-    void start_downloading();
+    void start_downloading() noexcept;
 
 public Q_SLOTS:
     void do_finish();

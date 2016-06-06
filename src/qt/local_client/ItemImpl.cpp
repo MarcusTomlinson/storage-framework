@@ -33,6 +33,7 @@ ItemImpl::ItemImpl(QString const& identity, ItemType type)
     auto path = boost::filesystem::canonical(identity.toStdString());
     identity_ = QString::fromStdString(path.native());
     name_ = QString::fromStdString(path.filename().native());
+    update_modified_time();
 }
 
 ItemImpl::~ItemImpl() = default;
@@ -93,8 +94,16 @@ QDateTime ItemImpl::last_modified_time() const
     {
         throw DestroyedException();  // TODO
     }
+
+    lock_guard<mutex> lock(mutex_);
+    return modified_time_;
+}
+
+void ItemImpl::update_modified_time()
+{
+    lock_guard<mutex> lock(mutex_);
     auto mtime = boost::filesystem::last_write_time(native_identity().toStdString());
-    return QDateTime::fromTime_t(mtime);
+    modified_time_ = QDateTime::fromTime_t(mtime);
 }
 
 namespace

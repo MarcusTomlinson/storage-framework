@@ -135,6 +135,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         path p = native_identity().toStdString();
         p /= sanitize(name);
         create_directory(p);
+        update_modified_time();
         qf.reportResult(make_folder(QString::fromStdString(p.native()), root_));
     }
     catch (std::exception const&)
@@ -170,6 +171,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         {
             throw StorageException();  // TODO
         }
+        update_modified_time();
         auto file = FileImpl::make_file(QString::fromStdString(p.native()), root_);
         return file->create_uploader(ConflictPolicy::error_if_conflict);
     }

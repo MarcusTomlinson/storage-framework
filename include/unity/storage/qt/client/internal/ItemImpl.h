@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 
 namespace unity
 {
@@ -45,6 +46,7 @@ public:
     Root* root() const;
     QVariantMap metadata() const;
     QDateTime last_modified_time() const;
+    void update_modified_time();
 
     QFuture<std::shared_ptr<Item>> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
     QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
@@ -62,10 +64,12 @@ protected:
     static boost::filesystem::path sanitize(QString const& name);
 
     std::atomic_bool destroyed_;
+    QDateTime modified_time_;
+    QVariantMap metadata_;
+    mutable std::mutex mutex_;
     QString identity_;                     // Immutable
     QString name_;                         // Immutable
     std::weak_ptr<Root> root_;             // Immutable
-    QVariantMap metadata_;                 // Immutable
     ItemType type_;                        // Immutable
     std::weak_ptr<Item> public_instance_;  // Immutable
 };

@@ -19,6 +19,7 @@ namespace internal
 
 class FileImpl;
 class FolderImpl;
+class UploadWorker;
 
 }  // namespace internal
 
@@ -65,6 +66,7 @@ private:
     friend class internal::FileImpl;
     friend class internal::FolderImpl;
     friend class internal::ItemImpl;
+    friend class internal::UploadWorker;
 };
 
 }  // namespace client

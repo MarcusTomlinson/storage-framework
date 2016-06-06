@@ -474,6 +474,47 @@ TEST(File, cancel_upload)
     }
 }
 
+TEST(File, upload_conflict)
+{
+    auto runtime = Runtime::create();
+
+    auto acc = get_account(runtime);
+    auto root = get_root(runtime);
+    clear_folder(root);
+
+    // Make a new file.
+    auto uploader = root->create_file("new_file").result();
+    auto file = uploader->file();
+
+    // Write a few bytes.
+    QByteArray const contents = "Hello\n";
+
+    // Pump the event loop for a bit, so the socket can finish doing its thing.
+    QTimer timer;
+    QSignalSpy spy(&timer, &QTimer::timeout);
+    timer.start(SIGNAL_WAIT_TIME);
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+
+    // Touch the file on disk to give it a new time stamp.
+    ASSERT_EQ(0, system((string("touch ") + file->native_identity().toStdString()).c_str()));
+
+    // Finish the upload.
+    uploader->socket()->disconnectFromServer();
+
+    try
+    {
+        // Must get an exception because the time stamps no longer match.
+        uploader->finish_upload().result();
+        FAIL();
+    }
+    catch (ConflictException const&)
+    {
+        // TODO: check exception details.
+    }
+
+    file->destroy().waitForFinished();
+}
+
 TEST(File, download)
 {
     auto runtime = Runtime::create();
@@ -680,8 +721,8 @@ TEST(File, cancel_download)
     clear_folder(root);
 
     {
-        // Download a few bytes.
-        QByteArray const contents = "Hello\n";
+        // Download enough bytes to prevent a single read in the provider from completing the download.
+        QByteArray const contents(1024 * 1024, 'a');
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
@@ -689,7 +730,7 @@ TEST(File, cancel_download)
         ASSERT_FALSE(file == nullptr);
 
         auto downloader = file->create_downloader().result();
-        // We haven't written anything and haven't pumped the event loop,
+        // We haven't read anything and haven't pumped the event loop,
         // so the cancel is guaranteed to catch the downloader in the in_progress state.
         downloader->cancel();
         EXPECT_EQ(TransferState::cancelled, downloader->finish_download().result());

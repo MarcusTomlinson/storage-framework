@@ -39,7 +39,7 @@ public:
                  std::shared_ptr<File> const& file,
                  ConflictPolicy policy,
                  QFutureInterface<TransferState>& qf);
-    void start_uploading();
+    void start_uploading() noexcept;
 
 public Q_SLOTS:
     void do_finish();

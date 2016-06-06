@@ -30,7 +30,7 @@ DownloadWorker::DownloadWorker(int write_fd, QString const& filename, QFutureInt
     assert(write_fd >= 0);
 }
 
-void DownloadWorker::start_downloading()
+void DownloadWorker::start_downloading() noexcept
 {
     write_socket_.reset(new StorageSocket);
     write_socket_->setSocketDescriptor(write_fd_, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
