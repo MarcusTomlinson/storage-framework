@@ -4,6 +4,12 @@
 
 #include <QFile>
 #include <QFutureInterface>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#include <QFuture>
+#pragma GCC diagnostic pop
+#include <QFutureInterface>
+#include <QThread>
 #include <unity/util/ResourcePtr.h>
 
 #include <memory>
@@ -20,10 +26,60 @@ namespace client
 {
 
 class File;
-class Uploader;
 
 namespace internal
 {
+
+class UploadWorker : public QObject
+{
+    Q_OBJECT
+
+public:
+    UploadWorker(int read_fd,
+                 std::shared_ptr<File> const& file,
+                 ConflictPolicy policy,
+                 QFutureInterface<TransferState>& qf);
+    void start_uploading() noexcept;
+
+public Q_SLOTS:
+    void do_finish();
+    void do_cancel();
+
+private Q_SLOTS:
+    void on_bytes_ready();
+    void on_disconnected();
+    void on_error();
+
+private:
+    void read_and_write_chunk();
+    void finalize();
+    void handle_error();
+    void check_modified_time() const;
+
+    enum State { in_progress, finalized, cancelled, error };
+
+    State state_ = in_progress;
+    int read_fd_;
+    std::shared_ptr<QLocalSocket> read_socket_;
+    std::shared_ptr<File> file_;
+    std::unique_ptr<QFile> output_file_;
+    unity::util::ResourcePtr<int, std::function<void(int)>> tmp_fd_;
+    ConflictPolicy policy_;
+    QFutureInterface<TransferState>& qf_;
+    bool disconnected_ = false;
+};
+
+class UploadThread : public QThread
+{
+    Q_OBJECT
+
+public:
+    UploadThread(UploadWorker* worker);
+    virtual void run() override;
+
+private:
+    UploadWorker* worker_;
+};
 
 class UploaderImpl : public QObject
 {
@@ -40,29 +96,17 @@ public:
     QFuture<TransferState> finish_upload();
     QFuture<void> cancel() noexcept;
 
-private Q_SLOTS:
-    void on_ready();
-    void on_disconnected();
-    void on_error();
+Q_SIGNALS:
+    void do_finish();
+    void do_cancel();
 
 private:
-    void finalize();
-    void handle_error();
-    void check_modified_time() const;
-
-    enum State { in_progress, finalized, cancelled, error };
-
-    State state_ = in_progress;
     std::shared_ptr<File> file_;
     ConflictPolicy policy_;
-    std::shared_ptr<QLocalSocket> read_socket_;
     std::shared_ptr<QLocalSocket> write_socket_;
-    QFile output_file_;
-    unity::util::ResourcePtr<int, std::function<void(int)>> tmp_fd_;
-    bool eof_ = false;
-    bool received_something_ = false;
-    bool disconnected_ = false;
     QFutureInterface<TransferState> qf_;
+    std::unique_ptr<UploadThread> upload_thread_;
+    std::unique_ptr<UploadWorker> worker_;
 };
 
 }  // namespace internal

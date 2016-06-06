@@ -2,11 +2,10 @@
 
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
+#include <unity/storage/qt/client/internal/ItemImpl.h>
 #include <unity/storage/qt/client/StorageSocket.h>
 
 #include <boost/filesystem.hpp>
-#include <QSocketNotifier>
-#include <QtConcurrent>
 
 #include <cassert>
 
@@ -26,98 +25,74 @@ namespace client
 namespace internal
 {
 
-UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
-    : QObject(nullptr)
-    , state_(in_progress)
-    , file_(file.lock())
-    , policy_(policy)
+UploadWorker::UploadWorker(int read_fd,
+                           shared_ptr<File> const& file,
+                           ConflictPolicy policy,
+                           QFutureInterface<TransferState>& qf)
+    : read_fd_(read_fd)
+    , file_(file)
     , tmp_fd_([](int fd){ if (fd != -1) ::close(fd); })
+    , policy_(policy)
+    , qf_(qf)
 {
-    assert(file_);
+    assert(read_fd > 0);
+}
 
-    // Set up socket pair.
-    int fds[2];
-    int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
-    if (rc == -1)
-    {
-        throw StorageException();  // LCOV_EXCL_LINE  // TODO
-    }
+void UploadWorker::start_uploading() noexcept
+{
     read_socket_.reset(new StorageSocket);
-    read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
-    write_socket_.reset(new StorageSocket);
-    write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+    read_socket_->setSocketDescriptor(read_fd_, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 
     // Monitor read socket for ready-to-read, disconnected, and error events.
-    connect(read_socket_.get(), &QLocalSocket::readyRead, this, &UploaderImpl::on_ready);
-    connect(read_socket_.get(), &QLocalSocket::disconnected, this, &UploaderImpl::on_disconnected);
+    connect(read_socket_.get(), &QLocalSocket::readyRead, this, &UploadWorker::on_bytes_ready);
+    connect(read_socket_.get(), &QLocalSocket::disconnected, this, &UploadWorker::on_disconnected);
     connect(read_socket_.get(), static_cast<void(QLocalSocket::*)(QLocalSocket::LocalSocketError)>(&QLocalSocket::error),
-            this, &UploaderImpl::on_error);
+            this, &UploadWorker::on_error);
 
     using namespace boost::filesystem;
 
     // Open tmp file for writing.
     auto parent_path = path(file_->native_identity().toStdString()).parent_path();
     tmp_fd_.reset(open(parent_path.native().c_str(), O_TMPFILE | O_WRONLY, 0600));
-    if (tmp_fd_.get() == -1)
+    // TODO: O_TMPFILE may not work with some kernels. Fall back to conventional
+    //       tmp file creation here in that case.
+    assert(tmp_fd_.get() != -1);
+    output_file_.reset(new QFile);
+    output_file_->open(tmp_fd_.get(), QIODevice::WriteOnly, QFileDevice::DontCloseHandle);
+
+    qf_.reportStarted();
+}
+
+// Called once we know the outcome of the upload, or via a signal when the client
+// calls finish_download(). This makes the future ready with the appropriate
+// result or error information. If the client has not disconnected
+// yet, we don't touch the future; it becomes ready once we receive the disconnected signal.
+
+void UploadWorker::do_finish()
+{
+    if (qf_.future().isFinished())
     {
-        // TODO: O_TMPFILE may not work with some kernels. Fall back to conventional
-        //       tmp file creation here in that case.
-        throw StorageException();  // TODO
+        return;  // Future was set previously. no point in continuing.
     }
-    output_file_.open(tmp_fd_.get(), QIODevice::WriteOnly, QFileDevice::DontCloseHandle);
 
-    check_modified_time();  // Throws if file has been changed on disk and policy is error_if_conflict.
-}
-
-UploaderImpl::~UploaderImpl()
-{
-    read_socket_.reset();  // Disconnect everything
-    if (!received_something_ && state_ == in_progress)
-    {
-        // Caller never wrote anything and just let the uploader go
-        // out of scope without calling finish_upload().
-        // In that case, we finalize so we leave an empty file behind.
-        finalize();
-        return;
-    }
-    cancel();  // noexcept
-}
-
-shared_ptr<File> UploaderImpl::file() const
-{
-    return file_;
-}
-
-shared_ptr<QLocalSocket> UploaderImpl::socket() const
-{
-    return write_socket_;
-}
-
-QFuture<TransferState> UploaderImpl::finish_upload()
-{
     switch (state_)
     {
         case in_progress:
         {
-            if (!disconnected_ && received_something_)
+            if (disconnected_)
             {
-                // Caller created an uploader and wrote something, but did not
-                // disconnect the socket, so the transfer is incomplete.
-                qf_.reportException(StorageException());  // TODO, logic error
+                // Future doesn't become ready until the client has
+                // disconnected from its write socket.
+                state_ = finalized;
+                finalize();
+                qf_.reportResult(TransferState::ok);
                 qf_.reportFinished();
             }
-            // Else do nothing; on_disconnected() will make the future ready.
             break;
         }
         case finalized:
         {
             qf_.reportException(StorageException());  // TODO, logic error
-            qf_.reportFinished();
-            break;
-        }
-        case error:
-        {
-            qf_.reportException(StorageException());  // TODO, report details
             qf_.reportFinished();
             break;
         }
@@ -127,35 +102,41 @@ QFuture<TransferState> UploaderImpl::finish_upload()
             qf_.reportFinished();
             break;
         }
+        case error:
+        {
+            qf_.reportException(StorageException());  // TODO, report details
+            qf_.reportFinished();
+            break;
+        }
         default:
         {
-            abort();  // Impossible
+            abort();  // LCOV_EXCL_LINE  // Impossible
         }
     }
-    return qf_.future();
+    if (qf_.future().isFinished())
+    {
+        QThread::currentThread()->quit();
+    }
 }
 
-QFuture<void> UploaderImpl::cancel() noexcept
+// Called via signal from the client to stop things.
+
+void UploadWorker::do_cancel()
 {
     if (state_ == in_progress)
     {
-        state_ = cancelled;
+        disconnect(read_socket_.get(), nullptr, this, nullptr);
         read_socket_->abort();
+        state_ = cancelled;
+        do_finish();
     }
-    finish_upload();
-
-    QFutureInterface<void> qf;
-    qf.reportFinished();
-    return qf.future();
 }
 
-void UploaderImpl::on_ready()
+void UploadWorker::on_bytes_ready()
 {
-    received_something_ = true;
-
     auto buf = read_socket_->read(read_socket_->bytesAvailable());
-    auto bytes_written = output_file_.write(buf);
-    if (bytes_written == -1)
+    auto bytes_written = output_file_->write(buf);
+    if (bytes_written != buf.size())
     {
         // TODO: Store error details.
         handle_error();
@@ -163,18 +144,18 @@ void UploaderImpl::on_ready()
     }
 }
 
-void UploaderImpl::on_disconnected()
+void UploadWorker::on_disconnected()
 {
     disconnected_ = true;
-    finalize();
+    do_finish();
 }
 
-void UploaderImpl::on_error()
+void UploadWorker::on_error()
 {
     handle_error();
 }
 
-void UploaderImpl::finalize()
+void UploadWorker::finalize()
 {
     try
     {
@@ -182,12 +163,12 @@ void UploaderImpl::finalize()
     }
     catch (std::exception const&)
     {
-        qf_.reportException(StorageException());  // TODO, version mismatch
+        qf_.reportException(ConflictException());  // TODO: store error details.
         qf_.reportFinished();
         return;
     }
 
-    if (!output_file_.flush())
+    if (!output_file_->flush())
     {
         qf_.reportException(StorageException());  // TODO: Store error details.
         qf_.reportFinished();
@@ -207,34 +188,118 @@ void UploaderImpl::finalize()
     }
 
     state_ = finalized;
+    output_file_->close();
+    file_->p_->update_modified_time();
     qf_.reportResult(TransferState::ok);
     qf_.reportFinished();
 }
 
-void UploaderImpl::handle_error()
+void UploadWorker::handle_error()
 {
     if (state_ == in_progress)
     {
-        output_file_.close();  // Dubious
+        output_file_->close();
         read_socket_->abort();
     }
     state_ = error;
+    do_finish();
 }
 
-void UploaderImpl::check_modified_time() const
+void UploadWorker::check_modified_time() const
 {
-
     if (policy_ == ConflictPolicy::error_if_conflict)
     {
-        // TODO: What if file has been deleted on disk?
+        // TODO: What if file does not yet exist on disk?
         auto mtime = boost::filesystem::last_write_time(file_->native_identity().toStdString());
         QDateTime modified_time;
         modified_time.setTime_t(mtime);
         if (modified_time != file_->last_modified_time())
         {
-            throw StorageException();  // TODO
+            throw ConflictException();  // TODO
         }
     }
+}
+
+UploadThread::UploadThread(UploadWorker* worker)
+    : worker_(worker)
+{
+}
+
+void UploadThread::run()
+{
+    worker_->start_uploading();
+    exec();
+}
+
+UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
+    : QObject(nullptr)
+    , file_(file.lock())
+    , policy_(policy)
+{
+    assert(file_);
+
+    // Set up socket pair.
+    int fds[2];
+    int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
+    if (rc == -1)
+    {
+        throw StorageException();  // LCOV_EXCL_LINE  // TODO
+    }
+
+    // Write socket is for the client.
+    write_socket_.reset(new StorageSocket);
+    write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+
+    // Create worker and connect slots, so we can sign the worker when the client calls
+    // finish_download() or cancel();
+    worker_.reset(new UploadWorker(fds[0], file_, policy, qf_));
+    connect(this, &UploaderImpl::do_finish, worker_.get(), &UploadWorker::do_finish);
+    connect(this, &UploaderImpl::do_cancel, worker_.get(), &UploadWorker::do_cancel);
+
+    // Create upload thread and make sure that worker slots are called from the upload thread.
+    upload_thread_.reset(new UploadThread(worker_.get()));
+    worker_->moveToThread(upload_thread_.get());
+
+    upload_thread_->start();
+
+    // TODO: can probably do this with a signal?
+    // There is no waitForStarted() on QFutureInterface or QFuture.
+    while (!qf_.isStarted())
+        ;
+}
+
+UploaderImpl::~UploaderImpl()
+{
+    Q_EMIT do_cancel();
+    upload_thread_->wait();
+}
+
+shared_ptr<File> UploaderImpl::file() const
+{
+    return file_;
+}
+
+shared_ptr<QLocalSocket> UploaderImpl::socket() const
+{
+    return write_socket_;
+}
+
+QFuture<TransferState> UploaderImpl::finish_upload()
+{
+    if (!qf_.future().isFinished())
+    {
+        // Set state of the future if that hasn't happened yet.
+        Q_EMIT do_finish();
+    }
+    return qf_.future();
+}
+
+QFuture<void> UploaderImpl::cancel() noexcept
+{
+    Q_EMIT do_cancel();
+    QFutureInterface<void> qf;
+    qf.reportFinished();
+    return qf.future();
 }
 
 }  // namespace internal

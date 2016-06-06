@@ -16,34 +16,15 @@ namespace qt
 namespace client
 {
 
-namespace internal
-{
-
-class DownloaderImpl;
-class UploaderImpl;
-
-}  // namespace internal
-
-/**
-\brief Socket for downloading and uploading of file contents.
-*/
-
 class UNITY_STORAGE_EXPORT StorageSocket : public QLocalSocket
 {
 public:
-    /// @cond
+    StorageSocket(QObject* parent = nullptr);
     virtual ~StorageSocket();
-    /// @endcond
 
 protected:
     virtual qint64 readData(char* data, qint64 c) override;
     virtual qint64 writeData(char const* data, qint64 c) override;
-
-private:
-    StorageSocket(QObject* parent = nullptr);
-
-    friend class internal::DownloaderImpl;
-    friend class internal::UploaderImpl;
 };
 
 }  // namespace client

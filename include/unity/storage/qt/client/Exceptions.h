@@ -91,6 +91,19 @@ public:
     virtual void raise() const override;
 };
 
+/**
+\brief Indicates that an upload detected a version mismatch.
+*/
+class UNITY_STORAGE_EXPORT ConflictException : public StorageException
+{
+public:
+    ConflictException();
+    ~ConflictException();
+
+    virtual ConflictException* clone() const override;
+    virtual void raise() const override;
+};
+
 }  // namespace client
 }  // namespace qt
 }  // namespace storage

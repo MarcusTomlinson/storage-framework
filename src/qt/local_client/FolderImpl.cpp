@@ -135,6 +135,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         path p = native_identity().toStdString();
         p /= sanitize(name);
         create_directory(p);
+        update_modified_time();
         qf.reportResult(make_folder(QString::fromStdString(p.native()), root_));
     }
     catch (std::exception const&)
@@ -161,7 +162,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
     {
         path p = native_identity().toStdString();
         p /= sanitize(name);
-        int fd = open(p.native().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if file already exists.
+        int fd = open(p.native().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
         if (fd == -1)
         {
             throw StorageException();  // TODO
@@ -170,8 +171,9 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         {
             throw StorageException();  // TODO
         }
+        update_modified_time();
         auto file = FileImpl::make_file(QString::fromStdString(p.native()), root_);
-        return file->create_uploader(ConflictPolicy::overwrite);
+        return file->create_uploader(ConflictPolicy::error_if_conflict);
     }
     catch (std::exception const&)
     {

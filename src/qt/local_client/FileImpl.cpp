@@ -7,7 +7,6 @@
 #include <unity/storage/qt/client/Uploader.h>
 
 #include <boost/filesystem.hpp>
-#include <QtConcurrent>
 
 using namespace std;
 
