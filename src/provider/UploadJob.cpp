@@ -43,6 +43,17 @@ int UploadJob::take_write_socket()
     return p_->take_write_socket();
 }
 
+string const& UploadJob::sender_bus_name() const
+{
+    return p_->sender_bus_name();
+}
+
+void UploadJob::set_sender_bus_name(string const& bus_name)
+{
+    p_->set_sender_bus_name(bus_name);
+}
+
+
 }
 }
 }

@@ -198,6 +198,7 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& t
                 MainLoopExecutor::instance(),
                 [=](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
+                    job->set_sender_bus_name(message.service().toStdString());
                     QDBusUnixFileDescriptor file_desc;
                     int fd = job->take_write_socket();
                     file_desc.setFileDescriptor(fd);

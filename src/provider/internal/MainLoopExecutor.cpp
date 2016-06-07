@@ -9,7 +9,9 @@ namespace {
 
 class WorkEvent : public QEvent {
 public:
-    WorkEvent(unity::storage::provider::internal::MainLoopExecutor::work const& closure)
+    typedef unity::storage::provider::internal::MainLoopExecutor::work work;
+
+    WorkEvent(work const& closure)
         : QEvent(WorkEvent::eventType()), closure_(closure)
     {
     }
@@ -20,7 +22,7 @@ public:
         return type;
     }
 
-    unity::storage::provider::internal::MainLoopExecutor::work const closure_;
+    work const closure_;
 };
 
 }

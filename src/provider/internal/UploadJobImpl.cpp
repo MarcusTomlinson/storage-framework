@@ -73,6 +73,16 @@ int UploadJobImpl::take_write_socket()
     return sock;
 }
 
+string const& UploadJobImpl::sender_bus_name() const
+{
+    return sender_bus_name_;
+}
+
+void UploadJobImpl::set_sender_bus_name(string const& bus_name)
+{
+    sender_bus_name_ = bus_name;
+}
+
 }
 }
 }
