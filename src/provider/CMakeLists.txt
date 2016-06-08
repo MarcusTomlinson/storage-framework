@@ -17,7 +17,6 @@ add_library(storage-framework-provider SHARED
   TempfileUploadJob.cpp
   UploadJob.cpp
   internal/CredentialsCache.cpp
-  internal/DisconnectWatcher.cpp
   internal/Handler.cpp
   internal/MainLoopExecutor.cpp
   internal/PendingJobs.cpp
@@ -26,7 +25,6 @@ add_library(storage-framework-provider SHARED
   internal/TempfileUploadJobImpl.cpp
   internal/UploadJobImpl.cpp
   internal/dbusmarshal.cpp
-  ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/DisconnectWatcher.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/Handler.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/MainLoopExecutor.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/PendingJobs.h
