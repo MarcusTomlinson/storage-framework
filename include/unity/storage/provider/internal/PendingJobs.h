@@ -6,6 +6,7 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 
 namespace unity
@@ -41,6 +42,7 @@ private:
     void watch_peer(std::string const& bus_name);
     void unwatch_peer(std::string const& bus_name);
 
+    std::mutex lock_;
     std::map<std::string,std::shared_ptr<UploadJob>> uploads_;
 
     QDBusServiceWatcher watcher_;

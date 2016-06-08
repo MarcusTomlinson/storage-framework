@@ -30,6 +30,8 @@ PendingJobs::~PendingJobs() = default;
 
 void PendingJobs::add_upload(unique_ptr<UploadJob> &&job)
 {
+    lock_guard<mutex> guard(lock_);
+
     assert(!job->sender_bus_name().empty());
     assert(uploads_.find(job->upload_id()) == uploads_.end());
 
@@ -40,12 +42,16 @@ void PendingJobs::add_upload(unique_ptr<UploadJob> &&job)
 
 std::shared_ptr<UploadJob> PendingJobs::get_upload(std::string const& upload_id)
 {
+    lock_guard<mutex> guard(lock_);
+
     return uploads_.at(upload_id);
 }
 
 std::shared_ptr<UploadJob> PendingJobs::remove_upload(std::string const& upload_id)
 {
-    auto job = get_upload(upload_id);
+    lock_guard<mutex> guard(lock_);
+
+    auto job = uploads_.at(upload_id);
     uploads_.erase(upload_id);
     unwatch_peer(job->sender_bus_name());
     return job;
@@ -82,6 +88,7 @@ void PendingJobs::unwatch_peer(string const& bus_name)
 
 void PendingJobs::service_disconnected(QString const& service_name)
 {
+    lock_guard<mutex> guard(lock_);
     string const bus_name = service_name.toStdString();
 
     for (auto it = uploads_.cbegin(); it != uploads_.cend(); )
