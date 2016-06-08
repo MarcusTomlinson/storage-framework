@@ -45,6 +45,9 @@ public:
     ProviderBase();
     virtual ~ProviderBase();
 
+    ProviderBase(ProviderBase const& other) = delete;
+    ProviderBase& operator=(ProviderBase const& other) = delete;
+
     virtual boost::future<ItemList> roots(Context const& context) = 0;
     virtual boost::future<std::tuple<ItemList,std::string>> list(
         std::string const& item_id, std::string const& page_token,

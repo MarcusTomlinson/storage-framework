@@ -52,7 +52,8 @@ void ServerImpl::account_manager_ready()
     {
         qDebug() << "Found account" << account->id() << "for service" << account->serviceId();
         unique_ptr<ProviderInterface> iface(
-            new ProviderInterface(server_->make_provider(), credentials_, account));
+            new ProviderInterface(server_->make_provider(), bus,
+                                  credentials_, account));
         // this instance is managed by Qt's parent/child memory management
         new ProviderAdaptor(iface.get());
 

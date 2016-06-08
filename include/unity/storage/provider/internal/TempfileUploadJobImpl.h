@@ -32,6 +32,8 @@ private Q_SLOTS:
 private:
     QLocalSocket *reader_;
     QTemporaryFile *tmpfile_;
+
+    Q_DISABLE_COPY(TempfileUploadJobImpl)
 };
 
 }

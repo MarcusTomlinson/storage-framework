@@ -34,6 +34,8 @@ protected:
     int read_socket_ = -1;
     int write_socket_ = -1;
     std::string sender_bus_name_;
+
+    Q_DISABLE_COPY(UploadJobImpl)
 };
 
 }

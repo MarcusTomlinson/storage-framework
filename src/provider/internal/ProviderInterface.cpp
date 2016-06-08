@@ -3,6 +3,7 @@
 #include <unity/storage/provider/UploadJob.h>
 #include <unity/storage/provider/internal/CredentialsCache.h>
 #include <unity/storage/provider/internal/MainLoopExecutor.h>
+#include <unity/storage/provider/internal/PendingJobs.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 
 #include <OnlineAccounts/AuthenticationData>
@@ -15,9 +16,9 @@ namespace storage {
 namespace provider {
 namespace internal {
 
-ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, shared_ptr<CredentialsCache> const& credentials, OnlineAccounts::Account* account, QObject *parent)
+ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, QDBusConnection const& bus, shared_ptr<CredentialsCache> const& credentials, OnlineAccounts::Account* account, QObject *parent)
     : QObject(parent), provider_(provider), credentials_(credentials),
-      account_(account)
+      jobs_(make_shared<PendingJobs>(bus)), account_(account)
 {
     authenticate_account(false);
 }
@@ -86,8 +87,9 @@ void ProviderInterface::account_authenticated()
 
 void ProviderInterface::queue_request(Handler::Callback callback)
 {
-    unique_ptr<Handler> handler(new Handler(provider_, credentials_, callback,
-                                            connection(), message()));
+    unique_ptr<Handler> handler(
+        new Handler(provider_, jobs_, credentials_,
+                    callback, connection(), message()));
     connect(handler.get(), &Handler::finished, this, &ProviderInterface::request_finished);
     setDelayedReply(true);
     // If we haven't retrieved the authentication details from
@@ -126,8 +128,8 @@ void ProviderInterface::request_finished()
 
 QList<ItemMetadata> ProviderInterface::Roots()
 {
-    queue_request([](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
-            auto f = provider->roots(ctx);
+    queue_request([](ProviderBase& provider, shared_ptr<PendingJobs> const&, Context const& ctx, QDBusMessage const& message) {
+            auto f = provider.roots(ctx);
             return f.then(
                 MainLoopExecutor::instance(),
                 [=](decltype(f) f) -> QDBusMessage {
@@ -140,8 +142,8 @@ QList<ItemMetadata> ProviderInterface::Roots()
 
 QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString const& page_token, QString& /*next_token*/)
 {
-    queue_request([item_id, page_token](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
-            auto f = provider->list(item_id.toStdString(), page_token.toStdString(), ctx);
+    queue_request([item_id, page_token](ProviderBase& provider, shared_ptr<PendingJobs> const&, Context const& ctx, QDBusMessage const& message) {
+            auto f = provider.list(item_id.toStdString(), page_token.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
                 [=](decltype(f) f) -> QDBusMessage {
@@ -159,8 +161,8 @@ QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString cons
 
 QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString const& name)
 {
-    queue_request([parent_id, name](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
-            auto f = provider->lookup(parent_id.toStdString(), name.toStdString(), ctx);
+    queue_request([parent_id, name](ProviderBase& provider, shared_ptr<PendingJobs> const&, Context const& ctx, QDBusMessage const& message) {
+            auto f = provider.lookup(parent_id.toStdString(), name.toStdString(), ctx);
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto items = f.get();
                     return message.createReply(QVariant::fromValue(items));
@@ -171,8 +173,8 @@ QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString 
 
 ItemMetadata ProviderInterface::Metadata(QString const& item_id)
 {
-    queue_request([item_id](ProviderBase* provider, Context const& ctx, QDBusMessage const& message) {
-            auto f = provider->metadata(item_id.toStdString(), ctx);
+    queue_request([item_id](ProviderBase& provider, shared_ptr<PendingJobs> const&, Context const& ctx, QDBusMessage const& message) {
+            auto f = provider.metadata(item_id.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
                 [=](decltype(f) f) -> QDBusMessage {
@@ -190,8 +192,8 @@ ItemMetadata ProviderInterface::CreateFolder(QString const& parent_id, QString c
 
 QString ProviderInterface::CreateFile(QString const& parent_id, QString const& title, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& file_descriptor)
 {
-    queue_request([parent_id, title, content_type, allow_overwrite](ProviderBase *provider, Context const& ctx, QDBusMessage const& message) {
-            auto f = provider->create_file(
+    queue_request([parent_id, title, content_type, allow_overwrite](ProviderBase& provider, shared_ptr<PendingJobs> const& jobs, Context const& ctx, QDBusMessage const& message) {
+            auto f = provider.create_file(
                 parent_id.toStdString(), title.toStdString(),
                 content_type.toStdString(), allow_overwrite, ctx);
             return f.then(
@@ -199,12 +201,16 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& t
                 [=](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
                     job->set_sender_bus_name(message.service().toStdString());
+
+                    auto upload_id = QString::fromStdString(job->upload_id());
                     QDBusUnixFileDescriptor file_desc;
                     int fd = job->take_write_socket();
                     file_desc.setFileDescriptor(fd);
                     close(fd);
+
+                    jobs->add_upload(std::move(job));
                     return message.createReply({
-                            QVariant(QString::fromStdString(job->upload_id())),
+                            QVariant(upload_id),
                             QVariant::fromValue(file_desc),
                         });
                 });

@@ -2,6 +2,7 @@
 
 #include <unity/storage/provider/visibility.h>
 
+#include <boost/thread/future.hpp>
 #include <string>
 
 namespace unity
@@ -10,6 +11,8 @@ namespace storage
 {
 namespace provider
 {
+
+class Item;
 
 namespace internal
 {
@@ -28,6 +31,9 @@ public:
 
     std::string const& sender_bus_name() const;
     void set_sender_bus_name(std::string const& bus_name);
+
+    virtual boost::future<void> cancel() = 0;
+    virtual boost::future<Item> finish() = 0;
 
 protected:
     UploadJob(internal::UploadJobImpl *p);

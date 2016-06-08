@@ -22,10 +22,11 @@ namespace internal
 {
 
 Handler::Handler(shared_ptr<ProviderBase> const& provider,
+                 shared_ptr<PendingJobs> const& jobs,
                  shared_ptr<CredentialsCache> const& credentials,
                  Callback const& callback,
                  QDBusConnection const& bus, QDBusMessage const& message)
-    : provider_(provider), credentials_(credentials),
+    : provider_(provider), jobs_(jobs), credentials_(credentials),
       callback_(callback), bus_(bus), message_(message)
 {
 }
@@ -42,7 +43,7 @@ void Handler::begin()
                 throw std::runtime_error("Handler::begin(): could not retrieve credentials");
             }
             Context ctx{creds.uid, creds.pid, std::move(creds.label)};
-            return callback_(provider_.get(), ctx, message_);
+            return callback_(*provider_, jobs_, ctx, message_);
         });
     future_ = msg_future.then(
         MainLoopExecutor::instance(),
