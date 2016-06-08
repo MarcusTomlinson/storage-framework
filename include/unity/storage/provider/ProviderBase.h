@@ -62,6 +62,9 @@ public:
         std::string const& parent_id, std::string const& title,
         std::string const& content_type, bool allow_overwrite,
         Context const& context) = 0;
+    virtual boost::future<std::unique_ptr<UploadJob>> update(
+        std::string const& item_id, std::string const& old_etag,
+        Context const& context) = 0;
 };
 
 }

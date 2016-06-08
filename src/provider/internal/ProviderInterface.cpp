@@ -220,16 +220,72 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& t
 
 QString ProviderInterface::Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& file_descriptor)
 {
+    queue_request([item_id, old_etag](ProviderBase& provider, shared_ptr<PendingJobs> const& jobs, Context const& ctx, QDBusMessage const& message) {
+            auto f = provider.update(
+                item_id.toStdString(), old_etag.toStdString(), ctx);
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
+                    auto job = f.get();
+                    job->set_sender_bus_name(message.service().toStdString());
+
+                    auto upload_id = QString::fromStdString(job->upload_id());
+                    QDBusUnixFileDescriptor file_desc;
+                    int fd = job->take_write_socket();
+                    file_desc.setFileDescriptor(fd);
+                    close(fd);
+
+                    jobs->add_upload(std::move(job));
+                    return message.createReply({
+                            QVariant(upload_id),
+                            QVariant::fromValue(file_desc),
+                        });
+                });
+        });
     return "";
 }
 
 ItemMetadata ProviderInterface::FinishUpload(QString const& upload_id)
 {
+    queue_request([upload_id](ProviderBase& provider, shared_ptr<PendingJobs> const& jobs, Context const& ctx, QDBusMessage const& message) {
+            // Throws if job is not available
+            auto job = jobs->get_upload(upload_id.toStdString());
+            if (job->sender_bus_name() != message.service().toStdString())
+            {
+                throw runtime_error("Upload job belongs to a different client");
+            }
+            // FIXME: removing the job at this point means we can't
+            // cancel during finish().
+            jobs->remove_upload(upload_id.toStdString());
+            auto f = job->finish();
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
+                    auto item = f.get();
+                    return message.createReply(QVariant::fromValue(item));
+                });
+        });
     return {};
 }
 
 void ProviderInterface::CancelUpload(QString const& upload_id)
 {
+    queue_request([upload_id](ProviderBase& provider, shared_ptr<PendingJobs> const& jobs, Context const& ctx, QDBusMessage const& message) {
+            // Throws if job is not available
+            auto job = jobs->get_upload(upload_id.toStdString());
+            if (job->sender_bus_name() != message.service().toStdString())
+            {
+                throw runtime_error("Upload job belongs to a different client");
+            }
+            jobs->remove_upload(upload_id.toStdString());
+            auto f = job->cancel();
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
+                    f.get();
+                    return message.createReply();
+                });
+        });
 }
 
 QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescriptor& file_descriptor)

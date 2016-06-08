@@ -27,6 +27,8 @@ public:
 private:
     MainLoopExecutor();
     void execute(work const& closure) noexcept;
+
+    Q_DISABLE_COPY(MainLoopExecutor)
 };
 
 }
