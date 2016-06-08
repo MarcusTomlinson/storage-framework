@@ -26,9 +26,14 @@ class File;
 namespace internal
 {
 
-class FileImpl;
-class UploaderImpl;
+class UploaderBase;
 
+namespace local_client
+{
+
+class FileImpl;
+
+}  // namespace local_client
 }  // namespace internal
 
 class UNITY_STORAGE_EXPORT Uploader final
@@ -85,11 +90,11 @@ public:
     QFuture<void> cancel();
 
 private:
-    Uploader(internal::UploaderImpl*);
+    Uploader(internal::UploaderBase*);
 
-    std::shared_ptr<internal::UploaderImpl> p_;
+    std::shared_ptr<internal::UploaderBase> p_;
 
-    friend class internal::FileImpl;
+    friend class internal::local_client::FileImpl;
 };
 
 }  // namespace client

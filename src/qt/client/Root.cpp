@@ -1,6 +1,6 @@
 #include <unity/storage/qt/client/Root.h>
 
-#include <unity/storage/qt/client/internal/RootImpl.h>
+#include <unity/storage/qt/client/internal/RootBase.h>
 
 namespace unity
 {
@@ -13,7 +13,7 @@ namespace client
 
 using namespace internal;
 
-Root::Root(RootImpl* p)
+Root::Root(RootBase* p)
     : Folder(p)
 {
 }
@@ -22,22 +22,22 @@ Root::~Root() = default;
 
 Account* Root::account() const
 {
-    return static_cast<RootImpl*>(p_.get())->account();
+    return dynamic_cast<RootBase*>(p_.get())->account();
 }
 
 QFuture<int64_t> Root::free_space_bytes() const
 {
-    return static_cast<RootImpl*>(p_.get())->free_space_bytes();
+    return dynamic_cast<RootBase*>(p_.get())->free_space_bytes();
 }
 
 QFuture<int64_t> Root::used_space_bytes() const
 {
-    return static_cast<RootImpl*>(p_.get())->used_space_bytes();
+    return dynamic_cast<RootBase*>(p_.get())->used_space_bytes();
 }
 
 QFuture<Item::SPtr> Root::get(QString native_identity) const
 {
-    return static_cast<RootImpl*>(p_.get())->get(native_identity);
+    return dynamic_cast<RootBase*>(p_.get())->get(native_identity);
 }
 
 }  // namespace client

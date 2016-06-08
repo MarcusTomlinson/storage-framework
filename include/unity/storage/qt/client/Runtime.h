@@ -23,7 +23,7 @@ class Account;
 namespace internal
 {
 
-class RuntimeImpl;
+class RuntimeBase;
 
 }  // namespace internal
 
@@ -67,11 +67,9 @@ public:
     QFuture<QVector<std::shared_ptr<Account>>> accounts();
 
 private:
-    Runtime(internal::RuntimeImpl* p);
+    Runtime(internal::RuntimeBase* p);
 
-    std::unique_ptr<internal::RuntimeImpl> p_;
-
-    friend class RuntimeImpl;
+    std::unique_ptr<internal::RuntimeBase> p_;
 };
 
 }  // namespace client

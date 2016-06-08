@@ -1,6 +1,6 @@
 #include <unity/storage/qt/client/Uploader.h>
 
-#include <unity/storage/qt/client/internal/UploaderImpl.h>
+#include <unity/storage/qt/client/internal/UploaderBase.h>
 
 class QLocalSocket;
 
@@ -13,7 +13,7 @@ namespace qt
 namespace client
 {
 
-Uploader::Uploader(internal::UploaderImpl* p)
+Uploader::Uploader(internal::UploaderBase* p)
     : p_(p)
 {
 }

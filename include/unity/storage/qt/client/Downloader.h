@@ -26,9 +26,14 @@ class File;
 namespace internal
 {
 
-class DownloaderImpl;
+class DownloaderBase;
+
+namespace local_client
+{
+
 class FileImpl;
 
+}  // namespace local_client
 }  // namespace internal
 
 class UNITY_STORAGE_EXPORT Downloader final
@@ -87,11 +92,11 @@ public:
     QFuture<void> cancel();
 
 private:
-    Downloader(internal::DownloaderImpl*);
+    Downloader(internal::DownloaderBase*);
 
-    std::shared_ptr<internal::DownloaderImpl> p_;
+    std::shared_ptr<internal::DownloaderBase> p_;
 
-    friend class internal::FileImpl;
+    friend class internal::local_client::FileImpl;
 };
 
 }  // namespace client

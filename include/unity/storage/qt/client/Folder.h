@@ -10,13 +10,26 @@ namespace qt
 {
 namespace client
 {
-
 namespace internal
+{
+
+class FolderBase;
+
+namespace local_client
 {
 
 class FolderImpl;
 class ItemImpl;
 
+}  // namespace local_client
+
+namespace remote_client
+{
+
+class FolderImpl;
+class ItemImpl;
+
+}  // namespace local_client
 }  // namespace internal
 
 /**
@@ -70,10 +83,11 @@ public:
     QFuture<std::shared_ptr<Uploader>> create_file(QString const& name);
 
 protected:
-    Folder(internal::FolderImpl*);
+    Folder(internal::FolderBase*);
 
-    friend class internal::FolderImpl;
-    friend class internal::ItemImpl;
+    friend class internal::local_client::FolderImpl;
+    friend class internal::local_client::ItemImpl;
+    friend class internal::remote_client::FolderImpl;
 };
 
 }  // namespace client

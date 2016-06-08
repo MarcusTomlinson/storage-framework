@@ -1,6 +1,6 @@
 #include <unity/storage/qt/client/Account.h>
 
-#include <unity/storage/qt/client/internal/AccountImpl.h>
+#include <unity/storage/qt/client/internal/AccountBase.h>
 
 #include <cassert>
 
@@ -15,7 +15,7 @@ namespace qt
 namespace client
 {
 
-Account::Account(internal::AccountImpl* p)
+Account::Account(internal::AccountBase* p)
     : p_(p)
 {
     assert(p != nullptr);

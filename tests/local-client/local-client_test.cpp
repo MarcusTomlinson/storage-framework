@@ -782,7 +782,7 @@ TEST(Item, move)
     auto f1 = root->create_file("f1").result()->file();
     auto f2 = f1->move(root, "f2").result();
     EXPECT_EQ("f2", f2->name());
-    EXPECT_THROW(f1->name(), DestroyedException);
+    EXPECT_THROW(f1->name(), DestroyedException);  // TODO: check exception details.
 
     // File must be found under new name.
     auto items = root->list().result();

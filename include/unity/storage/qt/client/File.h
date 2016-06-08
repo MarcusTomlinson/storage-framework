@@ -13,14 +13,24 @@ namespace client
 
 class Downloader;
 class Uploader;
-
 namespace internal
 {
 
-class FileImpl;
-class FolderImpl;
-class UploadWorker;
+class FileBase;
 
+namespace local_client
+{
+
+class FileImpl;
+
+}  // namespace local_client
+
+namespace remote_client
+{
+
+class FileImpl;
+
+}  // namespace remotelocal_client
 }  // namespace internal
 
 /**
@@ -61,12 +71,10 @@ public:
     QFuture<std::shared_ptr<Downloader>> create_downloader();
 
 private:
-    File(internal::FileImpl*);
+    File(internal::FileBase*);
 
-    friend class internal::FileImpl;
-    friend class internal::FolderImpl;
-    friend class internal::ItemImpl;
-    friend class internal::UploadWorker;
+    friend class internal::local_client::FileImpl;
+    friend class internal::remote_client::FileImpl;
 };
 
 }  // namespace client

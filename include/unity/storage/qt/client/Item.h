@@ -27,9 +27,15 @@ class Root;
 namespace internal
 {
 
-class ItemImpl;
+class ItemBase;
 
-}
+namespace local_client
+{
+
+class UploadWorker;
+
+}  // namespace local_client
+}  // namespace internal
 
 /**
 \brief Base class for files and directories.
@@ -127,9 +133,11 @@ public:
     bool equal_to(Item::SPtr const& other) const noexcept;
 
 protected:
-    Item(internal::ItemImpl* p);
+    Item(internal::ItemBase* p);
 
-    std::shared_ptr<internal::ItemImpl> p_;
+    std::shared_ptr<internal::ItemBase> p_;
+
+    friend class internal::local_client::UploadWorker;
 };
 
 }  // namespace client

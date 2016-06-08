@@ -1,6 +1,6 @@
 #include <unity/storage/qt/client/Downloader.h>
 
-#include <unity/storage/qt/client/internal/DownloaderImpl.h>
+#include <unity/storage/qt/client/internal/DownloaderBase.h>
 
 namespace unity
 {
@@ -11,7 +11,7 @@ namespace qt
 namespace client
 {
 
-Downloader::Downloader(internal::DownloaderImpl* p)
+Downloader::Downloader(internal::DownloaderBase* p)
     : p_(p)
 {
 }
