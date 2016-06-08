@@ -1,7 +1,5 @@
 #include <unity/storage/provider/internal/UploadJobImpl.h>
 
-#include <QCoreApplication>
-
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -22,10 +20,6 @@ namespace internal
 UploadJobImpl::UploadJobImpl(std::string const& upload_id)
     : upload_id_(upload_id)
 {
-    // We may be created by user code running in some other thread:
-    // make sure our events are processed on the event loop thread.
-    moveToThread(QCoreApplication::instance()->thread());
-
     int socks[2];
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, socks) < 0)
     {

@@ -4,6 +4,7 @@
 #include <unity/storage/provider/TempfileUploadJob.h>
 #include <unity/storage/provider/UploadJob.h>
 
+#include <unistd.h>
 #include <cstdio>
 #include <stdexcept>
 
@@ -140,6 +141,10 @@ boost::future<void> MyUploadJob::cancel()
 boost::future<Item> MyUploadJob::finish()
 {
     printf("finish_upload('%s')\n", upload_id().c_str());
+
+    string new_filename = upload_id() + ".txt";
+    link(file_name().c_str(), new_filename.c_str());
+
     Item metadata{"some_id", "", "some_upload", "etag", ItemType::file, {}};
     return boost::make_ready_future(metadata);
 }

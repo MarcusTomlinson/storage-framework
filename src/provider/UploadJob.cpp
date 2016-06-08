@@ -1,6 +1,8 @@
 #include <unity/storage/provider/UploadJob.h>
 #include <unity/storage/provider/internal/UploadJobImpl.h>
 
+#include <QCoreApplication>
+
 using namespace std;
 
 namespace unity
@@ -13,6 +15,9 @@ namespace provider
 UploadJob::UploadJob(internal::UploadJobImpl *p)
     : p_(p)
 {
+    // We may be created by user code running in some other thread:
+    // make sure our events are processed on the event loop thread.
+    p_->moveToThread(QCoreApplication::instance()->thread());
 }
 
 UploadJob::UploadJob(string const& upload_id)

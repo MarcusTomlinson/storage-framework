@@ -21,7 +21,7 @@ TempfileUploadJobImpl::TempfileUploadJobImpl(std::string const& upload_id)
     reader_ = new QLocalSocket(this);
     tmpfile_ = new QTemporaryFile(this);
 
-    if (tmpfile_->open())
+    if (!tmpfile_->open())
     {
         throw runtime_error("Could not open tempfile: " + tmpfile_->errorString().toStdString());
     }
