@@ -14,6 +14,5 @@ target_link_libraries(remote-client_test
     gtest
 )
 add_test(remote-client remote-client_test)
-list(APPEND UNIT_TEST_TARGETS "remote-client")
 
 set(UNIT_TEST_TARGETS ${UNIT_TEST_TARGETS} PARENT_SCOPE)
