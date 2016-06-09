@@ -29,6 +29,9 @@ public:
     std::string const& sender_bus_name() const;
     void set_sender_bus_name(std::string const& bus_name);
 
+public Q_SLOTS:
+    virtual void complete_init();
+
 protected:
     std::string const upload_id_;
     int read_socket_ = -1;

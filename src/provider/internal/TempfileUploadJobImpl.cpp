@@ -1,5 +1,6 @@
 #include <unity/storage/provider/internal/TempfileUploadJobImpl.h>
 
+#include <cassert>
 #include <stdexcept>
 
 using namespace std;
@@ -16,15 +17,16 @@ namespace internal
 TempfileUploadJobImpl::TempfileUploadJobImpl(std::string const& upload_id)
     : UploadJobImpl(upload_id)
 {
-    // Relying on Qt parent-child memory management, and to make sure
-    // they have the same thread affinity.
-    reader_ = new QLocalSocket(this);
-    tmpfile_ = new QTemporaryFile(this);
+}
 
-    if (!tmpfile_->open())
-    {
-        throw runtime_error("Could not open tempfile: " + tmpfile_->errorString().toStdString());
-    }
+TempfileUploadJobImpl::~TempfileUploadJobImpl() = default;
+
+void TempfileUploadJobImpl::complete_init()
+{
+    tmpfile_ = new QTemporaryFile(this);
+    reader_ = new QLocalSocket(this);
+
+    assert(tmpfile_->open());
 
     reader_->setSocketDescriptor(
         read_socket_, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
@@ -35,10 +37,12 @@ TempfileUploadJobImpl::TempfileUploadJobImpl(std::string const& upload_id)
             this, &TempfileUploadJobImpl::on_read_channel_finished);
 }
 
-TempfileUploadJobImpl::~TempfileUploadJobImpl() = default;
-
 std::string TempfileUploadJobImpl::file_name() const
 {
+    if (!tmpfile_)
+    {
+        return "";
+    }
     return tmpfile_->fileName().toStdString();
 }
 
@@ -50,7 +54,8 @@ void TempfileUploadJobImpl::on_ready_read()
         qint64 n_read = reader_->read(buffer, sizeof(buffer));
         if (n_read > 0)
         {
-            tmpfile_->write(buffer, n_read);
+            qint64 n_written = tmpfile_->write(buffer, n_read);
+            assert(n_written == n_read);
         }
     }
 }

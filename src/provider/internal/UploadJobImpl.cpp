@@ -49,6 +49,10 @@ UploadJobImpl::~UploadJobImpl()
     }
 }
 
+void UploadJobImpl::complete_init()
+{
+}
+
 std::string const& UploadJobImpl::upload_id() const
 {
     return upload_id_;

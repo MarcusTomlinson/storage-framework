@@ -142,8 +142,11 @@ boost::future<Item> MyUploadJob::finish()
 {
     printf("finish_upload('%s')\n", upload_id().c_str());
 
+    string old_filename = file_name();
     string new_filename = upload_id() + ".txt";
-    link(file_name().c_str(), new_filename.c_str());
+    printf("Linking %s to %s\n", old_filename.c_str(), new_filename.c_str());
+    unlink(new_filename.c_str());
+    link(old_filename.c_str(), new_filename.c_str());
 
     Item metadata{"some_id", "", "some_upload", "etag", ItemType::file, {}};
     return boost::make_ready_future(metadata);

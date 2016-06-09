@@ -23,6 +23,8 @@ public:
     explicit TempfileUploadJobImpl(std::string const& upload_id);
     virtual ~TempfileUploadJobImpl();
 
+    void complete_init() override;
+
     std::string file_name() const;
 
 private Q_SLOTS:
@@ -30,8 +32,8 @@ private Q_SLOTS:
     void on_read_channel_finished();
 
 private:
-    QLocalSocket *reader_;
-    QTemporaryFile *tmpfile_;
+    QLocalSocket *reader_ = nullptr;
+    QTemporaryFile *tmpfile_ = nullptr;
 
     Q_DISABLE_COPY(TempfileUploadJobImpl)
 };
