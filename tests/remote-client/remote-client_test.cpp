@@ -93,7 +93,6 @@ TEST(Runtime, basic)
     qDebug() << "description:" << acc->description();
 }
 
-#if 0
 TEST(Runtime, accounts)
 {
     auto runtime = Runtime::create();
@@ -106,6 +105,7 @@ TEST(Runtime, accounts)
     roots = acc->roots().result();
     ASSERT_GE(1, roots.size());
 }
+#if 0
 
 TEST(Root, basic)
 {

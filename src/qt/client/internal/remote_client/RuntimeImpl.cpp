@@ -4,6 +4,7 @@
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/dbusmarshal.h>
 
 #include <QFutureInterface>
 
@@ -44,7 +45,8 @@ RuntimeImpl::RuntimeImpl()
         qDebug() << "can't connect to session bus";
         throw LocalCommsException();  // TODO, details
     }
-    //qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
+    qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
+    qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();
 }
 
 RuntimeImpl::~RuntimeImpl()

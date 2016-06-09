@@ -1,5 +1,6 @@
 set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES CLASSNAME ProviderInterface)
-set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES INCLUDE unity/storage/internal/ItemMetadata.h)
+#set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES INCLUDE unity/storage/internal/ItemMetadata.h)
+set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES INCLUDE unity/storage/qt/client/internal/remote_client/dbusmarshal.h)
 
 qt5_add_dbus_interface(generated_files
     ${CMAKE_SOURCE_DIR}/data/provider.xml
@@ -7,6 +8,7 @@ qt5_add_dbus_interface(generated_files
 
 set(QT_CLIENT_LIB_INTERNAL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/AccountImpl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dbusmarshal.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DownloaderImpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FileImpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FolderImpl.cpp
