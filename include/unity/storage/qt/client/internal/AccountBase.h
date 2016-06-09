@@ -25,7 +25,7 @@ class Runtime;
 namespace internal
 {
 
-class AccountBase : public std::enable_shared_from_this<AccountBase>
+class AccountBase
 {
 public:
     AccountBase(std::weak_ptr<Runtime> const& runtime);

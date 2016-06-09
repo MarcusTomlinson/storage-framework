@@ -24,8 +24,10 @@ class Runtime;
 namespace internal
 {
 
-class RuntimeBase : public std::enable_shared_from_this<RuntimeBase>
+class RuntimeBase : public QObject
 {
+    Q_OBJECT
+
 public:
     RuntimeBase();
     virtual ~RuntimeBase() = default;

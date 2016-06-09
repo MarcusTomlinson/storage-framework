@@ -20,8 +20,8 @@ namespace qt
 namespace client
 {
 
-class Root;
 class Runtime;
+class Root;
 
 namespace internal
 {
@@ -34,6 +34,13 @@ namespace local_client
 class RuntimeImpl;
 
 }  // namespace local_client
+
+namespace remote_client
+{
+
+class RuntimeImpl;
+
+}  // namespace remote_client
 }  // namespace internal
 
 /**
@@ -72,6 +79,7 @@ private:
     std::shared_ptr<internal::AccountBase> p_;
 
     friend class internal::local_client::RuntimeImpl;
+    friend class internal::remote_client::RuntimeImpl;
 };
 
 }  // namespace client

@@ -91,3 +91,5 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
+
+#include "RuntimeImpl.moc"

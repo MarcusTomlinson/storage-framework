@@ -2,6 +2,7 @@
 
 #include <unity/storage/qt/client/internal/RuntimeBase.h>
 
+#include <QDBusConnection>
 #include <QFuture>
 #include <QVector>
 
@@ -18,7 +19,7 @@ namespace internal
 namespace remote_client
 {
 
-class RuntimeImpl : public virtual RuntimeBase
+class RuntimeImpl : public RuntimeBase
 {
 public:
     RuntimeImpl();
@@ -26,6 +27,11 @@ public:
 
     virtual void shutdown() override;
     virtual QFuture<QVector<std::shared_ptr<Account>>> accounts() override;
+
+    QDBusConnection& connection();
+
+private:
+    QDBusConnection conn_;
 };
 
 }  // namespace remote_client

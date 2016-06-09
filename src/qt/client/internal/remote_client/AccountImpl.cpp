@@ -1,7 +1,10 @@
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 
+#include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/Runtime.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
 
 using namespace std;
 
@@ -18,36 +21,107 @@ namespace internal
 namespace remote_client
 {
 
+static constexpr char BUS_NAME[] = "com.canonical.StorageFramework.Provider.ProviderTest";
+
 AccountImpl::AccountImpl(weak_ptr<Runtime> const& runtime,
+                         int account_id,
                          QString const& owner,
                          QString const& owner_id,
                          QString const& description)
     : AccountBase(runtime)
+    , owner_(owner)
+    , owner_id_(owner_id)
+    , description_(description)
 {
+    auto rt_impl = dynamic_pointer_cast<RuntimeImpl>(runtime.lock()->p_);
+    assert(rt_impl);
+    QString bus_path = "/provider/" + QString::number(account_id);
+    provider_.reset(new ProviderInterface(BUS_NAME, bus_path, rt_impl->connection()));
+    if (!provider_->isValid())
+    {
+        throw LocalCommsException();  // TODO, details
+    }
 }
 
 QString AccountImpl::owner() const
 {
-    return "";
+    return owner_;
 }
 
 QString AccountImpl::owner_id() const
 {
-    return "";
+    return owner_id_;
 }
 
 QString AccountImpl::description() const
 {
-    return "";
+    return description_;
 }
+
+// TODO: Move to header file?
+
+namespace
+{
+
+class RootsHandler : public QObject
+{
+    Q_OBJECT
+
+public:
+    RootsHandler(QDBusPendingReply<storage::internal::ItemMetadata> const& reply);
+
+    QFuture<QVector<Root::SPtr>> future();
+
+public Q_SLOTS:
+    void finished(QDBusPendingCallWatcher* call);
+
+private:
+    QDBusPendingReply<storage::internal::ItemMetadata> reply_;
+    QDBusPendingCallWatcher watcher_;
+    QFutureInterface<QVector<Root::SPtr>> qf_;
+};
+
+RootsHandler::RootsHandler(QDBusPendingReply<storage::internal::ItemMetadata> const& reply)
+    : reply_(reply)
+    , watcher_(reply, this)
+{
+    connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &RootsHandler::finished);
+    qf_.reportStarted();
+}
+
+QFuture<QVector<Root::SPtr>> RootsHandler::future()
+{
+    return qf_.future();
+}
+
+void RootsHandler::finished(QDBusPendingCallWatcher*)
+{
+    this->deleteLater();
+    if (reply_.isError())
+    {
+        qf_.reportException(StorageException());  // TODO
+    }
+    else
+    {
+        QVector<Root::SPtr> roots;
+        qf_.reportResult(roots);
+    }
+    qf_.reportFinished();
+}
+
+}  // namespace
 
 QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {
-    using namespace boost::filesystem;
+    qDebug() << "creating handler";
+    auto handler = new RootsHandler(provider_->Roots());  // Deletes itself later
+    qDebug() << "returning future";
+    return handler->future();
+}
 
-    QFutureInterface<QVector<Root::SPtr>> qf;
-    qf.reportFinished();
-    return qf.future();
+ProviderInterface& AccountImpl::provider()
+{
+    return *provider_;
 }
 
 }  // namespace local_client
@@ -56,3 +130,5 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
+
+#include "AccountImpl.moc"

@@ -25,6 +25,13 @@ namespace internal
 
 class RuntimeBase;
 
+namespace remote_client
+{
+
+class AccountImpl;
+
+}  // namespace remote_client
+
 }  // namespace internal
 
 /**
@@ -69,7 +76,9 @@ public:
 private:
     Runtime(internal::RuntimeBase* p);
 
-    std::unique_ptr<internal::RuntimeBase> p_;
+    std::shared_ptr<internal::RuntimeBase> p_;
+
+    friend class internal::remote_client::AccountImpl;
 };
 
 }  // namespace client

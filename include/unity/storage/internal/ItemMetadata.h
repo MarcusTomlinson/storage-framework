@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unity/storage/common.h>
+
 #include <QMetaType>
 
 namespace unity
