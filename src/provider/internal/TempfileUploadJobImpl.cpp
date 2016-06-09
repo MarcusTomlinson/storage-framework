@@ -23,17 +23,17 @@ TempfileUploadJobImpl::~TempfileUploadJobImpl() = default;
 
 void TempfileUploadJobImpl::complete_init()
 {
-    tmpfile_ = new QTemporaryFile(this);
-    reader_ = new QLocalSocket(this);
+    tmpfile_.reset(new QTemporaryFile());
+    reader_.reset(new QLocalSocket());
 
     assert(tmpfile_->open());
 
     reader_->setSocketDescriptor(
         read_socket_, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
     read_socket_ = -1;
-    connect(reader_, &QIODevice::readyRead,
+    connect(reader_.get(), &QIODevice::readyRead,
             this, &TempfileUploadJobImpl::on_ready_read);
-    connect(reader_, &QIODevice::readChannelFinished,
+    connect(reader_.get(), &QIODevice::readChannelFinished,
             this, &TempfileUploadJobImpl::on_read_channel_finished);
 }
 

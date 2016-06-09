@@ -5,6 +5,7 @@
 #include <QLocalSocket>
 #include <QTemporaryFile>
 
+#include <memory>
 #include <string>
 
 namespace unity
@@ -32,8 +33,8 @@ private Q_SLOTS:
     void on_read_channel_finished();
 
 private:
-    QLocalSocket *reader_ = nullptr;
-    QTemporaryFile *tmpfile_ = nullptr;
+    std::unique_ptr<QLocalSocket> reader_;
+    std::unique_ptr<QTemporaryFile> tmpfile_;
 
     Q_DISABLE_COPY(TempfileUploadJobImpl)
 };
