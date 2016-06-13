@@ -2,7 +2,8 @@
 
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
-#include <unity/storage/qt/client/StorageSocket.h>
+
+#include <QLocalSocket>
 
 #include <cassert>
 
@@ -32,7 +33,7 @@ DownloadWorker::DownloadWorker(int write_fd, QString const& filename, QFutureInt
 
 void DownloadWorker::start_downloading() noexcept
 {
-    write_socket_.reset(new StorageSocket);
+    write_socket_.reset(new QLocalSocket);
     write_socket_->setSocketDescriptor(write_fd_, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 
     // Monitor write socket for ready-to-write, disconnected, and error events.
@@ -222,7 +223,7 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     }
 
     // Read socket is for the client.
-    read_socket_.reset(new StorageSocket);
+    read_socket_.reset(new QLocalSocket);
     read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 
     // Create worker and connect slots, so we can signal the worker when the client calls

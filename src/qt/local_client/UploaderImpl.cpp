@@ -3,9 +3,9 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/ItemImpl.h>
-#include <unity/storage/qt/client/StorageSocket.h>
 
 #include <boost/filesystem.hpp>
+#include <QLocalSocket>
 
 #include <cassert>
 
@@ -40,7 +40,7 @@ UploadWorker::UploadWorker(int read_fd,
 
 void UploadWorker::start_uploading() noexcept
 {
-    read_socket_.reset(new StorageSocket);
+    read_socket_.reset(new QLocalSocket);
     read_socket_->setSocketDescriptor(read_fd_, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 
     // Monitor read socket for ready-to-read, disconnected, and error events.
@@ -247,7 +247,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
     }
 
     // Write socket is for the client.
-    write_socket_.reset(new StorageSocket);
+    write_socket_.reset(new QLocalSocket);
     write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 
     // Create worker and connect slots, so we can sign the worker when the client calls
