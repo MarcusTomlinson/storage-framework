@@ -23,12 +23,18 @@ namespace client
 namespace internal
 {
 
-DownloadWorker::DownloadWorker(int write_fd, QString const& filename, QFutureInterface<TransferState>& qf)
+DownloadWorker::DownloadWorker(int write_fd,
+                               QString const& filename,
+                               QFutureInterface<TransferState>& qf,
+                               QFutureInterface<void>& worker_initialized)
     : write_fd_(write_fd)
     , filename_(filename)
     , qf_(qf)
+    , worker_initialized_(worker_initialized)
 {
     assert(write_fd >= 0);
+    qf_.reportStarted();
+    worker_initialized_.reportStarted();
 }
 
 void DownloadWorker::start_downloading() noexcept
@@ -52,7 +58,7 @@ void DownloadWorker::start_downloading() noexcept
     }
     bytes_to_write_ = input_file_->size();
 
-    qf_.reportStarted();
+    worker_initialized_.reportFinished();
 
     if (bytes_to_write_ == 0)
     {
@@ -228,7 +234,8 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
 
     // Create worker and connect slots, so we can signal the worker when the client calls
     // finish_download() or cancel().
-    worker_.reset(new DownloadWorker(fds[1], file_->native_identity(), qf_));
+    QFutureInterface<void> worker_initialized;
+    worker_.reset(new DownloadWorker(fds[1], file_->native_identity(), qf_, worker_initialized));
     connect(this, &DownloaderImpl::do_finish, worker_.get(), &DownloadWorker::do_finish);
     connect(this, &DownloaderImpl::do_cancel, worker_.get(), &DownloadWorker::do_cancel);
 
@@ -237,11 +244,7 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     worker_->moveToThread(download_thread_.get());
 
     download_thread_->start();
-
-    // TODO: can probably do this with a signal?
-    // This is no waitForStarted() on QFutureInterface or QFuture.
-    while (!qf_.isStarted())
-        ;
+    worker_initialized.future().waitForFinished();
 }
 
 DownloaderImpl::~DownloaderImpl()

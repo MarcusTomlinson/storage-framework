@@ -28,14 +28,18 @@ namespace internal
 UploadWorker::UploadWorker(int read_fd,
                            shared_ptr<File> const& file,
                            ConflictPolicy policy,
-                           QFutureInterface<TransferState>& qf)
+                           QFutureInterface<TransferState>& qf,
+                           QFutureInterface<void>& worker_initialized)
     : read_fd_(read_fd)
     , file_(file)
     , tmp_fd_([](int fd){ if (fd != -1) ::close(fd); })
     , policy_(policy)
     , qf_(qf)
+    , worker_initialized_(worker_initialized)
 {
     assert(read_fd > 0);
+    qf_.reportStarted();
+    worker_initialized_.reportStarted();
 }
 
 void UploadWorker::start_uploading() noexcept
@@ -60,7 +64,7 @@ void UploadWorker::start_uploading() noexcept
     output_file_.reset(new QFile);
     output_file_->open(tmp_fd_.get(), QIODevice::WriteOnly, QFileDevice::DontCloseHandle);
 
-    qf_.reportStarted();
+    worker_initialized_.reportFinished();
 }
 
 // Called once we know the outcome of the upload, or via a signal when the client
@@ -252,7 +256,8 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
 
     // Create worker and connect slots, so we can sign the worker when the client calls
     // finish_download() or cancel();
-    worker_.reset(new UploadWorker(fds[0], file_, policy, qf_));
+    QFutureInterface<void> worker_initialized;
+    worker_.reset(new UploadWorker(fds[0], file_, policy, qf_, worker_initialized));
     connect(this, &UploaderImpl::do_finish, worker_.get(), &UploadWorker::do_finish);
     connect(this, &UploaderImpl::do_cancel, worker_.get(), &UploadWorker::do_cancel);
 
@@ -262,10 +267,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
 
     upload_thread_->start();
 
-    // TODO: can probably do this with a signal?
-    // There is no waitForStarted() on QFutureInterface or QFuture.
-    while (!qf_.isStarted())
-        ;
+    worker_initialized.waitForFinished();
 }
 
 UploaderImpl::~UploaderImpl()

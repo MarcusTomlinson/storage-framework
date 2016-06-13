@@ -33,7 +33,10 @@ class DownloadWorker : public QObject
     Q_OBJECT
 
 public:
-    DownloadWorker(int write_fd, QString const& filename, QFutureInterface<TransferState>& qf);
+    DownloadWorker(int write_fd,
+                   QString const& filename,
+                   QFutureInterface<TransferState>& qf,
+                   QFutureInterface<void>& worker_initialized);
     void start_downloading() noexcept;
 
 public Q_SLOTS:
@@ -57,6 +60,7 @@ private:
     QString filename_;
     std::unique_ptr<QFile> input_file_;
     QFutureInterface<TransferState>& qf_;
+    QFutureInterface<void>& worker_initialized_;
     qint64 bytes_to_write_;
 };
 

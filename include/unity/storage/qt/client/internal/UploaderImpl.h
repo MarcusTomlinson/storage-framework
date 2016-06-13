@@ -38,7 +38,8 @@ public:
     UploadWorker(int read_fd,
                  std::shared_ptr<File> const& file,
                  ConflictPolicy policy,
-                 QFutureInterface<TransferState>& qf);
+                 QFutureInterface<TransferState>& qf,
+                 QFutureInterface<void>& worker_initialized);
     void start_uploading() noexcept;
 
 public Q_SLOTS:
@@ -66,6 +67,7 @@ private:
     unity::util::ResourcePtr<int, std::function<void(int)>> tmp_fd_;
     ConflictPolicy policy_;
     QFutureInterface<TransferState>& qf_;
+    QFutureInterface<void>& worker_initialized_;
     bool disconnected_ = false;
 };
 

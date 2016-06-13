@@ -659,13 +659,17 @@ TEST(File, download)
         auto downloader = file->create_downloader().result();
         EXPECT_TRUE(file->equal_to(downloader->file()));
 
+        // No readyRead ever arrives in this case, just wait for disconnected.
+        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+
         // This succeeds because the provider disconnects as soon
         // as it realizes that there is nothing to write.
-        downloader->finish_download().result();
+        EXPECT_EQ(TransferState::ok, downloader->finish_download().result());
     }
 
     {
-        // Don't ever call read on non-empty file.
+        // Don't ever call read on small file.
         QByteArray const contents("some contents");
         write_file(root, "file", contents);
 
@@ -676,12 +680,37 @@ TEST(File, download)
         auto downloader = file->create_downloader().result();
         EXPECT_TRUE(file->equal_to(downloader->file()));
 
+        // Wait for disconnected.
+        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+
+        // This succeeds because the provider has written everything and disconnected.
+        EXPECT_EQ(TransferState::ok, downloader->finish_download().result());
+    }
+
+    {
+        // Don't ever call read on large file.
+        QByteArray const contents(1024 * 1024, 'a');
+        write_file(root, "file", contents);
+
+        auto item = root->lookup("file").result();
+        File::SPtr file = dynamic_pointer_cast<File>(item);
+        ASSERT_FALSE(file == nullptr);
+
+        auto downloader = file->create_downloader().result();
+        EXPECT_TRUE(file->equal_to(downloader->file()));
+
+        // Wait for first readyRead. Not all data fits into the socket buffer.
+        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::readyRead);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+
+        // This fails because the provider still has data left to write.
         try
         {
             downloader->finish_download().result();
             FAIL();
         }
-        catch (StorageException const&)
+        catch (StorageException const& e)
         {
             // TODO: check exception details
         }
@@ -689,7 +718,7 @@ TEST(File, download)
 
     {
         // Let downloader go out of scope.
-        QByteArray const contents("some contents");
+        QByteArray const contents(1024 * 1024, 'a');
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
@@ -701,7 +730,7 @@ TEST(File, download)
 
     {
         // Let downloader future go out of scope.
-        QByteArray const contents("some contents");
+        QByteArray const contents(1024 * 1024, 'a');
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
