@@ -11,8 +11,8 @@ class WorkEvent : public QEvent {
 public:
     typedef unity::storage::provider::internal::MainLoopExecutor::work work;
 
-    WorkEvent(work const& closure)
-        : QEvent(WorkEvent::eventType()), closure_(closure)
+    WorkEvent(work&& closure)
+        : QEvent(WorkEvent::eventType()), closure_(std::move(closure))
     {
     }
 
@@ -22,7 +22,7 @@ public:
         return type;
     }
 
-    work const closure_;
+    work closure_;
 };
 
 }
@@ -46,10 +46,26 @@ MainLoopExecutor& MainLoopExecutor::instance()
     return instance;
 }
 
-void MainLoopExecutor::submit(work const& closure)
+void MainLoopExecutor::submit(work&& closure)
 {
-    QCoreApplication::instance()->postEvent(this, new WorkEvent(closure));
+    QCoreApplication::instance()->postEvent(
+        this, new WorkEvent(std::move(closure)));
 }
+
+void MainLoopExecutor::close()
+{
+}
+
+bool MainLoopExecutor::closed()
+{
+    return false;
+}
+
+bool MainLoopExecutor::try_executing_one()
+{
+    return false;
+}
+
 
 bool MainLoopExecutor::event(QEvent *e)
 {
@@ -62,7 +78,7 @@ bool MainLoopExecutor::event(QEvent *e)
     return true;
 }
 
-void MainLoopExecutor::execute(work const& closure) noexcept
+void MainLoopExecutor::execute(work& closure) noexcept
 {
     closure();
 }
