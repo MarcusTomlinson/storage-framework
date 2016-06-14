@@ -85,7 +85,7 @@ enable_testing()
 
 include(EnableCoverageReport)
 
-find_package(Boost COMPONENTS filesystem thread REQUIRED)
+find_package(Boost COMPONENTS filesystem system thread REQUIRED)
 find_package(Qt5Concurrent REQUIRED)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5DBus REQUIRED)
