@@ -6,7 +6,6 @@
 #include <unity/storage/qt/client/internal/FileImpl.h>
 #include <unity/storage/qt/client/internal/RootImpl.h>
 
-#include <boost/filesystem.hpp>
 #include <QtConcurrent>
 
 #include <cassert>

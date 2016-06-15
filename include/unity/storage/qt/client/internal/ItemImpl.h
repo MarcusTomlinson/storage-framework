@@ -1,8 +1,8 @@
 #pragma once
 
 #include <unity/storage/common.h>
+#include <unity/storage/qt/client/internal/boost_filesystem.h>
 
-#include <boost/filesystem.hpp>
 #include <QDateTime>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"

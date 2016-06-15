@@ -4,7 +4,6 @@
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/ItemImpl.h>
 
-#include <boost/filesystem.hpp>
 #include <QLocalSocket>
 
 #include <cassert>

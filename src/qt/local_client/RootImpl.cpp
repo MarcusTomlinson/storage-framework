@@ -3,8 +3,6 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/FileImpl.h>
 
-#include <boost/filesystem.hpp>
-
 using namespace std;
 
 namespace unity
