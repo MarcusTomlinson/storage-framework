@@ -58,9 +58,22 @@ void UploadWorker::start_uploading() noexcept
     // Open tmp file for writing.
     auto parent_path = path(file_->native_identity().toStdString()).parent_path();
     tmp_fd_.reset(open(parent_path.native().c_str(), O_TMPFILE | O_WRONLY, 0600));
-    // TODO: O_TMPFILE may not work with some kernels. Fall back to conventional
-    //       tmp file creation here in that case.
-    assert(tmp_fd_.get() != -1);
+    if (tmp_fd_.get() == -1)
+    {
+        // Some kernels on the phones don't support O_TMPFILE and return various errno values when this fails.
+        // So, if anything at all goes wrong, we fall back on conventional temp file creation and
+        // produce a hard error if that doesn't work either.
+        string tmpfile = parent_path.native() + "/thumbnail.XXXXXX";
+        tmp_fd_.reset(mkstemp(const_cast<char*>(tmpfile.data())));
+        if (tmp_fd_.get() == -1)
+        {
+            worker_initialized_.reportFinished();
+            state_ = error;
+            do_finish();
+            return;
+        }
+        unlink(tmpfile.data());
+    }
     output_file_.reset(new QFile);
     output_file_->open(tmp_fd_.get(), QIODevice::WriteOnly, QFileDevice::DontCloseHandle);
 
