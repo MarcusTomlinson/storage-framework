@@ -38,6 +38,7 @@ void ProviderInterface::authenticate_account(bool interactive)
 
 void ProviderInterface::account_authenticated()
 {
+    creds_ = boost::blank();
     switch (account_->authenticationMethod()) {
     case OnlineAccounts::AuthenticationMethodOAuth1:
     {
@@ -48,8 +49,12 @@ void ProviderInterface::account_authenticated()
         }
         else
         {
-            // TODO: pass auth data to provider_.
-            qDebug() << "Got OAuth1 token:" << reply.token();
+            creds_ = OAuth1Credentials{
+                reply.consumerKey().toStdString(),
+                reply.consumerSecret().toStdString(),
+                reply.token().toStdString(),
+                reply.tokenSecret().toStdString(),
+            };
         }
     }
     case OnlineAccounts::AuthenticationMethodOAuth2:
@@ -61,8 +66,9 @@ void ProviderInterface::account_authenticated()
         }
         else
         {
-            // TODO: pass auth data to provider_.
-            qDebug() << "Got OAuth2 token:" << reply.accessToken();
+            creds_ = OAuth2Credentials{
+                reply.accessToken().toStdString(),
+            };
         }
     }
     case OnlineAccounts::AuthenticationMethodPassword:
@@ -74,8 +80,10 @@ void ProviderInterface::account_authenticated()
         }
         else
         {
-            // TODO: pass auth data to provider_.
-            qDebug() << "Got username:" << reply.username();
+            creds_ = PasswordCredentials{
+                reply.username().toStdString(),
+                reply.password().toStdString(),
+            };
         }
     }
     default:

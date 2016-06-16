@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unity/storage/provider/Credentials.h>
 #include <unity/storage/provider/internal/Handler.h>
 
 #include <OnlineAccounts/Account>
@@ -75,6 +76,7 @@ private:
 
     OnlineAccounts::Account* const account_;
     std::unique_ptr<OnlineAccounts::PendingCallWatcher> auth_watcher_;
+    Credentials creds_;
 
     std::map<Handler*, std::unique_ptr<Handler>> requests_;
 
