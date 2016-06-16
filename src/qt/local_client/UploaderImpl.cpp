@@ -48,7 +48,7 @@ void UploadWorker::start_uploading() noexcept
 
     // Monitor read socket for ready-to-read, disconnected, and error events.
     connect(read_socket_.get(), &QLocalSocket::readyRead, this, &UploadWorker::on_bytes_ready);
-    connect(read_socket_.get(), &QLocalSocket::disconnected, this, &UploadWorker::on_disconnected);
+    connect(read_socket_.get(), &QIODevice::readChannelFinished, this, &UploadWorker::on_read_channel_finished);
     connect(read_socket_.get(), static_cast<void(QLocalSocket::*)(QLocalSocket::LocalSocketError)>(&QLocalSocket::error),
             this, &UploadWorker::on_error);
 
@@ -80,7 +80,7 @@ void UploadWorker::start_uploading() noexcept
 }
 
 // Called once we know the outcome of the upload, or via a signal when the client
-// calls finish_download(). This makes the future ready with the appropriate
+// calls finish_upload(). This makes the future ready with the appropriate
 // result or error information. If the client has not disconnected
 // yet, we don't touch the future; it becomes ready once we receive the disconnected signal.
 
@@ -151,18 +151,22 @@ void UploadWorker::do_cancel()
 void UploadWorker::on_bytes_ready()
 {
     auto buf = read_socket_->read(read_socket_->bytesAvailable());
-    auto bytes_written = output_file_->write(buf);
-    if (bytes_written != buf.size())
+    if (buf.size() != 0)
     {
-        // TODO: Store error details.
-        handle_error();
-        return;
+        auto bytes_written = output_file_->write(buf);
+        if (bytes_written != buf.size())
+        {
+            // TODO: Store error details.
+            handle_error();
+            return;
+        }
     }
 }
 
-void UploadWorker::on_disconnected()
+void UploadWorker::on_read_channel_finished()
 {
     disconnected_ = true;
+    on_bytes_ready();  // In case there is still buffered data to be read.
     do_finish();
 }
 

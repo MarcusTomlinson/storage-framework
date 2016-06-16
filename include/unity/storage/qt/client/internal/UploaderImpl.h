@@ -48,7 +48,7 @@ public Q_SLOTS:
 
 private Q_SLOTS:
     void on_bytes_ready();
-    void on_disconnected();
+    void on_read_channel_finished();
     void on_error();
 
 private:
