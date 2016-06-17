@@ -17,7 +17,7 @@ add_library(storage-framework-provider SHARED
   TempfileUploadJob.cpp
   UploadJob.cpp
   internal/AccountData.cpp
-  internal/CredentialsCache.cpp
+  internal/DBusPeerCache.cpp
   internal/Handler.cpp
   internal/MainLoopExecutor.cpp
   internal/PendingJobs.cpp

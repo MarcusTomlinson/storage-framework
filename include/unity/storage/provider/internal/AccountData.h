@@ -22,7 +22,7 @@ class ProviderBase;
 namespace internal
 {
 
-class CredentialsCache;
+class DBusPeerCache;
 class PendingJobs;
 
 class AccountData : public QObject
@@ -30,7 +30,7 @@ class AccountData : public QObject
     Q_OBJECT
 public:
     AccountData(std::unique_ptr<ProviderBase>&& provider,
-                std::shared_ptr<CredentialsCache> const& credentials,
+                std::shared_ptr<DBusPeerCache> const& dbus_peer,
                 QDBusConnection const& bus,
                 OnlineAccounts::Account* account,
                 QObject* parent=nullptr);
@@ -41,7 +41,7 @@ public:
     Credentials const& credentials();
 
     ProviderBase& provider();
-    CredentialsCache& dbus_creds();
+    DBusPeerCache& dbus_peer();
     PendingJobs& jobs();
 
 Q_SIGNALS:
@@ -52,7 +52,7 @@ private Q_SLOTS:
 
 private:
     std::unique_ptr<ProviderBase> const provider_;
-    std::shared_ptr<CredentialsCache> const dbus_creds_;
+    std::shared_ptr<DBusPeerCache> const dbus_peer_;
     std::unique_ptr<PendingJobs> const jobs_;
 
     OnlineAccounts::Account* const account_;

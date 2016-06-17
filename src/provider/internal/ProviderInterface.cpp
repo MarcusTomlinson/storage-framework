@@ -2,7 +2,6 @@
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/UploadJob.h>
 #include <unity/storage/provider/internal/AccountData.h>
-#include <unity/storage/provider/internal/CredentialsCache.h>
 #include <unity/storage/provider/internal/MainLoopExecutor.h>
 #include <unity/storage/provider/internal/PendingJobs.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>

@@ -17,7 +17,7 @@
  *    James Henstridge <james.henstridge@canonical.com>
  */
 
-#include <unity/storage/provider/internal/CredentialsCache.h>
+#include <unity/storage/provider/internal/DBusPeerCache.h>
 #include "businterface.h"
 
 #include <QDBusPendingCallWatcher>
@@ -53,23 +53,23 @@ namespace provider
 namespace internal
 {
 
-struct CredentialsCache::Request
+struct DBusPeerCache::Request
 {
     QDBusPendingCallWatcher watcher;
-    std::vector<boost::promise<CredentialsCache::Credentials>> promises;
+    std::vector<boost::promise<DBusPeerCache::Credentials>> promises;
 
     Request(QDBusPendingReply<QVariantMap> const& call) : watcher(call) {}
 };
 
-CredentialsCache::CredentialsCache(QDBusConnection const& bus)
+DBusPeerCache::DBusPeerCache(QDBusConnection const& bus)
     : bus_daemon_(new BusInterface(DBUS_BUS_NAME, DBUS_BUS_PATH, bus))
     , apparmor_enabled_(aa_is_enabled())
 {
 }
 
-CredentialsCache::~CredentialsCache() = default;
+DBusPeerCache::~DBusPeerCache() = default;
 
-boost::future<CredentialsCache::Credentials> CredentialsCache::get(QString const& peer)
+boost::future<DBusPeerCache::Credentials> DBusPeerCache::get(QString const& peer)
 {
     // Return the credentials directly if they are cached
     try
@@ -128,13 +128,13 @@ boost::future<CredentialsCache::Credentials> CredentialsCache::get(QString const
     return future;
 }
 
-void CredentialsCache::received_credentials(QString const& peer, QDBusPendingReply<QVariantMap> const& reply)
+void DBusPeerCache::received_credentials(QString const& peer, QDBusPendingReply<QVariantMap> const& reply)
 {
     Credentials credentials;
     if (reply.isError())
     {
         // LCOV_EXCL_START
-        qWarning() << "CredentialsCache::received_credentials(): "
+        qWarning() << "DBusPeerCache::received_credentials(): "
             "error retrieving credentials for" << peer <<
             ":" << reply.error().message();
         // LCOV_EXCL_STOP

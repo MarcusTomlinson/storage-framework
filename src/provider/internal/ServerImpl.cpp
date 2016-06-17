@@ -31,7 +31,7 @@ void ServerImpl::init(int& argc, char **argv)
 {
     app_.reset(new QCoreApplication(argc, argv));
     auto bus = QDBusConnection::sessionBus();
-    credentials_ = make_shared<CredentialsCache>(bus);
+    dbus_peer_ = make_shared<DBusPeerCache>(bus);
 
     // Ensure the executor is instantiated in the main thread.
     MainLoopExecutor::instance();
@@ -53,7 +53,7 @@ void ServerImpl::account_manager_ready()
     {
         qDebug() << "Found account" << account->id() << "for service" << account->serviceId();
         auto account_data = make_shared<AccountData>(
-            server_->make_provider(), credentials_, bus, account);
+            server_->make_provider(), dbus_peer_, bus, account);
         unique_ptr<ProviderInterface> iface(
             new ProviderInterface(account_data));
         // this instance is managed by Qt's parent/child memory management

@@ -45,7 +45,7 @@ namespace internal
 {
 
 
-class CredentialsCache final {
+class DBusPeerCache final {
 public:
     struct Credentials
     {
@@ -56,11 +56,11 @@ public:
         std::string label;
     };
 
-    CredentialsCache(QDBusConnection const& bus);
-    ~CredentialsCache();
+    DBusPeerCache(QDBusConnection const& bus);
+    ~DBusPeerCache();
 
-    CredentialsCache(CredentialsCache const&) = delete;
-    CredentialsCache& operator=(CredentialsCache const&) = delete;
+    DBusPeerCache(DBusPeerCache const&) = delete;
+    DBusPeerCache& operator=(DBusPeerCache const&) = delete;
 
     // Retrieve the security credentials for the given D-Bus peer.
     boost::future<Credentials> get(QString const& peer);

@@ -1,6 +1,6 @@
 #include <unity/storage/provider/internal/AccountData.h>
 #include <unity/storage/provider/ProviderBase.h>
-#include <unity/storage/provider/internal/CredentialsCache.h>
+#include <unity/storage/provider/internal/DBusPeerCache.h>
 #include <unity/storage/provider/internal/PendingJobs.h>
 
 #include <OnlineAccounts/AuthenticationData>
@@ -14,11 +14,11 @@ namespace provider {
 namespace internal {
 
 AccountData::AccountData(std::unique_ptr<ProviderBase>&& provider,
-                         std::shared_ptr<CredentialsCache> const& credentials,
+                         std::shared_ptr<DBusPeerCache> const& dbus_peer,
                          QDBusConnection const& bus,
                          OnlineAccounts::Account* account,
                          QObject* parent)
-    : QObject(parent), provider_(std::move(provider)), dbus_creds_(credentials),
+    : QObject(parent), provider_(std::move(provider)), dbus_peer_(dbus_peer),
       jobs_(new PendingJobs(bus)), account_(account)
 {
     authenticate(false);
@@ -31,9 +31,9 @@ ProviderBase& AccountData::provider()
     return *provider_;
 }
 
-CredentialsCache& AccountData::dbus_creds()
+DBusPeerCache& AccountData::dbus_peer()
 {
-    return *dbus_creds_;
+    return *dbus_peer_;
 }
 
 PendingJobs& AccountData::jobs()
