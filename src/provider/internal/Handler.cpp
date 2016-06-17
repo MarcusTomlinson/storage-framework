@@ -40,7 +40,7 @@ void Handler::begin()
             if (!creds.valid) {
                 throw std::runtime_error("Handler::begin(): could not retrieve credentials");
             }
-            Context ctx{creds.uid, creds.pid, std::move(creds.label), boost::blank()};
+            Context ctx{creds.uid, creds.pid, std::move(creds.label), account_->credentials()};
             return callback_(account_, ctx, message_);
         });
     future_ = msg_future.then(
