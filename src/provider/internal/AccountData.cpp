@@ -19,15 +19,24 @@ AccountData::AccountData(std::unique_ptr<ProviderBase>&& provider,
                          OnlineAccounts::Account* account,
                          QObject* parent)
     : QObject(parent), provider_(std::move(provider)), dbus_creds_(credentials),
-      jobs_(new PendingJobs(bus)), account_(account)
+      jobs_(make_shared<PendingJobs>(bus)), account_(account)
 {
-    authenticate_account(false);
+    authenticate(false);
 }
 
 AccountData::~AccountData() = default;
 
-void AccountData::authenticate_account(bool interactive)
+void AccountData::authenticate(bool interactive)
 {
+    // If there is an existing authenticating session running, use
+    // that existing session (unless it is a non-interactive session
+    // and we've requested interactivity).
+    if (auth_watcher_ && (authenticating_interactively_ || !interactive))
+    {
+        return;
+    }
+
+    authenticating_interactively_ = interactive;
     credentials_valid_ = false;
     credentials_ = boost::blank();
 
@@ -40,7 +49,7 @@ void AccountData::authenticate_account(bool interactive)
             this, &AccountData::on_authenticated);
 }
 
-bool AccountData::have_credentials()
+bool AccountData::has_credentials()
 {
     return credentials_valid_;
 }

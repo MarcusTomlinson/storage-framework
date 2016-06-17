@@ -1,5 +1,6 @@
 #include <unity/storage/provider/internal/ServerImpl.h>
 #include <unity/storage/provider/ProviderBase.h>
+#include <unity/storage/provider/internal/AccountData.h>
 #include <unity/storage/provider/internal/MainLoopExecutor.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 #include "provideradaptor.h"
@@ -51,9 +52,10 @@ void ServerImpl::account_manager_ready()
     for (const auto& account : manager_->availableAccounts(QString::fromStdString(service_id_)))
     {
         qDebug() << "Found account" << account->id() << "for service" << account->serviceId();
+        auto account_data = make_shared<AccountData>(
+            server_->make_provider(), credentials_, bus, account);
         unique_ptr<ProviderInterface> iface(
-            new ProviderInterface(server_->make_provider(), bus,
-                                  credentials_, account));
+            new ProviderInterface(account_data));
         // this instance is managed by Qt's parent/child memory management
         new ProviderAdaptor(iface.get());
 

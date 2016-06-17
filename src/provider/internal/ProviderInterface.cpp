@@ -1,6 +1,7 @@
 #include <unity/storage/provider/internal/ProviderInterface.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/UploadJob.h>
+#include <unity/storage/provider/internal/AccountData.h>
 #include <unity/storage/provider/internal/CredentialsCache.h>
 #include <unity/storage/provider/internal/MainLoopExecutor.h>
 #include <unity/storage/provider/internal/PendingJobs.h>
@@ -16,100 +17,30 @@ namespace storage {
 namespace provider {
 namespace internal {
 
-ProviderInterface::ProviderInterface(shared_ptr<ProviderBase> const& provider, QDBusConnection const& bus, shared_ptr<CredentialsCache> const& credentials, OnlineAccounts::Account* account, QObject *parent)
-    : QObject(parent), provider_(provider), credentials_(credentials),
-      jobs_(make_shared<PendingJobs>(bus)), account_(account)
+ProviderInterface::ProviderInterface(shared_ptr<AccountData> const& account, QObject *parent)
+    : QObject(parent), account_(account)
 {
-    authenticate_account(false);
 }
 
 ProviderInterface::~ProviderInterface() = default;
 
-void ProviderInterface::authenticate_account(bool interactive)
-{
-    OnlineAccounts::AuthenticationData auth_data(
-        account_->authenticationMethod());
-    auth_data.setInteractive(interactive);
-    OnlineAccounts::PendingCall call = account_->authenticate(auth_data);
-    auth_watcher_.reset(new OnlineAccounts::PendingCallWatcher(call));
-    connect(auth_watcher_.get(), &OnlineAccounts::PendingCallWatcher::finished,
-            this, &ProviderInterface::account_authenticated);
-}
-
-void ProviderInterface::account_authenticated()
-{
-    creds_ = boost::blank();
-    switch (account_->authenticationMethod()) {
-    case OnlineAccounts::AuthenticationMethodOAuth1:
-    {
-        OnlineAccounts::OAuth1Reply reply(*auth_watcher_);
-        if (reply.hasError())
-        {
-            qDebug() << "Failed to authenticate:" << reply.error().text();
-        }
-        else
-        {
-            creds_ = OAuth1Credentials{
-                reply.consumerKey().toStdString(),
-                reply.consumerSecret().toStdString(),
-                reply.token().toStdString(),
-                reply.tokenSecret().toStdString(),
-            };
-        }
-    }
-    case OnlineAccounts::AuthenticationMethodOAuth2:
-    {
-        OnlineAccounts::OAuth2Reply reply(*auth_watcher_);
-        if (reply.hasError())
-        {
-            qDebug() << "Failed to authenticate:" << reply.error().text();
-        }
-        else
-        {
-            creds_ = OAuth2Credentials{
-                reply.accessToken().toStdString(),
-            };
-        }
-    }
-    case OnlineAccounts::AuthenticationMethodPassword:
-    {
-        OnlineAccounts::PasswordReply reply(*auth_watcher_);
-        if (reply.hasError())
-        {
-            qDebug() << "Failed to authenticate:" << reply.error().text();
-        }
-        else
-        {
-            creds_ = PasswordCredentials{
-                reply.username().toStdString(),
-                reply.password().toStdString(),
-            };
-        }
-    }
-    default:
-        qDebug() << "Unhandled authentication method:"
-                 << account_->authenticationMethod();
-    }
-    auth_watcher_.reset();
-}
-
 void ProviderInterface::queue_request(Handler::Callback callback)
 {
     unique_ptr<Handler> handler(
-        new Handler(provider_, jobs_, credentials_,
-                    callback, connection(), message()));
+        new Handler(account_, callback, connection(), message()));
     connect(handler.get(), &Handler::finished, this, &ProviderInterface::request_finished);
     setDelayedReply(true);
     // If we haven't retrieved the authentication details from
     // OnlineAccounts, delay processing the handler until then.
-    if (auth_watcher_)
+    if (account_->has_credentials())
     {
-        connect(auth_watcher_.get(), &OnlineAccounts::PendingCallWatcher::finished,
-                handler.get(), &Handler::begin);
+        handler->begin();
     }
     else
     {
-        handler->begin();
+        account_->authenticate(true);
+        connect(account_.get(), &AccountData::authenticated,
+                handler.get(), &Handler::begin);
     }
     requests_.emplace(handler.get(), std::move(handler));
 }

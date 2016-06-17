@@ -1,4 +1,5 @@
 #include <unity/storage/provider/internal/Handler.h>
+#include <unity/storage/provider/internal/AccountData.h>
 #include <unity/storage/provider/internal/CredentialsCache.h>
 #include <unity/storage/provider/internal/MainLoopExecutor.h>
 #include <unity/storage/provider/ProviderBase.h>
@@ -21,20 +22,17 @@ namespace provider
 namespace internal
 {
 
-Handler::Handler(shared_ptr<ProviderBase> const& provider,
-                 shared_ptr<PendingJobs> const& jobs,
-                 shared_ptr<CredentialsCache> const& credentials,
+Handler::Handler(shared_ptr<AccountData> const& account,
                  Callback const& callback,
                  QDBusConnection const& bus, QDBusMessage const& message)
-    : provider_(provider), jobs_(jobs), credentials_(credentials),
-      callback_(callback), bus_(bus), message_(message)
+    : account_(account), callback_(callback), bus_(bus), message_(message)
 {
 }
 
 void Handler::begin()
 {
     // Need to put security check in here.
-    auto cred_future = credentials_->get(message_.service());
+    auto cred_future = account_->dbus_creds_->get(message_.service());
     boost::future<QDBusMessage> msg_future = cred_future.then(
         //MainLoopExecutor::instance(),
         [this](decltype(cred_future) f) -> boost::future<QDBusMessage> {
@@ -43,7 +41,7 @@ void Handler::begin()
                 throw std::runtime_error("Handler::begin(): could not retrieve credentials");
             }
             Context ctx{creds.uid, creds.pid, std::move(creds.label), boost::blank()};
-            return callback_(*provider_, jobs_, ctx, message_);
+            return callback_(*(account_->provider_), account_->jobs_, ctx, message_);
         });
     future_ = msg_future.then(
         MainLoopExecutor::instance(),

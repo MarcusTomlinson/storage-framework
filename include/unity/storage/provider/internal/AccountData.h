@@ -36,8 +36,8 @@ public:
                 QObject* parent=nullptr);
     virtual ~AccountData();
 
-    void authenticate_account(bool interactive);
-    bool have_credentials();
+    void authenticate(bool interactive);
+    bool has_credentials();
     Credentials const& credentials();
 
 Q_SIGNALS:
@@ -49,12 +49,13 @@ private Q_SLOTS:
 public:
     std::unique_ptr<ProviderBase> const provider_;
     std::shared_ptr<CredentialsCache> const dbus_creds_;
-    std::unique_ptr<PendingJobs> const jobs_;
+    std::shared_ptr<PendingJobs> const jobs_;
 
 private:
     OnlineAccounts::Account* const account_;
     std::unique_ptr<OnlineAccounts::PendingCallWatcher> auth_watcher_;
-
+    bool authenticating_interactively_ = false;
+    
     bool credentials_valid_ = false;
     Credentials credentials_;
 
