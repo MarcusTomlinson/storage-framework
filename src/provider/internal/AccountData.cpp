@@ -26,6 +26,21 @@ AccountData::AccountData(std::unique_ptr<ProviderBase>&& provider,
 
 AccountData::~AccountData() = default;
 
+ProviderBase& AccountData::provider()
+{
+    return *provider_;
+}
+
+CredentialsCache& AccountData::dbus_creds()
+{
+    return *dbus_creds_;
+}
+
+PendingJobs& AccountData::jobs()
+{
+    return *jobs_;
+}
+
 void AccountData::authenticate(bool interactive)
 {
     // If there is an existing authenticating session running, use

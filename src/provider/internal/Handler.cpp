@@ -32,7 +32,7 @@ Handler::Handler(shared_ptr<AccountData> const& account,
 void Handler::begin()
 {
     // Need to put security check in here.
-    auto cred_future = account_->dbus_creds_->get(message_.service());
+    auto cred_future = account_->dbus_creds().get(message_.service());
     boost::future<QDBusMessage> msg_future = cred_future.then(
         //MainLoopExecutor::instance(),
         [this](decltype(cred_future) f) -> boost::future<QDBusMessage> {
@@ -41,7 +41,7 @@ void Handler::begin()
                 throw std::runtime_error("Handler::begin(): could not retrieve credentials");
             }
             Context ctx{creds.uid, creds.pid, std::move(creds.label), boost::blank()};
-            return callback_(*(account_->provider_), account_->jobs_, ctx, message_);
+            return callback_(account_, ctx, message_);
         });
     future_ = msg_future.then(
         MainLoopExecutor::instance(),

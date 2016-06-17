@@ -29,7 +29,7 @@ class Handler : public QObject
 {
     Q_OBJECT
 public:
-    typedef std::function<boost::future<QDBusMessage>(ProviderBase&, std::shared_ptr<PendingJobs> const&, Context const&, QDBusMessage const&)> Callback;
+    typedef std::function<boost::future<QDBusMessage>(std::shared_ptr<AccountData> const&, Context const&, QDBusMessage const&)> Callback;
 
     Handler(std::shared_ptr<AccountData> const& account,
             Callback const& callback,

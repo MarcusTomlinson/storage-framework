@@ -40,22 +40,25 @@ public:
     bool has_credentials();
     Credentials const& credentials();
 
+    ProviderBase& provider();
+    CredentialsCache& dbus_creds();
+    PendingJobs& jobs();
+
 Q_SIGNALS:
     void authenticated();
 
 private Q_SLOTS:
     void on_authenticated();
 
-public:
+private:
     std::unique_ptr<ProviderBase> const provider_;
     std::shared_ptr<CredentialsCache> const dbus_creds_;
     std::shared_ptr<PendingJobs> const jobs_;
 
-private:
     OnlineAccounts::Account* const account_;
     std::unique_ptr<OnlineAccounts::PendingCallWatcher> auth_watcher_;
     bool authenticating_interactively_ = false;
-    
+
     bool credentials_valid_ = false;
     Credentials credentials_;
 

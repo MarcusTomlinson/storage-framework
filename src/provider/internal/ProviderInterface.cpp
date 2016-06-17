@@ -67,8 +67,8 @@ void ProviderInterface::request_finished()
 
 QList<ItemMetadata> ProviderInterface::Roots()
 {
-    queue_request([](ProviderBase& provider, shared_ptr<PendingJobs> const&, Context const& ctx, QDBusMessage const& message) {
-            auto f = provider.roots(ctx);
+    queue_request([](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().roots(ctx);
             return f.then(
                 MainLoopExecutor::instance(),
                 [=](decltype(f) f) -> QDBusMessage {
@@ -81,8 +81,8 @@ QList<ItemMetadata> ProviderInterface::Roots()
 
 QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString const& page_token, QString& /*next_token*/)
 {
-    queue_request([item_id, page_token](ProviderBase& provider, shared_ptr<PendingJobs> const&, Context const& ctx, QDBusMessage const& message) {
-            auto f = provider.list(item_id.toStdString(), page_token.toStdString(), ctx);
+    queue_request([item_id, page_token](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().list(item_id.toStdString(), page_token.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
                 [=](decltype(f) f) -> QDBusMessage {
@@ -100,8 +100,8 @@ QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString cons
 
 QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString const& name)
 {
-    queue_request([parent_id, name](ProviderBase& provider, shared_ptr<PendingJobs> const&, Context const& ctx, QDBusMessage const& message) {
-            auto f = provider.lookup(parent_id.toStdString(), name.toStdString(), ctx);
+    queue_request([parent_id, name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().lookup(parent_id.toStdString(), name.toStdString(), ctx);
             return f.then([=](decltype(f) f) -> QDBusMessage {
                     auto items = f.get();
                     return message.createReply(QVariant::fromValue(items));
@@ -112,8 +112,8 @@ QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString 
 
 ItemMetadata ProviderInterface::Metadata(QString const& item_id)
 {
-    queue_request([item_id](ProviderBase& provider, shared_ptr<PendingJobs> const&, Context const& ctx, QDBusMessage const& message) {
-            auto f = provider.metadata(item_id.toStdString(), ctx);
+    queue_request([item_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().metadata(item_id.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
                 [=](decltype(f) f) -> QDBusMessage {
@@ -131,8 +131,8 @@ ItemMetadata ProviderInterface::CreateFolder(QString const& parent_id, QString c
 
 QString ProviderInterface::CreateFile(QString const& parent_id, QString const& title, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& file_descriptor)
 {
-    queue_request([parent_id, title, content_type, allow_overwrite](ProviderBase& provider, shared_ptr<PendingJobs> const& jobs, Context const& ctx, QDBusMessage const& message) {
-            auto f = provider.create_file(
+    queue_request([parent_id, title, content_type, allow_overwrite](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().create_file(
                 parent_id.toStdString(), title.toStdString(),
                 content_type.toStdString(), allow_overwrite, ctx);
             return f.then(
@@ -147,7 +147,7 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& t
                     file_desc.setFileDescriptor(fd);
                     close(fd);
 
-                    jobs->add_upload(std::move(job));
+                    account->jobs().add_upload(std::move(job));
                     return message.createReply({
                             QVariant(upload_id),
                             QVariant::fromValue(file_desc),
@@ -159,8 +159,8 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& t
 
 QString ProviderInterface::Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& file_descriptor)
 {
-    queue_request([item_id, old_etag](ProviderBase& provider, shared_ptr<PendingJobs> const& jobs, Context const& ctx, QDBusMessage const& message) {
-            auto f = provider.update(
+    queue_request([item_id, old_etag](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().update(
                 item_id.toStdString(), old_etag.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
@@ -174,7 +174,7 @@ QString ProviderInterface::Update(QString const& item_id, QString const& old_eta
                     file_desc.setFileDescriptor(fd);
                     close(fd);
 
-                    jobs->add_upload(std::move(job));
+                    account->jobs().add_upload(std::move(job));
                     return message.createReply({
                             QVariant(upload_id),
                             QVariant::fromValue(file_desc),
@@ -186,16 +186,16 @@ QString ProviderInterface::Update(QString const& item_id, QString const& old_eta
 
 ItemMetadata ProviderInterface::FinishUpload(QString const& upload_id)
 {
-    queue_request([upload_id](ProviderBase& provider, shared_ptr<PendingJobs> const& jobs, Context const& ctx, QDBusMessage const& message) {
+    queue_request([upload_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             // Throws if job is not available
-            auto job = jobs->get_upload(upload_id.toStdString());
+            auto job = account->jobs().get_upload(upload_id.toStdString());
             if (job->sender_bus_name() != message.service().toStdString())
             {
                 throw runtime_error("Upload job belongs to a different client");
             }
             // FIXME: removing the job at this point means we can't
             // cancel during finish().
-            jobs->remove_upload(upload_id.toStdString());
+            account->jobs().remove_upload(upload_id.toStdString());
             auto f = job->finish();
             return f.then(
                 MainLoopExecutor::instance(),
@@ -209,14 +209,14 @@ ItemMetadata ProviderInterface::FinishUpload(QString const& upload_id)
 
 void ProviderInterface::CancelUpload(QString const& upload_id)
 {
-    queue_request([upload_id](ProviderBase& provider, shared_ptr<PendingJobs> const& jobs, Context const& ctx, QDBusMessage const& message) {
+    queue_request([upload_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             // Throws if job is not available
-            auto job = jobs->get_upload(upload_id.toStdString());
+            auto job = account->jobs().get_upload(upload_id.toStdString());
             if (job->sender_bus_name() != message.service().toStdString())
             {
                 throw runtime_error("Upload job belongs to a different client");
             }
-            jobs->remove_upload(upload_id.toStdString());
+            account->jobs().remove_upload(upload_id.toStdString());
             auto f = job->cancel();
             return f.then(
                 MainLoopExecutor::instance(),
