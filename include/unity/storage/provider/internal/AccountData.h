@@ -53,7 +53,7 @@ private Q_SLOTS:
 private:
     std::unique_ptr<ProviderBase> const provider_;
     std::shared_ptr<CredentialsCache> const dbus_creds_;
-    std::shared_ptr<PendingJobs> const jobs_;
+    std::unique_ptr<PendingJobs> const jobs_;
 
     OnlineAccounts::Account* const account_;
     std::unique_ptr<OnlineAccounts::PendingCallWatcher> auth_watcher_;

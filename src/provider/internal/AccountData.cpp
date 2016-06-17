@@ -19,7 +19,7 @@ AccountData::AccountData(std::unique_ptr<ProviderBase>&& provider,
                          OnlineAccounts::Account* account,
                          QObject* parent)
     : QObject(parent), provider_(std::move(provider)), dbus_creds_(credentials),
-      jobs_(make_shared<PendingJobs>(bus)), account_(account)
+      jobs_(new PendingJobs(bus)), account_(account)
 {
     authenticate(false);
 }
