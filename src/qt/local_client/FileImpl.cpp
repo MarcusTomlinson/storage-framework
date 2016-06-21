@@ -6,8 +6,6 @@
 #include <unity/storage/qt/client/internal/UploaderImpl.h>
 #include <unity/storage/qt/client/Uploader.h>
 
-#include <boost/filesystem.hpp>
-
 using namespace std;
 
 namespace unity

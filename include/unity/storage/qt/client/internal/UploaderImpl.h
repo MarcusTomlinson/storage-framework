@@ -38,7 +38,8 @@ public:
     UploadWorker(int read_fd,
                  std::shared_ptr<File> const& file,
                  ConflictPolicy policy,
-                 QFutureInterface<TransferState>& qf);
+                 QFutureInterface<TransferState>& qf,
+                 QFutureInterface<void>& worker_initialized);
     void start_uploading() noexcept;
 
 public Q_SLOTS:
@@ -47,11 +48,10 @@ public Q_SLOTS:
 
 private Q_SLOTS:
     void on_bytes_ready();
-    void on_disconnected();
+    void on_read_channel_finished();
     void on_error();
 
 private:
-    void read_and_write_chunk();
     void finalize();
     void handle_error();
     void check_modified_time() const;
@@ -66,7 +66,7 @@ private:
     unity::util::ResourcePtr<int, std::function<void(int)>> tmp_fd_;
     ConflictPolicy policy_;
     QFutureInterface<TransferState>& qf_;
-    bool disconnected_ = false;
+    QFutureInterface<void>& worker_initialized_;
 };
 
 class UploadThread : public QThread

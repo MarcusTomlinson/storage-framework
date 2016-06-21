@@ -7,6 +7,7 @@
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
 #pragma GCC diagnostic pop
+#include <QLocalSocket>
 
 #include <memory>
 
@@ -71,6 +72,9 @@ public:
     which closes the socket. Call `result()` on the returned future to check for errors. If an error
     occurred, `result()` throws an exception. Otherwise, it returns the transfer state to
     indicate whether the upload finished normally or was cancelled.
+
+    Calling finish_upload() more than once is safe; subsequent calls do nothing and return the future
+    that was returned by the first call.
     */
     QFuture<TransferState> finish_upload();
 

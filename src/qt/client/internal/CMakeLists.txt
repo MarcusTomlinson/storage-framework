@@ -13,4 +13,8 @@ add_library(storage-framework-qt-client SHARED
     $<TARGET_OBJECTS:qt-client-lib-public>
     ${QT_CLIENT_LIB_INTERNAL_SRC})
 qt5_use_modules(storage-framework-qt-client Core Network)
-target_link_libraries(storage-framework-qt-client Qt5::Core Qt5::Network)
+# Commented out for now, until we fill in the implementation.
+#set_target_properties(storage-framework-qt-client PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
+target_link_libraries(storage-framework-qt-client
+    Qt5::Core
+    Qt5::Network)
