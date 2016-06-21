@@ -45,6 +45,8 @@ private:
     std::unique_ptr<OnlineAccounts::Manager> manager_;
     std::shared_ptr<CredentialsCache> credentials_;
     std::map<OnlineAccounts::AccountId,std::unique_ptr<ProviderInterface>> interfaces_;
+
+    Q_DISABLE_COPY(ServerImpl)
 };
 
 }

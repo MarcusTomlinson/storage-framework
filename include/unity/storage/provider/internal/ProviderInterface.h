@@ -6,6 +6,7 @@
 #include <OnlineAccounts/PendingCallWatcher>
 #include <QObject>
 #include <QList>
+#include <QDBusConnection>
 #include <QDBusContext>
 #include <QDBusUnixFileDescriptor>
 
@@ -25,6 +26,7 @@ namespace internal
 {
 
 class CredentialsCache;
+class PendingJobs;
 
 struct ItemMetadata
 {
@@ -35,7 +37,11 @@ class ProviderInterface : public QObject, protected QDBusContext
     Q_OBJECT
 
 public:
-    ProviderInterface(std::shared_ptr<ProviderBase> const& provider, std::shared_ptr<CredentialsCache> const& credentials, OnlineAccounts::Account* account, QObject *parent=nullptr);
+    ProviderInterface(std::shared_ptr<ProviderBase> const& provider,
+                      QDBusConnection const& bus,
+                      std::shared_ptr<CredentialsCache> const& credentials,
+                      OnlineAccounts::Account* account,
+                      QObject *parent=nullptr);
     ~ProviderInterface();
 
 public Q_SLOTS:
@@ -65,9 +71,14 @@ private:
 
     std::shared_ptr<ProviderBase> const provider_;
     std::shared_ptr<CredentialsCache> const credentials_;
+    std::shared_ptr<PendingJobs> const jobs_;
+
     OnlineAccounts::Account* const account_;
     std::unique_ptr<OnlineAccounts::PendingCallWatcher> auth_watcher_;
+
     std::map<Handler*, std::unique_ptr<Handler>> requests_;
+
+    Q_DISABLE_COPY(ProviderInterface)
 };
 
 }

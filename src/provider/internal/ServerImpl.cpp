@@ -1,5 +1,6 @@
 #include <unity/storage/provider/internal/ServerImpl.h>
 #include <unity/storage/provider/ProviderBase.h>
+#include <unity/storage/provider/internal/MainLoopExecutor.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 #include "provideradaptor.h"
 
@@ -31,6 +32,9 @@ void ServerImpl::init(int& argc, char **argv)
     auto bus = QDBusConnection::sessionBus();
     credentials_ = make_shared<CredentialsCache>(bus);
 
+    // Ensure the executor is instantiated in the main thread.
+    MainLoopExecutor::instance();
+
     manager_.reset(new OnlineAccounts::Manager(""));
     connect(manager_.get(), &OnlineAccounts::Manager::ready,
                      this, &ServerImpl::account_manager_ready);
@@ -48,7 +52,8 @@ void ServerImpl::account_manager_ready()
     {
         qDebug() << "Found account" << account->id() << "for service" << account->serviceId();
         unique_ptr<ProviderInterface> iface(
-            new ProviderInterface(server_->make_provider(), credentials_, account));
+            new ProviderInterface(server_->make_provider(), bus,
+                                  credentials_, account));
         // this instance is managed by Qt's parent/child memory management
         new ProviderAdaptor(iface.get());
 
