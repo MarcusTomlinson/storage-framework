@@ -10,6 +10,7 @@ enum class ItemType
     file,
     folder,
     root,
+    LAST_ENTRY__
 };
 
 enum class TransferState

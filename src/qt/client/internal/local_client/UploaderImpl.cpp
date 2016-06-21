@@ -66,7 +66,7 @@ void UploadWorker::start_uploading() noexcept
 }
 
 // Called once we know the outcome of the upload, or via a signal when the client
-// calls finish_download(). This makes the future ready with the appropriate
+// calls finish_upload(). This makes the future ready with the appropriate
 // result or error information. If the client has not disconnected
 // yet, we don't touch the future; it becomes ready once we receive the disconnected signal.
 

@@ -9,7 +9,6 @@
 #include <QFutureInterface>
 
 // TODO: Hack until we can use the registry instead
-#include <OnlineAccounts/Manager>
 #include <OnlineAccounts/Account>
 
 #pragma GCC diagnostic push
@@ -43,7 +42,7 @@ RuntimeImpl::RuntimeImpl()
     if (!conn_.isConnected())
     {
         qDebug() << "can't connect to session bus";
-        throw LocalCommsException();  // TODO, details
+        throw LocalCommsException();  // LCOV_EXCL_LINE  // TODO, details
     }
     qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
     qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();
@@ -70,41 +69,51 @@ void RuntimeImpl::shutdown()
 
 QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 {
-    QFutureInterface<QVector<Account::SPtr>> qf;
-
-    if (!accounts_.isEmpty())
+    if (!manager_)
     {
-        qf.reportResult(accounts_);
-        qf.reportFinished();
-        return qf.future();
+        manager_.reset(new OnlineAccounts::Manager(""));
+        connect(manager_.get(), &OnlineAccounts::Manager::ready, this, &RuntimeImpl::manager_ready);
+        connect(&timer_, &QTimer::timeout, this, &RuntimeImpl::timeout);
+        timer_.setSingleShot(true);
+        timer_.start(5000);  // TODO: should be configurable?
     }
 
-    OnlineAccounts::Manager manager("");
-    manager.waitForReady();
-
-    try
-    {
-        for (auto const& a : manager.availableAccounts())
-        {
-            auto impl = new AccountImpl(public_instance_, a->id(), "", a->serviceId(), a->displayName());
-            Account::SPtr acc(new Account(impl));
-            impl->set_public_instance(acc);
-            accounts_.append(acc);
-        }
-        qf.reportResult(accounts_);
-    }
-    catch (StorageException const& e)
-    {
-        qf.reportException(e);
-    }
-
-    qf.reportFinished();
-    return qf.future();
+    qf_.reportStarted();
+    return qf_.future();
 }
 
 QDBusConnection& RuntimeImpl::connection()
 {
     return conn_;
+}
+
+void RuntimeImpl::manager_ready()
+{
+    timer_.stop();
+    try
+    {
+        QVector<Account::SPtr> accounts;
+        for (auto const& a : manager_->availableAccounts("google-drive-scope"))
+        {
+            qDebug() << "got account:" << a->displayName() << a->serviceId() << a->id();
+            auto impl = new AccountImpl(public_instance_, a->id(), "", a->serviceId(), a->displayName());
+            Account::SPtr acc(new Account(impl));
+            impl->set_public_instance(acc);
+            accounts.append(acc);
+        }
+        qf_.reportResult(accounts);
+    }
+    catch (StorageException const& e)
+    {
+        qf_.reportException(e);
+    }
+    qf_.reportFinished();
+}
+
+void RuntimeImpl::timeout()
+{
+    qf_.reportException(StorageException());  // TODO
+    qf_.reportFinished();
 }
 
 }  // namespace local_client

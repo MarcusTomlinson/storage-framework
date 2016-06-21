@@ -66,8 +66,6 @@ public:
     void set_public_instance(std::weak_ptr<Item> p);
 
 protected:
-    static boost::filesystem::path sanitize(QString const& name);
-
     const QString identity_;
     const ItemType type_;
     std::weak_ptr<Root> root_;

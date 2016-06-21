@@ -21,7 +21,7 @@ QDBusArgument& operator<<(QDBusArgument& argument, Item const& item)
     argument << QString::fromStdString(item.title);
     argument << QString::fromStdString(item.etag);
     argument << static_cast<int32_t>(item.type);
-    argument.beginMap(QVariant::Int, qMetaTypeId<QDBusVariant>());
+    argument.beginMap(QVariant::String, qMetaTypeId<QDBusVariant>());
     for (auto const& pair : item.metadata)
     {
         argument.beginMapEntry();

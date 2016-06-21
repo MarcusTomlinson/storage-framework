@@ -25,8 +25,19 @@ static constexpr int SIGNAL_WAIT_TIME = 1000;
 
 Account::SPtr get_account(Runtime::SPtr const& runtime)
 {
-    auto accounts = runtime->accounts().result();
-    assert(accounts.size() == 1);
+    auto accounts_fut = runtime->accounts();
+    QFutureWatcher<QVector<Account::SPtr>> w;
+    QSignalSpy spy(&w, &decltype(w)::finished);
+    w.setFuture(accounts_fut);
+    assert(spy.wait(SIGNAL_WAIT_TIME));
+
+    auto accounts = accounts_fut.result();
+    if (accounts.size() == 0)
+    {
+        qDebug() << "Cannot find any online account";
+        qDebug() << "Configure at least one online account for a cloud provider in System Settings -> Online Accounts";
+        return nullptr;
+    }
     return accounts[0];
 }
 
@@ -98,12 +109,22 @@ TEST(Runtime, accounts)
     auto runtime = Runtime::create();
 
     auto acc = get_account(runtime);
-    auto roots = acc->roots().result();
+    ASSERT_NE(nullptr, acc);
+    auto roots_fut = acc->roots();
+    while (!roots_fut.isFinished())
+    {
+        QTimer timer;
+        QSignalSpy spy(&timer, &QTimer::timeout);
+        spy.wait(1);
+    }
+    auto roots = roots_fut.result();
     EXPECT_GE(1, roots.size());
 
+#if 0
     // Get roots again, to get coverage for lazy initialization.
     roots = acc->roots().result();
     ASSERT_GE(1, roots.size());
+#endif
 }
 #if 0
 

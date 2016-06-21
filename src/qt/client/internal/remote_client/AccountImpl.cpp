@@ -68,7 +68,7 @@ class RootsHandler : public QObject
     Q_OBJECT
 
 public:
-    RootsHandler(QDBusPendingReply<storage::internal::ItemMetadata> const& reply);
+    RootsHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply);
 
     QFuture<QVector<Root::SPtr>> future();
 
@@ -76,14 +76,12 @@ public Q_SLOTS:
     void finished(QDBusPendingCallWatcher* call);
 
 private:
-    QDBusPendingReply<storage::internal::ItemMetadata> reply_;
     QDBusPendingCallWatcher watcher_;
     QFutureInterface<QVector<Root::SPtr>> qf_;
 };
 
-RootsHandler::RootsHandler(QDBusPendingReply<storage::internal::ItemMetadata> const& reply)
-    : reply_(reply)
-    , watcher_(reply, this)
+RootsHandler::RootsHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply)
+    : watcher_(reply, this)
 {
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &RootsHandler::finished);
     qf_.reportStarted();
@@ -94,16 +92,24 @@ QFuture<QVector<Root::SPtr>> RootsHandler::future()
     return qf_.future();
 }
 
-void RootsHandler::finished(QDBusPendingCallWatcher*)
+void RootsHandler::finished(QDBusPendingCallWatcher* call)
 {
+    QDBusPendingReply<QList<storage::internal::ItemMetadata>> reply = *call;
     this->deleteLater();
-    if (reply_.isError())
+    if (reply.isError())
     {
+        qDebug() << reply.error().message();
         qf_.reportException(StorageException());  // TODO
     }
     else
     {
         QVector<Root::SPtr> roots;
+        auto metadata = reply.value();
+        for (auto const& md : metadata)
+        {
+            auto root = RootImpl::make_root(md, dynamic_pointer_cast<Root>(public_instance_));
+            roots.append(root);
+        }
         qf_.reportResult(roots);
     }
     qf_.reportFinished();
