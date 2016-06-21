@@ -107,8 +107,8 @@ void RootsHandler::finished(QDBusPendingCallWatcher* call)
         auto metadata = reply.value();
         for (auto const& md : metadata)
         {
-            auto root = RootImpl::make_root(md, dynamic_pointer_cast<Root>(public_instance_));
-            roots.append(root);
+            //auto root = RootImpl::make_root(md, dynamic_pointer_cast<Root>(public_instance_));
+            //roots.append(root);
         }
         qf_.reportResult(roots);
     }
