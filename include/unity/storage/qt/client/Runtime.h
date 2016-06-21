@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unity/storage/visibility.h>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
@@ -9,7 +11,6 @@
 
 namespace unity
 {
-
 namespace storage
 {
 namespace qt
@@ -29,7 +30,7 @@ class RuntimeImpl;
 /**
 TODO
 */
-class Runtime
+class UNITY_STORAGE_EXPORT Runtime final
 {
 public:
     /**
@@ -42,8 +43,6 @@ public:
     */
     ~Runtime();
 
-    Runtime(Runtime const&) = delete;
-    Runtime& operator=(Runtime const&) = delete;
     Runtime(Runtime&&);
     Runtime& operator=(Runtime&&);
 
@@ -59,7 +58,7 @@ public:
 
     This method shuts down the runtime. Calling shutdown() more than once is safe and does nothing.
 
-    The destructor implicitly calls shutdown(). This method is provide mainly to permit logging of any
+    The destructor implicitly calls shutdown(). This method is provided mainly to permit logging of any
     errors that might arise during shut-down.
     \throws Various exceptions, depending on the error. TODO
     */

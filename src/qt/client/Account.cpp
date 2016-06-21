@@ -43,6 +43,11 @@ QString Account::description() const
     return p_->description();
 }
 
+QFuture<QVector<std::shared_ptr<Root>>> Account::roots() const
+{
+    return p_->roots();
+}
+
 }  // namespace client
 }  // namespace qt
 }  // namespace storage

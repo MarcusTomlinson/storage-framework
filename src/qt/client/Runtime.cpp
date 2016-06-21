@@ -21,6 +21,11 @@ Runtime::Runtime(internal::RuntimeImpl* p)
     assert(p != nullptr);
 }
 
+Runtime::~Runtime()
+{
+    shutdown();
+}
+
 Runtime::SPtr Runtime::create()
 {
     auto impl = new internal::RuntimeImpl;
@@ -29,9 +34,15 @@ Runtime::SPtr Runtime::create()
     return runtime;
 }
 
+void Runtime::shutdown()
+{
+    p_->shutdown();
+
+}
+
 QFuture<QVector<shared_ptr<Account>>> Runtime::accounts()
 {
-    return p_->get_accounts();
+    return p_->accounts();
 }
 
 }  // namespace client

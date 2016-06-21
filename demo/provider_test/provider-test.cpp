@@ -1,16 +1,11 @@
-
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/Server.h>
 #include <unity/storage/provider/TempfileUploadJob.h>
 #include <unity/storage/provider/UploadJob.h>
 
-#include <unistd.h>
-#include <cstdio>
-#include <stdexcept>
-
-using namespace std;
-using namespace unity::storage::common;
+using namespace unity::storage;
 using namespace unity::storage::provider;
+using namespace std;
 
 class MyProvider : public ProviderBase
 {

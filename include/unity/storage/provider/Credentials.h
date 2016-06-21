@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unity/storage/provider/visibility.h>
+#include <unity/storage/visibility.h>
 
 #include <boost/blank.hpp>
 #include <boost/variant.hpp>
@@ -14,11 +14,11 @@ namespace storage
 namespace provider
 {
 
-struct STORAGE_PROVIDER_EXPORT NoCredentials
+struct UNITY_STORAGE_EXPORT NoCredentials
 {
 };
 
-struct STORAGE_PROVIDER_EXPORT OAuth1Credentials
+struct UNITY_STORAGE_EXPORT OAuth1Credentials
 {
     std::string consumer_key;
     std::string consumer_secret;
@@ -26,12 +26,12 @@ struct STORAGE_PROVIDER_EXPORT OAuth1Credentials
     std::string token_secret;
 };
 
-struct STORAGE_PROVIDER_EXPORT OAuth2Credentials
+struct UNITY_STORAGE_EXPORT OAuth2Credentials
 {
     std::string access_token;
 };
 
-struct STORAGE_PROVIDER_EXPORT PasswordCredentials
+struct UNITY_STORAGE_EXPORT PasswordCredentials
 {
     std::string username;
     std::string password;

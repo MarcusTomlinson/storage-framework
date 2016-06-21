@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unity/storage/provider/visibility.h>
+#include <unity/storage/visibility.h>
 
 #include <memory>
 #include <string>
@@ -19,7 +19,7 @@ class ServerImpl;
 
 class ProviderBase;
 
-class STORAGE_PROVIDER_EXPORT ServerBase
+class UNITY_STORAGE_EXPORT ServerBase
 {
 public:
     ServerBase(std::string const& bus_name, std::string const& account_service_id);

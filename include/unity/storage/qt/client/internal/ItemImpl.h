@@ -1,6 +1,7 @@
 #pragma once
 
-#include <unity/storage/common/common.h>
+#include <unity/storage/common.h>
+#include <unity/storage/qt/client/internal/boost_filesystem.h>
 
 #include <QDateTime>
 #pragma GCC diagnostic push
@@ -10,7 +11,9 @@
 #include <QString>
 #include <QVariantMap>
 
+#include <atomic>
 #include <memory>
+#include <mutex>
 
 namespace unity
 {
@@ -21,6 +24,7 @@ namespace qt
 namespace client
 {
 
+class File;
 class Folder;
 class Item;
 class Root;
@@ -28,37 +32,45 @@ class Root;
 namespace internal
 {
 
-class ItemImpl
+class ItemImpl : public std::enable_shared_from_this<ItemImpl>
 {
 public:
+    ItemImpl(QString const& identity, ItemType type);
     virtual ~ItemImpl();
     ItemImpl(ItemImpl const&) = delete;
     ItemImpl& operator=(ItemImpl const&) = delete;
 
     QString native_identity() const;
-    QString name() const;
-    unity::storage::common::ItemType type() const;
+    virtual QString name() const;
+    ItemType type() const;
     Root* root() const;
+    QVariantMap metadata() const;
+    QDateTime last_modified_time() const;
+    void update_modified_time();
 
-    QFuture<QVariantMap> get_metadata() const;
-    QFuture<QDateTime> last_modified_time() const;
     QFuture<std::shared_ptr<Item>> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
     QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
-    virtual QFuture<void> destroy() = 0;
+    virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const;
+    virtual QVector<QString> parent_ids() const;
+    virtual QFuture<void> destroy();
 
     void set_root(std::weak_ptr<Root> p);
     void set_public_instance(std::weak_ptr<Item> p);
-    std::weak_ptr<Item> public_instance() const;
+
+    bool operator==(ItemImpl const& other) const noexcept;
 
 protected:
-    ItemImpl(QString const& identity);
+    static boost::filesystem::path sanitize(QString const& name);
 
-    bool destroyed_ = false;
-    QString identity_;
-    QString name_;
-    std::weak_ptr<Root> root_;
-    common::ItemType type_;
-    std::weak_ptr<Item> public_instance_;
+    std::atomic_bool destroyed_;
+    QDateTime modified_time_;
+    QVariantMap metadata_;
+    mutable std::mutex mutex_;
+    QString identity_;                     // Immutable
+    QString name_;                         // Immutable
+    std::weak_ptr<Root> root_;             // Immutable
+    ItemType type_;                        // Immutable
+    std::weak_ptr<Item> public_instance_;  // Immutable
 };
 
 }  // namespace internal

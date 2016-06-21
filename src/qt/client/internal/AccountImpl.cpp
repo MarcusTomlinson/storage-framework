@@ -29,7 +29,7 @@ QString AccountImpl::description() const
     return description_;
 }
 
-QFuture<QVector<shared_ptr<Root>>> AccountImpl::get_roots()
+QFuture<QVector<shared_ptr<Root>>> AccountImpl::roots()
 {
     return QFuture<QVector<shared_ptr<Root>>>();
 }

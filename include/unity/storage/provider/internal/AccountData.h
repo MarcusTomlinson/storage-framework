@@ -1,7 +1,6 @@
 #pragma once
 
 #include <unity/storage/provider/Credentials.h>
-#include <unity/storage/provider/visibility.h>
 
 #include <OnlineAccounts/Account>
 #include <OnlineAccounts/PendingCallWatcher>

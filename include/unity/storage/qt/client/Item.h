@@ -1,6 +1,7 @@
 #pragma once
 
-#include <unity/storage/common/common.h>
+#include <unity/storage/common.h>
+#include <unity/storage/visibility.h>
 
 #include <QDateTime>
 #pragma GCC diagnostic push
@@ -33,15 +34,19 @@ class ItemImpl;
 /**
 \brief Base class for files and directories.
 */
-class Item
+class UNITY_STORAGE_EXPORT Item
 {
 public:
-    ~Item();
-    Item(Item const&) = delete;
-    Item& operator=(Item const&) = delete;
+    /// @cond
+    virtual ~Item();
+    /// @endcond
+
     Item(Item&&);
     Item& operator=(Item&&);
 
+    /**
+    \brief Convenience type definition.
+    */
     typedef std::shared_ptr<Item> SPtr;
 
     /**
@@ -65,23 +70,33 @@ public:
     Root* root() const;
 
     /**
+    \brief Returns the type of the item.
+    */
+    ItemType type() const;
+
+    /**
     \brief Returns metadata for the item.
 
-    \warning The returned metadata is specific to the storage backend. Do not use this method
-    for generic applications that must work with arbitrary backends.
-    TODO: Needs a lot more doc. Should we provide this method at all?
+    TODO: Needs a lot more doc. Explain standard and provider-specific metadata.
     */
-    QFuture<QVariantMap> metadata() const;
+    QVariantMap metadata() const;
 
     /**
     \brief Returns the time at which the item was last modified.
     */
-    QFuture<QDateTime> last_modified_time() const;
+    QDateTime last_modified_time() const;
 
     /**
-    \brief Returns the type of the item.
+    \brief Returns a list of parent folders of this item.
+    \return A vector of parents. For a root, the returned vector is empty.
     */
-    unity::storage::common::ItemType type() const;
+    QFuture<QVector<std::shared_ptr<Folder>>> parents() const;
+
+    /**
+    \brief Returns the native identities of the parents of this item.
+    \return A vector of parent identities. For a root, the returned vector is empty.
+    */
+    QVector<QString> parent_ids() const;
 
     /**
     \brief Copies this item.
@@ -109,10 +124,12 @@ public:
     */
     QFuture<void> destroy();
 
+    bool equal_to(Item::SPtr const& other) const noexcept;
+
 protected:
     Item(internal::ItemImpl* p);
 
-    std::unique_ptr<internal::ItemImpl> p_;
+    std::shared_ptr<internal::ItemImpl> p_;
 };
 
 }  // namespace client

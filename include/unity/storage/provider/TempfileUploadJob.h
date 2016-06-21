@@ -1,7 +1,7 @@
 #pragma once
 
 #include <unity/storage/provider/UploadJob.h>
-#include <unity/storage/provider/visibility.h>
+#include <unity/storage/visibility.h>
 
 #include <string>
 #include <memory>
@@ -18,7 +18,7 @@ namespace internal
 class TempfileUploadJobImpl;
 }
 
-class STORAGE_PROVIDER_EXPORT TempfileUploadJob : public UploadJob
+class UNITY_STORAGE_EXPORT TempfileUploadJob : public UploadJob
 {
 public:
     TempfileUploadJob(std::string const& upload_id);

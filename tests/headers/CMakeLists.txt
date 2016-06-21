@@ -6,7 +6,7 @@ set(root_inc_dir ${CMAKE_SOURCE_DIR}/include)
 
 set(subdirs
     unity/storage/qt/client
-    unity/storage/common
+    unity/storage
 )
 
 set(extra_inc_dirs "${Qt5Core_INCLUDE_DIRS}")

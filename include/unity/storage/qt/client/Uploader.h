@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unity/storage/common.h>
+#include <unity/storage/visibility.h>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
@@ -7,6 +10,8 @@
 #include <QLocalSocket>
 
 #include <memory>
+
+class QLocalSocket;
 
 namespace unity
 {
@@ -22,11 +27,12 @@ class File;
 namespace internal
 {
 
+class FileImpl;
 class UploaderImpl;
 
 }  // namespace internal
 
-class Uploader
+class UNITY_STORAGE_EXPORT Uploader final
 {
 public:
     /**
@@ -36,11 +42,12 @@ public:
     */
     ~Uploader();
 
-    Uploader(Uploader const&) = delete;
-    Uploader& operator=(Uploader const&) = delete;
     Uploader(Uploader&&);
     Uploader& operator=(Uploader&&);
 
+    /**
+    \brief Convenience type definition.
+    */
     typedef std::shared_ptr<Uploader> SPtr;
 
     /**
@@ -62,9 +69,14 @@ public:
     \brief Finalizes the upload.
 
     Once you have written the file contents to the socket returned by socket(), you must call finish_upload(),
-    which closes the socket. Call result() on the returned future to check for errors.
+    which closes the socket. Call `result()` on the returned future to check for errors. If an error
+    occurred, `result()` throws an exception. Otherwise, it returns the transfer state to
+    indicate whether the upload finished normally or was cancelled.
+
+    Calling finish_upload() more than once is safe; subsequent calls do nothing and return the future
+    that was returned by the first call.
     */
-    QFuture<void> finish_upload();
+    QFuture<TransferState> finish_upload();
 
     /**
     \brief Cancels an upload.
@@ -79,9 +91,9 @@ public:
 private:
     Uploader(internal::UploaderImpl*);
 
-    std::unique_ptr<internal::UploaderImpl> p_;
+    std::shared_ptr<internal::UploaderImpl> p_;
 
-    friend class internal::UploaderImpl;
+    friend class internal::FileImpl;
 };
 
 }  // namespace client
