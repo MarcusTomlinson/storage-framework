@@ -1,7 +1,7 @@
 #pragma once
 
 #include <unity/storage/provider/Server.h>
-#include <unity/storage/provider/internal/CredentialsCache.h>
+#include <unity/storage/provider/internal/DBusPeerCache.h>
 #include <unity/storage/provider/internal/ProviderInterface.h>
 
 #include <OnlineAccounts/Manager>
@@ -43,7 +43,7 @@ private:
 
     std::unique_ptr<QCoreApplication> app_;
     std::unique_ptr<OnlineAccounts::Manager> manager_;
-    std::shared_ptr<CredentialsCache> credentials_;
+    std::shared_ptr<DBusPeerCache> dbus_peer_;
     std::map<OnlineAccounts::AccountId,std::unique_ptr<ProviderInterface>> interfaces_;
 
     Q_DISABLE_COPY(ServerImpl)
