@@ -18,14 +18,9 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
     return QFuture<QVector<Item::SPtr>>();
 }
 
-QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const&) const
+QFuture<Item::SPtr> FolderImpl::lookup(QString const&) const
 {
-    return QFuture<QVector<Item::SPtr>>();
-}
-
-QFuture<QVector<Folder::SPtr>> FolderImpl::parents() const
-{
-    return QFuture<QVector<Folder::SPtr>>();
+    return QFuture<Item::SPtr>();
 }
 
 QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)

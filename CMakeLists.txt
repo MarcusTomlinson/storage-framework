@@ -20,6 +20,7 @@ endif()
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 include_directories(include)
+include_directories(${CMAKE_BINARY_DIR}/include)  # For generated headers
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -Wall -pedantic -Wextra -fvisibility=hidden")
 
@@ -84,7 +85,8 @@ enable_testing()
 
 include(EnableCoverageReport)
 
-find_package(Boost COMPONENTS filesystem thread REQUIRED)
+find_package(Boost COMPONENTS filesystem system thread REQUIRED)
+find_package(Qt5Concurrent REQUIRED)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5DBus REQUIRED)
 find_package(Qt5Network REQUIRED)
@@ -96,12 +98,15 @@ pkg_check_modules(ONLINEACCOUNTS_DEPS REQUIRED OnlineAccountsQt)
 
 add_definitions(-DQT_NO_KEYWORDS)
 
+add_subdirectory(include)
 add_subdirectory(src)
 add_subdirectory(tests)
 add_subdirectory(demo)
 
 enable_coverage_report(
     TARGETS
+        qt-client-lib-public
+        storage-framework-qt-local-client
     FILTER
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_BINARY_DIR}/*

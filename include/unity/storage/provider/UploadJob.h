@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unity/storage/provider/visibility.h>
+#include <unity/storage/visibility.h>
 
 #include <boost/thread/future.hpp>
 #include <string>
@@ -19,7 +19,7 @@ namespace internal
 class UploadJobImpl;
 }
 
-class STORAGE_PROVIDER_EXPORT UploadJob
+class UNITY_STORAGE_EXPORT UploadJob
 {
 public:
     UploadJob(std::string const& upload_id);

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <unity/storage/common/common.h>
-#include <unity/storage/provider/visibility.h>
+#include <unity/storage/common.h>
+#include <unity/storage/visibility.h>
 
 #include <boost/thread/future.hpp>
 
@@ -19,18 +19,18 @@ namespace provider
 
 class UploadJob;
 
-struct STORAGE_PROVIDER_EXPORT Item
+struct UNITY_STORAGE_EXPORT Item
 {
     std::string item_id;
     std::string parent_id;
     std::string title;
     std::string etag;
-    unity::storage::common::ItemType type;
+    unity::storage::ItemType type;
     // Should be map<string,variant>
     std::map<std::string,std::string> metadata;
 };
 
-struct STORAGE_PROVIDER_EXPORT Context
+struct UNITY_STORAGE_EXPORT Context
 {
     uid_t uid;
     pid_t pid;
@@ -39,7 +39,7 @@ struct STORAGE_PROVIDER_EXPORT Context
 
 typedef std::vector<Item> ItemList;
 
-class STORAGE_PROVIDER_EXPORT ProviderBase
+class UNITY_STORAGE_EXPORT ProviderBase
 {
 public:
     ProviderBase();

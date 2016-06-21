@@ -18,26 +18,30 @@ namespace internal
 {
 
 class FileImpl;
+class FolderImpl;
+class UploadWorker;
 
 }  // namespace internal
-
-enum class ConflictPolicy { error_if_conflict, overwrite };
 
 /**
 \brief Class that represents a file.
 
 A file is a sequence of bytes.
 */
-class File : public Item
+class UNITY_STORAGE_EXPORT File final : public Item
 {
 public:
-    ~File();
-    File(File const&) = delete;
-    File& operator=(File const&) = delete;
+    /// @cond
+    virtual ~File();
+    /// @endcond
+
     File(File&&);
     File& operator=(File&&);
 
-    typedef std::unique_ptr<File> SPtr;
+    /**
+    \brief Convenience type definition.
+    */
+    typedef std::shared_ptr<File> SPtr;
 
     /**
     \brief Returns the size of the file in bytes.
@@ -59,7 +63,10 @@ public:
 private:
     File(internal::FileImpl*);
 
-    friend class FileImpl;
+    friend class internal::FileImpl;
+    friend class internal::FolderImpl;
+    friend class internal::ItemImpl;
+    friend class internal::UploadWorker;
 };
 
 }  // namespace client

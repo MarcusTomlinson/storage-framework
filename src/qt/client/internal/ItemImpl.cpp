@@ -15,8 +15,9 @@ namespace client
 namespace internal
 {
 
-ItemImpl::ItemImpl(QString const& identity)
+ItemImpl::ItemImpl(QString const& identity, ItemType type)
     : identity_(identity)
+    , type_(type)
 {
     assert(!identity.isEmpty());
 }
@@ -38,19 +39,19 @@ Root* ItemImpl::root() const
     return nullptr;
 }
 
-QFuture<QVariantMap> ItemImpl::get_metadata() const
+ItemType ItemImpl::type() const
 {
-    return QFuture<QVariantMap>();
+    return QFuture<ItemType>();
 }
 
-QFuture<QDateTime> ItemImpl::last_modified_time() const
+QVariantMap ItemImpl::metadata() const
 {
-    return QFuture<QDateTime>();
+    return QVariantMap();
 }
 
-common::ItemType ItemImpl::type() const
+QDateTime ItemImpl::last_modified_time() const
 {
-    return QFuture<common::ItemType>();
+    return QDateTime();
 }
 
 QFuture<shared_ptr<Item>> copy(shared_ptr<Folder> const& new_parent, QString const& new_name)

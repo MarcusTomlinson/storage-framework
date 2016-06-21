@@ -2,10 +2,9 @@
 
 #include <unity/storage/qt/client/Downloader.h>
 #include <unity/storage/qt/client/Exceptions.h>
-#include <unity/storage/qt/client/Uploader.h>
 #include <unity/storage/qt/client/internal/DownloaderImpl.h>
-
-#include <boost/filesystem.hpp>
+#include <unity/storage/qt/client/internal/UploaderImpl.h>
+#include <unity/storage/qt/client/Uploader.h>
 
 using namespace std;
 
@@ -20,26 +19,9 @@ namespace client
 namespace internal
 {
 
-QFuture<void> FileImpl::destroy()
+FileImpl::FileImpl(QString const& identity)
+    : ItemImpl(identity, ItemType::file)
 {
-    QFutureInterface<void> qf;
-    if (destroyed_)
-    {
-        qf.reportException(DestroyedException());
-        return qf.future();
-    }
-
-    int rc = ::unlink(identity_.toStdString().c_str());
-    if (rc == 0)
-    {
-        destroyed_ = true;
-        qf.reportFinished();
-    }
-    else
-    {
-        qf.reportException(StorageException());
-    }
-    return qf.future();
 }
 
 int64_t FileImpl::size() const
@@ -66,9 +48,25 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
     if (destroyed_)
     {
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
     }
-    return QFuture<Uploader::SPtr>();  // TODO
+
+    try
+    {
+        auto pi = public_instance_.lock();
+        assert(pi);
+        auto file_ptr = static_pointer_cast<File>(pi);
+        auto impl(new UploaderImpl(file_ptr, policy));
+        Uploader::SPtr ul(new Uploader(impl));
+        qf.reportResult(ul);
+    }
+    catch (std::exception const&)
+    {
+        qf.reportException(StorageException());  // TODO
+    }
+    qf.reportFinished();
+    return qf.future();
 }
 
 QFuture<Downloader::SPtr> FileImpl::create_downloader()
@@ -77,16 +75,34 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
     if (destroyed_)
     {
         qf.reportException(DestroyedException());
+        qf.reportFinished();
         return qf.future();
     }
 
-    auto pi = public_instance_.lock();
-    assert(pi);
-    auto file_ptr = static_pointer_cast<File>(pi);
-    auto impl = new DownloaderImpl(file_ptr);  // TODO: missing params
-    Downloader::SPtr dl(new Downloader(impl));
-    qf.reportResult(dl);
+    try
+    {
+        auto pi = public_instance_.lock();
+        assert(pi);
+        auto file_ptr = static_pointer_cast<File>(pi);
+        auto impl = new DownloaderImpl(file_ptr);
+        Downloader::SPtr dl(new Downloader(impl));
+        qf.reportResult(dl);
+    }
+    catch (std::exception const&)
+    {
+        qf.reportException(StorageException());  // TODO
+    }
+    qf.reportFinished();
     return qf.future();
+}
+
+File::SPtr FileImpl::make_file(QString const& identity, weak_ptr<Root> root)
+{
+    auto impl = new FileImpl(identity);
+    File::SPtr file(new File(impl));
+    impl->set_root(root);
+    impl->set_public_instance(file);
+    return file;
 }
 
 }  // namespace internal

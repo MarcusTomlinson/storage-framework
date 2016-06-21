@@ -1,7 +1,5 @@
 #pragma once
 
-#include <unity/storage/provider/visibility.h>
-
 #include <QObject>
 
 #include <string>

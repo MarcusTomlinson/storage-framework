@@ -38,19 +38,29 @@ Root* Item::root() const
     return p_->root();
 }
 
-QFuture<QVariantMap> Item::metadata() const
+ItemType Item::type() const
 {
-    return p_->get_metadata();
+    return p_->type();
 }
 
-QFuture<QDateTime> Item::last_modified_time() const
+QVariantMap Item::metadata() const
+{
+    return p_->metadata();
+}
+
+QDateTime Item::last_modified_time() const
 {
     return p_->last_modified_time();
 }
 
-common::ItemType Item::type() const
+QFuture<QVector<std::shared_ptr<Folder>>> Item::parents() const
 {
-    return p_->type();
+    return p_->parents();
+}
+
+QVector<QString> Item::parent_ids() const
+{
+    return p_->parent_ids();
 }
 
 QFuture<Item::SPtr> Item::copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name)
@@ -65,6 +75,11 @@ QFuture<Item::SPtr> Item::move(std::shared_ptr<Folder> const& new_parent, QStrin
 QFuture<void> Item::destroy()
 {
     return p_->destroy();
+}
+
+bool Item::equal_to(Item::SPtr const& other) const noexcept
+{
+    return p_->operator==(*other->p_);
 }
 
 }  // namespace client

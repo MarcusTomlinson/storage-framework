@@ -16,7 +16,16 @@ namespace client
 namespace internal
 {
 
-QFuture<QVector<shared_ptr<Account>>> RuntimeImpl::get_accounts()
+void RuntimeImpl::shutdown()
+{
+    if (destroyed_)
+    {
+        return;
+    }
+    destroyed_ = true;
+}
+
+QFuture<QVector<shared_ptr<Account>>> RuntimeImpl::accounts()
 {
     return QFuture<QVector<shared_ptr<Account>>>();
 }

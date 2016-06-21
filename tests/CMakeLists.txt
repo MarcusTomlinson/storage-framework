@@ -9,6 +9,7 @@ set(CMAKE_CXX_FLAGS ${old_cxx_flags})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(unit_test_dirs
+    local-client
 )
 
 set(slow_test_dirs

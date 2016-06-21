@@ -18,6 +18,7 @@ namespace internal
 {
 
 class AccountImpl;
+class ItemImpl;
 class RootImpl;
 
 }
@@ -25,10 +26,10 @@ class RootImpl;
 /**
 \brief Class that represents a root folder.
 */
-class Root : public Folder
+class UNITY_STORAGE_EXPORT Root final : public Folder
 {
 public:
-    ~Root();
+    virtual ~Root();
     Root(Root const&) = delete;
     Root& operator=(Root const&) = delete;
     Root(Root&&);
@@ -37,7 +38,7 @@ public:
     typedef std::shared_ptr<Root> SPtr;
 
     /**
-    \brief Returns the account for this item.
+    \brief Returns the account for this root.
     */
     Account* account() const;
 
@@ -51,9 +52,9 @@ public:
 private:
     Root(internal::RootImpl*);
 
-    std::unique_ptr<internal::RootImpl> p_;
-
-    friend class internal::AccountImpl;
+    //friend class internal::AccountImpl;
+    friend class internal::ItemImpl;
+    friend class internal::RootImpl;
 };
 
 }  // namespace client
