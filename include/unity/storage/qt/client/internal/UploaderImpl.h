@@ -102,6 +102,9 @@ Q_SIGNALS:
     void do_finish();
     void do_cancel();
 
+private Q_SLOTS:
+    void disconnected();
+
 private:
     std::shared_ptr<File> file_;
     ConflictPolicy policy_;

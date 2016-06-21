@@ -45,6 +45,7 @@ void UploadWorker::start_uploading() noexcept
 {
     read_socket_.reset(new QLocalSocket);
     read_socket_->setSocketDescriptor(read_fd_, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
+    shutdown(read_fd_, SHUT_WR);
 
     // Monitor read socket for ready-to-read, disconnected, and error events.
     connect(read_socket_.get(), &QLocalSocket::readyRead, this, &UploadWorker::on_bytes_ready);
@@ -62,7 +63,7 @@ void UploadWorker::start_uploading() noexcept
         // Some kernels on the phones don't support O_TMPFILE and return various errno values when this fails.
         // So, if anything at all goes wrong, we fall back on conventional temp file creation and
         // produce a hard error if that doesn't work either.
-        string tmpfile = parent_path.native() + "/thumbnail.XXXXXX";
+        string tmpfile = parent_path.native() + "/.storage-framework.XXXXXX";
         tmp_fd_.reset(mkstemp(const_cast<char*>(tmpfile.data())));
         if (tmp_fd_.get() == -1)
         {
@@ -95,15 +96,10 @@ void UploadWorker::do_finish()
     {
         case in_progress:
         {
-            if (disconnected_)
-            {
-                // Future doesn't become ready until the client has
-                // disconnected from its write socket.
-                state_ = finalized;
-                finalize();
-                qf_.reportResult(TransferState::ok);
-                qf_.reportFinished();
-            }
+            state_ = finalized;
+            finalize();
+            qf_.reportResult(TransferState::ok);
+            qf_.reportFinished();
             break;
         }
         case finalized:
@@ -150,12 +146,16 @@ void UploadWorker::do_cancel()
 
 void UploadWorker::on_bytes_ready()
 {
+    qDebug() << "on_bytes_ready:" << read_socket_->bytesAvailable();
     auto buf = read_socket_->read(read_socket_->bytesAvailable());
+    qDebug() << "buf.size:" << buf.size();
     if (buf.size() != 0)
     {
         auto bytes_written = output_file_->write(buf);
+        qDebug() << "wrote" << bytes_written;
         if (bytes_written != buf.size())
         {
+            qDebug() << "WRITE ERROR" << output_file_->errorString();
             // TODO: Store error details.
             handle_error();
             return;
@@ -165,7 +165,7 @@ void UploadWorker::on_bytes_ready()
 
 void UploadWorker::on_read_channel_finished()
 {
-    disconnected_ = true;
+    qDebug() << "on_read_channel_finished";
     on_bytes_ready();  // In case there is still buffered data to be read.
     do_finish();
 }
@@ -269,8 +269,10 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
     // Write socket is for the client.
     write_socket_.reset(new QLocalSocket);
     write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+    shutdown(fds[1], SHUT_RD);
+    connect(write_socket_.get(), &QLocalSocket::disconnected, this, &UploaderImpl::disconnected);
 
-    // Create worker and connect slots, so we can sign the worker when the client calls
+    // Create worker and connect slots, so we can signal the worker when the client calls
     // finish_download() or cancel();
     QFutureInterface<void> worker_initialized;
     worker_.reset(new UploadWorker(fds[0], file_, policy, qf_, worker_initialized));
@@ -304,10 +306,11 @@ shared_ptr<QLocalSocket> UploaderImpl::socket() const
 
 QFuture<TransferState> UploaderImpl::finish_upload()
 {
-    if (!qf_.future().isFinished())
+    if (write_socket_->state() == QLocalSocket::ConnectedState)
     {
-        // Set state of the future if that hasn't happened yet.
-        Q_EMIT do_finish();
+        // disconnected() slot signals the worker thread to finish things.
+        qDebug() << "disconnecting";
+        write_socket_->disconnectFromServer();
     }
     return qf_.future();
 }
@@ -318,6 +321,15 @@ QFuture<void> UploaderImpl::cancel() noexcept
     QFutureInterface<void> qf;
     qf.reportFinished();
     return qf.future();
+}
+
+void UploaderImpl::disconnected()
+{
+    if (!qf_.future().isFinished())
+    {
+        qDebug() << "emitting do_finish";
+        Q_EMIT do_finish();
+    }
 }
 
 }  // namespace internal
