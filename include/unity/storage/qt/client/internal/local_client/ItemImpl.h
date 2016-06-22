@@ -43,12 +43,13 @@ public:
 
 protected:
     static boost::filesystem::path sanitize(QString const& name);
+    static bool is_reserved_path(boost::filesystem::path const& path);
 
     bool destroyed_;
     QString name_;
     QDateTime modified_time_;
     QVariantMap metadata_;
-    static std::mutex mutex_;
+    std::mutex mutable mutex_;
 };
 
 }  // namespace local_client

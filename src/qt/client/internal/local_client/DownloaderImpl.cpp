@@ -2,7 +2,8 @@
 
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
-#include <unity/storage/qt/client/StorageSocket.h>
+
+#include <QLocalSocket>
 
 #include <cassert>
 
@@ -24,18 +25,28 @@ namespace internal
 namespace local_client
 {
 
-DownloadWorker::DownloadWorker(int write_fd, QString const& filename, QFutureInterface<TransferState>& qf)
+DownloadWorker::DownloadWorker(int write_fd,
+                               QString const& filename,
+                               QFutureInterface<TransferState>& qf,
+                               QFutureInterface<void>& worker_initialized)
     : write_fd_(write_fd)
     , filename_(filename)
     , qf_(qf)
+    , worker_initialized_(worker_initialized)
 {
     assert(write_fd >= 0);
+    qf_.reportStarted();
+    worker_initialized_.reportStarted();
 }
 
 void DownloadWorker::start_downloading() noexcept
 {
-    write_socket_.reset(new StorageSocket);
+    write_socket_.reset(new QLocalSocket);
     write_socket_->setSocketDescriptor(write_fd_, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+
+    // TODO: We should be able to close the read channel of the write socket,
+    //       but doing this causes the disconnected signal to go AWOL.
+    //shutdown(write_fd_, SHUT_RD);
 
     // Monitor write socket for ready-to-write, disconnected, and error events.
     connect(write_socket_.get(), &QLocalSocket::bytesWritten, this, &DownloadWorker::on_bytes_written);
@@ -53,7 +64,7 @@ void DownloadWorker::start_downloading() noexcept
     }
     bytes_to_write_ = input_file_->size();
 
-    qf_.reportStarted();
+    worker_initialized_.reportFinished();
 
     if (bytes_to_write_ == 0)
     {
@@ -92,10 +103,7 @@ void DownloadWorker::do_finish()
         }
         case finalized:
         {
-            // finish_download() called more than once.
-            qf_.reportException(StorageException());  // TODO, logic error
-            qf_.reportFinished();
-            break;
+            abort();  // LCOV_EXCL_LINE  // Impossible. If we get here, our logic is broken.
         }
         case cancelled:
         {
@@ -210,10 +218,8 @@ void DownloadThread::run()
 }
 
 DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
-    : DownloaderBase(file.lock())
+    : DownloaderBase(file)
 {
-    assert(file_);
-
     // Set up socket pair.
     int fds[2];
     int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
@@ -223,12 +229,17 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     }
 
     // Read socket is for the client.
-    read_socket_.reset(new StorageSocket);
+    read_socket_.reset(new QLocalSocket);
     read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
+
+    // TODO: We should be able to close the write channel of the client-side read socket, but
+    //       doing this causes the client to never see the readyRead signal.
+    //shutdown(fds[0], SHUT_WR);
 
     // Create worker and connect slots, so we can signal the worker when the client calls
     // finish_download() or cancel().
-    worker_.reset(new DownloadWorker(fds[1], file_->native_identity(), qf_));
+    QFutureInterface<void> worker_initialized;
+    worker_.reset(new DownloadWorker(fds[1], file_->native_identity(), qf_, worker_initialized));
     connect(this, &DownloaderImpl::do_finish, worker_.get(), &DownloadWorker::do_finish);
     connect(this, &DownloaderImpl::do_cancel, worker_.get(), &DownloadWorker::do_cancel);
 
@@ -237,11 +248,7 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     worker_->moveToThread(download_thread_.get());
 
     download_thread_->start();
-
-    // TODO: can probably do this with a signal?
-    // This is no waitForStarted() on QFutureInterface or QFuture.
-    while (!qf_.isStarted())
-        ;
+    worker_initialized.future().waitForFinished();
 }
 
 DownloaderImpl::~DownloaderImpl()
@@ -284,5 +291,3 @@ QFuture<void> DownloaderImpl::cancel() noexcept
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "DownloaderImpl.moc"

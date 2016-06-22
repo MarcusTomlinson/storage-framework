@@ -21,4 +21,10 @@ add_library(storage-framework-qt-local-client SHARED
     ${QT_LOCAL_CLIENT_LIB_INTERNAL_SRC})
 qt5_use_modules(storage-framework-qt-local-client Concurrent Core Network)
 set_target_properties(storage-framework-qt-local-client PROPERTIES AUTOMOC TRUE)
-target_link_libraries(storage-framework-qt-local-client Qt5::Concurrent Qt5::Core Qt5::Network)
+set_target_properties(storage-framework-qt-local-client PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
+target_link_libraries(storage-framework-qt-local-client
+    Qt5::Concurrent
+    Qt5::Core
+    Qt5::Network
+    ${Boost_LIBRARIES}
+    ${GLIB_DEPS_LIBRARIES})

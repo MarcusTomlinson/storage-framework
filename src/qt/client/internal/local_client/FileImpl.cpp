@@ -7,8 +7,6 @@
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 #include <unity/storage/qt/client/Uploader.h>
 
-#include <boost/filesystem.hpp>
-
 using namespace std;
 
 namespace unity
@@ -33,20 +31,19 @@ FileImpl::FileImpl(QString const& identity)
 
 QString FileImpl::name() const
 {
-    lock_guard<mutex> lock(mutex_);
+    lock_guard<mutex> guard(mutex_);
 
     if (destroyed_)
     {
         throw DestroyedException();
     }
-
     auto name = boost::filesystem::path(identity_.toStdString()).filename().native();
     return QString::fromStdString(name);
 }
 
 int64_t FileImpl::size() const
 {
-    lock_guard<mutex> lock(mutex_);
+    lock_guard<mutex> guard(mutex_);
 
     if (destroyed_)
     {
@@ -66,7 +63,7 @@ int64_t FileImpl::size() const
 
 QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
 {
-    lock_guard<mutex> lock(mutex_);
+    lock_guard<mutex> guard(mutex_);
 
     QFutureInterface<Uploader::SPtr> qf;
     if (destroyed_)
@@ -95,7 +92,7 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
 
 QFuture<Downloader::SPtr> FileImpl::create_downloader()
 {
-    lock_guard<mutex> lock(mutex_);
+    lock_guard<mutex> guard(mutex_);
 
     QFutureInterface<Downloader::SPtr> qf;
     if (destroyed_)

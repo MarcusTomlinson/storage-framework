@@ -7,7 +7,6 @@ set(QT_CLIENT_LIB_PUBLIC_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/Item.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Root.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Runtime.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/StorageSocket.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Uploader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/internal/AccountBase.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/internal/DownloaderBase.cpp

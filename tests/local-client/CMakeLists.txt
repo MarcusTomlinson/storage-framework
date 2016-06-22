@@ -7,12 +7,9 @@ include_directories(${GLIB_DEPS_INCLUDE_DIRS})
 qt5_use_modules(local-client_test Test)
 target_link_libraries(local-client_test
     storage-framework-qt-local-client
-    Qt5::Network
-    Qt5::Test
-    ${Boost_LIBRARIES}
-    ${GLIB_DEPS_LIBRARIES}
     gtest
 )
 add_test(local-client local-client_test)
+add_dependencies(local-client_test qt-client-all-headers)
 
 set(UNIT_TEST_TARGETS ${UNIT_TEST_TARGETS} PARENT_SCOPE)

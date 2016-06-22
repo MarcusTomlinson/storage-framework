@@ -5,6 +5,7 @@
 #include <unity/storage/qt/client/Folder.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <QtConcurrent>
 
 #include <fcntl.h>
@@ -43,7 +44,7 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
     auto This = dynamic_pointer_cast<FolderImpl const>(shared_from_this());  // Keep this folder alive while the lambda is alive.
     auto list = [This]()
     {
-        lock_guard<mutex> lock(mutex_);
+        lock_guard<mutex> guard(This->mutex_);
 
         if (This->destroyed_)
         {
@@ -59,6 +60,10 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
             {
                 auto dirent = *it;
                 file_status s = dirent.status();
+                if (is_reserved_path(dirent.path()))
+                {
+                    continue;  // Hide temp files that we create during copy() and move().
+                }
                 QString path = QString::fromStdString(dirent.path().native());
                 if (is_directory(s))
                 {
@@ -88,7 +93,7 @@ QFuture<Item::SPtr> FolderImpl::lookup(QString const& name) const
     auto This = dynamic_pointer_cast<FolderImpl const>(shared_from_this());  // Keep this folder alive while the lambda is alive.
     auto lookup = [This, name]() -> Item::SPtr
     {
-        lock_guard<mutex> lock(mutex_);
+        lock_guard<mutex> guard(This->mutex_);
 
         if (This->destroyed_)
         {
@@ -100,7 +105,12 @@ QFuture<Item::SPtr> FolderImpl::lookup(QString const& name) const
             using namespace boost::filesystem;
 
             path p = This->native_identity().toStdString();
-            p /= sanitize(name);
+            auto sanitized_name = sanitize(name);
+            if (is_reserved_path(sanitized_name))
+            {
+                throw NotExistException();
+            }
+            p /= sanitized_name;
             file_status s = status(p);
             if (is_directory(s))
             {
@@ -122,7 +132,7 @@ QFuture<Item::SPtr> FolderImpl::lookup(QString const& name) const
 
 QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
 {
-    lock_guard<mutex> lock(mutex_);
+    lock_guard<mutex> guard(mutex_);
 
     QFutureInterface<Folder::SPtr> qf;
     if (destroyed_)
@@ -137,7 +147,12 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         using namespace boost::filesystem;
 
         path p = native_identity().toStdString();
-        p /= sanitize(name);
+        auto sanitized_name = sanitize(name);
+        if (is_reserved_path(sanitized_name))
+        {
+            throw StorageException();  // TODO
+        }
+        p /= sanitized_name;
         create_directory(p);
         update_modified_time();
         qf.reportResult(make_folder(QString::fromStdString(p.native()), root_));
@@ -152,7 +167,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
 
 QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
 {
-    unique_lock<mutex> lock(mutex_);
+    unique_lock<mutex> guard(mutex_);
 
     if (destroyed_)
     {
@@ -167,7 +182,12 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         using namespace boost::filesystem;
 
         path p = native_identity().toStdString();
-        p /= sanitize(name);
+        auto sanitized_name = sanitize(name);
+        if (is_reserved_path(sanitized_name))
+        {
+            throw StorageException();  // TODO
+        }
+        p /= sanitized_name;
         int fd = open(p.native().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
         if (fd == -1)
         {
@@ -179,7 +199,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         }
         update_modified_time();
         auto file = FileImpl::make_file(QString::fromStdString(p.native()), root_);
-        lock.unlock();
+        guard.unlock();
         return file->create_uploader(ConflictPolicy::error_if_conflict);
     }
     catch (std::exception const&)

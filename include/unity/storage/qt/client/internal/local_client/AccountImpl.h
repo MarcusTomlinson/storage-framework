@@ -22,7 +22,6 @@ public:
                 QString const& owner,
                 QString const& owner_id,
                 QString const& description);
-    ~AccountImpl() = default;
 
     virtual QString owner() const override;
     virtual QString owner_id() const override;

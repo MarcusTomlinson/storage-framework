@@ -25,7 +25,10 @@ class DownloadWorker : public QObject
     Q_OBJECT
 
 public:
-    DownloadWorker(int write_fd, QString const& filename, QFutureInterface<TransferState>& qf);
+    DownloadWorker(int write_fd,
+                   QString const& filename,
+                   QFutureInterface<TransferState>& qf,
+                   QFutureInterface<void>& worker_initialized);
     void start_downloading() noexcept;
 
 public Q_SLOTS:
@@ -49,6 +52,7 @@ private:
     QString filename_;
     std::unique_ptr<QFile> input_file_;
     QFutureInterface<TransferState>& qf_;
+    QFutureInterface<void>& worker_initialized_;
     qint64 bytes_to_write_;
 };
 
@@ -71,11 +75,13 @@ class DownloaderImpl : public DownloaderBase
 public:
     DownloaderImpl(std::weak_ptr<File> file);
     ~DownloaderImpl();
+    DownloaderImpl(DownloaderImpl const&) = delete;
+    DownloaderImpl& operator=(DownloaderImpl const&) = delete;
 
-    virtual std::shared_ptr<File> file() const override;
-    virtual std::shared_ptr<QLocalSocket> socket() const override;
-    virtual QFuture<TransferState> finish_download() override;
-    virtual QFuture<void> cancel() noexcept override;
+    std::shared_ptr<File> file() const;
+    std::shared_ptr<QLocalSocket> socket() const;
+    QFuture<TransferState> finish_download();
+    QFuture<void> cancel() noexcept;
 
 Q_SIGNALS:
     void do_finish();

@@ -5,8 +5,9 @@
 #include <unity/storage/qt/client/internal/local_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/local_client/RootImpl.h>
+#include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
 
-#include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <QtConcurrent>
 
 #include <cassert>
@@ -26,8 +27,6 @@ namespace internal
 namespace local_client
 {
 
-mutex ItemImpl::mutex_;
-
 ItemImpl::ItemImpl(QString const& identity, ItemType type)
     : ItemBase(identity, type)
     , destroyed_(false)
@@ -43,7 +42,7 @@ ItemImpl::~ItemImpl() = default;
 
 QString ItemImpl::name() const
 {
-    lock_guard<mutex> lock(mutex_);
+    lock_guard<mutex> guard(mutex_);
 
     if (destroyed_)
     {
@@ -54,7 +53,7 @@ QString ItemImpl::name() const
 
 QVariantMap ItemImpl::metadata() const
 {
-    lock_guard<mutex> lock(mutex_);
+    lock_guard<mutex> guard(mutex_);
 
     if (destroyed_)
     {
@@ -65,7 +64,7 @@ QVariantMap ItemImpl::metadata() const
 
 QDateTime ItemImpl::last_modified_time() const
 {
-    lock_guard<mutex> lock(mutex_);
+    lock_guard<mutex> guard(mutex_);
 
     if (destroyed_)
     {
@@ -109,29 +108,33 @@ void copy_recursively(path const& source, path const& target)
 QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, QString const& new_name)
 {
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
+
     auto copy = [This, new_parent, new_name]() -> Item::SPtr
     {
-        lock_guard<mutex> lock(mutex_);
-
         auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
+
+        lock(This->mutex_, new_parent_impl->mutex_);
+        lock_guard<mutex> this_guard(This->mutex_, std::adopt_lock);
+        lock_guard<mutex> other_guard(new_parent_impl->mutex_, adopt_lock);
+
+        if (This->destroyed_)
+        {
+            throw DestroyedException();  // TODO
+        }
         if (new_parent_impl->destroyed_)
         {
             throw DestroyedException();  // TODO
         }
 
+        if (This->root()->account() != new_parent->root()->account())
+        {
+            // Can't do cross-account copy.
+            throw StorageException();  // TODO
+        }
+
         try
         {
             using namespace boost::filesystem;
-
-            if (new_parent_impl->destroyed_)
-            {
-                throw DestroyedException();  // TODO
-            }
-            if (This->root()->account() != new_parent->root()->account())
-            {
-                // Can't do cross-account copy.
-                throw StorageException();  // TODO
-            }
 
             path source_path = This->native_identity().toStdString();
             path parent_path = new_parent->native_identity().toStdString();
@@ -154,7 +157,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
             // everything into the temporary directory. This ensures that we don't invalidate directory iterators
             // by creating things while we are iterating, potentially getting trapped in an infinite loop.
             path tmp_path = canonical(parent_path);
-            tmp_path /= unique_path(".%%%%-%%%%-%%%%-%%%%");
+            tmp_path /= unique_path(TMPFILE_PREFIX "%%%%-%%%%-%%%%-%%%%");
             create_directories(tmp_path);
             for (directory_iterator it(source_path); it != directory_iterator(); ++it)
             {
@@ -187,31 +190,35 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
     auto move = [This, new_parent, new_name]() -> Item::SPtr
     {
-        lock_guard<mutex> lock(mutex_);
+        auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
+
+        lock(This->mutex_, new_parent_impl->mutex_);
+        lock_guard<mutex> this_guard(This->mutex_, std::adopt_lock);
+        lock_guard<mutex> other_guard(new_parent_impl->mutex_, adopt_lock);
+
         if (This->destroyed_)
         {
             throw DestroyedException();  // TODO
+        }
+        if (new_parent_impl->destroyed_)
+        {
+            throw DestroyedException();  // TODO
+        }
+
+        if (This->root()->account() != new_parent->root()->account())
+        {
+            // Can't do cross-account move.
+            throw StorageException();  // TODO
+        }
+        if (This->type_ == ItemType::root)
+        {
+            // Can't move a root.
+            throw StorageException();  // TODO
         }
 
         try
         {
             using namespace boost::filesystem;
-
-            auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
-            if (new_parent_impl->destroyed_)
-            {
-                throw DestroyedException();  // TODO
-            }
-            if (This->root()->account() != new_parent->root()->account())
-            {
-                // Can't do cross-account move.
-                throw StorageException();  // TODO
-            }
-            if (This->type_ == ItemType::root)
-            {
-                // Can't move a root.
-                throw StorageException();  // TODO
-            }
 
             path target_path = new_parent->native_identity().toStdString();
             target_path /= sanitize(new_name);
@@ -237,7 +244,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
 
 QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
 {
-    lock_guard<mutex> lock(mutex_);
+    lock_guard<mutex> guard(mutex_);
 
     QFutureInterface<QVector<Folder::SPtr>> qf;
     if (destroyed_)
@@ -275,7 +282,7 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
 
 QVector<QString> ItemImpl::parent_ids() const
 {
-    lock_guard<mutex> lock(mutex_);
+    lock_guard<mutex> guard(mutex_);
 
     if (destroyed_)
     {
@@ -298,7 +305,7 @@ QFuture<void> ItemImpl::destroy()
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
     auto destroy = [This]()
     {
-        lock_guard<mutex> lock(mutex_);
+        lock_guard<mutex> guard(This->mutex_);
 
         if (This->destroyed_)
         {
@@ -327,7 +334,9 @@ bool ItemImpl::equal_to(ItemBase const& other) const noexcept
         return true;
     }
 
-    lock_guard<mutex> lock(mutex_);
+    lock(mutex_, other_impl->mutex_);
+    lock_guard<mutex> this_guard(mutex_, std::adopt_lock);
+    lock_guard<mutex> other_guard(other_impl->mutex_, adopt_lock);
 
     if (destroyed_ || other_impl->destroyed_)
     {
@@ -379,6 +388,14 @@ boost::filesystem::path ItemImpl::sanitize(QString const& name)
         throw StorageException();  // TODO.
     }
     return p;
+}
+
+// Return true if the name uses the temp file prefix.
+
+bool ItemImpl::is_reserved_path(boost::filesystem::path const& path)
+{
+    string filename = path.filename().native();
+    return boost::starts_with(filename, TMPFILE_PREFIX);
 }
 
 }  // namespace local_client

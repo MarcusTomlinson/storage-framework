@@ -22,7 +22,6 @@ class FileBase : public virtual ItemBase
 {
 public:
     FileBase(QString const& identity);
-    ~FileBase() = default;
 
     virtual int64_t size() const = 0;
     virtual QFuture<std::shared_ptr<Uploader>> create_uploader(ConflictPolicy policy) = 0;

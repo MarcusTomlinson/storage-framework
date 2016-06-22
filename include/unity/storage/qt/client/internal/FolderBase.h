@@ -21,7 +21,6 @@ class FolderBase : public virtual ItemBase
 public:
     FolderBase(QString const& identity);
     FolderBase(QString const& identity, ItemType type);
-    virtual ~FolderBase() = default;
 
     virtual QFuture<QVector<std::shared_ptr<Item>>> list() const = 0;
     virtual QFuture<std::shared_ptr<Item>> lookup(QString const& name) const = 0;

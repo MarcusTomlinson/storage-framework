@@ -4,8 +4,6 @@
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
 #include <unity/storage/qt/client/Root.h>
 
-#include <boost/filesystem.hpp>
-
 using namespace std;
 
 namespace unity
@@ -138,6 +136,12 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
             // id_path differs from root path in some path component, so id_path
             // does not point at a location that's contained in root_path.
             throw StorageException();
+        }
+
+        // Don't allow reserved files to be found.
+        if (is_reserved_path(id_path))
+        {
+            throw NotExistException();
         }
 
         file_status s = status(id_path);

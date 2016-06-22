@@ -31,6 +31,8 @@ class DownloaderBase : public QObject
 
 public:
     DownloaderBase(std::weak_ptr<File> file);
+    DownloaderBase(DownloaderBase const&) = delete;
+    DownloaderBase& operator=(DownloaderBase const&) = delete;
 
     virtual std::shared_ptr<File> file() const = 0;
     virtual std::shared_ptr<QLocalSocket> socket() const = 0;

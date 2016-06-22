@@ -14,5 +14,6 @@ target_link_libraries(remote-client_test
     gtest
 )
 add_test(remote-client remote-client_test)
+add_dependencies(remote-client_test qt-client-all-headers)
 
 set(UNIT_TEST_TARGETS ${UNIT_TEST_TARGETS} PARENT_SCOPE)

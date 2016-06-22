@@ -21,9 +21,10 @@ namespace internal
 {
 
 UploaderBase::UploaderBase(weak_ptr<File> file, ConflictPolicy policy)
-    : file_(file)
+    : file_(file.lock())
     , policy_(policy)
 {
+    assert(file_);
 }
 
 }  // namespace internal

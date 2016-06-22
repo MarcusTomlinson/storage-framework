@@ -18,8 +18,9 @@ namespace internal
 {
 
 DownloaderBase::DownloaderBase(weak_ptr<File> file)
-    : file_(file)
+    : file_(file.lock())
 {
+    assert(file_);
 }
 
 }  // namespace internal

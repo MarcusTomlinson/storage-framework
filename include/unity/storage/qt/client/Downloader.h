@@ -7,6 +7,7 @@
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
 #pragma GCC diagnostic pop
+#include <QLocalSocket>
 
 #include <memory>
 

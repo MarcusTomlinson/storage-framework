@@ -149,7 +149,6 @@ TEST(Folder, basic)
 
     // Create a file and check that it was created with correct type, name, and size 0.
     auto uploader = root->create_file("file1").result();
-    uploader->socket()->disconnectFromServer();
     ASSERT_EQ(TransferState::ok, uploader->finish_upload().result());
     auto file = uploader->file();
     EXPECT_EQ(ItemType::file, file->type());
@@ -255,15 +254,26 @@ TEST(File, upload)
         QByteArray const contents = "Hello\n";
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
-        uploader->socket()->disconnectFromServer();
 
-        QSignalSpy spy(uploader->socket().get(), &QLocalSocket::disconnected);
+        auto state_fut = uploader->finish_upload();
+        QFutureWatcher<TransferState> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(state_fut);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto state = uploader->finish_upload().result();
+        auto state = state_fut.result();
         EXPECT_EQ(TransferState::ok, state);
         EXPECT_EQ(contents.size(), uploader->file()->size());
         ASSERT_TRUE(content_matches(uploader->file(), contents));
+
+        // Calling finish_upload() more than once must return the original future.
+        state = uploader->finish_upload().result();
+        EXPECT_EQ(TransferState::ok, state);
+
+        // Calling cancel() after finish_upload must do nothing.
+        uploader->cancel();
+        state = uploader->finish_upload().result();
+        EXPECT_EQ(TransferState::ok, state);
 
         file->destroy().waitForFinished();
     }
@@ -275,12 +285,14 @@ TEST(File, upload)
         QByteArray const contents(64 * 1024, 'a');
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
-        uploader->socket()->disconnectFromServer();
 
-        QSignalSpy spy(uploader->socket().get(), &QLocalSocket::disconnected);
+        auto state_fut = uploader->finish_upload();
+        QFutureWatcher<TransferState> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(state_fut);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto state = uploader->finish_upload().result();
+        auto state = state_fut.result();
         EXPECT_EQ(TransferState::ok, state);
         EXPECT_EQ(contents.size(), uploader->file()->size());
         ASSERT_TRUE(content_matches(uploader->file(), contents));
@@ -295,12 +307,14 @@ TEST(File, upload)
         QByteArray const contents(1000 * 1024, 'a');
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
-        uploader->socket()->disconnectFromServer();
 
-        QSignalSpy spy(uploader->socket().get(), &QLocalSocket::disconnected);
+        auto state_fut = uploader->finish_upload();
+        QFutureWatcher<TransferState> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(state_fut);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto state = uploader->finish_upload().result();
+        auto state = state_fut.result();
         EXPECT_EQ(TransferState::ok, state);
         EXPECT_EQ(contents.size(), uploader->file()->size());
         ASSERT_TRUE(content_matches(uploader->file(), contents));
@@ -312,9 +326,6 @@ TEST(File, upload)
         // Don't upload anything.
         auto uploader = root->create_file("new_file").result();
         auto file = uploader->file();
-        uploader->socket()->disconnectFromServer();
-
-        // We never write anything, so there is no disconnected signal from the socket.
 
         auto state = uploader->finish_upload().result();
         EXPECT_EQ(TransferState::ok, state);
@@ -351,21 +362,12 @@ TEST(File, create_uploader)
             QFutureWatcher<TransferState> w;
             QSignalSpy spy(&w, &decltype(w)::finished);
             w.setFuture(finish_fut);
-            // We never disconnected from the socket, so the transfer is still in progress.
-            ASSERT_FALSE(spy.wait(SIGNAL_WAIT_TIME));
-        }
-        uploader->socket()->disconnectFromServer();
-        {
-            QFutureWatcher<TransferState> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(finish_fut);
-            // Now that we have disconnected, the future must become ready.
             ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
         }
         EXPECT_EQ(TransferState::ok, finish_fut.result());
     }
 
-    // Same test again, but this time we write a bunch of data and don't disconnect.
+    // Same test again, but this time, we write a bunch of data.
     {
         auto uploader = file->create_uploader(ConflictPolicy::overwrite).result();
 
@@ -373,14 +375,6 @@ TEST(File, create_uploader)
         uploader->socket()->write(&s[0], s.size());
 
         auto finish_fut = uploader->finish_upload();
-        {
-            QFutureWatcher<TransferState> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(finish_fut);
-            // We never disconnected from the socket, so the transfer is still in progress.
-            ASSERT_FALSE(spy.wait(SIGNAL_WAIT_TIME));
-        }
-        uploader->socket()->disconnectFromServer();
         {
             QFutureWatcher<TransferState> w;
             QSignalSpy spy(&w, &decltype(w)::finished);
@@ -403,11 +397,10 @@ TEST(File, cancel_upload)
     clear_folder(root);
 
     {
-        // Upload a few bytes.
         auto uploader = root->create_file("new_file").result();
 
-        // We haven't written anything and haven't pumped the event loop,
-        // so the cancel is guaranteed to catch the uploader in the in_progress state.
+        // We haven't written anything, so the cancel is guaranteed
+        // to catch the uploader in the in_progress state.
         uploader->cancel();
         EXPECT_EQ(TransferState::cancelled, uploader->finish_upload().result());
 
@@ -426,14 +419,12 @@ TEST(File, cancel_upload)
 
         // Create an uploader for the file and write a bunch of bytes.
         auto uploader = file->create_uploader(ConflictPolicy::overwrite).result();
-        QByteArray const contents(1024, 'a');
+        QByteArray const contents(1024 * 1024, 'a');
+
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
 
-        QSignalSpy spy(uploader->socket().get(), &QLocalSocket::bytesWritten);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-
-        // No disconnect here, so the transfer is still in progress. Now cancel.
+        // No finish_upload() here, so the transfer is still in progress. Now cancel.
         uploader->cancel().waitForFinished();
 
         // finish_upload() must indicate that the upload was cancelled.
@@ -456,13 +447,13 @@ TEST(File, cancel_upload)
         // Finish the upload.
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
-        uploader->socket()->disconnectFromServer();
 
         // Pump the event loop for a bit, so the socket can finish doing its thing.
         QTimer timer;
         QSignalSpy spy(&timer, &QTimer::timeout);
         timer.start(SIGNAL_WAIT_TIME);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        EXPECT_EQ(TransferState::ok, uploader->finish_upload().result());
 
         // Now send the cancel. The upload is finished already, and the cancel
         // is too late, so finish_upload() must report that the upload
@@ -482,24 +473,17 @@ TEST(File, upload_conflict)
     auto root = get_root(runtime);
     clear_folder(root);
 
-    // Make a new file.
-    auto uploader = root->create_file("new_file").result();
-    auto file = uploader->file();
-
-    // Write a few bytes.
+    // Make a new file on disk.
     QByteArray const contents = "Hello\n";
-
-    // Pump the event loop for a bit, so the socket can finish doing its thing.
-    QTimer timer;
-    QSignalSpy spy(&timer, &QTimer::timeout);
-    timer.start(SIGNAL_WAIT_TIME);
-    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    write_file(root, "new_file", contents);
+    auto file = dynamic_pointer_cast<File>(root->lookup("new_file").result());
+    ASSERT_NE(nullptr, file);
+    auto uploader = file->create_uploader(ConflictPolicy::error_if_conflict).result();
 
     // Touch the file on disk to give it a new time stamp.
+    // Need to sleep because time_t provides only 1-second resolution.
+    sleep(2);
     ASSERT_EQ(0, system((string("touch ") + file->native_identity().toStdString()).c_str()));
-
-    // Finish the upload.
-    uploader->socket()->disconnectFromServer();
 
     try
     {
@@ -659,13 +643,17 @@ TEST(File, download)
         auto downloader = file->create_downloader().result();
         EXPECT_TRUE(file->equal_to(downloader->file()));
 
+        // No readyRead ever arrives in this case, just wait for disconnected.
+        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+
         // This succeeds because the provider disconnects as soon
         // as it realizes that there is nothing to write.
-        downloader->finish_download().result();
+        EXPECT_EQ(TransferState::ok, downloader->finish_download().result());
     }
 
     {
-        // Don't ever call read on non-empty file.
+        // Don't ever call read on small file.
         QByteArray const contents("some contents");
         write_file(root, "file", contents);
 
@@ -676,12 +664,37 @@ TEST(File, download)
         auto downloader = file->create_downloader().result();
         EXPECT_TRUE(file->equal_to(downloader->file()));
 
+        // Wait for disconnected.
+        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+
+        // This succeeds because the provider has written everything and disconnected.
+        EXPECT_EQ(TransferState::ok, downloader->finish_download().result());
+    }
+
+    {
+        // Don't ever call read on large file.
+        QByteArray const contents(1024 * 1024, 'a');
+        write_file(root, "file", contents);
+
+        auto item = root->lookup("file").result();
+        File::SPtr file = dynamic_pointer_cast<File>(item);
+        ASSERT_FALSE(file == nullptr);
+
+        auto downloader = file->create_downloader().result();
+        EXPECT_TRUE(file->equal_to(downloader->file()));
+
+        // Wait for first readyRead. Not all data fits into the socket buffer.
+        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::readyRead);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+
+        // This fails because the provider still has data left to write.
         try
         {
             downloader->finish_download().result();
             FAIL();
         }
-        catch (StorageException const&)
+        catch (StorageException const& e)
         {
             // TODO: check exception details
         }
@@ -689,7 +702,7 @@ TEST(File, download)
 
     {
         // Let downloader go out of scope.
-        QByteArray const contents("some contents");
+        QByteArray const contents(1024 * 1024, 'a');
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
@@ -701,7 +714,7 @@ TEST(File, download)
 
     {
         // Let downloader future go out of scope.
-        QByteArray const contents("some contents");
+        QByteArray const contents(1024 * 1024, 'a');
         write_file(root, "file", contents);
 
         auto item = root->lookup("file").result();
@@ -721,7 +734,7 @@ TEST(File, cancel_download)
     clear_folder(root);
 
     {
-        // Download enough bytes to prevent a single read in the provider from completing the download.
+        // Download enough bytes to prevent a single write in the provider from completing the download.
         QByteArray const contents(1024 * 1024, 'a');
         write_file(root, "file", contents);
 
@@ -868,7 +881,7 @@ TEST(Item, modified_time)
 
     auto now = QDateTime::currentDateTimeUtc();
     // Need to sleep because time_t provides only 1-second resolution.
-    sleep(1);
+    sleep(2);
     auto file = root->create_file("file").result()->file();
     auto t = file->last_modified_time();
     // Rough check that the time is sane.

@@ -33,6 +33,7 @@ namespace local_client
 
 RuntimeImpl::RuntimeImpl()
 {
+    qRegisterMetaType<QAbstractSocket::SocketState>();
 }
 
 RuntimeImpl::~RuntimeImpl()
@@ -91,5 +92,3 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "RuntimeImpl.moc"

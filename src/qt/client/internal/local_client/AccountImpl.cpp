@@ -3,7 +3,6 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/local_client/RootImpl.h>
 
-#include <boost/filesystem.hpp>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #include <glib.h>
