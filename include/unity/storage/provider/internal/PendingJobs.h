@@ -16,6 +16,7 @@ namespace storage
 namespace provider
 {
 
+class DownloadJob;
 class UploadJob;
 
 namespace internal
@@ -30,8 +31,11 @@ public:
     explicit PendingJobs(QDBusConnection const& bus, QObject *parent=nullptr);
     virtual ~PendingJobs();
 
-    void add_upload(std::unique_ptr<UploadJob> &&job);
+    void add_download(std::unique_ptr<DownloadJob> &&job);
+    std::shared_ptr<DownloadJob> get_download(std::string const& download_id);
+    std::shared_ptr<DownloadJob> remove_download(std::string const& download_id);
 
+    void add_upload(std::unique_ptr<UploadJob> &&job);
     std::shared_ptr<UploadJob> get_upload(std::string const& upload_id);
     std::shared_ptr<UploadJob> remove_upload(std::string const& upload_id);
 
@@ -44,6 +48,7 @@ private:
 
     std::mutex lock_;
     std::map<std::string,std::shared_ptr<UploadJob>> uploads_;
+    std::map<std::string,std::shared_ptr<DownloadJob>> downloads_;
 
     QDBusServiceWatcher watcher_;
     std::map<std::string,int> services_;
