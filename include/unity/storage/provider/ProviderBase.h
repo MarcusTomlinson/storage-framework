@@ -2,6 +2,7 @@
 
 #include <unity/storage/common.h>
 #include <unity/storage/visibility.h>
+#include <unity/storage/provider/Credentials.h>
 
 #include <boost/thread/future.hpp>
 
@@ -19,6 +20,15 @@ namespace provider
 
 class UploadJob;
 
+struct UNITY_STORAGE_EXPORT Context
+{
+    uid_t uid;
+    pid_t pid;
+    std::string security_label;
+
+    Credentials credentials;
+};
+
 struct UNITY_STORAGE_EXPORT Item
 {
     std::string item_id;
@@ -28,13 +38,6 @@ struct UNITY_STORAGE_EXPORT Item
     unity::storage::ItemType type;
     // Should be map<string,variant>
     std::map<std::string,std::string> metadata;
-};
-
-struct UNITY_STORAGE_EXPORT Context
-{
-    uid_t uid;
-    pid_t pid;
-    std::string security_label;
 };
 
 typedef std::vector<Item> ItemList;

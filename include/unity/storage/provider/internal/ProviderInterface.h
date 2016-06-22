@@ -3,8 +3,6 @@
 #include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/provider/internal/Handler.h>
 
-#include <OnlineAccounts/Account>
-#include <OnlineAccounts/PendingCallWatcher>
 #include <QObject>
 #include <QList>
 #include <QDBusConnection>
@@ -20,24 +18,17 @@ namespace storage
 {
 namespace provider
 {
-
-class ProviderBase;
-
 namespace internal
 {
 
-class CredentialsCache;
-class PendingJobs;
+class AccountData;
 
 class ProviderInterface : public QObject, protected QDBusContext
 {
     Q_OBJECT
 
 public:
-    ProviderInterface(std::shared_ptr<ProviderBase> const& provider,
-                      QDBusConnection const& bus,
-                      std::shared_ptr<CredentialsCache> const& credentials,
-                      OnlineAccounts::Account* account,
+    ProviderInterface(std::shared_ptr<AccountData> const& account_data,
                       QObject *parent=nullptr);
     ~ProviderInterface();
 
@@ -61,20 +52,12 @@ public Q_SLOTS:
     IMD Copy(QString const& item_id, QString const& new_parent_id, QString const& new_name);
 
 private Q_SLOTS:
-    void account_authenticated();
     void request_finished();
 
 private:
-    void authenticate_account(bool interactive);
     void queue_request(Handler::Callback callback);
 
-    std::shared_ptr<ProviderBase> const provider_;
-    std::shared_ptr<CredentialsCache> const credentials_;
-    std::shared_ptr<PendingJobs> const jobs_;
-
-    OnlineAccounts::Account* const account_;
-    std::unique_ptr<OnlineAccounts::PendingCallWatcher> auth_watcher_;
-
+    std::shared_ptr<AccountData> const account_;
     std::map<Handler*, std::unique_ptr<Handler>> requests_;
 
     Q_DISABLE_COPY(ProviderInterface)
