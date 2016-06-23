@@ -46,22 +46,6 @@ int DownloadJob::write_socket() const
     return p_->write_socket();
 }
 
-int DownloadJob::take_read_socket()
-{
-    return p_->take_read_socket();
-}
-
-string const& DownloadJob::sender_bus_name() const
-{
-    return p_->sender_bus_name();
-}
-
-void DownloadJob::set_sender_bus_name(string const& bus_name)
-{
-    p_->set_sender_bus_name(bus_name);
-}
-
-
 }
 }
 }

@@ -3,8 +3,10 @@
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/UploadJob.h>
 #include <unity/storage/provider/internal/AccountData.h>
+#include <unity/storage/provider/internal/DownloadJobImpl.h>
 #include <unity/storage/provider/internal/MainLoopExecutor.h>
 #include <unity/storage/provider/internal/PendingJobs.h>
+#include <unity/storage/provider/internal/UploadJobImpl.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 
 #include <OnlineAccounts/AuthenticationData>
@@ -149,11 +151,11 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& t
                 MainLoopExecutor::instance(),
                 [=](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
-                    job->set_sender_bus_name(message.service().toStdString());
+                    job->p_->set_sender_bus_name(message.service().toStdString());
 
                     auto upload_id = QString::fromStdString(job->upload_id());
                     QDBusUnixFileDescriptor file_desc;
-                    int fd = job->take_write_socket();
+                    int fd = job->p_->take_write_socket();
                     file_desc.setFileDescriptor(fd);
                     close(fd);
 
@@ -176,11 +178,11 @@ QString ProviderInterface::Update(QString const& item_id, QString const& old_eta
                 MainLoopExecutor::instance(),
                 [=](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
-                    job->set_sender_bus_name(message.service().toStdString());
+                    job->p_->set_sender_bus_name(message.service().toStdString());
 
                     auto upload_id = QString::fromStdString(job->upload_id());
                     QDBusUnixFileDescriptor file_desc;
-                    int fd = job->take_write_socket();
+                    int fd = job->p_->take_write_socket();
                     file_desc.setFileDescriptor(fd);
                     close(fd);
 
@@ -199,7 +201,7 @@ ItemMetadata ProviderInterface::FinishUpload(QString const& upload_id)
     queue_request([upload_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             // Throws if job is not available
             auto job = account->jobs().get_upload(upload_id.toStdString());
-            if (job->sender_bus_name() != message.service().toStdString())
+            if (job->p_->sender_bus_name() != message.service().toStdString())
             {
                 throw runtime_error("Upload job belongs to a different client");
             }
@@ -222,7 +224,7 @@ void ProviderInterface::CancelUpload(QString const& upload_id)
     queue_request([upload_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             // Throws if job is not available
             auto job = account->jobs().get_upload(upload_id.toStdString());
-            if (job->sender_bus_name() != message.service().toStdString())
+            if (job->p_->sender_bus_name() != message.service().toStdString())
             {
                 throw runtime_error("Upload job belongs to a different client");
             }
@@ -246,11 +248,11 @@ QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescrip
                 MainLoopExecutor::instance(),
                 [=](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
-                    job->set_sender_bus_name(message.service().toStdString());
+                    job->p_->set_sender_bus_name(message.service().toStdString());
 
                     auto download_id = QString::fromStdString(job->download_id());
                     QDBusUnixFileDescriptor file_desc;
-                    int fd = job->take_read_socket();
+                    int fd = job->p_->take_read_socket();
                     file_desc.setFileDescriptor(fd);
                     close(fd);
 
@@ -269,7 +271,7 @@ void ProviderInterface::FinishDownload(QString const& download_id)
     queue_request([download_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             // Throws if job is not available
             auto job = account->jobs().get_download(download_id.toStdString());
-            if (job->sender_bus_name() != message.service().toStdString())
+            if (job->p_->sender_bus_name() != message.service().toStdString())
             {
                 throw runtime_error("Download job belongs to a different client");
             }
