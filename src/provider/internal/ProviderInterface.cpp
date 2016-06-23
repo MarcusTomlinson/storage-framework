@@ -1,4 +1,5 @@
 #include <unity/storage/provider/internal/ProviderInterface.h>
+#include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/UploadJob.h>
 #include <unity/storage/provider/internal/AccountData.h>
@@ -125,6 +126,16 @@ ItemMetadata ProviderInterface::Metadata(QString const& item_id)
 
 ItemMetadata ProviderInterface::CreateFolder(QString const& parent_id, QString const& name)
 {
+    queue_request([parent_id, name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().create_folder(
+                parent_id.toStdString(), name.toStdString(), ctx);
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
+                    auto item = f.get();
+                    return message.createReply(QVariant::fromValue(item));
+                });
+        });
     return {};
 }
 
@@ -228,24 +239,96 @@ void ProviderInterface::CancelUpload(QString const& upload_id)
 
 QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescriptor& file_descriptor)
 {
+    queue_request([item_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().download(
+                item_id.toStdString(), ctx);
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
+                    auto job = f.get();
+                    job->set_sender_bus_name(message.service().toStdString());
+
+                    auto download_id = QString::fromStdString(job->download_id());
+                    QDBusUnixFileDescriptor file_desc;
+                    int fd = job->take_read_socket();
+                    file_desc.setFileDescriptor(fd);
+                    close(fd);
+
+                    account->jobs().add_download(std::move(job));
+                    return message.createReply({
+                            QVariant(download_id),
+                            QVariant::fromValue(file_desc),
+                        });
+                });
+        });
     return "";
 }
 
 void ProviderInterface::FinishDownload(QString const& download_id)
 {
+    queue_request([download_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            // Throws if job is not available
+            auto job = account->jobs().get_download(download_id.toStdString());
+            if (job->sender_bus_name() != message.service().toStdString())
+            {
+                throw runtime_error("Download job belongs to a different client");
+            }
+            // FIXME: removing the job at this point means we can't
+            // cancel during finish().
+            account->jobs().remove_download(download_id.toStdString());
+            auto f = job->finish();
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
+                    f.get();
+                    return message.createReply();
+                });
+        });
 }
 
 void ProviderInterface::Delete(QString const& item_id)
 {
+    queue_request([item_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().delete_item(
+                item_id.toStdString(), ctx);
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
+                    f.get();
+                    return message.createReply();
+                });
+        });
 }
 
 ItemMetadata ProviderInterface::Move(QString const& item_id, QString const& new_parent_id, QString const& new_name)
 {
+    queue_request([item_id, new_parent_id, new_name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().move(
+                item_id.toStdString(), new_parent_id.toStdString(),
+                new_name.toStdString(), ctx);
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
+                    auto item = f.get();
+                    return message.createReply(QVariant::fromValue(item));
+                });
+        });
     return {};
 }
 
 ItemMetadata ProviderInterface::Copy(QString const& item_id, QString const& new_parent_id, QString const& new_name)
 {
+    queue_request([item_id, new_parent_id, new_name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().copy(
+                item_id.toStdString(), new_parent_id.toStdString(),
+                new_name.toStdString(), ctx);
+            return f.then(
+                MainLoopExecutor::instance(),
+                [=](decltype(f) f) -> QDBusMessage {
+                    auto item = f.get();
+                    return message.createReply(QVariant::fromValue(item));
+                });
+        });
     return {};
 }
 
