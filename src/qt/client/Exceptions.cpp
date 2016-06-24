@@ -107,6 +107,20 @@ void ConflictException::raise() const
     throw *this;
 }
 
+CancelledException::CancelledException() = default;
+
+CancelledException::~CancelledException() = default;
+
+CancelledException* CancelledException::clone() const
+{
+    return new CancelledException(*this);
+}
+
+void CancelledException::raise() const
+{
+    throw *this;
+}
+
 }  // namespace client
 }  // namespace qt
 }  // namespace storage

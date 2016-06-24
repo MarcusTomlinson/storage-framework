@@ -16,7 +16,7 @@ struct ItemMetadata
 {
     QString item_id;
     QString parent_id;
-    QString title;
+    QString name;
     QString etag;
     ItemType type;
     QMap<QString, QVariant> metadata;

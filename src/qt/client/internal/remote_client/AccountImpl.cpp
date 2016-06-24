@@ -1,6 +1,8 @@
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 
+#include "ProviderInterface.h"
 #include <unity/storage/internal/ItemMetadata.h>
+#include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/Runtime.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
@@ -68,9 +70,13 @@ class RootsHandler : public QObject
     Q_OBJECT
 
 public:
-    RootsHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply);
+    RootsHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                 weak_ptr<Account> const& account);
 
-    QFuture<QVector<Root::SPtr>> future();
+    QFuture<QVector<Root::SPtr>> future()
+    {
+        return qf_.future();
+    }
 
 public Q_SLOTS:
     void finished(QDBusPendingCallWatcher* call);
@@ -78,24 +84,24 @@ public Q_SLOTS:
 private:
     QDBusPendingCallWatcher watcher_;
     QFutureInterface<QVector<Root::SPtr>> qf_;
+    weak_ptr<Account> account_;
 };
 
-RootsHandler::RootsHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply)
+RootsHandler::RootsHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                           weak_ptr<Account> const& account)
     : watcher_(reply, this)
+    , account_(account)
 {
+    assert(account.lock());
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &RootsHandler::finished);
     qf_.reportStarted();
 }
 
-QFuture<QVector<Root::SPtr>> RootsHandler::future()
-{
-    return qf_.future();
-}
-
 void RootsHandler::finished(QDBusPendingCallWatcher* call)
 {
+    deleteLater();
+
     QDBusPendingReply<QList<storage::internal::ItemMetadata>> reply = *call;
-    this->deleteLater();
     if (reply.isError())
     {
         qDebug() << reply.error().message();
@@ -107,8 +113,13 @@ void RootsHandler::finished(QDBusPendingCallWatcher* call)
         auto metadata = reply.value();
         for (auto const& md : metadata)
         {
-            //auto root = RootImpl::make_root(md, dynamic_pointer_cast<Root>(public_instance_));
-            //roots.append(root);
+            if (md.type != ItemType::root)
+            {
+                // TODO: log impossible item type here
+                continue;
+            }
+            auto root = RootImpl::make_root(md, account_);
+            roots.append(root);
         }
         qf_.reportResult(roots);
     }
@@ -119,9 +130,7 @@ void RootsHandler::finished(QDBusPendingCallWatcher* call)
 
 QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {
-    qDebug() << "creating handler";
-    auto handler = new RootsHandler(provider_->Roots());  // Deletes itself later
-    qDebug() << "returning future";
+    auto handler = new RootsHandler(provider_->Roots(), public_instance_);
     return handler->future();
 }
 

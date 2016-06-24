@@ -35,6 +35,14 @@ namespace local_client
 class UploadWorker;
 
 }  // namespace local_client
+
+namespace remote_client
+{
+
+class ItemImpl;
+class LookupHandler;
+
+}  // namespace remote_client
 }  // namespace internal
 
 /**
@@ -138,6 +146,8 @@ protected:
     std::shared_ptr<internal::ItemBase> p_;
 
     friend class internal::local_client::UploadWorker;
+    friend class internal::remote_client::ItemImpl;
+    friend class internal::remote_client::LookupHandler;
 };
 
 }  // namespace client

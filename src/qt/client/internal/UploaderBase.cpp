@@ -5,8 +5,6 @@
 #include <QFuture>
 #pragma GCC diagnostic pop
 
-#include <cassert>
-
 using namespace std;
 
 namespace unity
@@ -20,11 +18,9 @@ namespace client
 namespace internal
 {
 
-UploaderBase::UploaderBase(weak_ptr<File> file, ConflictPolicy policy)
-    : file_(file.lock())
-    , policy_(policy)
+UploaderBase::UploaderBase(ConflictPolicy policy)
+    : policy_(policy)
 {
-    assert(file_);
 }
 
 }  // namespace internal

@@ -17,6 +17,9 @@ namespace qt
 {
 namespace client
 {
+
+class File;
+
 namespace internal
 {
 namespace local_client
@@ -30,7 +33,7 @@ public:
     UploadWorker(int read_fd,
                  std::shared_ptr<File> const& file,
                  ConflictPolicy policy,
-                 QFutureInterface<TransferState>& qf,
+                 QFutureInterface<std::shared_ptr<File>>& qf,
                  QFutureInterface<void>& worker_initialized);
     void start_uploading() noexcept;
 
@@ -58,7 +61,7 @@ private:
     std::unique_ptr<QFile> output_file_;
     unity::util::ResourcePtr<int, std::function<void(int)>> tmp_fd_;
     ConflictPolicy policy_;
-    QFutureInterface<TransferState>& qf_;
+    QFutureInterface<std::shared_ptr<File>>& qf_;
     QFutureInterface<void>& worker_initialized_;
 };
 
@@ -82,9 +85,8 @@ public:
     UploaderImpl(std::weak_ptr<File> file, ConflictPolicy policy);
     ~UploaderImpl();
 
-    virtual std::shared_ptr<File> file() const override;
     virtual std::shared_ptr<QLocalSocket> socket() const override;
-    virtual QFuture<TransferState> finish_upload() override;
+    virtual QFuture<std::shared_ptr<File>> finish_upload() override;
     virtual QFuture<void> cancel() noexcept override;
 
 Q_SIGNALS:
@@ -92,8 +94,9 @@ Q_SIGNALS:
     void do_cancel();
 
 private:
+    std::shared_ptr<File> file_;
     std::shared_ptr<QLocalSocket> write_socket_;
-    QFutureInterface<TransferState> qf_;
+    QFutureInterface<std::shared_ptr<File>> qf_;
     std::unique_ptr<UploadThread> upload_thread_;
     std::unique_ptr<UploadWorker> worker_;
 };

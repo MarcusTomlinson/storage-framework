@@ -1,5 +1,4 @@
 set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES CLASSNAME ProviderInterface)
-#set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES INCLUDE unity/storage/internal/ItemMetadata.h)
 set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES INCLUDE unity/storage/qt/client/internal/remote_client/dbusmarshal.h)
 
 qt5_add_dbus_interface(generated_files
@@ -11,14 +10,20 @@ set(QT_CLIENT_LIB_INTERNAL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/dbusmarshal.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DownloaderImpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FileImpl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/FinishUploadHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FolderImpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ItemImpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RootImpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Runtime_create.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RuntimeImpl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/UpdateHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/UploaderImpl.cpp
+
+    # TODO: check which of these are really needed
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/DownloaderImpl.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/FolderImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/RuntimeImpl.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/UpdateHandler.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/UploaderImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/RuntimeBase.h
     ${generated_files}

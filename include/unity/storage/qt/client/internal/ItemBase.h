@@ -29,13 +29,6 @@ class Root;
 namespace internal
 {
 
-namespace local_client
-{
-
-class ItemImpl;
-
-}
-
 class ItemImpl;
 
 class ItemBase : public std::enable_shared_from_this<ItemBase>

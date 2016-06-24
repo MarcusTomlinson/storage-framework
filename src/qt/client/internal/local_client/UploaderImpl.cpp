@@ -30,7 +30,7 @@ namespace local_client
 UploadWorker::UploadWorker(int read_fd,
                            shared_ptr<File> const& file,
                            ConflictPolicy policy,
-                           QFutureInterface<TransferState>& qf,
+                           QFutureInterface<shared_ptr<File>>& qf,
                            QFutureInterface<void>& worker_initialized)
     : read_fd_(read_fd)
     , file_(file)
@@ -104,7 +104,7 @@ void UploadWorker::do_finish()
         {
             state_ = finalized;
             finalize();
-            qf_.reportResult(TransferState::ok);
+            qf_.reportResult(file_);
             qf_.reportFinished();
             break;
         }
@@ -114,7 +114,7 @@ void UploadWorker::do_finish()
         }
         case cancelled:
         {
-            qf_.reportResult(TransferState::cancelled);
+            qf_.reportException(CancelledException());  // TODO: details
             qf_.reportFinished();
             break;
         }
@@ -213,7 +213,7 @@ void UploadWorker::finalize()
     state_ = finalized;
     output_file_->close();
     impl->update_modified_time();
-    qf_.reportResult(TransferState::ok);
+    qf_.reportResult(file_);
     qf_.reportFinished();
 }
 
@@ -256,7 +256,8 @@ void UploadThread::run()
 }
 
 UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
-    : UploaderBase(file, policy)
+    : UploaderBase(policy)
+    , file_(file)
 {
     // Set up socket pair.
     int fds[2];
@@ -293,17 +294,12 @@ UploaderImpl::~UploaderImpl()
     upload_thread_->wait();
 }
 
-shared_ptr<File> UploaderImpl::file() const
-{
-    return file_;
-}
-
 shared_ptr<QLocalSocket> UploaderImpl::socket() const
 {
     return write_socket_;
 }
 
-QFuture<TransferState> UploaderImpl::finish_upload()
+QFuture<File::SPtr> UploaderImpl::finish_upload()
 {
     if (write_socket_->state() == QLocalSocket::ConnectedState)
     {

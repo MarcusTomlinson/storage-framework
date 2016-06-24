@@ -1,9 +1,12 @@
 #pragma once
 
 #include <unity/storage/common.h>
+#include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/internal/ItemBase.h>
 
 #include <memory>
+
+class ProviderInterface;
 
 namespace unity
 {
@@ -21,8 +24,7 @@ namespace remote_client
 class ItemImpl : public virtual ItemBase
 {
 public:
-    ItemImpl(QString const& identity, ItemType type);
-    virtual ~ItemImpl();
+    ItemImpl(storage::internal::ItemMetadata const& md, ItemType type);
 
     virtual QString name() const override;
     virtual QVariantMap metadata() const override;
@@ -33,6 +35,11 @@ public:
     virtual QVector<QString> parent_ids() const override;
     virtual QFuture<void> destroy() override;
     virtual bool equal_to(ItemBase const& other) const noexcept override;
+
+    ProviderInterface& provider() const noexcept;
+
+protected:
+    storage::internal::ItemMetadata md_;
 };
 
 }  // namespace remote_client

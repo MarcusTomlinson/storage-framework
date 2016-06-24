@@ -21,18 +21,13 @@ namespace internal
 namespace remote_client
 {
 
-RootImpl::RootImpl(QString const& identity, weak_ptr<Account> const& account)
-    : ItemBase(identity, ItemType::root)
-    , FolderBase(identity, ItemType::root)
-    , RootBase(identity, account)
-    , ItemImpl(identity, ItemType::root)
-    , FolderImpl(identity, ItemType::root)
+RootImpl::RootImpl(storage::internal::ItemMetadata const& md, weak_ptr<Account> const& account)
+    : ItemBase(md.item_id, ItemType::root)
+    , FolderBase(md.item_id, ItemType::root)
+    , RootBase(md.item_id, account)
+    , ItemImpl(md, ItemType::root)
+    , FolderImpl(md, ItemType::root)
 {
-}
-
-QString RootImpl::name() const
-{
-    return "";  // TODO
 }
 
 QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
@@ -72,11 +67,12 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
     return QFuture<Item::SPtr>();
 }
 
-Root::SPtr RootImpl::make_root(QString const& identity, std::weak_ptr<Account> const& account)
+Root::SPtr RootImpl::make_root(storage::internal::ItemMetadata const& md, std::weak_ptr<Account> const& account)
 {
+    assert(md.type == ItemType::root);
     assert(account.lock());
 
-    auto impl = new RootImpl(identity, account);
+    auto impl = new RootImpl(md, account);
     Root::SPtr root(new Root(impl));
     impl->set_root(root);
     impl->set_public_instance(root);

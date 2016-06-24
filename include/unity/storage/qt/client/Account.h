@@ -38,6 +38,7 @@ class RuntimeImpl;
 namespace remote_client
 {
 
+class ItemImpl;
 class RuntimeImpl;
 
 }  // namespace remote_client
@@ -79,6 +80,7 @@ private:
     std::shared_ptr<internal::AccountBase> p_;
 
     friend class internal::local_client::RuntimeImpl;
+    friend class internal::remote_client::ItemImpl;
     friend class internal::remote_client::RuntimeImpl;
 };
 

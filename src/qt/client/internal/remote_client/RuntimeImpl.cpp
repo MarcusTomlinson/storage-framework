@@ -7,6 +7,7 @@
 #include <unity/storage/qt/client/internal/remote_client/dbusmarshal.h>
 
 #include <QFutureInterface>
+#include <QDBusMetaType>
 
 // TODO: Hack until we can use the registry instead
 #include <OnlineAccounts/Account>

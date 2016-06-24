@@ -7,6 +7,13 @@ namespace unity
 {
 namespace storage
 {
+namespace internal
+{
+
+class ItemMetadata;
+
+}  // namespace internal
+
 namespace qt
 {
 namespace client
@@ -19,9 +26,8 @@ namespace remote_client
 class RootImpl : public virtual RootBase, public virtual FolderImpl
 {
 public:
-    RootImpl(QString const& identity, std::weak_ptr<Account> const& account);
+    RootImpl(storage::internal::ItemMetadata const& md, std::weak_ptr<Account> const& account);
 
-    virtual QString name() const override;
     virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const override;
     virtual QVector<QString> parent_ids() const override;
     virtual QFuture<void> destroy() override;
@@ -30,7 +36,10 @@ public:
     virtual QFuture<int64_t> used_space_bytes() const override;
     virtual QFuture<Item::SPtr> get(QString native_identity) const override;
 
-    static std::shared_ptr<Root> make_root(QString const& identity, std::weak_ptr<Account> const& account);
+    static std::shared_ptr<Root> make_root(storage::internal::ItemMetadata const&,
+                                           std::weak_ptr<Account> const& account);
+
+    friend class FolderImpl;
 };
 
 }  // namespace remote_client

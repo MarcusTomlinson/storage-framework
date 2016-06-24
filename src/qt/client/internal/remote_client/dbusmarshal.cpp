@@ -16,7 +16,7 @@ QDBusArgument& operator<<(QDBusArgument& argument, storage::internal::ItemMetada
     argument.beginStructure();
     argument << metadata.item_id;
     argument << metadata.parent_id;
-    argument << metadata.title;
+    argument << metadata.name;
     argument << metadata.etag;
     argument << static_cast<int32_t>(metadata.type);
     argument.beginMap(QVariant::String, qMetaTypeId<QDBusVariant>());
@@ -38,7 +38,7 @@ QDBusArgument const& operator>>(QDBusArgument const& argument, storage::internal
     argument.beginStructure();
     argument >> metadata.item_id;
     argument >> metadata.parent_id;
-    argument >> metadata.title;
+    argument >> metadata.name;
     argument >> metadata.etag;
     int32_t enum_val;
     argument >> enum_val;

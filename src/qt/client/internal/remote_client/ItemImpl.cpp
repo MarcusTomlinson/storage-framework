@@ -1,5 +1,6 @@
 #include <unity/storage/qt/client/internal/remote_client/ItemImpl.h>
 
+#include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
@@ -21,16 +22,14 @@ namespace internal
 namespace remote_client
 {
 
-ItemImpl::ItemImpl(QString const& identity, ItemType type)
-    : ItemBase(identity, type)
+ItemImpl::ItemImpl(storage::internal::ItemMetadata const& md, ItemType type)
+    : ItemBase(md.item_id, type)
 {
 }
 
-ItemImpl::~ItemImpl() = default;
-
 QString ItemImpl::name() const
 {
-    return "";
+    return md_.name;
 }
 
 QVariantMap ItemImpl::metadata() const
@@ -60,7 +59,7 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
 
 QVector<QString> ItemImpl::parent_ids() const
 {
-    QVector<QString>();
+    return QVector<QString>();
 }
 
 QFuture<void> ItemImpl::destroy()
@@ -71,6 +70,13 @@ QFuture<void> ItemImpl::destroy()
 bool ItemImpl::equal_to(ItemBase const& other) const noexcept
 {
     return false;
+}
+
+ProviderInterface& ItemImpl::provider() const noexcept
+{
+    auto root_impl = dynamic_pointer_cast<RootImpl>(root_.lock()->p_);
+    auto account_impl = dynamic_pointer_cast<AccountImpl>(root_impl->account_.lock()->p_);
+    return account_impl->provider();
 }
 
 }  // namespace remote_client

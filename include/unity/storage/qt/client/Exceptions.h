@@ -104,6 +104,19 @@ public:
     virtual void raise() const override;
 };
 
+/**
+\brief Indicates that an upload or download was cancelled before it could complete.
+*/
+class UNITY_STORAGE_EXPORT CancelledException : public StorageException
+{
+public:
+    CancelledException();
+    ~CancelledException();
+
+    virtual CancelledException* clone() const override;
+    virtual void raise() const override;
+};
+
 }  // namespace client
 }  // namespace qt
 }  // namespace storage

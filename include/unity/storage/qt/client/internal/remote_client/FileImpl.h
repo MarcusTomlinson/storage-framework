@@ -7,6 +7,13 @@ namespace unity
 {
 namespace storage
 {
+namespace internal
+{
+
+class ItemMetadata;
+
+}  // namespace internal
+
 namespace qt
 {
 namespace client
@@ -19,14 +26,13 @@ namespace remote_client
 class FileImpl : public virtual FileBase, public virtual ItemImpl
 {
 public:
-    FileImpl(QString const& identity);
+    FileImpl(storage::internal::ItemMetadata const& md);
 
-    virtual QString name() const override;
     virtual int64_t size() const override;
     virtual QFuture<std::shared_ptr<Uploader>> create_uploader(ConflictPolicy policy) override;
     virtual QFuture<std::shared_ptr<Downloader>> create_downloader() override;
 
-    static std::shared_ptr<File> make_file(QString const& identity, std::weak_ptr<Root> root);
+    static std::shared_ptr<File> make_file(storage::internal::ItemMetadata const& md, std::weak_ptr<Root> root);
 };
 
 }  // namespace remote_client

@@ -40,9 +40,10 @@ class RootImpl;
 class UNITY_STORAGE_EXPORT Root final : public Folder
 {
 public:
+    // @cond
     virtual ~Root();
-    Root(Root const&) = delete;
-    Root& operator=(Root const&) = delete;
+    /// @endcond
+
     Root(Root&&);
     Root& operator=(Root&&);
 

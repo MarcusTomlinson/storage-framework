@@ -1,12 +1,13 @@
 #pragma once
 
 #include <unity/storage/qt/client/internal/AccountBase.h>
-#include "ProviderInterface.h"
 
 #include <QFuture>
 #include <QVector>
 
 #include <memory>
+
+class ProviderInterface;
 
 namespace unity
 {

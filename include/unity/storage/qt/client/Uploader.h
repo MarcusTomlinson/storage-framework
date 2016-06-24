@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unity/storage/common.h>
 #include <unity/storage/visibility.h>
 
 #pragma GCC diagnostic push
@@ -35,6 +34,13 @@ namespace local_client
 class FileImpl;
 
 }  // namespace local_client
+
+namespace remote_client
+{
+
+class UploaderImpl;
+
+}  // namespace remote_client
 }  // namespace internal
 
 class UNITY_STORAGE_EXPORT Uploader final
@@ -81,7 +87,7 @@ public:
     Calling finish_upload() more than once is safe; subsequent calls do nothing and return the future
     that was returned by the first call.
     */
-    QFuture<TransferState> finish_upload();
+    QFuture<std::shared_ptr<File>> finish_upload();
 
     /**
     \brief Cancels an upload.
@@ -99,6 +105,7 @@ private:
     std::shared_ptr<internal::UploaderBase> p_;
 
     friend class internal::local_client::FileImpl;
+    friend class internal::remote_client::UploaderImpl;
 };
 
 }  // namespace client
