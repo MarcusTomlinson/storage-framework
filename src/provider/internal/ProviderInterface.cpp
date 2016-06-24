@@ -73,7 +73,7 @@ QList<ItemMetadata> ProviderInterface::Roots()
             auto f = account->provider().roots(ctx);
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message](decltype(f) f) -> QDBusMessage {
                     auto roots = f.get();
                     return message.createReply(QVariant::fromValue(roots));
                 });
@@ -87,7 +87,7 @@ QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString cons
             auto f = account->provider().list(item_id.toStdString(), page_token.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message](decltype(f) f) -> QDBusMessage {
                     vector<Item> children;
                     string next_token;
                     tie(children, next_token) = f.get();
@@ -104,7 +104,7 @@ QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString 
 {
     queue_request([parent_id, name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().lookup(parent_id.toStdString(), name.toStdString(), ctx);
-            return f.then([=](decltype(f) f) -> QDBusMessage {
+            return f.then([account, message](decltype(f) f) -> QDBusMessage {
                     auto items = f.get();
                     return message.createReply(QVariant::fromValue(items));
                 });
@@ -118,7 +118,7 @@ ItemMetadata ProviderInterface::Metadata(QString const& item_id)
             auto f = account->provider().metadata(item_id.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));
                 });
@@ -133,7 +133,7 @@ ItemMetadata ProviderInterface::CreateFolder(QString const& parent_id, QString c
                 parent_id.toStdString(), name.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));
                 });
@@ -141,7 +141,7 @@ ItemMetadata ProviderInterface::CreateFolder(QString const& parent_id, QString c
     return {};
 }
 
-QString ProviderInterface::CreateFile(QString const& parent_id, QString const& title, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& file_descriptor)
+QString ProviderInterface::CreateFile(QString const& parent_id, QString const& title, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& /*file_descriptor*/)
 {
     queue_request([parent_id, title, content_type, allow_overwrite](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().create_file(
@@ -149,7 +149,7 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& t
                 content_type.toStdString(), allow_overwrite, ctx);
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
                     job->p_->set_sender_bus_name(message.service().toStdString());
 
@@ -169,14 +169,14 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& t
     return "";
 }
 
-QString ProviderInterface::Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& file_descriptor)
+QString ProviderInterface::Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& /*file_descriptor*/)
 {
     queue_request([item_id, old_etag](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().update(
                 item_id.toStdString(), old_etag.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
                     job->p_->set_sender_bus_name(message.service().toStdString());
 
@@ -198,7 +198,7 @@ QString ProviderInterface::Update(QString const& item_id, QString const& old_eta
 
 ItemMetadata ProviderInterface::FinishUpload(QString const& upload_id)
 {
-    queue_request([upload_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+    queue_request([upload_id](shared_ptr<AccountData> const& account, Context const& /*ctx*/, QDBusMessage const& message) {
             // Throws if job is not available
             auto job = account->jobs().get_upload(upload_id.toStdString());
             if (job->p_->sender_bus_name() != message.service().toStdString())
@@ -211,7 +211,7 @@ ItemMetadata ProviderInterface::FinishUpload(QString const& upload_id)
             auto f = job->finish();
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message, job](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));
                 });
@@ -221,7 +221,7 @@ ItemMetadata ProviderInterface::FinishUpload(QString const& upload_id)
 
 void ProviderInterface::CancelUpload(QString const& upload_id)
 {
-    queue_request([upload_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+    queue_request([upload_id](shared_ptr<AccountData> const& account, Context const& /*ctx*/, QDBusMessage const& message) {
             // Throws if job is not available
             auto job = account->jobs().get_upload(upload_id.toStdString());
             if (job->p_->sender_bus_name() != message.service().toStdString())
@@ -232,21 +232,21 @@ void ProviderInterface::CancelUpload(QString const& upload_id)
             auto f = job->cancel();
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message, job](decltype(f) f) -> QDBusMessage {
                     f.get();
                     return message.createReply();
                 });
         });
 }
 
-QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescriptor& file_descriptor)
+QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescriptor& /*file_descriptor*/)
 {
     queue_request([item_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().download(
                 item_id.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
                     job->p_->set_sender_bus_name(message.service().toStdString());
 
@@ -268,7 +268,7 @@ QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescrip
 
 void ProviderInterface::FinishDownload(QString const& download_id)
 {
-    queue_request([download_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+    queue_request([download_id](shared_ptr<AccountData> const& account, Context const& /*ctx*/, QDBusMessage const& message) {
             // Throws if job is not available
             auto job = account->jobs().get_download(download_id.toStdString());
             if (job->p_->sender_bus_name() != message.service().toStdString())
@@ -281,7 +281,7 @@ void ProviderInterface::FinishDownload(QString const& download_id)
             auto f = job->finish();
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message, job](decltype(f) f) -> QDBusMessage {
                     f.get();
                     return message.createReply();
                 });
@@ -295,7 +295,7 @@ void ProviderInterface::Delete(QString const& item_id)
                 item_id.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message](decltype(f) f) -> QDBusMessage {
                     f.get();
                     return message.createReply();
                 });
@@ -310,7 +310,7 @@ ItemMetadata ProviderInterface::Move(QString const& item_id, QString const& new_
                 new_name.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));
                 });
@@ -326,7 +326,7 @@ ItemMetadata ProviderInterface::Copy(QString const& item_id, QString const& new_
                 new_name.toStdString(), ctx);
             return f.then(
                 MainLoopExecutor::instance(),
-                [=](decltype(f) f) -> QDBusMessage {
+                [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));
                 });
