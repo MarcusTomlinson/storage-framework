@@ -60,7 +60,6 @@ void ServerImpl::account_manager_ready()
         new ProviderAdaptor(iface.get());
 
         bus.registerObject(QStringLiteral("/provider/%1").arg(account->id()), iface.get());
-        qDebug() << "object path:" << QStringLiteral("/provider/%1").arg(account->id());
         interfaces_.emplace(account->id(), std::move(iface));
     }
 
@@ -70,8 +69,6 @@ void ServerImpl::account_manager_ready()
     }
     // TODO: claim bus name
     qDebug() << "Bus unique name:" << bus.baseService();
-    qDebug() << "bus_name_" << bus_name_.c_str();
-    qDebug() << "service id" << service_id_.c_str();
 }
 
 }

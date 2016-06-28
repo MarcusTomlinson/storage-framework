@@ -150,7 +150,6 @@ boost::future<Item> MyUploadJob::finish()
 
 int main(int argc, char **argv)
 {
-    //Server<MyProvider> server("com.canonical.StorageFramework.Provider.ProviderTest", "google-drive-scope");
     Server<MyProvider> server("com.canonical.StorageFramework.Provider.ProviderTest", "google-drive-scope");
     server.init(argc, argv);
     server.run();

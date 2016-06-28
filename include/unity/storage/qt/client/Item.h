@@ -114,7 +114,7 @@ public:
     /**
     \brief Returns the native identities of the parents of this item.
     \return A vector of parent identities. For a root, the returned vector is empty.
-    \warn Depending on the provider, a single file or folder may multiple
+    \warn Depending on the provider, a single file or folder may have multiple
     parents. Do not assume that only a single parent ID will be returned, or that
     parent IDs are returned in a particular order.
     */
@@ -160,7 +160,7 @@ protected:
 
     friend class internal::local_client::UploadWorker;
     friend class internal::remote_client::CopyHandler;
-    friend class internal::remote_client::ItemImpl;  // TODO: probably no longer needed
+    friend class internal::remote_client::ItemImpl;
     friend class internal::remote_client::LookupHandler;
     friend class internal::remote_client::MetadataHandler;
 };
