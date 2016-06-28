@@ -43,7 +43,7 @@ void RootsHandler::finished(QDBusPendingCallWatcher* call)
     QDBusPendingReply<QList<storage::internal::ItemMetadata>> reply = *call;
     if (reply.isError())
     {
-        qDebug() << reply.error().message();
+        qDebug() << reply.error().message();  // TODO, remove this
         qf_.reportException(StorageException());  // TODO
     }
     else

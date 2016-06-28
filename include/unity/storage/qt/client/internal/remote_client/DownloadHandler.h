@@ -30,7 +30,7 @@ class DownloadHandler : public QObject
     Q_OBJECT
 
 public:
-    DownloadHandler(QDBusPendingReply<QString, int> const& reply,
+    DownloadHandler(QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                     std::shared_ptr<File> const& file,
                     ProviderInterface& provider);
 

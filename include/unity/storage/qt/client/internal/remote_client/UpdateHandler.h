@@ -30,7 +30,7 @@ class UpdateHandler : public QObject
     Q_OBJECT
 
 public:
-    UpdateHandler(QDBusPendingReply<QString, int> const& reply,
+    UpdateHandler(QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                   QString const& old_etag,
                   std::weak_ptr<Root> root,
                   ProviderInterface& provider);

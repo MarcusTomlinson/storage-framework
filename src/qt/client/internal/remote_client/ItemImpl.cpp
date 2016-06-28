@@ -29,6 +29,7 @@ namespace remote_client
 
 ItemImpl::ItemImpl(storage::internal::ItemMetadata const& md, ItemType type)
     : ItemBase(md.item_id, type)
+    , md_(md)
 {
 }
 

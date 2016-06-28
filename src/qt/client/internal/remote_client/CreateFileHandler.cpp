@@ -21,7 +21,7 @@ namespace internal
 namespace remote_client
 {
 
-CreateFileHandler::CreateFileHandler(QDBusPendingReply<QString, int> const& reply,
+CreateFileHandler::CreateFileHandler(QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                                      weak_ptr<Root> const& root,
                                      ProviderInterface& provider)
     : watcher_(reply, this)
@@ -42,7 +42,7 @@ void CreateFileHandler::finished(QDBusPendingCallWatcher* call)
 {
     deleteLater();
 
-    QDBusPendingReply<QString, int> reply = *call;
+    QDBusPendingReply<QString, QDBusUnixFileDescriptor> reply = *call;
     if (reply.isError())
     {
         qDebug() << reply.error().message();  // TODO, remove this
@@ -53,7 +53,7 @@ void CreateFileHandler::finished(QDBusPendingCallWatcher* call)
 
     auto upload_id = reply.argumentAt<0>();
     auto fd = reply.argumentAt<1>();
-    auto uploader = UploaderImpl::make_uploader(upload_id, fd, "", root_, provider_);
+    auto uploader = UploaderImpl::make_uploader(upload_id, fd.fileDescriptor(), "", root_, provider_);
     qf_.reportResult(uploader);
     qf_.reportFinished();
 }

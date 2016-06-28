@@ -29,7 +29,7 @@ class CreateFileHandler : public QObject
     Q_OBJECT
 
 public:
-    CreateFileHandler(QDBusPendingReply<QString, int> const& reply,
+    CreateFileHandler(QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                       std::weak_ptr<Root> const& root,
                       ProviderInterface& provider);
 

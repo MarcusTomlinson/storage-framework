@@ -3,6 +3,8 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>
 
+#include <QDBusUnixFileDescriptor>
+
 #include <cassert>
 
 using namespace std;
@@ -20,7 +22,7 @@ namespace internal
 namespace remote_client
 {
 
-UpdateHandler::UpdateHandler(QDBusPendingReply<QString, int> const& reply,
+UpdateHandler::UpdateHandler(QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                              QString const& old_etag,
                              weak_ptr<Root> root,
                              ProviderInterface& provider)
@@ -43,10 +45,10 @@ void UpdateHandler::finished(QDBusPendingCallWatcher* call)
 {
     deleteLater();
 
-    QDBusPendingReply<QString, int> reply = *call;
+    QDBusPendingReply<QString, QDBusUnixFileDescriptor> reply = *call;
     if (reply.isError())
     {
-        qDebug() << reply.error().message();
+        qDebug() << reply.error().message();  // TODO, remove this
         qf_.reportException(StorageException());  // TODO
         qf_.reportFinished();
         return;
@@ -54,13 +56,13 @@ void UpdateHandler::finished(QDBusPendingCallWatcher* call)
 
     auto upload_id = reply.argumentAt<0>();
     auto fd = reply.argumentAt<1>();
-    if (fd < 0)
+    if (fd.fileDescriptor() < 0)
     {
         qf_.reportException(StorageException());  // TODO
     }
     else
     {
-        auto uploader = UploaderImpl::make_uploader(upload_id, fd, old_etag_, root_, provider_);
+        auto uploader = UploaderImpl::make_uploader(upload_id, fd.fileDescriptor(), old_etag_, root_, provider_);
         qf_.reportResult(uploader);
     }
 

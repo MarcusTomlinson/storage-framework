@@ -42,7 +42,7 @@ void FinishUploadHandler::finished(QDBusPendingCallWatcher* call)
     QDBusPendingReply<storage::internal::ItemMetadata> reply = *call;
     if (reply.isError())
     {
-        qDebug() << reply.error().message();
+        qDebug() << reply.error().message();  // TODO, remove this
         qf_.reportException(StorageException());  // TODO
         qf_.reportFinished();
         return;

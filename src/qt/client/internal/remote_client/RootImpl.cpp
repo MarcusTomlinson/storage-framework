@@ -55,12 +55,20 @@ QFuture<void> RootImpl::delete_item()
 
 QFuture<int64_t> RootImpl::free_space_bytes() const
 {
-    return QFuture<int64_t>(); // TODO
+    // TODO, need to refresh metadata here instead.
+    QFutureInterface<int64_t> qf;
+    qf.reportResult(1);
+    qf.reportFinished();
+    return qf.future();
 }
 
 QFuture<int64_t> RootImpl::used_space_bytes() const
 {
-    return QFuture<int64_t>(); // TODO
+    // TODO, need to refresh metadata here instead.
+    QFutureInterface<int64_t> qf;
+    qf.reportResult(1);
+    qf.reportFinished();
+    return qf.future();
 }
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const

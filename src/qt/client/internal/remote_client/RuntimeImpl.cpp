@@ -42,7 +42,6 @@ RuntimeImpl::RuntimeImpl()
 {
     if (!conn_.isConnected())
     {
-        qDebug() << "can't connect to session bus";
         throw LocalCommsException();  // LCOV_EXCL_LINE  // TODO, details
     }
     qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
@@ -55,9 +54,12 @@ RuntimeImpl::~RuntimeImpl()
     {
         shutdown();
     }
+    // LCOV_EXCL_START
     catch (std::exception const&)
     {
+        qCritical() << "shutdown error";  // TODO, log the error properly
     }
+    // LCOV_EXCL_STOP
 }
 
 void RuntimeImpl::shutdown()
@@ -66,6 +68,7 @@ void RuntimeImpl::shutdown()
     {
         return;
     }
+    conn_.disconnectFromBus(conn_.name());
 }
 
 QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
@@ -76,7 +79,7 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
         connect(manager_.get(), &OnlineAccounts::Manager::ready, this, &RuntimeImpl::manager_ready);
         connect(&timer_, &QTimer::timeout, this, &RuntimeImpl::timeout);
         timer_.setSingleShot(true);
-        timer_.start(5000);  // TODO: should be configurable?
+        timer_.start(5000);
     }
 
     qf_.reportStarted();

@@ -39,7 +39,7 @@ void CancelUploadHandler::finished(QDBusPendingCallWatcher* call)
     QDBusPendingReply<void> reply = *call;
     if (reply.isError())
     {
-        qDebug() << reply.error().message();
+        qDebug() << reply.error().message();  // TODO, remove this
         qf_.reportException(StorageException());  // TODO
     }
     qf_.reportFinished();
