@@ -27,9 +27,9 @@ namespace remote_client
 MoveHandler::MoveHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
                          weak_ptr<Root> const& root)
     : watcher_(reply, this)
-    , root_(root)
+    , root_(root.lock())
 {
-    assert(root.lock());
+    assert(root_);
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &MoveHandler::finished);
     qf_.reportStarted();
 }

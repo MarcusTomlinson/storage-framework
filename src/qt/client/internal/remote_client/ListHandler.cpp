@@ -28,12 +28,12 @@ ListHandler::ListHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata
                          ProviderInterface& provider,
                          QFutureInterface<QVector<shared_ptr<Item>>> qf)
     : watcher_(reply, this)
-    , root_(root)
+    , root_(root.lock())
     , item_id_(item_id)
     , provider_(provider)
     , qf_(qf)
 {
-    assert(root.lock());
+    assert(root_);
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &ListHandler::finished);
 }
 

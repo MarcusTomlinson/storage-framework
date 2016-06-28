@@ -24,9 +24,9 @@ namespace remote_client
 RootsHandler::RootsHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
                            weak_ptr<Account> const& account)
     : watcher_(reply, this)
-    , account_(account)
+    , account_(account.lock())
 {
-    assert(account.lock());
+    assert(account_);
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &RootsHandler::finished);
     qf_.reportStarted();
 }

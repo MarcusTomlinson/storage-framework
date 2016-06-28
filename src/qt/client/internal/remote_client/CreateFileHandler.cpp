@@ -25,10 +25,10 @@ CreateFileHandler::CreateFileHandler(QDBusPendingReply<QString, int> const& repl
                                      weak_ptr<Root> const& root,
                                      ProviderInterface& provider)
     : watcher_(reply, this)
-    , root_(root)
+    , root_(root.lock())
     , provider_(provider)
 {
-    assert(root.lock());
+    assert(root_);
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &CreateFileHandler::finished);
     qf_.reportStarted();
 }

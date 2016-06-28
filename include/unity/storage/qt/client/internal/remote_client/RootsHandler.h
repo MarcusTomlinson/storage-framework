@@ -40,7 +40,7 @@ public Q_SLOTS:
 private:
     QDBusPendingCallWatcher watcher_;
     QFutureInterface<QVector<std::shared_ptr<Root>>> qf_;
-    std::weak_ptr<Account> account_;
+    std::shared_ptr<Account> account_;
 };
 
 }  // namespace remote_client

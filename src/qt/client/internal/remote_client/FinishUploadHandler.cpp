@@ -22,9 +22,10 @@ namespace remote_client
 
 FinishUploadHandler::FinishUploadHandler(QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
                                          weak_ptr<Root> root)
-    : root_(root)
+    : root_(root.lock())
     , watcher_(reply, this)
 {
+    assert(root_);
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &FinishUploadHandler::finished);
     qf_.reportStarted();
 }

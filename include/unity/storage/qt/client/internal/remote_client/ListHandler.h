@@ -44,7 +44,7 @@ public Q_SLOTS:
 
 private:
     QDBusPendingCallWatcher watcher_;
-    std::weak_ptr<Root> root_;
+    std::shared_ptr<Root> root_;
     QString item_id_;
     ProviderInterface& provider_;
     QFutureInterface<QVector<std::shared_ptr<Item>>> qf_;

@@ -42,7 +42,7 @@ public Q_SLOTS:
 
 private:
     QString old_etag_;
-    std::weak_ptr<Root> root_;
+    std::shared_ptr<Root> root_;
     ProviderInterface& provider_;
     QDBusPendingCallWatcher watcher_;
     QFutureInterface<std::shared_ptr<Uploader>> qf_;

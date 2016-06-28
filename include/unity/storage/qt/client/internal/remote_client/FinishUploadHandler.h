@@ -43,7 +43,7 @@ public Q_SLOTS:
     void finished(QDBusPendingCallWatcher* call);
 
 private:
-    std::weak_ptr<Root> root_;
+    std::shared_ptr<Root> root_;
     QDBusPendingCallWatcher watcher_;
     QFutureInterface<std::shared_ptr<File>> qf_;
 };

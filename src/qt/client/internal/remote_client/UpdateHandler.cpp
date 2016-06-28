@@ -3,6 +3,8 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>
 
+#include <cassert>
+
 using namespace std;
 
 namespace unity
@@ -23,10 +25,11 @@ UpdateHandler::UpdateHandler(QDBusPendingReply<QString, int> const& reply,
                              weak_ptr<Root> root,
                              ProviderInterface& provider)
     : old_etag_(old_etag)
-    , root_(root)
+    , root_(root.lock())
     , provider_(provider)
     , watcher_(reply, this)
 {
+    assert(root_);
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &UpdateHandler::finished);
     qf_.reportStarted();
 }

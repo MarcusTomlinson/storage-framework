@@ -27,9 +27,9 @@ namespace remote_client
 MetadataHandler::MetadataHandler(QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
                                  weak_ptr<Root> const& root)
     : watcher_(reply, this)
-    , root_(root)
+    , root_(root.lock())
 {
-    assert(root.lock());
+    assert(root_);
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &MetadataHandler::finished);
     qf_.reportStarted();
 }
@@ -68,7 +68,7 @@ void MetadataHandler::finished(QDBusPendingCallWatcher* call)
         }
         case ItemType::root:
         {
-            item = RootImpl::make_root(md, dynamic_pointer_cast<RootImpl>(root_.lock()->p_)->account_);
+            item = RootImpl::make_root(md, dynamic_pointer_cast<RootImpl>(root_->p_)->account_);
             break;
         }
         default:

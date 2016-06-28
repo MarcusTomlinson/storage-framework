@@ -24,9 +24,9 @@ namespace remote_client
 CreateFolderHandler::CreateFolderHandler(QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
                                          weak_ptr<Root> const& root)
     : watcher_(reply, this)
-    , root_(root)
+    , root_(root.lock())
 {
-    assert(root.lock());
+    assert(root_);
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &CreateFolderHandler::finished);
     qf_.reportStarted();
 }
