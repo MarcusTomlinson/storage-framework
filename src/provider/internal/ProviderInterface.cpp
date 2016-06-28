@@ -278,7 +278,7 @@ void ProviderInterface::FinishDownload(QString const& download_id)
             // FIXME: removing the job at this point means we can't
             // cancel during finish().
             account->jobs().remove_download(download_id.toStdString());
-            auto f = job->finish();
+            auto f = job->p_->finish(*job);
             return f.then(
                 MainLoopExecutor::instance(),
                 [account, message, job](decltype(f) f) -> QDBusMessage {

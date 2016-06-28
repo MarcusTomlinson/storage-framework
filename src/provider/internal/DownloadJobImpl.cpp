@@ -1,4 +1,5 @@
 #include <unity/storage/provider/internal/DownloadJobImpl.h>
+#include <unity/storage/provider/DownloadJob.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -80,6 +81,52 @@ void DownloadJobImpl::set_sender_bus_name(string const& bus_name)
 {
     assert(bus_name[0] == ':');
     sender_bus_name_ = bus_name;
+}
+
+void DownloadJobImpl::report_complete()
+{
+    if (write_socket_ >= 0)
+    {
+        close(write_socket_);
+        write_socket_ = -1;
+    }
+
+    lock_guard<mutex> guard(completion_lock_);
+    completed_ = true;
+    completion_promise_.set_value();
+}
+
+void DownloadJobImpl::report_error(std::exception_ptr p)
+{
+    if (write_socket_ >= 0)
+    {
+        close(write_socket_);
+        write_socket_ = -1;
+    }
+
+    lock_guard<mutex> guard(completion_lock_);
+    completed_ = true;
+    completion_promise_.set_exception(p);
+}
+
+boost::future<void> DownloadJobImpl::finish(DownloadJob& job)
+{
+    lock_guard<mutex> guard(completion_lock_);
+    if (completed_)
+    {
+        return completion_promise_.get_future();
+    }
+    return job.finish();
+}
+
+boost::future<void> DownloadJobImpl::cancel(DownloadJob& job)
+{
+    lock_guard<mutex> guard(completion_lock_);
+    if (completed_)
+    {
+        return boost::make_ready_future();
+    }
+    return job.cancel();
 }
 
 }

@@ -46,6 +46,16 @@ int DownloadJob::write_socket() const
     return p_->write_socket();
 }
 
+void DownloadJob::report_complete()
+{
+    p_->report_complete();
+}
+
+void DownloadJob::report_error(std::exception_ptr p)
+{
+    p_->report_error(p);
+}
+
 }
 }
 }

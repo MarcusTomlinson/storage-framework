@@ -3,6 +3,7 @@
 #include <unity/storage/visibility.h>
 
 #include <boost/thread/future.hpp>
+#include <stdexcept>
 #include <string>
 
 namespace unity
@@ -27,11 +28,14 @@ public:
     std::string const& download_id() const;
     int write_socket() const;
 
+    void report_complete();
+    void report_error(std::exception_ptr p);
+
     virtual boost::future<void> cancel() = 0;
     virtual boost::future<void> finish() = 0;
 
 protected:
-    DownloadJob(internal::DownloadJobImpl *p);
+    DownloadJob(internal::DownloadJobImpl *p) UNITY_STORAGE_HIDDEN;
     internal::DownloadJobImpl *p_ = nullptr;
 
     friend class internal::PendingJobs;

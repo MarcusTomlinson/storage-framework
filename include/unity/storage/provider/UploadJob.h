@@ -34,7 +34,7 @@ public:
     virtual boost::future<Item> finish() = 0;
 
 protected:
-    UploadJob(internal::UploadJobImpl *p);
+    UploadJob(internal::UploadJobImpl *p) UNITY_STORAGE_HIDDEN;
     internal::UploadJobImpl *p_ = nullptr;
 
     friend class internal::PendingJobs;
