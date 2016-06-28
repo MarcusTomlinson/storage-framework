@@ -21,20 +21,6 @@ QDBusArgument& operator<<(QDBusArgument& argument, QList<storage::internal::Item
 QDBusArgument const& operator>>(QDBusArgument const& argument, QList<storage::internal::ItemMetadata>& md_list);
 
 }  // namespace internal
-
-namespace qt
-{
-namespace client
-{
-namespace internal
-{
-namespace remote_client
-{
-
-}  // namespace remote_client
-}  // namespace internal
-}  // namespace client
-}  // namespace qt
 }  // namespace storage
 }  // namespace unity
 
