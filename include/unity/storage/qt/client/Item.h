@@ -48,7 +48,7 @@ class MetadataHandler;
 }  // namespace internal
 
 /**
-\brief Base class for files and directories.
+\brief Base class for files and folders.
 */
 class UNITY_STORAGE_EXPORT Item
 {
@@ -71,7 +71,7 @@ public:
     QString native_identity() const;
 
     /**
-    \brief Returns the name of the file or directory.
+    \brief Returns the name of the file or folder.
 
     The returned name may not be the same as the name that was used to create the item because the provider
     may have changed it in some way (such as converting upper case characters to lower case).
@@ -79,7 +79,7 @@ public:
     QString name() const;
 
     /**
-    \brief Returns the root directory for this item.
+    \brief Returns the root folder for this item.
 
     If this item is a root, the returned pointer points at this item.
     */
@@ -123,7 +123,7 @@ public:
     /**
     \brief Copies this item.
 
-    Copying a directory recursively copies its contents.
+    Copying a folder recursively copies its contents.
     \param new_parent The new parent folder for the item. If the item is to be copied within
     its current folder, this parameter must designate the currently existing parent.
     \param new_name The new name for the file.
@@ -147,7 +147,7 @@ public:
 
     /**
     \brief Permamently deletes the item.
-    \warning Deleting a directory recursively deletes its contents.
+    \warning Deleting a folder recursively deletes its contents.
     */
     QFuture<void> delete_item();
 

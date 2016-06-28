@@ -90,7 +90,6 @@ public:
     // TODO: Explain issues with metacharacters.
     */
     QFuture<std::shared_ptr<Uploader>> create_file(QString const& name);
-                                                   // TODO ConflictPolicy policy = ConflictPolicy::error_if_conflict);
 
 protected:
     Folder(internal::FolderBase*);
