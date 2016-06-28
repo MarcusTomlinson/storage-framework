@@ -16,8 +16,10 @@ namespace internal
 namespace remote_client
 {
 
+class CopyHandler;
 class ItemImpl;
 class LookupHandler;
+class MetadataHandler;
 
 }  // namespace remote_client
 
@@ -36,8 +38,10 @@ public:
 protected:
     std::weak_ptr<Account> account_;
 
-    friend class remote_client::ItemImpl;
+    friend class remote_client::CopyHandler;
+    friend class remote_client::ItemImpl;  // TODO: probably no longer needed
     friend class remote_client::LookupHandler;
+    friend class remote_client::MetadataHandler;
 };
 
 }  // namespace internal

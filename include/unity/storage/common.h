@@ -13,12 +13,6 @@ enum class ItemType
     LAST_ENTRY__
 };
 
-enum class TransferState
-{
-    ok,
-    cancelled,
-};
-
 enum class ConflictPolicy
 {
     error_if_conflict,

@@ -29,7 +29,7 @@ namespace local_client
 
 ItemImpl::ItemImpl(QString const& identity, ItemType type)
     : ItemBase(identity, type)
-    , destroyed_(false)
+    , deleted_(false)
 {
     assert(!identity.isEmpty());
     auto path = boost::filesystem::canonical(identity.toStdString());
@@ -44,9 +44,9 @@ QString ItemImpl::name() const
 {
     lock_guard<mutex> guard(mutex_);
 
-    if (destroyed_)
+    if (deleted_)
     {
-        throw DestroyedException();  // TODO
+        throw DeletedException();  // TODO
     }
     return name_;
 }
@@ -55,9 +55,9 @@ QVariantMap ItemImpl::metadata() const
 {
     lock_guard<mutex> guard(mutex_);
 
-    if (destroyed_)
+    if (deleted_)
     {
-        throw DestroyedException();  // TODO
+        throw DeletedException();  // TODO
     }
     return metadata_;
 }
@@ -66,9 +66,9 @@ QDateTime ItemImpl::last_modified_time() const
 {
     lock_guard<mutex> guard(mutex_);
 
-    if (destroyed_)
+    if (deleted_)
     {
-        throw DestroyedException();  // TODO
+        throw DeletedException();  // TODO
     }
     return modified_time_;
 }
@@ -117,13 +117,13 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         lock_guard<mutex> this_guard(This->mutex_, std::adopt_lock);
         lock_guard<mutex> other_guard(new_parent_impl->mutex_, adopt_lock);
 
-        if (This->destroyed_)
+        if (This->deleted_)
         {
-            throw DestroyedException();  // TODO
+            throw DeletedException();  // TODO
         }
-        if (new_parent_impl->destroyed_)
+        if (new_parent_impl->deleted_)
         {
-            throw DestroyedException();  // TODO
+            throw DeletedException();  // TODO
         }
 
         if (This->root()->account() != new_parent->root()->account())
@@ -196,13 +196,13 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         lock_guard<mutex> this_guard(This->mutex_, std::adopt_lock);
         lock_guard<mutex> other_guard(new_parent_impl->mutex_, adopt_lock);
 
-        if (This->destroyed_)
+        if (This->deleted_)
         {
-            throw DestroyedException();  // TODO
+            throw DeletedException();  // TODO
         }
-        if (new_parent_impl->destroyed_)
+        if (new_parent_impl->deleted_)
         {
-            throw DestroyedException();  // TODO
+            throw DeletedException();  // TODO
         }
 
         if (This->root()->account() != new_parent->root()->account())
@@ -227,7 +227,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
                 throw StorageException();  // TODO
             }
             rename(This->native_identity().toStdString(), target_path);
-            This->destroyed_ = true;
+            This->deleted_ = true;
             if (This->type_ == ItemType::folder)
             {
                 return FolderImpl::make_folder(QString::fromStdString(target_path.native()), new_parent_impl->root_);
@@ -247,9 +247,9 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
     lock_guard<mutex> guard(mutex_);
 
     QFutureInterface<QVector<Folder::SPtr>> qf;
-    if (destroyed_)
+    if (deleted_)
     {
-        qf.reportException(DestroyedException());
+        qf.reportException(DeletedException());
         qf.reportFinished();
         return qf.future();
     }
@@ -284,9 +284,9 @@ QVector<QString> ItemImpl::parent_ids() const
 {
     lock_guard<mutex> guard(mutex_);
 
-    if (destroyed_)
+    if (deleted_)
     {
-        throw DestroyedException();
+        throw DeletedException();
     }
 
     using namespace boost::filesystem;
@@ -300,22 +300,22 @@ QVector<QString> ItemImpl::parent_ids() const
     return results;
 }
 
-QFuture<void> ItemImpl::destroy()
+QFuture<void> ItemImpl::delete_item()
 {
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
     auto destroy = [This]()
     {
         lock_guard<mutex> guard(This->mutex_);
 
-        if (This->destroyed_)
+        if (This->deleted_)
         {
-            throw DestroyedException();
+            throw DeletedException();
         }
 
         try
         {
             boost::filesystem::remove_all(This->native_identity().toStdString());
-            This->destroyed_ = true;
+            This->deleted_ = true;
         }
         catch (std::exception const& e)
         {
@@ -338,7 +338,7 @@ bool ItemImpl::equal_to(ItemBase const& other) const noexcept
     lock_guard<mutex> this_guard(mutex_, std::adopt_lock);
     lock_guard<mutex> other_guard(other_impl->mutex_, adopt_lock);
 
-    if (destroyed_ || other_impl->destroyed_)
+    if (deleted_ || other_impl->deleted_)
     {
         return false;
     }

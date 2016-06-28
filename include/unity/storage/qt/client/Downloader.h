@@ -35,6 +35,13 @@ namespace local_client
 class FileImpl;
 
 }  // namespace local_client
+
+namespace remote_client
+{
+
+class DownloaderImpl;
+
+}  // namespace remote_client
 }  // namespace internal
 
 class UNITY_STORAGE_EXPORT Downloader final
@@ -72,21 +79,27 @@ public:
     \brief Finalizes the download.
 
     Once the returned socket indicates EOF, you must call finish_download(), which closes
-    the socket. Call `result()` on the returned future to check for errors. If an error
-    occurred, `result()` throws an exception. Otherwise, it returns the transfer state to
-    indicate whether the download finished normally or was cancelled.
+    the socket. Call `waitForFinished()` on the returned future to check for errors. If an error
+    occurred, `waitForFinished()` throws an exception. If the download was cancelled, `waitForFinished()` throws
+    CancelledException.
 
     \warning Do not assume that a download completed successfully once you detect EOF on the socket.
     If something goes wrong during a download on the server side, the socket will return EOF
     for a partially-downloaded file.
     */
-    QFuture<TransferState> finish_download();
+    QFuture<void> finish_download();
 
     /**
     \brief Cancels a download.
 
     Calling cancel() informs the provider that the download is no longer needed. The provider
     will make a best-effort attempt to cancel the download from the remote service.
+
+    You can check whether the cancel was successfully sent by calling `waitForFinished()` on the returned future.
+    If this does not throw an exception, the message was received and acted upon by the provider. However,
+    successful completion does _not_ indicate that the download was actually cancelled. (For example,
+    the download may have completed already by the time the provider received the cancel request, or the provider
+    may not support cancellation.)
 
     Calling cancel() more than once, or calling cancel() after a call to finish_download() is safe and does nothing.
     */
@@ -98,6 +111,7 @@ private:
     std::shared_ptr<internal::DownloaderBase> p_;
 
     friend class internal::local_client::FileImpl;
+    friend class internal::remote_client::DownloaderImpl;
 };
 
 }  // namespace client

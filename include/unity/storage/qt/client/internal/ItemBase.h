@@ -51,7 +51,7 @@ public:
     virtual QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name) = 0;
     virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const = 0;
     virtual QVector<QString> parent_ids() const = 0;
-    virtual QFuture<void> destroy() = 0;
+    virtual QFuture<void> delete_item() = 0;
     virtual bool equal_to(ItemBase const& other) const noexcept = 0;
 
     void set_root(std::weak_ptr<Root> p);

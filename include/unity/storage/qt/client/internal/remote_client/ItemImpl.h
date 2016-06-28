@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unity/storage/common.h>
 #include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/internal/ItemBase.h>
 
@@ -21,6 +20,8 @@ namespace internal
 namespace remote_client
 {
 
+class DeleteHandler;
+
 class ItemImpl : public virtual ItemBase
 {
 public:
@@ -33,13 +34,16 @@ public:
     virtual QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name) override;
     virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const override;
     virtual QVector<QString> parent_ids() const override;
-    virtual QFuture<void> destroy() override;
+    virtual QFuture<void> delete_item() override;
     virtual bool equal_to(ItemBase const& other) const noexcept override;
 
     ProviderInterface& provider() const noexcept;
 
 protected:
+    bool deleted_ = false;
     storage::internal::ItemMetadata md_;
+
+    friend class DeleteHandler;
 };
 
 }  // namespace remote_client

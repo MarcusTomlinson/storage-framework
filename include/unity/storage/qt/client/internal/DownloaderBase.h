@@ -1,7 +1,5 @@
 #pragma once
 
-#include <unity/storage/common.h>
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
@@ -36,7 +34,7 @@ public:
 
     virtual std::shared_ptr<File> file() const = 0;
     virtual std::shared_ptr<QLocalSocket> socket() const = 0;
-    virtual QFuture<TransferState> finish_download() = 0;
+    virtual QFuture<void> finish_download() = 0;
     virtual QFuture<void> cancel() noexcept = 0;
 
 protected:

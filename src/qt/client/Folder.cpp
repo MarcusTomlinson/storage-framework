@@ -26,7 +26,7 @@ QFuture<QVector<Item::SPtr>> Folder::list() const
     return dynamic_cast<FolderBase*>(p_.get())->list();
 }
 
-QFuture<Item::SPtr> Folder::lookup(QString const& name) const
+QFuture<QVector<Item::SPtr>> Folder::lookup(QString const& name) const
 {
     return dynamic_cast<FolderBase*>(p_.get())->lookup(name);
 }

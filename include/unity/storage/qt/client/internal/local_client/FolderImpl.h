@@ -22,10 +22,10 @@ public:
     FolderImpl(QString const& identity);
     FolderImpl(QString const& identity, ItemType type);
 
-    QFuture<QVector<std::shared_ptr<Item>>> list() const;
-    QFuture<std::shared_ptr<Item>> lookup(QString const& name) const;
-    QFuture<std::shared_ptr<Folder>> create_folder(QString const& name);
-    QFuture<std::shared_ptr<Uploader>> create_file(QString const& name);
+    QFuture<QVector<std::shared_ptr<Item>>> list() const override;
+    QFuture<QVector<std::shared_ptr<Item>>> lookup(QString const& name) const override;
+    QFuture<std::shared_ptr<Folder>> create_folder(QString const& name) override;
+    QFuture<std::shared_ptr<Uploader>> create_file(QString const& name) override;
 
     static std::shared_ptr<Folder> make_folder(QString const& identity, std::weak_ptr<Root> root);
 };

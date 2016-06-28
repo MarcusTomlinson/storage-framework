@@ -33,9 +33,9 @@ QString FileImpl::name() const
 {
     lock_guard<mutex> guard(mutex_);
 
-    if (destroyed_)
+    if (deleted_)
     {
-        throw DestroyedException();
+        throw DeletedException();
     }
     auto name = boost::filesystem::path(identity_.toStdString()).filename().native();
     return QString::fromStdString(name);
@@ -45,9 +45,9 @@ int64_t FileImpl::size() const
 {
     lock_guard<mutex> guard(mutex_);
 
-    if (destroyed_)
+    if (deleted_)
     {
-        throw DestroyedException();
+        throw DeletedException();
     }
 
     try
@@ -66,19 +66,18 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
     lock_guard<mutex> guard(mutex_);
 
     QFutureInterface<Uploader::SPtr> qf;
-    if (destroyed_)
+    if (deleted_)
     {
-        qf.reportException(DestroyedException());
+        qf.reportException(DeletedException());
         qf.reportFinished();
         return qf.future();
     }
 
     try
     {
-        auto pi = public_instance_.lock();
-        assert(pi);
-        auto file_ptr = static_pointer_cast<File>(pi);
-        auto impl(new UploaderImpl(file_ptr, policy));
+        auto file = dynamic_pointer_cast<File>(public_instance_.lock());
+        assert(file);
+        auto impl(new UploaderImpl(file, identity_, policy, root_));
         Uploader::SPtr ul(new Uploader(impl));
         qf.reportResult(ul);
     }
@@ -95,9 +94,9 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
     lock_guard<mutex> guard(mutex_);
 
     QFutureInterface<Downloader::SPtr> qf;
-    if (destroyed_)
+    if (deleted_)
     {
-        qf.reportException(DestroyedException());
+        qf.reportException(DeletedException());
         qf.reportFinished();
         return qf.future();
     }

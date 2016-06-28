@@ -28,7 +28,7 @@ std::shared_ptr<QLocalSocket> Downloader::socket() const
     return p_->socket();
 }
 
-QFuture<TransferState> Downloader::finish_download()
+QFuture<void> Downloader::finish_download()
 {
     return p_->finish_download();
 }

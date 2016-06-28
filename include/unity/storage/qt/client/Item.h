@@ -39,8 +39,10 @@ class UploadWorker;
 namespace remote_client
 {
 
+class CopyHandler;
 class ItemImpl;
 class LookupHandler;
+class MetadataHandler;
 
 }  // namespace remote_client
 }  // namespace internal
@@ -103,12 +105,18 @@ public:
     /**
     \brief Returns a list of parent folders of this item.
     \return A vector of parents. For a root, the returned vector is empty.
+    \warn Depending on the provider, a single file or folder may have multiple
+    parents. Do not assume that only a single parent will be returned, or that
+    parents are returned in a particular order.
     */
     QFuture<QVector<std::shared_ptr<Folder>>> parents() const;
 
     /**
     \brief Returns the native identities of the parents of this item.
     \return A vector of parent identities. For a root, the returned vector is empty.
+    \warn Depending on the provider, a single file or folder may multiple
+    parents. Do not assume that only a single parent ID will be returned, or that
+    parent IDs are returned in a particular order.
     */
     QVector<QString> parent_ids() const;
 
@@ -117,26 +125,31 @@ public:
 
     Copying a directory recursively copies its contents.
     \param new_parent The new parent folder for the item. If the item is to be copied within
-    its current directory, this parameter must designate the currently existing parent.
+    its current folder, this parameter must designate the currently existing parent.
     \param new_name The new name for the file.
+    \warn Do not rely on copy() to fail if an attempt is made to copy
+    a file or folder to a destination name that is the same as that of an already existing file or folder.
+    Depending on the cloud provider, it may be possible to have several folders with the same name.
     */
     QFuture<Item::SPtr> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
 
     /**
     \brief Renames and/or moves a file or folder.
-    \param new_parent The new parent folder for the item. If the item is to be renamed only,
-    this parameter must designate the currently existing parent.
-    \param new_name The new name for the item. If the item is to be moved to a new parent with
-    the same name, this parameter must designate the currently existing name.
+    \param new_parent The new parent folder for the item. If the item is to be renamed within
+    its current folder, this parameter must designate the currently existing parent.
+    \param new_name The new name for the item.
+    \warn Do not rely on move() to fail if an attempt is made to move
+    a file or folder to a destination name that is the same as that of an already existing file or folder.
+    Depending on the cloud provider, it may be possible to have several files or folders with the same name.
     \note It is not possible to move or rename the root folder.
     */
     QFuture<Item::SPtr> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name);
 
     /**
-    \brief Permamently destroys the item.
-    \warning Destroying a directory recursively destroys its contents.
+    \brief Permamently deletes the item.
+    \warning Deleting a directory recursively deletes its contents.
     */
-    QFuture<void> destroy();
+    QFuture<void> delete_item();
 
     bool equal_to(Item::SPtr const& other) const noexcept;
 
@@ -146,8 +159,10 @@ protected:
     std::shared_ptr<internal::ItemBase> p_;
 
     friend class internal::local_client::UploadWorker;
-    friend class internal::remote_client::ItemImpl;
+    friend class internal::remote_client::CopyHandler;
+    friend class internal::remote_client::ItemImpl;  // TODO: probably no longer needed
     friend class internal::remote_client::LookupHandler;
+    friend class internal::remote_client::MetadataHandler;
 };
 
 }  // namespace client

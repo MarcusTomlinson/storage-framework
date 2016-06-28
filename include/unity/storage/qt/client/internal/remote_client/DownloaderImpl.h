@@ -2,6 +2,7 @@
 
 #include <unity/storage/qt/client/internal/DownloaderBase.h>
 
+class ProviderInterface;
 class QLocalSocket;
 
 namespace unity
@@ -12,6 +13,9 @@ namespace qt
 {
 namespace client
 {
+
+class Downloader;
+
 namespace internal
 {
 namespace remote_client
@@ -22,13 +26,24 @@ class DownloaderImpl : public DownloaderBase
     Q_OBJECT
 
 public:
-    DownloaderImpl(std::weak_ptr<File> file);
-    ~DownloaderImpl();
+    DownloaderImpl(QString const& download_id, int fd, std::shared_ptr<File> const& file, ProviderInterface& provider);
+    virtual ~DownloaderImpl();
 
     virtual std::shared_ptr<File> file() const override;
     virtual std::shared_ptr<QLocalSocket> socket() const override;
-    virtual QFuture<TransferState> finish_download() override;
+    virtual QFuture<void> finish_download() override;
     virtual QFuture<void> cancel() noexcept override;
+
+    static std::shared_ptr<Downloader> make_downloader(QString const& upload_id,
+                                                       int fd,
+                                                       std::shared_ptr<File> const& file,
+                                                       ProviderInterface& provider);
+
+private:
+    QString download_id_;
+    std::shared_ptr<File> file_;
+    ProviderInterface& provider_;
+    std::shared_ptr<QLocalSocket> read_socket_;
 };
 
 }  // namespace remote_client

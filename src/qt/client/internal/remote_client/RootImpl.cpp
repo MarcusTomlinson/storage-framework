@@ -1,7 +1,8 @@
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
 
+#include "ProviderInterface.h"
 #include <unity/storage/qt/client/Exceptions.h>
-#include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/MetadataHandler.h>
 #include <unity/storage/qt/client/Root.h>
 
 #include <boost/filesystem.hpp>
@@ -43,9 +44,9 @@ QVector<QString> RootImpl::parent_ids() const
     return QVector<QString>();  // For the root, we return an empty vector.
 }
 
-QFuture<void> RootImpl::destroy()
+QFuture<void> RootImpl::delete_item()
 {
-    // Cannot destroy root.
+    // Cannot delete root.
     QFutureInterface<void> qf;
     qf.reportException(StorageException());
     qf.reportFinished();
@@ -54,20 +55,21 @@ QFuture<void> RootImpl::destroy()
 
 QFuture<int64_t> RootImpl::free_space_bytes() const
 {
-    return QFuture<int64_t>();
+    return QFuture<int64_t>(); // TODO
 }
 
 QFuture<int64_t> RootImpl::used_space_bytes() const
 {
-    return QFuture<int64_t>();
+    return QFuture<int64_t>(); // TODO
 }
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 {
-    return QFuture<Item::SPtr>();
+    auto handler = new MetadataHandler(provider().Metadata(native_identity), root_);
+    return handler->future();
 }
 
-Root::SPtr RootImpl::make_root(storage::internal::ItemMetadata const& md, std::weak_ptr<Account> const& account)
+Root::SPtr RootImpl::make_root(storage::internal::ItemMetadata const& md, weak_ptr<Account> const& account)
 {
     assert(md.type == ItemType::root);
     assert(account.lock());

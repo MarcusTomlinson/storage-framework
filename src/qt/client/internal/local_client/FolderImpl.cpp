@@ -3,12 +3,12 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/Folder.h>
+#include <unity/storage/qt/client/Uploader.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <QtConcurrent>
-
-#include <fcntl.h>
 
 using namespace std;
 
@@ -46,9 +46,9 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
     {
         lock_guard<mutex> guard(This->mutex_);
 
-        if (This->destroyed_)
+        if (This->deleted_)
         {
-            throw DestroyedException();
+            throw DeletedException();
         }
 
         try
@@ -88,16 +88,16 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
     return QtConcurrent::run(list);
 }
 
-QFuture<Item::SPtr> FolderImpl::lookup(QString const& name) const
+QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
 {
     auto This = dynamic_pointer_cast<FolderImpl const>(shared_from_this());  // Keep this folder alive while the lambda is alive.
-    auto lookup = [This, name]() -> Item::SPtr
+    auto lookup = [This, name]() -> QVector<Item::SPtr>
     {
         lock_guard<mutex> guard(This->mutex_);
 
-        if (This->destroyed_)
+        if (This->deleted_)
         {
-            throw DestroyedException();
+            throw DeletedException();
         }
 
         try
@@ -114,11 +114,15 @@ QFuture<Item::SPtr> FolderImpl::lookup(QString const& name) const
             file_status s = status(p);
             if (is_directory(s))
             {
-                return make_folder(QString::fromStdString(p.native()), This->root_);
+                QVector<Item::SPtr> v;
+                v.append(make_folder(QString::fromStdString(p.native()), This->root_));
+                return v;
             }
             if (is_regular_file(s))
             {
-                return FileImpl::make_file(QString::fromStdString(p.native()), This->root_);
+                QVector<Item::SPtr> v;
+                v.append(FileImpl::make_file(QString::fromStdString(p.native()), This->root_));
+                return v;
             }
             throw NotExistException();  // TODO
         }
@@ -135,9 +139,9 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     lock_guard<mutex> guard(mutex_);
 
     QFutureInterface<Folder::SPtr> qf;
-    if (destroyed_)
+    if (deleted_)
     {
-        qf.reportException(DestroyedException());
+        qf.reportException(DeletedException());
         qf.reportFinished();
         return qf.future();
     }
@@ -169,10 +173,10 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
 {
     unique_lock<mutex> guard(mutex_);
 
-    if (destroyed_)
+    QFutureInterface<shared_ptr<Uploader>> qf;
+    if (deleted_)
     {
-        QFutureInterface<shared_ptr<Uploader>> qf;
-        qf.reportException(DestroyedException());
+        qf.reportException(DeletedException());
         qf.reportFinished();
         return qf.future();
     }
@@ -188,28 +192,23 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
             throw StorageException();  // TODO
         }
         p /= sanitized_name;
-        int fd = open(p.native().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
-        if (fd == -1)
+        if (exists(p))
         {
-            throw StorageException();  // TODO
+            throw StorageException();
         }
-        if (close(fd) == -1)
-        {
-            throw StorageException();  // TODO
-        }
-        update_modified_time();
-        auto file = FileImpl::make_file(QString::fromStdString(p.native()), root_);
-        guard.unlock();
-        return file->create_uploader(ConflictPolicy::error_if_conflict);
+        auto impl = new UploaderImpl(shared_ptr<File>(),
+                                     QString::fromStdString(p.native()),
+                                     ConflictPolicy::error_if_conflict,
+                                     root_);
+        shared_ptr<Uploader> uploader(new Uploader(impl));
+        qf.reportResult(uploader);
     }
     catch (std::exception const&)
     {
-        QFutureInterface<shared_ptr<Uploader>> qf;
         qf.reportException(StorageException());  // TODO
-        qf.reportFinished();
-        return qf.future();
     }
-    // NOTREACHED
+    qf.reportFinished();
+    return qf.future();
 }
 
 Folder::SPtr FolderImpl::make_folder(QString const& identity, weak_ptr<Root> root)

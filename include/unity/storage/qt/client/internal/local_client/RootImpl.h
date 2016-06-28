@@ -24,7 +24,7 @@ public:
     virtual QString name() const override;
     virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const override;
     virtual QVector<QString> parent_ids() const override;
-    virtual QFuture<void> destroy() override;
+    virtual QFuture<void> delete_item() override;
 
     virtual QFuture<int64_t> free_space_bytes() const override;
     virtual QFuture<int64_t> used_space_bytes() const override;

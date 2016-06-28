@@ -27,7 +27,7 @@ namespace local_client
 
 DownloadWorker::DownloadWorker(int write_fd,
                                QString const& filename,
-                               QFutureInterface<TransferState>& qf,
+                               QFutureInterface<void>& qf,
                                QFutureInterface<void>& worker_initialized)
     : write_fd_(write_fd)
     , filename_(filename)
@@ -96,7 +96,6 @@ void DownloadWorker::do_finish()
             else
             {
                 state_ = finalized;
-                qf_.reportResult(TransferState::ok);
                 qf_.reportFinished();
             }
             break;
@@ -107,7 +106,7 @@ void DownloadWorker::do_finish()
         }
         case cancelled:
         {
-            qf_.reportResult(TransferState::cancelled);
+            qf_.reportException(CancelledException());  // TODO: details
             qf_.reportFinished();
             break;
         }
@@ -267,7 +266,7 @@ shared_ptr<QLocalSocket> DownloaderImpl::socket() const
     return read_socket_;
 }
 
-QFuture<TransferState> DownloaderImpl::finish_download()
+QFuture<void> DownloaderImpl::finish_download()
 {
     if (!qf_.future().isFinished())
     {

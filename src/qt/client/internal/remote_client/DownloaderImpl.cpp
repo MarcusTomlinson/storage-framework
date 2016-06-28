@@ -1,7 +1,9 @@
 #include <unity/storage/qt/client/internal/remote_client/DownloaderImpl.h>
 
+#include "ProviderInterface.h"
+#include <unity/storage/qt/client/Downloader.h>
 #include <unity/storage/qt/client/Exceptions.h>
-#include <unity/storage/qt/client/File.h>
+#include <unity/storage/qt/client/internal/remote_client/FinishDownloadHandler.h>
 
 #include <cassert>
 
@@ -23,13 +25,24 @@ namespace internal
 namespace remote_client
 {
 
-DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
-    : DownloaderBase(file.lock())
+DownloaderImpl::DownloaderImpl(QString const& download_id,
+                               int fd,
+                               shared_ptr<File> const& file,
+                               ProviderInterface& provider)
+    : DownloaderBase(file)
+    , download_id_(download_id)
+    , file_(file)
+    , provider_(provider)
+    , read_socket_(new QLocalSocket)
 {
+    assert(!download_id.isEmpty());
+    assert(fd >= 0);
+    read_socket_->setSocketDescriptor(fd, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 }
 
 DownloaderImpl::~DownloaderImpl()
 {
+    cancel();
 }
 
 shared_ptr<File> DownloaderImpl::file() const
@@ -39,18 +52,33 @@ shared_ptr<File> DownloaderImpl::file() const
 
 shared_ptr<QLocalSocket> DownloaderImpl::socket() const
 {
-    return shared_ptr<QLocalSocket>();
+    return read_socket_;
 }
 
-QFuture<TransferState> DownloaderImpl::finish_download()
+QFuture<void> DownloaderImpl::finish_download()
 {
-    return QFuture<TransferState>();
+    auto handler = new FinishDownloadHandler(provider_.FinishDownload(download_id_));
+    return handler->future();
 }
 
 QFuture<void> DownloaderImpl::cancel() noexcept
 {
-    return QFuture<void>();
+    read_socket_->abort();
+    QFutureInterface<void> qf;
+    qf.reportFinished();
+    return qf.future();
 }
+
+Downloader::SPtr DownloaderImpl::make_downloader(QString const& download_id,
+                                                 int fd,
+                                                 shared_ptr<File> const& file,
+                                                 ProviderInterface& provider)
+{
+    auto impl = new DownloaderImpl(download_id, fd, file, provider);
+    Downloader::SPtr downloader(new Downloader(impl));
+    return downloader;
+}
+
 
 }  // namespace remote_client
 }  // namespace internal

@@ -72,9 +72,9 @@ QFuture<Item::SPtr> Item::move(std::shared_ptr<Folder> const& new_parent, QStrin
     return p_->move(new_parent, new_name);
 }
 
-QFuture<void> Item::destroy()
+QFuture<void> Item::delete_item()
 {
-    return p_->destroy();
+    return p_->delete_item();
 }
 
 bool Item::equal_to(Item::SPtr const& other) const noexcept

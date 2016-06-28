@@ -61,7 +61,11 @@ public:
 
     /**
     \brief Creates an uploader for the file.
-    \param policy The conflict resolution policy.
+    \param policy The conflict resolution policy. If set to ConflictPolicy::overwrite,
+    the contents of the file will be overwritten even if the file was modified
+    after this File instance was retrieved. Otherwise, if set to ConflictPolicy::error_if_conflict,
+    an attempt to retrieve the File instance from the future returned by Uploader::finish_upload()
+    throws ConflictException.
     */
     QFuture<std::shared_ptr<Uploader>> create_uploader(ConflictPolicy policy);
 

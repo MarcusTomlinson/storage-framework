@@ -1,10 +1,15 @@
 #include <unity/storage/qt/client/internal/remote_client/ItemImpl.h>
 
+#include "ProviderInterface.h"
+// TODO: check this include list
 #include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/CopyHandler.h>
+#include <unity/storage/qt/client/internal/remote_client/DeleteHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/MoveHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
 
 using namespace std;
@@ -29,47 +34,109 @@ ItemImpl::ItemImpl(storage::internal::ItemMetadata const& md, ItemType type)
 
 QString ItemImpl::name() const
 {
+    if (deleted_)
+    {
+        throw DeletedException();  // TODO
+    }
     return md_.name;
 }
 
 QVariantMap ItemImpl::metadata() const
 {
+    if (deleted_)
+    {
+        throw DeletedException();  // TODO
+    }
+    // TODO: need to agree on metadata representation
     return QVariantMap();
 }
 
 QDateTime ItemImpl::last_modified_time() const
 {
+    if (deleted_)
+    {
+        throw DeletedException();  // TODO
+    }
+    // TODO: need to agree on metadata representation
     return QDateTime();
 }
 
 QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, QString const& new_name)
 {
-    return QFuture<shared_ptr<Item>>();
+    if (deleted_)
+    {
+        QFutureInterface<shared_ptr<Item>> qf;
+        qf.reportException(DeletedException());  // TODO
+        qf.reportFinished();
+        return qf.future();
+    }
+    auto handler = new CopyHandler(provider().Copy(md_.item_id, new_parent->native_identity(), new_name), root_);
+    return handler->future();
 }
 
 QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, QString const& new_name)
 {
-    return QFuture<shared_ptr<Item>>();
+    if (deleted_)
+    {
+        QFutureInterface<shared_ptr<Item>> qf;
+        qf.reportException(DeletedException());  // TODO
+        qf.reportFinished();
+        return qf.future();
+    }
+    auto handler = new MoveHandler(provider().Move(md_.item_id, new_parent->native_identity(), new_name), root_);
+    return handler->future();
 }
 
 QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
 {
+    if (deleted_)
+    {
+        QFutureInterface<QVector<shared_ptr<Folder>>> qf;
+        qf.reportException(DeletedException());  // TODO
+        qf.reportFinished();
+        return qf.future();
+    }
+    // TODO, need different metadata representation, affects xml
     return QFuture<QVector<Folder::SPtr>>();
 }
 
 QVector<QString> ItemImpl::parent_ids() const
 {
+    if (deleted_)
+    {
+        throw DeletedException();  // TODO
+    }
+    // TODO, need different metadata representation, affects xml
     return QVector<QString>();
 }
 
-QFuture<void> ItemImpl::destroy()
+QFuture<void> ItemImpl::delete_item()
 {
-    return QFuture<void>();
+    if (deleted_)
+    {
+        QFutureInterface<void> qf;
+        qf.reportException(DeletedException());  // TODO
+        qf.reportFinished();
+        return qf.future();
+    }
+    auto handler = new DeleteHandler(provider().Delete(md_.item_id),
+                                     dynamic_pointer_cast<ItemImpl>(shared_from_this()));
+    return handler->future();
 }
 
 bool ItemImpl::equal_to(ItemBase const& other) const noexcept
 {
-    return false;
+    auto other_impl = dynamic_cast<ItemImpl const*>(&other);
+    assert(other_impl);
+    if (this == other_impl)
+    {
+        return true;
+    }
+    if (deleted_ || other_impl->deleted_)
+    {
+        return false;
+    }
+    return identity_ == other_impl->identity_;
 }
 
 ProviderInterface& ItemImpl::provider() const noexcept

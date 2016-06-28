@@ -63,7 +63,7 @@ void clear_folder(Folder::SPtr folder)
     auto items = folder->list().result();
     for (auto i : items)
     {
-        i->destroy().waitForFinished();
+        i->delete_item().waitForFinished();
     }
 }
 
@@ -227,7 +227,7 @@ TEST(Folder, basic)
     EXPECT_EQ(root->native_identity(), folder->parent_ids()[0]);
 
     // Destroy the file and check that only the directory is left.
-    file->destroy().waitForFinished();
+    file->delete_item().waitForFinished();
     items = root->list().result();
     ASSERT_EQ(1, items.size());
     folder = dynamic_pointer_cast<Folder>(items[0]);
@@ -235,7 +235,7 @@ TEST(Folder, basic)
     EXPECT_EQ("folder1", folder->name());;
 
     // Destroy the folder and check that the root is empty.
-    folder->destroy().waitForFinished();
+    folder->delete_item().waitForFinished();
     items = root->list().result();
     ASSERT_EQ(0, items.size());
 }
@@ -256,7 +256,7 @@ TEST(Folder, nested)
     EXPECT_TRUE(d2->parent_ids()[0] == d1->native_identity());
 
     // Destroy is recursive
-    d1->destroy().waitForFinished();
+    d1->delete_item().waitForFinished();
     auto items = root->list().result();
     ASSERT_EQ(0, items.size());
 }
@@ -286,7 +286,7 @@ TEST(File, upload)
         EXPECT_EQ(contents.size(), uploader->file()->size());
         ASSERT_TRUE(content_matches(uploader->file(), contents));
 
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 
     {
@@ -306,7 +306,7 @@ TEST(File, upload)
         EXPECT_EQ(contents.size(), uploader->file()->size());
         ASSERT_TRUE(content_matches(uploader->file(), contents));
 
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 
     {
@@ -326,7 +326,7 @@ TEST(File, upload)
         EXPECT_EQ(contents.size(), uploader->file()->size());
         ASSERT_TRUE(content_matches(uploader->file(), contents));
 
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 
     {
@@ -341,7 +341,7 @@ TEST(File, upload)
         EXPECT_EQ(TransferState::ok, state);
         ASSERT_EQ(0, uploader->file()->size());
 
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 
     {
@@ -350,7 +350,7 @@ TEST(File, upload)
         auto file = root->create_file("new_file").result()->file();
         ASSERT_EQ(0, file->size());
 
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 }
 
@@ -412,7 +412,7 @@ TEST(File, create_uploader)
         EXPECT_EQ(TransferState::ok, finish_fut.result());
     }
 
-    file->destroy().waitForFinished();
+    file->delete_item().waitForFinished();
 }
 
 TEST(File, cancel_upload)
@@ -435,7 +435,7 @@ TEST(File, cancel_upload)
         auto file = uploader->file();
         EXPECT_EQ(0, file->size());
 
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 
     {
@@ -465,7 +465,7 @@ TEST(File, cancel_upload)
         EXPECT_EQ(original_contents.size(), uploader->file()->size());
         ASSERT_TRUE(content_matches(uploader->file(), original_contents));
 
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 
     {
@@ -491,7 +491,7 @@ TEST(File, cancel_upload)
         uploader->cancel();
         EXPECT_EQ(TransferState::ok, uploader->finish_upload().result());
 
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 }
 
@@ -533,7 +533,7 @@ TEST(File, upload_conflict)
         // TODO: check exception details.
     }
 
-    file->destroy().waitForFinished();
+    file->delete_item().waitForFinished();
 }
 
 TEST(File, download)

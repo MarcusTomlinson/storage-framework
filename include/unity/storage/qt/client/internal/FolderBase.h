@@ -23,7 +23,7 @@ public:
     FolderBase(QString const& identity, ItemType type);
 
     virtual QFuture<QVector<std::shared_ptr<Item>>> list() const = 0;
-    virtual QFuture<std::shared_ptr<Item>> lookup(QString const& name) const = 0;
+    virtual QFuture<QVector<std::shared_ptr<Item>>> lookup(QString const& name) const = 0;
     virtual QFuture<std::shared_ptr<Folder>> create_folder(QString const& name) = 0;
     virtual QFuture<std::shared_ptr<Uploader>> create_file(QString const& name) = 0;
 };

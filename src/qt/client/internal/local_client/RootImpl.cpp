@@ -63,9 +63,9 @@ QVector<QString> RootImpl::parent_ids() const
     return QVector<QString>();  // For the root, we return an empty vector.
 }
 
-QFuture<void> RootImpl::destroy()
+QFuture<void> RootImpl::delete_item()
 {
-    // Cannot destroy root.
+    // Cannot delete root.
     QFutureInterface<void> qf;
     qf.reportException(StorageException());
     qf.reportFinished();

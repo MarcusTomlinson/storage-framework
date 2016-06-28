@@ -33,7 +33,7 @@ public:
     virtual QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name) override;
     virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const override;
     virtual QVector<QString> parent_ids() const override;
-    virtual QFuture<void> destroy() override;
+    virtual QFuture<void> delete_item() override;
     virtual bool equal_to(ItemBase const& other) const noexcept override;
 
     QDateTime get_modified_time();
@@ -45,7 +45,7 @@ protected:
     static boost::filesystem::path sanitize(QString const& name);
     static bool is_reserved_path(boost::filesystem::path const& path);
 
-    bool destroyed_;
+    bool deleted_;
     QString name_;
     QDateTime modified_time_;
     QVariantMap metadata_;

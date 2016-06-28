@@ -53,15 +53,15 @@ public:
 };
 
 /**
-\brief Indicates that the caller invoked an operation on an item that was destroyed.
+\brief Indicates that the caller invoked an operation on a file or folder that was deleted.
 */
-class UNITY_STORAGE_EXPORT DestroyedException : public StorageException
+class UNITY_STORAGE_EXPORT DeletedException : public StorageException
 {
 public:
-    DestroyedException();
-    ~DestroyedException();
+    DeletedException();
+    ~DeletedException();
 
-    virtual DestroyedException* clone() const override;
+    virtual DeletedException* clone() const override;
     virtual void raise() const override;
 };
 

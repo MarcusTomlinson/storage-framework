@@ -28,12 +28,16 @@ namespace local_client
 {
 
 UploadWorker::UploadWorker(int read_fd,
-                           shared_ptr<File> const& file,
+                           weak_ptr<File> file,
+                           QString const& path,
                            ConflictPolicy policy,
+                           weak_ptr<Root> root,
                            QFutureInterface<shared_ptr<File>>& qf,
                            QFutureInterface<void>& worker_initialized)
     : read_fd_(read_fd)
     , file_(file)
+    , path_(path)
+    , root_(root)
     , tmp_fd_([](int fd){ if (fd != -1) ::close(fd); })
     , policy_(policy)
     , qf_(qf)
@@ -59,7 +63,7 @@ void UploadWorker::start_uploading() noexcept
     using namespace boost::filesystem;
 
     // Open tmp file for writing.
-    auto parent_path = path(file_->native_identity().toStdString()).parent_path();
+    auto parent_path = path(path_.toStdString()).parent_path();
     tmp_fd_.reset(open(parent_path.native().c_str(), O_TMPFILE | O_WRONLY, 0600));
     if (tmp_fd_.get() == -1)
     {
@@ -104,8 +108,6 @@ void UploadWorker::do_finish()
         {
             state_ = finalized;
             finalize();
-            qf_.reportResult(file_);
-            qf_.reportFinished();
             break;
         }
         case finalized:
@@ -176,19 +178,44 @@ void UploadWorker::on_error()
 
 void UploadWorker::finalize()
 {
-    auto impl = dynamic_pointer_cast<FileImpl>(file_->p_);
-
-    auto lock = impl->get_lock();
-
-    try
+    auto file = file_.lock();
+    shared_ptr<FileImpl> impl;
+    if (file)
     {
-        check_modified_time();  // Throws if time stamps don't match and policy is error_if_conflict.
+        // Upload is for a pre-existing file.
+        impl = dynamic_pointer_cast<FileImpl>(file->p_);
+
+        auto lock = impl->get_lock();
+
+        try
+        {
+            check_modified_time();  // Throws if time stamps don't match and policy is error_if_conflict.
+            impl->update_modified_time();
+        }
+        catch (std::exception const&)
+        {
+            qf_.reportException(ConflictException());  // TODO: store error details.
+            qf_.reportFinished();
+            return;
+        }
     }
-    catch (std::exception const&)
+    else
     {
-        qf_.reportException(ConflictException());  // TODO: store error details.
-        qf_.reportFinished();
-        return;
+        // This uploader was returned by FolderImpl::create_file().
+        int fd = open(path_.toStdString().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
+        if (fd == -1)
+        {
+            qf_.reportException(StorageException());  // TODO
+        }
+        if (close(fd) == -1)
+        {
+            qf_.reportException(StorageException());  // TODO
+        }
+
+        file = FileImpl::make_file(path_, root_);
+        impl = dynamic_pointer_cast<FileImpl>(file->p_);
+        auto lock = impl->get_lock();
+        impl->update_modified_time();
     }
 
     if (!output_file_->flush())
@@ -200,7 +227,7 @@ void UploadWorker::finalize()
 
     // Link the anonymous tmp file into the file system.
     string oldpath = string("/proc/self/fd/") + std::to_string(tmp_fd_.get());
-    string newpath = file_->native_identity().toStdString();
+    string newpath = file->native_identity().toStdString();
     ::unlink(newpath.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
     if (linkat(-1, oldpath.c_str(), tmp_fd_.get(), newpath.c_str(), AT_SYMLINK_FOLLOW) == -1)
     {
@@ -212,8 +239,7 @@ void UploadWorker::finalize()
 
     state_ = finalized;
     output_file_->close();
-    impl->update_modified_time();
-    qf_.reportResult(file_);
+    qf_.reportResult(file);
     qf_.reportFinished();
 }
 
@@ -233,10 +259,12 @@ void UploadWorker::check_modified_time() const
     if (policy_ == ConflictPolicy::error_if_conflict)
     {
         // TODO: What if file does not yet exist on disk?
-        auto mtime = boost::filesystem::last_write_time(file_->native_identity().toStdString());
+        auto file = file_.lock();
+        assert(file);
+        auto mtime = boost::filesystem::last_write_time(file->native_identity().toStdString());
         QDateTime modified_time;
         modified_time.setTime_t(mtime);
-        auto file_impl = dynamic_pointer_cast<FileImpl>(file_->p_);
+        auto file_impl = dynamic_pointer_cast<FileImpl>(file->p_);
         if (modified_time != file_impl->get_modified_time())
         {
             throw ConflictException();  // TODO
@@ -255,9 +283,8 @@ void UploadThread::run()
     exec();
 }
 
-UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
+UploaderImpl::UploaderImpl(weak_ptr<File> file, QString const& path, ConflictPolicy policy, weak_ptr<Root> root)
     : UploaderBase(policy)
-    , file_(file)
 {
     // Set up socket pair.
     int fds[2];
@@ -275,7 +302,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, ConflictPolicy policy)
     // Create worker and connect slots, so we can signal the worker when the client calls
     // finish_download() or cancel();
     QFutureInterface<void> worker_initialized;
-    worker_.reset(new UploadWorker(fds[0], file_, policy, qf_, worker_initialized));
+    worker_.reset(new UploadWorker(fds[0], file, path, policy, root, qf_, worker_initialized));
     connect(this, &UploaderImpl::do_finish, worker_.get(), &UploadWorker::do_finish);
     connect(this, &UploaderImpl::do_cancel, worker_.get(), &UploadWorker::do_cancel);
 

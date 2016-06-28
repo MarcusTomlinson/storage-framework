@@ -6,6 +6,7 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/Runtime.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/RootsHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
 
 using namespace std;
@@ -59,74 +60,6 @@ QString AccountImpl::description() const
 {
     return description_;
 }
-
-// TODO: Move to header file?
-
-namespace
-{
-
-class RootsHandler : public QObject
-{
-    Q_OBJECT
-
-public:
-    RootsHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                 weak_ptr<Account> const& account);
-
-    QFuture<QVector<Root::SPtr>> future()
-    {
-        return qf_.future();
-    }
-
-public Q_SLOTS:
-    void finished(QDBusPendingCallWatcher* call);
-
-private:
-    QDBusPendingCallWatcher watcher_;
-    QFutureInterface<QVector<Root::SPtr>> qf_;
-    weak_ptr<Account> account_;
-};
-
-RootsHandler::RootsHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                           weak_ptr<Account> const& account)
-    : watcher_(reply, this)
-    , account_(account)
-{
-    assert(account.lock());
-    connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &RootsHandler::finished);
-    qf_.reportStarted();
-}
-
-void RootsHandler::finished(QDBusPendingCallWatcher* call)
-{
-    deleteLater();
-
-    QDBusPendingReply<QList<storage::internal::ItemMetadata>> reply = *call;
-    if (reply.isError())
-    {
-        qDebug() << reply.error().message();
-        qf_.reportException(StorageException());  // TODO
-    }
-    else
-    {
-        QVector<Root::SPtr> roots;
-        auto metadata = reply.value();
-        for (auto const& md : metadata)
-        {
-            if (md.type != ItemType::root)
-            {
-                // TODO: log impossible item type here
-                continue;
-            }
-            auto root = RootImpl::make_root(md, account_);
-            roots.append(root);
-        }
-        qf_.reportResult(roots);
-    }
-    qf_.reportFinished();
-}
-
-}  // namespace
 
 QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {

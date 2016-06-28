@@ -1,9 +1,7 @@
 #include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>
 
-
-//#include <unity/storage/qt/client/Exceptions.h>
-//#include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 #include "ProviderInterface.h"
+#include <unity/storage/qt/client/internal/remote_client/CancelUploadHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/FinishUploadHandler.h>
 #include <unity/storage/qt/client/Uploader.h>
 
@@ -36,12 +34,15 @@ UploaderImpl::UploaderImpl(QString upload_id,
     , provider_(provider)
     , write_socket_(new QLocalSocket)
 {
+    assert(!upload_id.isEmpty());
+    assert(root_.lock());
     assert(fd >= 0);
     write_socket_->setSocketDescriptor(fd, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 }
 
 UploaderImpl::~UploaderImpl()
 {
+    cancel();
 }
 
 shared_ptr<QLocalSocket> UploaderImpl::socket() const
@@ -57,7 +58,8 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
 
 QFuture<void> UploaderImpl::cancel() noexcept
 {
-    return QFuture<void>();
+    auto handler = new CancelUploadHandler(provider_.CancelUpload(upload_id_));
+    return handler->future();
 }
 
 Uploader::SPtr UploaderImpl::make_uploader(QString const& upload_id,

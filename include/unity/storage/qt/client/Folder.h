@@ -63,24 +63,34 @@ public:
     \return The item. If no such item exists, retrieving the result
     from the future throws an exception.
     */
-    QFuture<Item::SPtr> lookup(QString const& name) const;
+    QFuture<QVector<Item::SPtr>> lookup(QString const& name) const;
 
     /**
     \brief Creates a new folder with the current folder as the parent.
     \param name The name of the new folder. Note that the actual name may be changed
     by the provider; call Item::name() once the folder is created to get its actual name.
+    \warn Do not rely on create_folder() to fail if an attempt is made to create
+    a folder with the same name as an already existing folder or file. Depending on the cloud
+    provider, it may be possible to have several folders with the same name.
     // TODO: Explain issues with metacharacters.
     \return The new folder.
     */
     QFuture<Folder::SPtr> create_folder(QString const& name);
 
     /**
-    \brief Creates a new empty file with the current folder as the parent.
+    \brief Creates a new file with the current folder as the parent.
+
+    Use the returned Uploader to write data to the file. You must call Uploader::finish_upload()
+    for the file to actually be created (whether data was written to the file or not).
     \param name The name of the new file. Note that the actual name may be changed
     by the provider; call Item::name() once the file is created to get its actual name.
+    \warn Do not rely on create_file() to fail if an attempt is made to create
+    a file with the same name as an already existing file or folder. Depending on the cloud
+    provider, it may be possible to have several files with the same name.
     // TODO: Explain issues with metacharacters.
     */
     QFuture<std::shared_ptr<Uploader>> create_file(QString const& name);
+                                                   // TODO ConflictPolicy policy = ConflictPolicy::error_if_conflict);
 
 protected:
     Folder(internal::FolderBase*);

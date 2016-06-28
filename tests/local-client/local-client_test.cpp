@@ -50,7 +50,7 @@ void clear_folder(Folder::SPtr folder)
     auto items = folder->list().result();
     for (auto i : items)
     {
-        i->destroy().waitForFinished();
+        i->delete_item().waitForFinished();
     }
 }
 
@@ -149,8 +149,7 @@ TEST(Folder, basic)
 
     // Create a file and check that it was created with correct type, name, and size 0.
     auto uploader = root->create_file("file1").result();
-    ASSERT_EQ(TransferState::ok, uploader->finish_upload().result());
-    auto file = uploader->file();
+    auto file = uploader->finish_upload().result();
     EXPECT_EQ(ItemType::file, file->type());
     EXPECT_EQ("file1", file->name());
     EXPECT_EQ(0, file->size());
@@ -163,13 +162,13 @@ TEST(Folder, basic)
     EXPECT_EQ(root->native_identity() + "/folder1", folder->native_identity());
 
     // Check that we can find both file1 and folder1.
-    auto item = root->lookup("file1").result();
+    auto item = root->lookup("file1").result()[0];
     file = dynamic_pointer_cast<File>(item);
     ASSERT_NE(nullptr, file);
     EXPECT_EQ("file1", file->name());
     EXPECT_EQ(0, file->size());
 
-    item = root->lookup("folder1").result();
+    item = root->lookup("folder1").result()[0];
     folder = dynamic_pointer_cast<Folder>(item);
     ASSERT_NE(nullptr, folder);
     ASSERT_EQ(nullptr, dynamic_pointer_cast<Root>(folder));
@@ -204,16 +203,16 @@ TEST(Folder, basic)
     EXPECT_EQ(root->native_identity(), file->parent_ids()[0]);
     EXPECT_EQ(root->native_identity(), folder->parent_ids()[0]);
 
-    // Destroy the file and check that only the directory is left.
-    file->destroy().waitForFinished();
+    // Delete the file and check that only the directory is left.
+    file->delete_item().waitForFinished();
     items = root->list().result();
     ASSERT_EQ(1, items.size());
     folder = dynamic_pointer_cast<Folder>(items[0]);
     ASSERT_NE(nullptr, folder);
     EXPECT_EQ("folder1", folder->name());;
 
-    // Destroy the folder and check that the root is empty.
-    folder->destroy().waitForFinished();
+    // Delete the folder and check that the root is empty.
+    folder->delete_item().waitForFinished();
     items = root->list().result();
     ASSERT_EQ(0, items.size());
 }
@@ -233,8 +232,8 @@ TEST(Folder, nested)
     EXPECT_TRUE(get_parent(d2)->equal_to(d1));
     EXPECT_TRUE(d2->parent_ids()[0] == d1->native_identity());
 
-    // Destroy is recursive
-    d1->destroy().waitForFinished();
+    // Delete is recursive
+    d1->delete_item().waitForFinished();
     auto items = root->list().result();
     ASSERT_EQ(0, items.size());
 }
@@ -250,97 +249,87 @@ TEST(File, upload)
     {
         // Upload a few bytes.
         auto uploader = root->create_file("new_file").result();
-        auto file = uploader->file();
         QByteArray const contents = "Hello\n";
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
 
-        auto state_fut = uploader->finish_upload();
-        QFutureWatcher<TransferState> w;
+        auto file_fut = uploader->finish_upload();
+        QFutureWatcher<File::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(state_fut);
+        w.setFuture(file_fut);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto state = state_fut.result();
-        EXPECT_EQ(TransferState::ok, state);
-        EXPECT_EQ(contents.size(), uploader->file()->size());
-        ASSERT_TRUE(content_matches(uploader->file(), contents));
+        auto file = file_fut.result();
+        EXPECT_EQ(contents.size(), file->size());
+        ASSERT_TRUE(content_matches(file, contents));
 
         // Calling finish_upload() more than once must return the original future.
-        state = uploader->finish_upload().result();
-        EXPECT_EQ(TransferState::ok, state);
+        auto file2 = uploader->finish_upload().result();
+        EXPECT_TRUE(file2->equal_to(file));
 
         // Calling cancel() after finish_upload must do nothing.
         uploader->cancel();
-        state = uploader->finish_upload().result();
-        EXPECT_EQ(TransferState::ok, state);
+        file2 = uploader->finish_upload().result();
+        EXPECT_TRUE(file2->equal_to(file));
 
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 
     {
         // Upload exactly 64 KB.
         auto uploader = root->create_file("new_file").result();
-        auto file = uploader->file();
         QByteArray const contents(64 * 1024, 'a');
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
 
-        auto state_fut = uploader->finish_upload();
-        QFutureWatcher<TransferState> w;
+        auto file_fut = uploader->finish_upload();
+        QFutureWatcher<File::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(state_fut);
+        w.setFuture(file_fut);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto state = state_fut.result();
-        EXPECT_EQ(TransferState::ok, state);
-        EXPECT_EQ(contents.size(), uploader->file()->size());
-        ASSERT_TRUE(content_matches(uploader->file(), contents));
+        auto file = file_fut.result();
+        EXPECT_EQ(contents.size(), file->size());
+        ASSERT_TRUE(content_matches(file, contents));
 
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 
     {
         // Upload 1000 KB.
         auto uploader = root->create_file("new_file").result();
-        auto file = uploader->file();
         QByteArray const contents(1000 * 1024, 'a');
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
 
-        auto state_fut = uploader->finish_upload();
-        QFutureWatcher<TransferState> w;
+        auto file_fut = uploader->finish_upload();
+        QFutureWatcher<File::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(state_fut);
+        w.setFuture(file_fut);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto state = state_fut.result();
-        EXPECT_EQ(TransferState::ok, state);
-        EXPECT_EQ(contents.size(), uploader->file()->size());
-        ASSERT_TRUE(content_matches(uploader->file(), contents));
+        auto file = file_fut.result();
+        EXPECT_EQ(contents.size(), file->size());
+        ASSERT_TRUE(content_matches(file, contents));
 
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 
     {
         // Don't upload anything.
         auto uploader = root->create_file("new_file").result();
-        auto file = uploader->file();
+        auto file = uploader->finish_upload().result();
+        ASSERT_EQ(0, file->size());
 
-        auto state = uploader->finish_upload().result();
-        EXPECT_EQ(TransferState::ok, state);
-        ASSERT_EQ(0, uploader->file()->size());
-
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 
     {
-        // Let the uploader go out of scope and check
-        // that the file was created regardless.
-        auto file = root->create_file("new_file").result()->file();
-        ASSERT_EQ(0, file->size());
-
-        file->destroy().waitForFinished();
+        // Let the uploader go out of scope and check that the file was not created.
+        root->create_file("new_file").result();
+        boost::filesystem::path path(TEST_DIR "/storage-framework/new_file");
+        auto status = boost::filesystem::status(path);
+        ASSERT_FALSE(boost::filesystem::exists(status));
     }
 }
 
@@ -352,40 +341,48 @@ TEST(File, create_uploader)
     auto root = get_root(runtime);
     clear_folder(root);
 
-    auto file = root->create_file("new_file").result()->file();
-
+    // Make a new file first.
+    auto uploader = root->create_file("new_file").result();
+    auto file_fut = uploader->finish_upload();
     {
-        auto uploader = file->create_uploader(ConflictPolicy::overwrite).result();
-
-        auto finish_fut = uploader->finish_upload();
-        {
-            QFutureWatcher<TransferState> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(finish_fut);
-            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
-        EXPECT_EQ(TransferState::ok, finish_fut.result());
+        QFutureWatcher<File::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(file_fut);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
+    auto file = file_fut.result();
+    EXPECT_EQ(0, file->size());
+
+    // Create uploader for the file and write nothing.
+    uploader = file->create_uploader(ConflictPolicy::overwrite).result();
+    file_fut = uploader->finish_upload();
+    {
+        QFutureWatcher<File::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(file_fut);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    file = file_fut.result();
+    EXPECT_EQ(0, file->size());
 
     // Same test again, but this time, we write a bunch of data.
+    uploader = file->create_uploader(ConflictPolicy::overwrite).result();
+
+    std::string s(1000000, 'a');
+    uploader->socket()->write(&s[0], s.size());
+
+    file_fut = uploader->finish_upload();
     {
-        auto uploader = file->create_uploader(ConflictPolicy::overwrite).result();
-
-        std::string s(1000000, 'a');
-        uploader->socket()->write(&s[0], s.size());
-
-        auto finish_fut = uploader->finish_upload();
-        {
-            QFutureWatcher<TransferState> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(finish_fut);
-            // Now that we have disconnected, the future must become ready.
-            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
-        EXPECT_EQ(TransferState::ok, finish_fut.result());
+        QFutureWatcher<File::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(file_fut);
+        // Now that we have disconnected, the future must become ready.
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
+    file = file_fut.result();
+    EXPECT_EQ(1000000, file->size());
 
-    file->destroy().waitForFinished();
+    file->delete_item().waitForFinished();
 }
 
 TEST(File, cancel_upload)
@@ -399,22 +396,21 @@ TEST(File, cancel_upload)
     {
         auto uploader = root->create_file("new_file").result();
 
-        // We haven't written anything, so the cancel is guaranteed
+        // We haven't called finish_upload(), so the cancel is guaranteed
         // to catch the uploader in the in_progress state.
         uploader->cancel();
-        EXPECT_EQ(TransferState::cancelled, uploader->finish_upload().result());
+        EXPECT_THROW(uploader->finish_upload().result(), CancelledException);
 
-        auto file = uploader->file();
-        EXPECT_EQ(0, file->size());
-
-        file->destroy().waitForFinished();
+        boost::filesystem::path path(TEST_DIR "/storage-framework/new_file");
+        auto status = boost::filesystem::status(path);
+        ASSERT_FALSE(boost::filesystem::exists(status));
     }
 
     {
         // Create a file with a few bytes.
         QByteArray original_contents = "Hello World!\n";
         write_file(root, "new_file", original_contents);
-        auto file = dynamic_pointer_cast<File>(root->lookup("new_file").result());
+        auto file = dynamic_pointer_cast<File>(root->lookup("new_file").result()[0]);
         ASSERT_NE(nullptr, file);
 
         // Create an uploader for the file and write a bunch of bytes.
@@ -425,43 +421,16 @@ TEST(File, cancel_upload)
         ASSERT_EQ(contents.size(), written);
 
         // No finish_upload() here, so the transfer is still in progress. Now cancel.
-        uploader->cancel().waitForFinished();
+        ASSERT_NO_THROW(uploader->cancel().waitForFinished());
 
         // finish_upload() must indicate that the upload was cancelled.
-        auto state = uploader->finish_upload().result();
-        EXPECT_EQ(TransferState::cancelled, state);
+        EXPECT_THROW(uploader->finish_upload().result(), CancelledException);
 
         // The original file contents must still be intact.
-        EXPECT_EQ(original_contents.size(), uploader->file()->size());
-        ASSERT_TRUE(content_matches(uploader->file(), original_contents));
+        EXPECT_EQ(original_contents.size(), file->size());
+        ASSERT_TRUE(content_matches(file, original_contents));
 
-        file->destroy().waitForFinished();
-    }
-
-    {
-        // Upload a few bytes.
-        auto uploader = root->create_file("new_file").result();
-        auto file = uploader->file();
-        QByteArray const contents = "Hello\n";
-
-        // Finish the upload.
-        auto written = uploader->socket()->write(contents);
-        ASSERT_EQ(contents.size(), written);
-
-        // Pump the event loop for a bit, so the socket can finish doing its thing.
-        QTimer timer;
-        QSignalSpy spy(&timer, &QTimer::timeout);
-        timer.start(SIGNAL_WAIT_TIME);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        EXPECT_EQ(TransferState::ok, uploader->finish_upload().result());
-
-        // Now send the cancel. The upload is finished already, and the cancel
-        // is too late, so finish_upload() must report that the upload
-        // worked OK.
-        uploader->cancel();
-        EXPECT_EQ(TransferState::ok, uploader->finish_upload().result());
-
-        file->destroy().waitForFinished();
+        file->delete_item().waitForFinished();
     }
 }
 
@@ -476,7 +445,7 @@ TEST(File, upload_conflict)
     // Make a new file on disk.
     QByteArray const contents = "Hello\n";
     write_file(root, "new_file", contents);
-    auto file = dynamic_pointer_cast<File>(root->lookup("new_file").result());
+    auto file = dynamic_pointer_cast<File>(root->lookup("new_file").result()[0]);
     ASSERT_NE(nullptr, file);
     auto uploader = file->create_uploader(ConflictPolicy::error_if_conflict).result();
 
@@ -496,7 +465,7 @@ TEST(File, upload_conflict)
         // TODO: check exception details.
     }
 
-    file->destroy().waitForFinished();
+    file->delete_item().waitForFinished();
 }
 
 TEST(File, download)
@@ -512,7 +481,7 @@ TEST(File, download)
         QByteArray const contents = "Hello\n";
         write_file(root, "file", contents);
 
-        auto item = root->lookup("file").result();
+        auto item = root->lookup("file").result()[0];
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
@@ -534,8 +503,7 @@ TEST(File, download)
         QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto state = downloader->finish_download().result();
-        EXPECT_EQ(TransferState::ok, state);
+        ASSERT_NO_THROW(downloader->finish_download().waitForFinished());
 
         // Contents must match.
         EXPECT_EQ(contents, buf);
@@ -546,7 +514,7 @@ TEST(File, download)
         QByteArray const contents(64 * 1024, 'a');
         write_file(root, "file", contents);
 
-        auto item = root->lookup("file").result();
+        auto item = root->lookup("file").result()[0];
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
@@ -568,8 +536,7 @@ TEST(File, download)
         QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto state = downloader->finish_download().result();
-        EXPECT_EQ(TransferState::ok, state);
+        ASSERT_NO_THROW(downloader->finish_download().waitForFinished());
 
         // Contents must match
         EXPECT_EQ(contents, buf);
@@ -580,7 +547,7 @@ TEST(File, download)
         QByteArray const contents(1024 * 1024 + 1, 'a');
         write_file(root, "file", contents);
 
-        auto item = root->lookup("file").result();
+        auto item = root->lookup("file").result()[0];
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
@@ -602,8 +569,7 @@ TEST(File, download)
         QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto state = downloader->finish_download().result();
-        EXPECT_EQ(TransferState::ok, state);
+        ASSERT_NO_THROW(downloader->finish_download().waitForFinished());
 
         // Contents must match
         EXPECT_EQ(contents, buf);
@@ -614,7 +580,7 @@ TEST(File, download)
         QByteArray const contents;
         write_file(root, "file", contents);
 
-        auto item = root->lookup("file").result();
+        auto item = root->lookup("file").result()[0];
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
@@ -627,8 +593,7 @@ TEST(File, download)
         QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
-        auto state = downloader->finish_download().result();
-        EXPECT_EQ(TransferState::ok, state);
+        ASSERT_NO_THROW(downloader->finish_download().waitForFinished());
     }
 
     {
@@ -636,7 +601,7 @@ TEST(File, download)
         QByteArray const contents;
         write_file(root, "file", contents);
 
-        auto item = root->lookup("file").result();
+        auto item = root->lookup("file").result()[0];
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
@@ -649,7 +614,7 @@ TEST(File, download)
 
         // This succeeds because the provider disconnects as soon
         // as it realizes that there is nothing to write.
-        EXPECT_EQ(TransferState::ok, downloader->finish_download().result());
+        ASSERT_NO_THROW(downloader->finish_download().waitForFinished());
     }
 
     {
@@ -657,7 +622,7 @@ TEST(File, download)
         QByteArray const contents("some contents");
         write_file(root, "file", contents);
 
-        auto item = root->lookup("file").result();
+        auto item = root->lookup("file").result()[0];
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
@@ -669,7 +634,7 @@ TEST(File, download)
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
         // This succeeds because the provider has written everything and disconnected.
-        EXPECT_EQ(TransferState::ok, downloader->finish_download().result());
+        ASSERT_NO_THROW(downloader->finish_download().waitForFinished());
     }
 
     {
@@ -677,7 +642,7 @@ TEST(File, download)
         QByteArray const contents(1024 * 1024, 'a');
         write_file(root, "file", contents);
 
-        auto item = root->lookup("file").result();
+        auto item = root->lookup("file").result()[0];
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
@@ -691,7 +656,7 @@ TEST(File, download)
         // This fails because the provider still has data left to write.
         try
         {
-            downloader->finish_download().result();
+            downloader->finish_download().waitForFinished();
             FAIL();
         }
         catch (StorageException const& e)
@@ -705,7 +670,7 @@ TEST(File, download)
         QByteArray const contents(1024 * 1024, 'a');
         write_file(root, "file", contents);
 
-        auto item = root->lookup("file").result();
+        auto item = root->lookup("file").result()[0];
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
@@ -717,7 +682,7 @@ TEST(File, download)
         QByteArray const contents(1024 * 1024, 'a');
         write_file(root, "file", contents);
 
-        auto item = root->lookup("file").result();
+        auto item = root->lookup("file").result()[0];
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
@@ -738,7 +703,7 @@ TEST(File, cancel_download)
         QByteArray const contents(1024 * 1024, 'a');
         write_file(root, "file", contents);
 
-        auto item = root->lookup("file").result();
+        auto item = root->lookup("file").result()[0];
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
@@ -746,7 +711,7 @@ TEST(File, cancel_download)
         // We haven't read anything and haven't pumped the event loop,
         // so the cancel is guaranteed to catch the downloader in the in_progress state.
         downloader->cancel();
-        EXPECT_EQ(TransferState::cancelled, downloader->finish_download().result());
+        ASSERT_THROW(downloader->finish_download().waitForFinished(), CancelledException);
     }
 
     {
@@ -754,7 +719,7 @@ TEST(File, cancel_download)
         QByteArray const contents = "Hello\n";
         write_file(root, "file", contents);
 
-        auto item = root->lookup("file").result();
+        auto item = root->lookup("file").result()[0];
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
@@ -779,7 +744,7 @@ TEST(File, cancel_download)
         // is too late, so finish_download() must report that the download
         // worked OK.
         downloader->cancel();
-        EXPECT_EQ(TransferState::ok, downloader->finish_download().result());
+        ASSERT_NO_THROW(downloader->finish_download().waitForFinished());
     }
 }
 
@@ -792,10 +757,12 @@ TEST(Item, move)
     clear_folder(root);
 
     // Check that rename works within the same folder.
-    auto f1 = root->create_file("f1").result()->file();
+    QByteArray const contents = "Hello\n";
+    write_file(root, "f1", contents);
+    auto f1 = root->lookup("f1").result()[0];
     auto f2 = f1->move(root, "f2").result();
     EXPECT_EQ("f2", f2->name());
-    EXPECT_THROW(f1->name(), DestroyedException);  // TODO: check exception details.
+    EXPECT_THROW(f1->name(), DeletedException);  // TODO: check exception details.
 
     // File must be found under new name.
     auto items = root->list().result();
@@ -825,7 +792,7 @@ TEST(Item, copy)
     QByteArray const contents = "hello\n";
     write_file(root, "file", contents);
 
-    auto item = root->lookup("file").result();
+    auto item = root->lookup("file").result()[0];
     auto copied_item = item->copy(root, "copy_of_file").result();
     EXPECT_EQ("copy_of_file", copied_item->name());
     File::SPtr copied_file = dynamic_pointer_cast<File>(item);
@@ -856,19 +823,19 @@ TEST(Item, recursive_copy)
     ofstream(root_path + "/folder/file");
 
     // Copy folder to folder2
-    auto folder = dynamic_pointer_cast<Folder>(root->lookup("folder").result());
+    auto folder = dynamic_pointer_cast<Folder>(root->lookup("folder").result()[0]);
     ASSERT_NE(nullptr, folder);
     auto item = folder->copy(root, "folder2").result();
 
     // Verify that folder2 now contains the same structure as folder.
     auto folder2 = dynamic_pointer_cast<Folder>(item);
     ASSERT_NE(nullptr, folder2);
-    EXPECT_NO_THROW(folder2->lookup("empty_folder").result());
-    item = folder2->lookup("non_empty_folder").result();
+    EXPECT_NO_THROW(folder2->lookup("empty_folder").result()[0]);
+    item = folder2->lookup("non_empty_folder").result()[0];
     auto non_empty_folder = dynamic_pointer_cast<Folder>(item);
     ASSERT_NE(nullptr, non_empty_folder);
-    EXPECT_NO_THROW(non_empty_folder->lookup("nested_file").result());
-    EXPECT_NO_THROW(folder2->lookup("file").result());
+    EXPECT_NO_THROW(non_empty_folder->lookup("nested_file").result()[0]);
+    EXPECT_NO_THROW(folder2->lookup("file").result()[0]);
 }
 
 TEST(Item, modified_time)
@@ -882,7 +849,15 @@ TEST(Item, modified_time)
     auto now = QDateTime::currentDateTimeUtc();
     // Need to sleep because time_t provides only 1-second resolution.
     sleep(2);
-    auto file = root->create_file("file").result()->file();
+    auto uploader = root->create_file("file").result();
+    auto file_fut = uploader->finish_upload();
+    {
+        QFutureWatcher<File::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(file_fut);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    auto file = file_fut.result();
     auto t = file->last_modified_time();
     // Rough check that the time is sane.
     EXPECT_LE(now, t);
@@ -898,13 +873,30 @@ TEST(Item, comparison)
     clear_folder(root);
 
     // Create two files.
-    auto file1 = root->create_file("file1").result()->file();
-    auto file2 = root->create_file("file2").result()->file();
+    auto uploader = root->create_file("file1").result();
+    auto file_fut = uploader->finish_upload();
+    {
+        QFutureWatcher<File::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(file_fut);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    auto file1 = file_fut.result();
+
+    uploader = root->create_file("file2").result();
+    file_fut = uploader->finish_upload();
+    {
+        QFutureWatcher<File::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(file_fut);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    auto file2 = file_fut.result();
 
     EXPECT_FALSE(file1->equal_to(file2));
 
     // Retrieve file1 via lookup, so we get a different proxy.
-    auto item = root->lookup("file1").result();
+    auto item = root->lookup("file1").result()[0];
     auto other_file1 = dynamic_pointer_cast<File>(item);
     EXPECT_NE(file1, other_file1);              // Compares shared_ptr values
     EXPECT_TRUE(file1->equal_to(other_file1));  // Deep comparison

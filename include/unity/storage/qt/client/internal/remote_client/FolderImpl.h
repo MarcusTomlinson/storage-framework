@@ -22,10 +22,10 @@ public:
     FolderImpl(storage::internal::ItemMetadata const& md);
     FolderImpl(storage::internal::ItemMetadata const& md, ItemType type);
 
-    QFuture<QVector<std::shared_ptr<Item>>> list() const;
-    QFuture<std::shared_ptr<Item>> lookup(QString const& name) const;
-    QFuture<std::shared_ptr<Folder>> create_folder(QString const& name);
-    QFuture<std::shared_ptr<Uploader>> create_file(QString const& name);
+    QFuture<QVector<std::shared_ptr<Item>>> list() const override;
+    QFuture<QVector<std::shared_ptr<Item>>> lookup(QString const& name) const override;
+    QFuture<std::shared_ptr<Folder>> create_folder(QString const& name) override;
+    QFuture<std::shared_ptr<Uploader>> create_file(QString const& name) override;
 
     static std::shared_ptr<Folder> make_folder(storage::internal::ItemMetadata const& md, std::weak_ptr<Root> root);
 };

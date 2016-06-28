@@ -47,15 +47,15 @@ void FinishUploadHandler::finished(QDBusPendingCallWatcher* call)
         return;
     }
 
-    auto metadata = reply.value();
-    if (metadata.type != ItemType::file)
+    auto md = reply.value();
+    if (md.type != ItemType::file)
     {
         // Log this, server error
         qf_.reportException(StorageException());  // TODO
         qf_.reportFinished();
         return;
     }
-    qf_.reportResult(FileImpl::make_file(metadata, root_));
+    qf_.reportResult(FileImpl::make_file(md, root_));
     qf_.reportFinished();
 }
 

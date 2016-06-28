@@ -19,6 +19,7 @@ namespace client
 {
 
 class File;
+class Root;
 
 namespace internal
 {
@@ -31,8 +32,10 @@ class UploadWorker : public QObject
 
 public:
     UploadWorker(int read_fd,
-                 std::shared_ptr<File> const& file,
+                 std::weak_ptr<File> file,
+                 QString const& path,
                  ConflictPolicy policy,
+                 std::weak_ptr<Root> root,
                  QFutureInterface<std::shared_ptr<File>>& qf,
                  QFutureInterface<void>& worker_initialized);
     void start_uploading() noexcept;
@@ -57,7 +60,9 @@ private:
     State state_ = in_progress;
     int read_fd_;
     std::shared_ptr<QLocalSocket> read_socket_;
-    std::shared_ptr<File> file_;
+    std::weak_ptr<File> file_;
+    QString path_;
+    std::weak_ptr<Root> root_;
     std::unique_ptr<QFile> output_file_;
     unity::util::ResourcePtr<int, std::function<void(int)>> tmp_fd_;
     ConflictPolicy policy_;
@@ -82,8 +87,8 @@ class UploaderImpl : public UploaderBase
     Q_OBJECT
 
 public:
-    UploaderImpl(std::weak_ptr<File> file, ConflictPolicy policy);
-    ~UploaderImpl();
+    UploaderImpl(std::weak_ptr<File> file, QString const& path, ConflictPolicy policy, std::weak_ptr<Root> root);
+    virtual ~UploaderImpl();
 
     virtual std::shared_ptr<QLocalSocket> socket() const override;
     virtual QFuture<std::shared_ptr<File>> finish_upload() override;
@@ -94,7 +99,6 @@ Q_SIGNALS:
     void do_cancel();
 
 private:
-    std::shared_ptr<File> file_;
     std::shared_ptr<QLocalSocket> write_socket_;
     QFutureInterface<std::shared_ptr<File>> qf_;
     std::unique_ptr<UploadThread> upload_thread_;
