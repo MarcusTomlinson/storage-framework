@@ -12,12 +12,14 @@ set_source_files_properties(bus.xml PROPERTIES CLASSNAME BusInterface)
 qt5_add_dbus_interface(generated_files bus.xml businterface)
 
 add_library(storage-framework-provider SHARED
+  DownloadJob.cpp
   ProviderBase.cpp
   Server.cpp
   TempfileUploadJob.cpp
   UploadJob.cpp
   internal/AccountData.cpp
   internal/DBusPeerCache.cpp
+  internal/DownloadJobImpl.cpp
   internal/Handler.cpp
   internal/MainLoopExecutor.cpp
   internal/PendingJobs.cpp
@@ -27,6 +29,7 @@ add_library(storage-framework-provider SHARED
   internal/UploadJobImpl.cpp
   internal/dbusmarshal.cpp
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/AccountData.h
+  ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/DownloadJobImpl.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/Handler.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/MainLoopExecutor.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/PendingJobs.h

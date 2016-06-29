@@ -27,7 +27,7 @@ public:
     std::string file_name() const;
 
 protected:
-    TempfileUploadJob(internal::TempfileUploadJobImpl *p);
+    TempfileUploadJob(internal::TempfileUploadJobImpl *p) UNITY_STORAGE_HIDDEN;
 };
 
 }

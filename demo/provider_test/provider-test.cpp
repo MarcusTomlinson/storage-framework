@@ -1,7 +1,10 @@
+#include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/Server.h>
 #include <unity/storage/provider/TempfileUploadJob.h>
 #include <unity/storage/provider/UploadJob.h>
+
+#include <unistd.h>
 
 using namespace unity::storage;
 using namespace unity::storage::provider;
@@ -21,6 +24,9 @@ public:
         Context const& ctx) override;
     boost::future<Item> metadata(
         string const& item_id, Context const& ctx) override;
+    boost::future<Item> create_folder(
+        string const& parent_id, string const& name,
+        Context const& ctx) override;
 
     boost::future<unique_ptr<UploadJob>> create_file(
         string const& parent_id, string const& title,
@@ -29,6 +35,18 @@ public:
     boost::future<unique_ptr<UploadJob>> update(
         string const& item_id, string const& old_etag,
         Context const& ctx) override;
+
+    boost::future<unique_ptr<DownloadJob>> download(
+        string const& item_id, Context const& ctx) override;
+
+    boost::future<void> delete_item(
+        string const& item_id, Context const& ctx) override;
+    boost::future<Item> move(
+        string const& item_id, string const& new_parent_id,
+        string const& new_name, Context const& ctx) override;
+    boost::future<Item> copy(
+        string const& item_id, string const& new_parent_id,
+        string const& new_name, Context const& ctx) override;
 };
 
 class MyUploadJob : public TempfileUploadJob
@@ -38,6 +56,15 @@ public:
 
     boost::future<void> cancel() override;
     boost::future<Item> finish() override;
+};
+
+class MyDownloadJob : public DownloadJob
+{
+public:
+    using DownloadJob::DownloadJob;
+
+    boost::future<void> cancel() override;
+    boost::future<void> finish() override;
 };
 
 MyProvider::MyProvider()
@@ -105,10 +132,19 @@ boost::future<Item> MyProvider::metadata(string const& item_id,
     return boost::make_exceptional_future<Item>(runtime_error("no such file"));
 }
 
-string make_upload_id()
+boost::future<Item> MyProvider::create_folder(
+    string const& parent_id, string const& name,
+    Context const& ctx)
 {
-    static int last_upload_id = 0;
-    return to_string(++last_upload_id);
+    printf("create_folder('%s', '%s') called by %s (%d)\n", parent_id.c_str(), name.c_str(), ctx.security_label.c_str(), ctx.pid);
+    Item metadata{"new_folder_id", parent_id, name, "etag", ItemType::folder, {}};
+    return boost::make_ready_future<Item>(metadata);
+}
+
+string make_job_id()
+{
+    static int last_job_id = 0;
+    return to_string(++last_job_id);
 }
 
 boost::future<unique_ptr<UploadJob>> MyProvider::create_file(
@@ -117,14 +153,51 @@ boost::future<unique_ptr<UploadJob>> MyProvider::create_file(
     Context const& ctx)
 {
     printf("create_file('%s', '%s', '%s', %d) called by %s (%d)\n", parent_id.c_str(), title.c_str(), content_type.c_str(), allow_overwrite, ctx.security_label.c_str(), ctx.pid);
-    return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_upload_id())));
+    return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_job_id())));
 }
 
 boost::future<unique_ptr<UploadJob>> MyProvider::update(
     string const& item_id, string const& old_etag, Context const& ctx)
 {
     printf("update('%s', '%s') called by %s (%d)\n", item_id.c_str(), old_etag.c_str(), ctx.security_label.c_str(), ctx.pid);
-    return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_upload_id())));
+    return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_job_id())));
+}
+
+boost::future<unique_ptr<DownloadJob>> MyProvider::download(
+    string const& item_id, Context const& ctx)
+{
+    printf("download('%s') called by %s (%d)\n", item_id.c_str(), ctx.security_label.c_str(), ctx.pid);
+
+    unique_ptr<DownloadJob> job(new MyDownloadJob(make_job_id()));
+    const char contents[] = "Hello world";
+    write(job->write_socket(), contents, sizeof(contents));
+    job->report_complete();
+    return boost::make_ready_future(std::move(job));
+}
+
+boost::future<void> MyProvider::delete_item(
+    string const& item_id, Context const& ctx)
+{
+    printf("delete('%s') called by %s (%d)\n", item_id.c_str(), ctx.security_label.c_str(), ctx.pid);
+    return boost::make_ready_future();
+}
+
+boost::future<Item> MyProvider::move(
+    string const& item_id, string const& new_parent_id,
+    string const& new_name, Context const& ctx)
+{
+    printf("move('%s', '%s', '%s') called by %s (%d)\n", item_id.c_str(), new_parent_id.c_str(), new_name.c_str(), ctx.security_label.c_str(), ctx.pid);
+    Item metadata{item_id, new_parent_id, new_name, "etag", ItemType::file, {}};
+    return boost::make_ready_future(metadata);
+}
+
+boost::future<Item> MyProvider::copy(
+    string const& item_id, string const& new_parent_id,
+    string const& new_name, Context const& ctx)
+{
+    printf("copy('%s', '%s', '%s') called by %s (%d)\n", item_id.c_str(), new_parent_id.c_str(), new_name.c_str(), ctx.security_label.c_str(), ctx.pid);
+    Item metadata{"new_item_id", new_parent_id, new_name, "etag", ItemType::file, {}};
+    return boost::make_ready_future(metadata);
 }
 
 boost::future<void> MyUploadJob::cancel()
@@ -146,6 +219,18 @@ boost::future<Item> MyUploadJob::finish()
     Item metadata{"some_id", "", "some_upload", "etag", ItemType::file, {}};
     return boost::make_ready_future(metadata);
 }
+
+boost::future<void> MyDownloadJob::cancel()
+{
+    printf("cancel_download('%s')\n", download_id().c_str());
+    return boost::make_ready_future();
+}
+
+boost::future<void> MyDownloadJob::finish()
+{
+    printf("finish_download('%s')\n", download_id().c_str());
+
+    return boost::make_ready_future();}
 
 
 int main(int argc, char **argv)

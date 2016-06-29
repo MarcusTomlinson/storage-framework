@@ -18,6 +18,7 @@ namespace storage
 namespace provider
 {
 
+class DownloadJob;
 class UploadJob;
 
 struct UNITY_STORAGE_EXPORT Context
@@ -61,6 +62,10 @@ public:
     virtual boost::future<Item> metadata(std::string const& item_id,
         Context const& context) = 0;
 
+    virtual boost::future<Item> create_folder(
+        std::string const& parent_id, std::string const& name,
+        Context const& context) = 0;
+
     virtual boost::future<std::unique_ptr<UploadJob>> create_file(
         std::string const& parent_id, std::string const& title,
         std::string const& content_type, bool allow_overwrite,
@@ -68,6 +73,18 @@ public:
     virtual boost::future<std::unique_ptr<UploadJob>> update(
         std::string const& item_id, std::string const& old_etag,
         Context const& context) = 0;
+
+    virtual boost::future<std::unique_ptr<DownloadJob>> download(
+        std::string const& item_id, Context const& context) = 0;
+
+    virtual boost::future<void> delete_item(
+        std::string const& item_id, Context const& context) = 0;
+    virtual boost::future<Item> move(
+        std::string const& item_id, std::string const& new_parent_id,
+        std::string const& new_name, Context const& context) = 0;
+    virtual boost::future<Item> copy(
+        std::string const& item_id, std::string const& new_parent_id,
+        std::string const& new_name, Context const& context) = 0;
 };
 
 }
