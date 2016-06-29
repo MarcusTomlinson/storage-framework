@@ -28,6 +28,9 @@ public:
     std::string const& download_id() const;
     int write_socket() const;
 
+    // If the result of the download is reported with either of the
+    // following two functions, then neither cancel() or finish() will
+    // be called.
     void report_complete();
     void report_error(std::exception_ptr p);
 

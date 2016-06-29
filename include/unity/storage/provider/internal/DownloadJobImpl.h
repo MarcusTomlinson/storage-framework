@@ -4,8 +4,8 @@
 
 #include <boost/thread/future.hpp>
 
+#include <exception>
 #include <mutex>
-#include <stdexcept>
 #include <string>
 
 namespace unity

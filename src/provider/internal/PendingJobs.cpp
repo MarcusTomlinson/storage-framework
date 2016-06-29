@@ -157,7 +157,7 @@ void PendingJobs::service_disconnected(QString const& service_name)
         {
             auto job = it->second;
             it = uploads_.erase(it);
-            auto f = job->cancel();
+            auto f = job->p_->cancel(*job);
             // This continuation also ensures that the job remains
             // alive until the cancel method has completed.
             f.then(

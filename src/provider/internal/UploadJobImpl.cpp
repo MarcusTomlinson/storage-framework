@@ -1,4 +1,5 @@
 #include <unity/storage/provider/internal/UploadJobImpl.h>
+#include <unity/storage/provider/UploadJob.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -80,6 +81,39 @@ void UploadJobImpl::set_sender_bus_name(string const& bus_name)
 {
     assert(bus_name[0] == ':');
     sender_bus_name_ = bus_name;
+}
+
+void UploadJobImpl::report_error(std::exception_ptr p)
+{
+    if (read_socket_ >= 0)
+    {
+        close(write_socket_);
+        read_socket_ = -1;
+    }
+
+    lock_guard<mutex> guard(completion_lock_);
+    completed_ = true;
+    completion_promise_.set_exception(p);
+}
+
+boost::future<Item> UploadJobImpl::finish(UploadJob& job)
+{
+    lock_guard<mutex> guard(completion_lock_);
+    if (completed_)
+    {
+        return completion_promise_.get_future();
+    }
+    return job.finish();
+}
+
+boost::future<void> UploadJobImpl::cancel(UploadJob& job)
+{
+    lock_guard<mutex> guard(completion_lock_);
+    if (completed_)
+    {
+        return boost::make_ready_future();
+    }
+    return job.cancel();
 }
 
 }

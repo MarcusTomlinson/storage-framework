@@ -30,6 +30,10 @@ public:
     std::string const& upload_id() const;
     int read_socket() const;
 
+    // If an error is reported early, cancel() or finish() will not be
+    // invoked.
+    void report_error(std::exception_ptr p);
+
     virtual boost::future<void> cancel() = 0;
     virtual boost::future<Item> finish() = 0;
 

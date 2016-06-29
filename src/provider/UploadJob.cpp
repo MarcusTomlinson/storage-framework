@@ -46,6 +46,11 @@ int UploadJob::read_socket() const
     return p_->read_socket();
 }
 
+void UploadJob::report_error(std::exception_ptr p)
+{
+    p_->report_error(p);
+}
+
 }
 }
 }

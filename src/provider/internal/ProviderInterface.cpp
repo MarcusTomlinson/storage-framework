@@ -208,7 +208,7 @@ ItemMetadata ProviderInterface::FinishUpload(QString const& upload_id)
             // FIXME: removing the job at this point means we can't
             // cancel during finish().
             account->jobs().remove_upload(upload_id.toStdString());
-            auto f = job->finish();
+            auto f = job->p_->finish(*job);
             return f.then(
                 MainLoopExecutor::instance(),
                 [account, message, job](decltype(f) f) -> QDBusMessage {
@@ -229,7 +229,7 @@ void ProviderInterface::CancelUpload(QString const& upload_id)
                 throw runtime_error("Upload job belongs to a different client");
             }
             account->jobs().remove_upload(upload_id.toStdString());
-            auto f = job->cancel();
+            auto f = job->p_->cancel(*job);
             return f.then(
                 MainLoopExecutor::instance(),
                 [account, message, job](decltype(f) f) -> QDBusMessage {
