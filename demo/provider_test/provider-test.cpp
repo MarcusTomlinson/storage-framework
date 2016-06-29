@@ -4,6 +4,8 @@
 #include <unity/storage/provider/TempfileUploadJob.h>
 #include <unity/storage/provider/UploadJob.h>
 
+#include <unistd.h>
+
 using namespace unity::storage;
 using namespace unity::storage::provider;
 using namespace std;
@@ -54,6 +56,15 @@ public:
 
     boost::future<void> cancel() override;
     boost::future<Item> finish() override;
+};
+
+class MyDownloadJob : public DownloadJob
+{
+public:
+    using DownloadJob::DownloadJob;
+
+    boost::future<void> cancel() override;
+    boost::future<void> finish() override;
 };
 
 MyProvider::MyProvider()
@@ -130,10 +141,10 @@ boost::future<Item> MyProvider::create_folder(
     return boost::make_ready_future<Item>(metadata);
 }
 
-string make_upload_id()
+string make_job_id()
 {
-    static int last_upload_id = 0;
-    return to_string(++last_upload_id);
+    static int last_job_id = 0;
+    return to_string(++last_job_id);
 }
 
 boost::future<unique_ptr<UploadJob>> MyProvider::create_file(
@@ -142,21 +153,26 @@ boost::future<unique_ptr<UploadJob>> MyProvider::create_file(
     Context const& ctx)
 {
     printf("create_file('%s', '%s', '%s', %d) called by %s (%d)\n", parent_id.c_str(), title.c_str(), content_type.c_str(), allow_overwrite, ctx.security_label.c_str(), ctx.pid);
-    return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_upload_id())));
+    return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_job_id())));
 }
 
 boost::future<unique_ptr<UploadJob>> MyProvider::update(
     string const& item_id, string const& old_etag, Context const& ctx)
 {
     printf("update('%s', '%s') called by %s (%d)\n", item_id.c_str(), old_etag.c_str(), ctx.security_label.c_str(), ctx.pid);
-    return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_upload_id())));
+    return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_job_id())));
 }
 
 boost::future<unique_ptr<DownloadJob>> MyProvider::download(
     string const& item_id, Context const& ctx)
 {
     printf("download('%s') called by %s (%d)\n", item_id.c_str(), ctx.security_label.c_str(), ctx.pid);
-    return boost::make_ready_future(unique_ptr<DownloadJob>());
+
+    unique_ptr<DownloadJob> job(new MyDownloadJob(make_job_id()));
+    const char contents[] = "Hello world";
+    write(job->write_socket(), contents, sizeof(contents));
+    job->report_complete();
+    return boost::make_ready_future(std::move(job));
 }
 
 boost::future<void> MyProvider::delete_item(
@@ -203,6 +219,18 @@ boost::future<Item> MyUploadJob::finish()
     Item metadata{"some_id", "", "some_upload", "etag", ItemType::file, {}};
     return boost::make_ready_future(metadata);
 }
+
+boost::future<void> MyDownloadJob::cancel()
+{
+    printf("cancel_download('%s')\n", download_id().c_str());
+    return boost::make_ready_future();
+}
+
+boost::future<void> MyDownloadJob::finish()
+{
+    printf("finish_download('%s')\n", download_id().c_str());
+
+    return boost::make_ready_future();}
 
 
 int main(int argc, char **argv)
