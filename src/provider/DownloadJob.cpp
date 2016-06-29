@@ -1,5 +1,5 @@
-#include <unity/storage/provider/UploadJob.h>
-#include <unity/storage/provider/internal/UploadJobImpl.h>
+#include <unity/storage/provider/DownloadJob.h>
+#include <unity/storage/provider/internal/DownloadJobImpl.h>
 
 #include <QCoreApplication>
 
@@ -12,7 +12,7 @@ namespace storage
 namespace provider
 {
 
-UploadJob::UploadJob(internal::UploadJobImpl *p)
+DownloadJob::DownloadJob(internal::DownloadJobImpl *p)
     : p_(p)
 {
     // We may be created by user code running in some other thread:
@@ -23,12 +23,12 @@ UploadJob::UploadJob(internal::UploadJobImpl *p)
     QMetaObject::invokeMethod(p_, "complete_init", Qt::QueuedConnection);
 }
 
-UploadJob::UploadJob(string const& upload_id)
-    : UploadJob(new internal::UploadJobImpl(upload_id))
+DownloadJob::DownloadJob(string const& download_id)
+    : DownloadJob(new internal::DownloadJobImpl(download_id))
 {
 }
 
-UploadJob::~UploadJob()
+DownloadJob::~DownloadJob()
 {
     if (p_)
     {
@@ -36,17 +36,22 @@ UploadJob::~UploadJob()
     }
 }
 
-string const& UploadJob::upload_id() const
+string const& DownloadJob::download_id() const
 {
-    return p_->upload_id();
+    return p_->download_id();
 }
 
-int UploadJob::read_socket() const
+int DownloadJob::write_socket() const
 {
-    return p_->read_socket();
+    return p_->write_socket();
 }
 
-void UploadJob::report_error(std::exception_ptr p)
+void DownloadJob::report_complete()
+{
+    p_->report_complete();
+}
+
+void DownloadJob::report_error(std::exception_ptr p)
 {
     p_->report_error(p);
 }

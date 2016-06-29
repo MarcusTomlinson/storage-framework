@@ -1,9 +1,8 @@
 #pragma once
 
-#include <unity/storage/provider/ProviderBase.h>
+#include <QObject>
 
 #include <boost/thread/future.hpp>
-#include <QObject>
 
 #include <exception>
 #include <mutex>
@@ -15,43 +14,44 @@ namespace storage
 {
 namespace provider
 {
-class UploadJob;
+class DownloadJob;
 
 namespace internal
 {
 
-class UploadJobImpl : public QObject
+class DownloadJobImpl : public QObject
 {
     Q_OBJECT
 public:
-    explicit UploadJobImpl(std::string const& upload_id);
-    virtual ~UploadJobImpl();
+    explicit DownloadJobImpl(std::string const& download_id);
+    virtual ~DownloadJobImpl();
 
-    std::string const& upload_id() const;
-    int read_socket() const;
-    int take_write_socket();
+    std::string const& download_id() const;
+    int write_socket() const;
+    int take_read_socket();
 
     std::string const& sender_bus_name() const;
     void set_sender_bus_name(std::string const& bus_name);
 
+    void report_complete();
     void report_error(std::exception_ptr p);
-    boost::future<Item> finish(UploadJob& job);
-    boost::future<void> cancel(UploadJob& job);
+    boost::future<void> finish(DownloadJob& job);
+    boost::future<void> cancel(DownloadJob& job);
 
 public Q_SLOTS:
     virtual void complete_init();
 
 protected:
-    std::string const upload_id_;
+    std::string const download_id_;
     int read_socket_ = -1;
     int write_socket_ = -1;
     std::string sender_bus_name_;
 
     std::mutex completion_lock_;
     bool completed_ = false;
-    boost::promise<Item> completion_promise_;
+    boost::promise<void> completion_promise_;
 
-    Q_DISABLE_COPY(UploadJobImpl)
+    Q_DISABLE_COPY(DownloadJobImpl)
 };
 
 }

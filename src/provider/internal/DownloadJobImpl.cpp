@@ -1,5 +1,5 @@
-#include <unity/storage/provider/internal/UploadJobImpl.h>
-#include <unity/storage/provider/UploadJob.h>
+#include <unity/storage/provider/internal/DownloadJobImpl.h>
+#include <unity/storage/provider/DownloadJob.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -18,8 +18,8 @@ namespace provider
 namespace internal
 {
 
-UploadJobImpl::UploadJobImpl(std::string const& upload_id)
-    : upload_id_(upload_id)
+DownloadJobImpl::DownloadJobImpl(std::string const& download_id)
+    : download_id_(download_id)
 {
     int socks[2];
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, socks) < 0)
@@ -38,7 +38,7 @@ UploadJobImpl::UploadJobImpl(std::string const& upload_id)
     }
 }
 
-UploadJobImpl::~UploadJobImpl()
+DownloadJobImpl::~DownloadJobImpl()
 {
     if (read_socket_ >= 0)
     {
@@ -50,45 +50,58 @@ UploadJobImpl::~UploadJobImpl()
     }
 }
 
-void UploadJobImpl::complete_init()
+void DownloadJobImpl::complete_init()
 {
 }
 
-std::string const& UploadJobImpl::upload_id() const
+std::string const& DownloadJobImpl::download_id() const
 {
-    return upload_id_;
+    return download_id_;
 }
 
-int UploadJobImpl::read_socket() const
+int DownloadJobImpl::write_socket() const
 {
-    return read_socket_;
+    return write_socket_;
 }
 
-int UploadJobImpl::take_write_socket()
+int DownloadJobImpl::take_read_socket()
 {
-    assert(write_socket_ >= 0);
-    int sock = write_socket_;
-    write_socket_ = -1;
+    assert(read_socket_ >= 0);
+    int sock = read_socket_;
+    read_socket_ = -1;
     return sock;
 }
 
-string const& UploadJobImpl::sender_bus_name() const
+string const& DownloadJobImpl::sender_bus_name() const
 {
     return sender_bus_name_;
 }
 
-void UploadJobImpl::set_sender_bus_name(string const& bus_name)
+void DownloadJobImpl::set_sender_bus_name(string const& bus_name)
 {
     assert(bus_name[0] == ':');
     sender_bus_name_ = bus_name;
 }
 
-void UploadJobImpl::report_error(std::exception_ptr p)
+void DownloadJobImpl::report_complete()
 {
-    if (read_socket_ >= 0)
+    if (write_socket_ >= 0)
     {
         close(write_socket_);
-        read_socket_ = -1;
+        write_socket_ = -1;
+    }
+
+    lock_guard<mutex> guard(completion_lock_);
+    completed_ = true;
+    completion_promise_.set_value();
+}
+
+void DownloadJobImpl::report_error(std::exception_ptr p)
+{
+    if (write_socket_ >= 0)
+    {
+        close(write_socket_);
+        write_socket_ = -1;
     }
 
     lock_guard<mutex> guard(completion_lock_);
@@ -96,7 +109,7 @@ void UploadJobImpl::report_error(std::exception_ptr p)
     completion_promise_.set_exception(p);
 }
 
-boost::future<Item> UploadJobImpl::finish(UploadJob& job)
+boost::future<void> DownloadJobImpl::finish(DownloadJob& job)
 {
     lock_guard<mutex> guard(completion_lock_);
     if (completed_)
@@ -106,7 +119,7 @@ boost::future<Item> UploadJobImpl::finish(UploadJob& job)
     return job.finish();
 }
 
-boost::future<void> UploadJobImpl::cancel(UploadJob& job)
+boost::future<void> DownloadJobImpl::cancel(DownloadJob& job)
 {
     lock_guard<mutex> guard(completion_lock_);
     if (completed_)
