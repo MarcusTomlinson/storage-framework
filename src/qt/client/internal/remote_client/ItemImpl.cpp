@@ -42,6 +42,15 @@ QString ItemImpl::name() const
     return md_.name;
 }
 
+QString ItemImpl::etag() const
+{
+    if (deleted_)
+    {
+        throw DeletedException();  // TODO
+    }
+    return md_.etag;
+}
+
 QVariantMap ItemImpl::metadata() const
 {
     if (deleted_)
