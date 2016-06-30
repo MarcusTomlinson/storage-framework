@@ -8,6 +8,21 @@ project(storage-framework C CXX)
 
 cmake_minimum_required(VERSION 3.0.2)
 
+set(STORAGE_FRAMEWORK_VERSION "0.1")
+
+# This variable should be incremented when we wish to create a new
+# parallel installable version of the headers.  It is not necessary to
+# increment this for ABI breaks where we don't intend to allow
+# parallel installation.
+set(STORAGE_FRAMEWORK_API_VERSION "1")
+
+# These two should be incremented when the ABI changes.
+set(STORAGE_PROVIDER_SOVERSION "0")
+set(STORAGE_CLIENT_SOVERSION "0")
+
+set(STORAGE_PROVIDER_LIBVERSION "${STORAGE_PROVIDER_SOVERSION}.${STORAGE_FRAMEWORK_VERSION}")
+set(STORAGE_CLIENT_LIBVERSION "${STORAGE_CLIENT_SOVERSION}.${STORAGE_FRAMEWORK_VERSION}")
+
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower) # Build types should always be lower case
 
 set(ACCEPTED_BUILD_TYPES "" none release debug relwithdebinfo coverage)
