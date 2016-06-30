@@ -80,7 +80,7 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
     return handler->future();
 }
 
-QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
+QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64_t size)
 {
     if (deleted_)
     {
@@ -89,7 +89,15 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         qf.reportFinished();
         return qf.future();
     }
+    if (size < 0)
+    {
+        QFutureInterface<shared_ptr<Uploader>> qf;
+        qf.reportException(InvalidArgumentException());  // TODO
+        qf.reportFinished();
+        return qf.future();
+    }
     auto handler = new CreateFileHandler(provider().CreateFile(md_.item_id, name, "application/octet-stream", false),
+                                         size,
                                          root_,
                                          provider());
     return handler->future();

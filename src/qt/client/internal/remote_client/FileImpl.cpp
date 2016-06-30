@@ -37,7 +37,7 @@ int64_t FileImpl::size() const
     return 0;  // TODO
 }
 
-QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
+QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, int64_t size)
 {
     if (deleted_)
     {

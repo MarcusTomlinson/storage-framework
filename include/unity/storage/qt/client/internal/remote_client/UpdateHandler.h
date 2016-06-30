@@ -31,6 +31,7 @@ class UpdateHandler : public QObject
 
 public:
     UpdateHandler(QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                  int64_t size,
                   QString const& old_etag,
                   std::weak_ptr<Root> root,
                   ProviderInterface& provider);
@@ -41,6 +42,7 @@ public Q_SLOTS:
     void finished(QDBusPendingCallWatcher* call);
 
 private:
+    int64_t size_;
     QString old_etag_;
     std::shared_ptr<Root> root_;
     ProviderInterface& provider_;

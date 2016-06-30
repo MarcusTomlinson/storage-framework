@@ -22,12 +22,15 @@ namespace remote_client
 {
 
 CreateFileHandler::CreateFileHandler(QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                                     int64_t size,
                                      weak_ptr<Root> const& root,
                                      ProviderInterface& provider)
     : watcher_(reply, this)
+    , size_(size)
     , root_(root.lock())
     , provider_(provider)
 {
+    assert(size >= 0);
     assert(root_);
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &CreateFileHandler::finished);
     qf_.reportStarted();
@@ -53,7 +56,7 @@ void CreateFileHandler::finished(QDBusPendingCallWatcher* call)
 
     auto upload_id = reply.argumentAt<0>();
     auto fd = reply.argumentAt<1>();
-    auto uploader = UploaderImpl::make_uploader(upload_id, fd.fileDescriptor(), "", root_, provider_);
+    auto uploader = UploaderImpl::make_uploader(upload_id, fd.fileDescriptor(), size_, "", root_, provider_);
     qf_.reportResult(uploader);
     qf_.reportFinished();
 }

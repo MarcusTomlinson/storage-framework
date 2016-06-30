@@ -23,10 +23,12 @@ namespace remote_client
 {
 
 UpdateHandler::UpdateHandler(QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                             int64_t size,
                              QString const& old_etag,
                              weak_ptr<Root> root,
                              ProviderInterface& provider)
-    : old_etag_(old_etag)
+    : size_(size)
+    , old_etag_(old_etag)
     , root_(root.lock())
     , provider_(provider)
     , watcher_(reply, this)
@@ -62,7 +64,7 @@ void UpdateHandler::finished(QDBusPendingCallWatcher* call)
     }
     else
     {
-        auto uploader = UploaderImpl::make_uploader(upload_id, fd.fileDescriptor(), old_etag_, root_, provider_);
+        auto uploader = UploaderImpl::make_uploader(upload_id, fd.fileDescriptor(), size_, old_etag_, root_, provider_);
         qf_.reportResult(uploader);
     }
 

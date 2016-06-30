@@ -30,6 +30,7 @@ class CreateFileHandler : public QObject
 
 public:
     CreateFileHandler(QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                      int64_t size,
                       std::weak_ptr<Root> const& root,
                       ProviderInterface& provider);
 
@@ -41,6 +42,7 @@ public Q_SLOTS:
 private:
     QDBusPendingCallWatcher watcher_;
     QFutureInterface<std::shared_ptr<Uploader>> qf_;
+    int64_t size_;
     std::shared_ptr<Root> root_;
     ProviderInterface& provider_;
 };

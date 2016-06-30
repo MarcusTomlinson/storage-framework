@@ -27,9 +27,9 @@ int64_t File::size() const
     return dynamic_cast<FileBase*>(p_.get())->size();
 }
 
-QFuture<shared_ptr<Uploader>> File::create_uploader(ConflictPolicy policy)
+QFuture<shared_ptr<Uploader>> File::create_uploader(ConflictPolicy policy, int64_t size)
 {
-    return dynamic_cast<FileBase*>(p_.get())->create_uploader(policy);
+    return dynamic_cast<FileBase*>(p_.get())->create_uploader(policy, size);
 }
 
 QFuture<shared_ptr<Downloader>> File::create_downloader()

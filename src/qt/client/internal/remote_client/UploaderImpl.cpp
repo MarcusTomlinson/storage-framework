@@ -24,10 +24,11 @@ namespace remote_client
 
 UploaderImpl::UploaderImpl(QString upload_id,
                            int fd,
+                           int64_t size,
                            QString const& old_etag,
                            weak_ptr<Root> root,
                            ProviderInterface& provider)
-    : UploaderBase(old_etag == "" ? ConflictPolicy::overwrite : ConflictPolicy::error_if_conflict)
+    : UploaderBase(old_etag == "" ? ConflictPolicy::overwrite : ConflictPolicy::error_if_conflict, size)
     , upload_id_(upload_id)
     , old_etag_(old_etag)
     , root_(root)
@@ -64,11 +65,12 @@ QFuture<void> UploaderImpl::cancel() noexcept
 
 Uploader::SPtr UploaderImpl::make_uploader(QString const& upload_id,
                                            int fd,
+                                           int64_t size,
                                            QString const& old_etag,
                                            weak_ptr<Root> root,
                                            ProviderInterface& provider)
 {
-    auto impl = new UploaderImpl(upload_id, fd, old_etag, root, provider);
+    auto impl = new UploaderImpl(upload_id, fd, size, old_etag, root, provider);
     Uploader::SPtr uploader(new Uploader(impl));
     return uploader;
 }

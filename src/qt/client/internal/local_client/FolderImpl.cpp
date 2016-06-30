@@ -169,7 +169,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     return qf.future();
 }
 
-QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
+QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64_t size)
 {
     unique_lock<mutex> guard(mutex_);
 
@@ -197,6 +197,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
             throw StorageException();
         }
         auto impl = new UploaderImpl(shared_ptr<File>(),
+                                     size,
                                      QString::fromStdString(p.native()),
                                      ConflictPolicy::error_if_conflict,
                                      root_);

@@ -31,6 +31,7 @@ class UploaderImpl : public UploaderBase
 public:
     UploaderImpl(QString upload_id,
                  int fd,
+                 int64_t size,
                  QString const& old_etag,
                  std::weak_ptr<Root> root,
                  ProviderInterface& provider);
@@ -42,6 +43,7 @@ public:
 
     static std::shared_ptr<Uploader> make_uploader(QString const& upload_id,
                                                    int fd,
+                                                   int64_t size,
                                                    QString const& old_etag,
                                                    std::weak_ptr<Root> root,
                                                    ProviderInterface& provider);
