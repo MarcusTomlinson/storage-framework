@@ -25,3 +25,8 @@ target_link_libraries(storage-framework-qt-local-client
     Qt5::Network
     ${Boost_LIBRARIES}
     ${GLIB_DEPS_LIBRARIES})
+
+install(
+  TARGETS storage-framework-qt-local-client
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)

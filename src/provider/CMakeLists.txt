@@ -49,3 +49,8 @@ target_link_libraries(storage-framework-provider
   ${APPARMOR_DEPS_LDFLAGS}
   ${ONLINEACCOUNTS_DEPS_LDFLAGS}
 )
+
+install(
+  TARGETS storage-framework-provider
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)

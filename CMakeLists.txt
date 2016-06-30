@@ -85,6 +85,8 @@ enable_testing()
 
 include(EnableCoverageReport)
 
+include(GNUInstallDirs)
+
 find_package(Boost COMPONENTS filesystem system thread REQUIRED)
 find_package(Qt5Concurrent REQUIRED)
 find_package(Qt5Core REQUIRED)
