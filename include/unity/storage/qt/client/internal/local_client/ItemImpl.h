@@ -30,13 +30,16 @@ public:
     virtual ~ItemImpl();
 
     virtual QString name() const override;
-    virtual Metadata metadata() const override;
     virtual QDateTime last_modified_time() const override;
     virtual QFuture<std::shared_ptr<Item>> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name) override;
     virtual QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name) override;
     virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const override;
     virtual QVector<QString> parent_ids() const override;
     virtual QFuture<void> delete_item() override;
+
+    virtual QDateTime creation_time() const override;
+    virtual MetadataMap native_metadata() const override;
+
     virtual bool equal_to(ItemBase const& other) const noexcept override;
 
     QDateTime get_modified_time();

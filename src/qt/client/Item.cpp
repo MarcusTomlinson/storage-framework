@@ -43,11 +43,6 @@ ItemType Item::type() const
     return p_->type();
 }
 
-Metadata Item::metadata() const
-{
-    return p_->metadata();
-}
-
 QDateTime Item::last_modified_time() const
 {
     return p_->last_modified_time();
@@ -75,6 +70,16 @@ QFuture<Item::SPtr> Item::move(std::shared_ptr<Folder> const& new_parent, QStrin
 QFuture<void> Item::delete_item()
 {
     return p_->delete_item();
+}
+
+QDateTime Item::creation_time() const
+{
+    return p_->creation_time();
+}
+
+MetadataMap Item::native_metadata() const
+{
+    return p_->native_metadata();
 }
 
 bool Item::equal_to(Item::SPtr const& other) const noexcept

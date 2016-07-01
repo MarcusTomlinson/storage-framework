@@ -2,14 +2,12 @@
 
 #include <unity/storage/common.h>
 #include <unity/storage/qt/client/internal/boost_filesystem.h>
-#include <unity/storage/qt/client/Metadata.h>
 
 #include <QDateTime>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
 #pragma GCC diagnostic pop
-#include <QString>
 #include <QVariantMap>
 
 #include <memory>
@@ -26,6 +24,8 @@ namespace client
 class Folder;
 class Item;
 class Root;
+
+typedef QMap<QString, QVariant> MetadataMap;
 
 namespace internal
 {
@@ -47,13 +47,15 @@ public:
     virtual QString name() const = 0;
     virtual QDateTime last_modified_time() const = 0;
 
-    virtual Metadata metadata() const = 0;
-
     virtual QFuture<std::shared_ptr<Item>> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name) = 0;
     virtual QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name) = 0;
     virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const = 0;
     virtual QVector<QString> parent_ids() const = 0;
     virtual QFuture<void> delete_item() = 0;
+
+    virtual QDateTime creation_time() const = 0;
+    virtual MetadataMap native_metadata() const = 0;
+
     virtual bool equal_to(ItemBase const& other) const noexcept = 0;
 
     void set_root(std::weak_ptr<Root> p);

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <unity/storage/common.h>
-#include <unity/storage/qt/client/Metadata.h>
 #include <unity/storage/visibility.h>
 
 #include <QDateTime>
@@ -23,6 +22,8 @@ namespace client
 
 class Folder;
 class Root;
+
+typedef QMap<QString, QVariant> MetadataMap;
 
 namespace internal
 {
@@ -91,13 +92,6 @@ public:
     ItemType type() const;
 
     /**
-    \brief Returns metadata for the item.
-
-    TODO: Needs a lot more doc. Explain standard and provider-specific metadata.
-    */
-    Metadata metadata() const;
-
-    /**
     \brief Returns the time at which the item was last modified.
     */
     QDateTime last_modified_time() const;
@@ -150,6 +144,33 @@ public:
     \warning Deleting a folder recursively deletes its contents.
     */
     QFuture<void> delete_item();
+
+    /**
+    \brief Returns the time at which an item was created.
+    \return If a provider does not support this method, the returned `QDateTime`'s `isValid()`
+    method returns false.
+    */
+    QDateTime creation_time() const;
+
+    /**
+    \brief Returns provider-specific metadata.
+
+    The contents of the returned map depend on the actual provider. This method is provided
+    to allow applications to use provider-specific features that may not be
+    supported by all providers.
+    \return The returned map may be empty if a provider does not support this feature. If a provider
+    supports it, the following keys are guaranteed to be present:
+        - `native_provider_id` (string)
+          A string that identifies the provider, such as "mCloud".
+        - `native_provider_version` (string)
+          A string that provides a version identifier.
+    \warn Unless you know that your application will only be used with a specific provider,
+    avoid using this method. If you do use provider-specific data, ensure reasonable fallback
+    behavior for your application if it encounters a different provider that does not support
+    a particular metadata item.
+    // TODO: document where to find the list of metadata items for each concrete provider.
+    */
+    MetadataMap native_metadata() const;
 
     bool equal_to(Item::SPtr const& other) const noexcept;
 

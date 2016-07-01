@@ -42,16 +42,6 @@ QString ItemImpl::name() const
     return md_.name;
 }
 
-Metadata ItemImpl::metadata() const
-{
-    if (deleted_)
-    {
-        throw DeletedException();  // TODO
-    }
-    // TODO: need to agree on metadata representation
-    return Metadata();
-}
-
 QDateTime ItemImpl::last_modified_time() const
 {
     if (deleted_)
@@ -124,6 +114,27 @@ QFuture<void> ItemImpl::delete_item()
                                      dynamic_pointer_cast<ItemImpl>(shared_from_this()));
     return handler->future();
 }
+
+QDateTime ItemImpl::creation_time() const
+{
+    if (deleted_)
+    {
+        throw DeletedException();  // TODO
+    }
+    // TODO: need to agree on metadata representation
+    return QDateTime();
+}
+
+MetadataMap ItemImpl::native_metadata() const
+{
+    if (deleted_)
+    {
+        throw DeletedException();  // TODO
+    }
+    // TODO: need to agree on metadata representation
+    return MetadataMap();
+}
+
 
 bool ItemImpl::equal_to(ItemBase const& other) const noexcept
 {

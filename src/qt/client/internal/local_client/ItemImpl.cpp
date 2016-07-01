@@ -51,17 +51,6 @@ QString ItemImpl::name() const
     return name_;
 }
 
-Metadata ItemImpl::metadata() const
-{
-    lock_guard<mutex> guard(mutex_);
-
-    if (deleted_)
-    {
-        throw DeletedException();  // TODO
-    }
-    return Metadata(metadata_);
-}
-
 QDateTime ItemImpl::last_modified_time() const
 {
     lock_guard<mutex> guard(mutex_);
@@ -323,6 +312,16 @@ QFuture<void> ItemImpl::delete_item()
         }
     };
     return QtConcurrent::run(destroy);
+}
+
+QDateTime ItemImpl::creation_time() const
+{
+    return QDateTime();
+}
+
+MetadataMap ItemImpl::native_metadata() const
+{
+    return MetadataMap();
 }
 
 bool ItemImpl::equal_to(ItemBase const& other) const noexcept
