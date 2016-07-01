@@ -41,6 +41,7 @@ add_library(storage-framework-provider SHARED
 
 set_target_properties(storage-framework-provider PROPERTIES
   AUTOMOC TRUE
+  LINK_FLAGS "-Wl,--no-undefined"
   OUTPUT_NAME "storage-framework-provider-${STORAGE_FRAMEWORK_API_VERSION}"
   SOVERSION ${STORAGE_PROVIDER_SOVERSION}
   VERSION ${STORAGE_PROVIDER_LIBVERSION}
@@ -62,7 +63,9 @@ install(
 
 configure_file(
   storage-framework-provider.pc.in
-  storage-framework-provider-${STORAGE_FRAMEWORK_API_VERSION}.pc)
+  storage-framework-provider-${STORAGE_FRAMEWORK_API_VERSION}.pc
+)
 install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-provider-${STORAGE_FRAMEWORK_API_VERSION}.pc
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)

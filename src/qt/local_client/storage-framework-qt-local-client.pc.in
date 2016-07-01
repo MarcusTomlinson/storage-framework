@@ -1,0 +1,6 @@
+Name: storage-framework-qt-local-client-@STORAGE_FRAMEWORK_API_VERSION@
+Description: A Qt client library for the storage framework
+Version: @PROJECT_VERSION@
+Requires.private: Qt5Core Qt5Network
+Cflags: -I@CMAKE_INSTALL_FULL_INCLUDEDIR@/storage-framework-@STORAGE_FRAMEWORK_API_VERSION@
+Libs: -L@CMAKE_INSTALL_FULL_LIBDIR@ -lstorage-framework-qt-local-client-@STORAGE_FRAMEWORK_API_VERSION@

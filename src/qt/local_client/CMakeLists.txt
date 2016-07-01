@@ -17,8 +17,13 @@ add_library(storage-framework-qt-local-client SHARED
     $<TARGET_OBJECTS:qt-client-lib-public>
     ${QT_LOCAL_CLIENT_LIB_INTERNAL_SRC})
 qt5_use_modules(storage-framework-qt-local-client Concurrent Core Network)
-set_target_properties(storage-framework-qt-local-client PROPERTIES AUTOMOC TRUE)
-set_target_properties(storage-framework-qt-local-client PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
+set_target_properties(storage-framework-qt-local-client PROPERTIES
+  AUTOMOC TRUE
+  LINK_FLAGS "-Wl,--no-undefined"
+  OUTPUT_NAME "storage-framework-qt-local-client-${STORAGE_FRAMEWORK_API_VERSION}"
+  SOVERSION ${STORAGE_CLIENT_SOVERSION}
+  VERSION ${STORAGE_CLIENT_LIBVERSION}
+)
 target_link_libraries(storage-framework-qt-local-client
     Qt5::Concurrent
     Qt5::Core
@@ -29,4 +34,13 @@ target_link_libraries(storage-framework-qt-local-client
 install(
   TARGETS storage-framework-qt-local-client
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+configure_file(
+  storage-framework-qt-local-client.pc.in
+  storage-framework-qt-local-client-${STORAGE_FRAMEWORK_API_VERSION}.pc
+)
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-local-client-${STORAGE_FRAMEWORK_API_VERSION}.pc
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
