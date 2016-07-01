@@ -4,11 +4,8 @@ if (NOT DEFINED CMAKE_INSTALL_PREFIX)
     set(LOCAL_INSTALL "ON")
 endif()
 
-project(storage-framework C CXX)
-
 cmake_minimum_required(VERSION 3.0.2)
-
-set(STORAGE_FRAMEWORK_VERSION "0.1")
+project(storage-framework VERSION "0.1" LANGUAGES C CXX)
 
 # This variable should be incremented when we wish to create a new
 # parallel installable version of the headers.  It is not necessary to
@@ -20,8 +17,8 @@ set(STORAGE_FRAMEWORK_API_VERSION "1")
 set(STORAGE_PROVIDER_SOVERSION "0")
 set(STORAGE_CLIENT_SOVERSION "0")
 
-set(STORAGE_PROVIDER_LIBVERSION "${STORAGE_PROVIDER_SOVERSION}.${STORAGE_FRAMEWORK_VERSION}")
-set(STORAGE_CLIENT_LIBVERSION "${STORAGE_CLIENT_SOVERSION}.${STORAGE_FRAMEWORK_VERSION}")
+set(STORAGE_PROVIDER_LIBVERSION "${STORAGE_PROVIDER_SOVERSION}.${PROJECT_VERSION}")
+set(STORAGE_CLIENT_LIBVERSION "${STORAGE_CLIENT_SOVERSION}.${PROJECT_VERSION}")
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower) # Build types should always be lower case
 
