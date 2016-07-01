@@ -15,6 +15,7 @@ Build-Depends: cmake,
                libboost-thread-dev,
                libglib2.0-dev,
                libgtest-dev,
+               libonline-accounts-qt-dev,
                qtbase5-dev,
                qtbase5-dev-tools,
 Homepage: https://launchpad.net/storage-framework
