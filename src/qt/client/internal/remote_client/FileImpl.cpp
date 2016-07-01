@@ -48,7 +48,7 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, i
     }
     QString old_etag = policy == ConflictPolicy::overwrite ? "" : md_.etag;
     ProviderInterface& prov = provider();
-    auto handler = new UpdateHandler(prov.Update(md_.item_id, old_etag), old_etag, root_, prov);
+    auto handler = new UpdateHandler(prov.Update(md_.item_id, old_etag), size, old_etag, root_, prov);
     return handler->future();
 }
 

@@ -63,6 +63,7 @@ private:
     std::shared_ptr<QLocalSocket> read_socket_;
     std::weak_ptr<File> file_;
     int64_t size_;
+    int64_t bytes_read_;
     QString path_;
     std::weak_ptr<Root> root_;
     std::unique_ptr<QFile> output_file_;

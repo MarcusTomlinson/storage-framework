@@ -38,6 +38,7 @@ UploadWorker::UploadWorker(int read_fd,
     : read_fd_(read_fd)
     , file_(file)
     , size_(size)
+    , bytes_read_(0)
     , path_(path)
     , root_(root)
     , tmp_fd_([](int fd){ if (fd != -1) ::close(fd); })
@@ -109,8 +110,17 @@ void UploadWorker::do_finish()
     {
         case in_progress:
         {
-            state_ = finalized;
-            finalize();
+            if (bytes_read_ != size_)
+            {
+                state_ = error;
+                qf_.reportException(LogicException());  // TODO, report details
+                qf_.reportFinished();
+            }
+            else
+            {
+                state_ = finalized;
+                finalize();
+            }
             break;
         }
         case finalized:
@@ -158,6 +168,7 @@ void UploadWorker::on_bytes_ready()
     auto buf = read_socket_->read(read_socket_->bytesAvailable());
     if (buf.size() != 0)
     {
+        bytes_read_ += buf.size();
         auto bytes_written = output_file_->write(buf);
         if (bytes_written != buf.size())
         {
