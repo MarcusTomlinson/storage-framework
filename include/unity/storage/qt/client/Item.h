@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unity/storage/common.h>
+#include <unity/storage/qt/client/Metadata.h>
 #include <unity/storage/visibility.h>
 
 #include <QDateTime>
@@ -8,7 +9,6 @@
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
 #pragma GCC diagnostic pop
-#include <QString>
 
 #include <memory>
 
@@ -95,7 +95,7 @@ public:
 
     TODO: Needs a lot more doc. Explain standard and provider-specific metadata.
     */
-    QVariantMap metadata() const;
+    Metadata metadata() const;
 
     /**
     \brief Returns the time at which the item was last modified.

@@ -51,7 +51,7 @@ QString ItemImpl::name() const
     return name_;
 }
 
-QVariantMap ItemImpl::metadata() const
+Metadata ItemImpl::metadata() const
 {
     lock_guard<mutex> guard(mutex_);
 
@@ -59,7 +59,7 @@ QVariantMap ItemImpl::metadata() const
     {
         throw DeletedException();  // TODO
     }
-    return metadata_;
+    return Metadata(metadata_);
 }
 
 QDateTime ItemImpl::last_modified_time() const

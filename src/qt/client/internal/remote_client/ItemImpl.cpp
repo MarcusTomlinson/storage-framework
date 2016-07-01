@@ -42,14 +42,14 @@ QString ItemImpl::name() const
     return md_.name;
 }
 
-QVariantMap ItemImpl::metadata() const
+Metadata ItemImpl::metadata() const
 {
     if (deleted_)
     {
         throw DeletedException();  // TODO
     }
     // TODO: need to agree on metadata representation
-    return QVariantMap();
+    return Metadata();
 }
 
 QDateTime ItemImpl::last_modified_time() const

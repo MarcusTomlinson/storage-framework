@@ -43,7 +43,7 @@ ItemType Item::type() const
     return p_->type();
 }
 
-QVariantMap Item::metadata() const
+Metadata Item::metadata() const
 {
     return p_->metadata();
 }

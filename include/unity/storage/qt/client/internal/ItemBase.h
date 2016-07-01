@@ -2,6 +2,7 @@
 
 #include <unity/storage/common.h>
 #include <unity/storage/qt/client/internal/boost_filesystem.h>
+#include <unity/storage/qt/client/Metadata.h>
 
 #include <QDateTime>
 #pragma GCC diagnostic push
@@ -44,8 +45,9 @@ public:
     Root* root() const;
 
     virtual QString name() const = 0;
-    virtual QVariantMap metadata() const = 0;
     virtual QDateTime last_modified_time() const = 0;
+
+    virtual Metadata metadata() const = 0;
 
     virtual QFuture<std::shared_ptr<Item>> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name) = 0;
     virtual QFuture<std::shared_ptr<Item>> move(std::shared_ptr<Folder> const& new_parent, QString const& new_name) = 0;
