@@ -31,7 +31,7 @@ class ListHandler : public QObject
     Q_OBJECT
 
 public:
-    ListHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+    ListHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>, QString> const& reply,
                 std::weak_ptr<Root> const& root,
                 QString const& item_id,
                 ProviderInterface& provider,

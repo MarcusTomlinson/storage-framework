@@ -22,7 +22,7 @@ namespace internal
 namespace remote_client
 {
 
-ListHandler::ListHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+ListHandler::ListHandler(QDBusPendingReply<QList<storage::internal::ItemMetadata>, QString> const& reply,
                          weak_ptr<Root> const& root,
                          QString const& item_id,
                          ProviderInterface& provider,

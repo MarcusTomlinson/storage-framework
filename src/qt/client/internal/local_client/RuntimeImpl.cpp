@@ -1,6 +1,7 @@
 #include <unity/storage/qt/client/internal/local_client/RuntimeImpl.h>
 
 #include <unity/storage/qt/client/Account.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/AccountImpl.h>
 
 #include <QAbstractSocket>
@@ -71,9 +72,7 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 
     if (!accounts_.isEmpty())
     {
-        qf.reportResult(accounts_);
-        qf.reportFinished();
-        return qf.future();
+        return make_ready_future(accounts_);
     }
 
     // Create accounts_ on first access.
@@ -81,9 +80,7 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
     Account::SPtr acc(new Account(impl));
     impl->set_public_instance(acc);
     accounts_.append(acc);
-    qf.reportResult(accounts_);
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future(accounts_);
 }
 
 }  // namespace local_client

@@ -4,6 +4,7 @@
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/Folder.h>
 #include <unity/storage/qt/client/Uploader.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 
@@ -141,9 +142,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     QFutureInterface<Folder::SPtr> qf;
     if (deleted_)
     {
-        qf.reportException(DeletedException());
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<Folder::SPtr>(DeletedException());
     }
 
     try
@@ -159,26 +158,21 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         p /= sanitized_name;
         create_directory(p);
         update_modified_time();
-        qf.reportResult(make_folder(QString::fromStdString(p.native()), root_));
+        return make_ready_future(make_folder(QString::fromStdString(p.native()), root_));
     }
     catch (std::exception const&)
     {
-        qf.reportException(StorageException());  // TODO
+        return make_exceptional_future<Folder::SPtr>(StorageException());  // TODO
     }
-    qf.reportFinished();
-    return qf.future();
 }
 
 QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
 {
     unique_lock<mutex> guard(mutex_);
 
-    QFutureInterface<shared_ptr<Uploader>> qf;
     if (deleted_)
     {
-        qf.reportException(DeletedException());
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<shared_ptr<Uploader>>(DeletedException());
     }
 
     try
@@ -201,14 +195,12 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
                                      ConflictPolicy::error_if_conflict,
                                      root_);
         shared_ptr<Uploader> uploader(new Uploader(impl));
-        qf.reportResult(uploader);
+        return make_ready_future(uploader);
     }
     catch (std::exception const&)
     {
-        qf.reportException(StorageException());  // TODO
+        return make_exceptional_future<shared_ptr<Uploader>>(StorageException());  // TODO
     }
-    qf.reportFinished();
-    return qf.future();
 }
 
 Folder::SPtr FolderImpl::make_folder(QString const& identity, weak_ptr<Root> root)

@@ -3,6 +3,7 @@
 #include "ProviderInterface.h"
 #include <unity/storage/qt/client/Downloader.h>
 #include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/FinishDownloadHandler.h>
 
 #include <cassert>
@@ -64,9 +65,7 @@ QFuture<void> DownloaderImpl::finish_download()
 QFuture<void> DownloaderImpl::cancel() noexcept
 {
     read_socket_->abort();
-    QFutureInterface<void> qf;
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future();
 }
 
 Downloader::SPtr DownloaderImpl::make_downloader(QString const& download_id,

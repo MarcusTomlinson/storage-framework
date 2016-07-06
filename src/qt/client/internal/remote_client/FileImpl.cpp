@@ -3,6 +3,7 @@
 #include "ProviderInterface.h"
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/DownloadHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/UpdateHandler.h>
 
@@ -41,10 +42,7 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
 {
     if (deleted_)
     {
-        QFutureInterface<shared_ptr<Uploader>> qf;
-        qf.reportException(DeletedException());  // TODO
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<shared_ptr<Uploader>>(DeletedException());
     }
     QString old_etag = policy == ConflictPolicy::overwrite ? "" : md_.etag;
     ProviderInterface& prov = provider();
@@ -56,10 +54,7 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
 {
     if (deleted_)
     {
-        QFutureInterface<shared_ptr<Downloader>> qf;
-        qf.reportException(DeletedException());  // TODO
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<shared_ptr<Downloader>>(DeletedException());
     }
     ProviderInterface& prov = provider();
     auto handler = new DownloadHandler(prov.Download(md_.item_id), dynamic_pointer_cast<File>(shared_from_this()),

@@ -1,14 +1,12 @@
 #include <unity/storage/qt/client/internal/remote_client/ItemImpl.h>
 
 #include "ProviderInterface.h"
-// TODO: check this include list
-#include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/CopyHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/DeleteHandler.h>
-#include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/MoveHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
 
@@ -66,10 +64,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
 {
     if (deleted_)
     {
-        QFutureInterface<shared_ptr<Item>> qf;
-        qf.reportException(DeletedException());  // TODO
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<shared_ptr<Item>>(DeletedException());
     }
     auto handler = new CopyHandler(provider().Copy(md_.item_id, new_parent->native_identity(), new_name), root_);
     return handler->future();
@@ -79,10 +74,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
 {
     if (deleted_)
     {
-        QFutureInterface<shared_ptr<Item>> qf;
-        qf.reportException(DeletedException());  // TODO
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<shared_ptr<Item>>(DeletedException());
     }
     auto handler = new MoveHandler(provider().Move(md_.item_id, new_parent->native_identity(), new_name), root_);
     return handler->future();
@@ -92,10 +84,7 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
 {
     if (deleted_)
     {
-        QFutureInterface<QVector<shared_ptr<Folder>>> qf;
-        qf.reportException(DeletedException());  // TODO
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<QVector<shared_ptr<Folder>>>(DeletedException());
     }
     // TODO, need different metadata representation, affects xml
     return QFuture<QVector<Folder::SPtr>>();
@@ -115,10 +104,7 @@ QFuture<void> ItemImpl::delete_item()
 {
     if (deleted_)
     {
-        QFutureInterface<void> qf;
-        qf.reportException(DeletedException());  // TODO
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future(DeletedException());
     }
     auto handler = new DeleteHandler(provider().Delete(md_.item_id),
                                      dynamic_pointer_cast<ItemImpl>(shared_from_this()));

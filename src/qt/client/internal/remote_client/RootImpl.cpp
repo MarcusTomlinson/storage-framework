@@ -2,6 +2,7 @@
 
 #include "ProviderInterface.h"
 #include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/MetadataHandler.h>
 #include <unity/storage/qt/client/Root.h>
 
@@ -33,10 +34,7 @@ RootImpl::RootImpl(storage::internal::ItemMetadata const& md, weak_ptr<Account> 
 
 QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 {
-    QFutureInterface<QVector<Folder::SPtr>> qf;
-    qf.reportResult(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
 }
 
 QVector<QString> RootImpl::parent_ids() const
@@ -47,28 +45,19 @@ QVector<QString> RootImpl::parent_ids() const
 QFuture<void> RootImpl::delete_item()
 {
     // Cannot delete root.
-    QFutureInterface<void> qf;
-    qf.reportException(StorageException());
-    qf.reportFinished();
-    return qf.future();
+    return make_exceptional_future(StorageException());
 }
 
 QFuture<int64_t> RootImpl::free_space_bytes() const
 {
     // TODO, need to refresh metadata here instead.
-    QFutureInterface<int64_t> qf;
-    qf.reportResult(1);
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future(int64_t(1));
 }
 
 QFuture<int64_t> RootImpl::used_space_bytes() const
 {
     // TODO, need to refresh metadata here instead.
-    QFutureInterface<int64_t> qf;
-    qf.reportResult(1);
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future(int64_t(1));
 }
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const

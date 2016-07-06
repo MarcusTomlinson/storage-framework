@@ -5,6 +5,7 @@
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/local_client/DownloaderImpl.h>
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/Uploader.h>
 
 using namespace std;
@@ -65,12 +66,9 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
 {
     lock_guard<mutex> guard(mutex_);
 
-    QFutureInterface<Uploader::SPtr> qf;
     if (deleted_)
     {
-        qf.reportException(DeletedException());
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<Uploader::SPtr>(DeletedException());
     }
 
     try
@@ -79,26 +77,21 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
         assert(file);
         auto impl(new UploaderImpl(file, identity_, policy, root_));
         Uploader::SPtr ul(new Uploader(impl));
-        qf.reportResult(ul);
+        return make_ready_future(ul);
     }
     catch (std::exception const&)
     {
-        qf.reportException(StorageException());  // TODO
+        return make_exceptional_future<Uploader::SPtr>(StorageException());  // TODO
     }
-    qf.reportFinished();
-    return qf.future();
 }
 
 QFuture<Downloader::SPtr> FileImpl::create_downloader()
 {
     lock_guard<mutex> guard(mutex_);
 
-    QFutureInterface<Downloader::SPtr> qf;
     if (deleted_)
     {
-        qf.reportException(DeletedException());
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<Downloader::SPtr>(DeletedException());
     }
 
     try
@@ -108,14 +101,12 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
         auto file_ptr = static_pointer_cast<File>(pi);
         auto impl = new DownloaderImpl(file_ptr);
         Downloader::SPtr dl(new Downloader(impl));
-        qf.reportResult(dl);
+        return make_ready_future(dl);
     }
     catch (std::exception const&)
     {
-        qf.reportException(StorageException());  // TODO
+        return make_exceptional_future<Downloader::SPtr>(StorageException());  // TODO
     }
-    qf.reportFinished();
-    return qf.future();
 }
 
 File::SPtr FileImpl::make_file(QString const& identity, weak_ptr<Root> root)
