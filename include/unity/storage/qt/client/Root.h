@@ -62,7 +62,7 @@ public:
     // TODO: Do we need a method to get lots of things?
 
 private:
-    Root(internal::RootBase*);
+    Root(internal::RootBase*) UNITY_STORAGE_HIDDEN;
 
     friend class internal::local_client::RootImpl;
     friend class internal::remote_client::RootImpl;
