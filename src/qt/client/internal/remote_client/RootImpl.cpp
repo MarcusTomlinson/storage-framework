@@ -48,7 +48,7 @@ QFuture<void> RootImpl::delete_item()
 {
     // Cannot delete root.
     QFutureInterface<void> qf;
-    qf.reportException(StorageException());
+    qf.reportException(ResourceException("error"));
     qf.reportFinished();
     return qf.future();
 }

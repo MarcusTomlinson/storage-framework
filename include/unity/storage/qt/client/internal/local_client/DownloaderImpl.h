@@ -42,7 +42,7 @@ private Q_SLOTS:
 
 private:
     void read_and_write_chunk();
-    void handle_error();
+    void handle_error(QString const& msg);
 
     enum State { in_progress, finalized, cancelled, error };
 
@@ -54,6 +54,7 @@ private:
     QFutureInterface<void>& qf_;
     QFutureInterface<void>& worker_initialized_;
     qint64 bytes_to_write_;
+    QString error_msg_;
 };
 
 class DownloadThread : public QThread

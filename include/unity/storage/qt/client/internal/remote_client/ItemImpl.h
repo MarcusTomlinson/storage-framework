@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unity/storage/internal/ItemMetadata.h>
+#include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/ItemBase.h>
 
 #include <memory>
@@ -40,6 +41,8 @@ public:
     ProviderInterface& provider() const noexcept;
 
 protected:
+    DeletedException deleted_ex(QString const& method) const noexcept;
+
     bool deleted_ = false;
     storage::internal::ItemMetadata md_;
 

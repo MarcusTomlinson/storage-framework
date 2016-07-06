@@ -22,7 +22,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(include)
 include_directories(${CMAKE_BINARY_DIR}/include)  # For generated headers
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -Wall -pedantic -Wextra -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC --std=c++11 -Wall -pedantic -Wextra -fvisibility=hidden")
 
 # Some additional warnings not included by the general flags set above.
 set(EXTRA_C_WARNINGS "-Wcast-align -Wcast-qual -Wformat -Wredundant-decls -Wswitch-default")

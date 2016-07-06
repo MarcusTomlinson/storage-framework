@@ -32,7 +32,7 @@ int64_t FileImpl::size() const
 {
     if (deleted_)
     {
-        throw DeletedException();  // TODO
+        throw deleted_ex("File::size()");
     }
     return 0;  // TODO
 }
@@ -42,7 +42,7 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
     if (deleted_)
     {
         QFutureInterface<shared_ptr<Uploader>> qf;
-        qf.reportException(DeletedException());  // TODO
+        qf.reportException(deleted_ex("File::create_uploader()"));
         qf.reportFinished();
         return qf.future();
     }
@@ -57,7 +57,7 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
     if (deleted_)
     {
         QFutureInterface<shared_ptr<Downloader>> qf;
-        qf.reportException(DeletedException());  // TODO
+        qf.reportException(deleted_ex("File::create_downloader()"));
         qf.reportFinished();
         return qf.future();
     }

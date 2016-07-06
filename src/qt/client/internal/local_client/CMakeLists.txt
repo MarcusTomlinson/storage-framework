@@ -23,6 +23,7 @@ qt5_use_modules(storage-framework-qt-local-client Concurrent Core Network)
 set_target_properties(storage-framework-qt-local-client PROPERTIES AUTOMOC TRUE)
 set_target_properties(storage-framework-qt-local-client PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
 target_link_libraries(storage-framework-qt-local-client
+    storage-framework-common-internal
     Qt5::Concurrent
     Qt5::Core
     Qt5::Network

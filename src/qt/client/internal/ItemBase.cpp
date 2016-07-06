@@ -42,7 +42,7 @@ Root* ItemBase::root() const
     {
         return r.get();
     }
-    throw RuntimeDestroyedException();
+    throw RuntimeDestroyedException("Item::root()");
 }
 
 void ItemBase::set_root(std::weak_ptr<Root> root)

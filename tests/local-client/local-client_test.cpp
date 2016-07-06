@@ -416,12 +416,17 @@ TEST(File, cancel_upload)
         // Create an uploader for the file and write a bunch of bytes.
         auto uploader = file->create_uploader(ConflictPolicy::overwrite).result();
         QByteArray const contents(1024 * 1024, 'a');
-
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
 
         // No finish_upload() here, so the transfer is still in progress. Now cancel.
-        ASSERT_NO_THROW(uploader->cancel().waitForFinished());
+        auto cancel_fut = uploader->cancel();
+        {
+            QFutureWatcher<void> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(cancel_fut);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
 
         // finish_upload() must indicate that the upload was cancelled.
         EXPECT_THROW(uploader->finish_upload().result(), CancelledException);
@@ -707,10 +712,24 @@ TEST(File, cancel_download)
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
-        auto downloader = file->create_downloader().result();
-        // We haven't read anything and haven't pumped the event loop,
-        // so the cancel is guaranteed to catch the downloader in the in_progress state.
-        downloader->cancel();
+        auto download_fut = file->create_downloader();
+        {
+            QFutureWatcher<Downloader::SPtr> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(download_fut);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
+        auto downloader = download_fut.result();
+
+        // We haven't read anything, so the cancel is guaranteed to catch the
+        // downloader in the in_progress state.
+        auto cancel_fut = downloader->cancel();
+        {
+            QFutureWatcher<void> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(cancel_fut);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
         ASSERT_THROW(downloader->finish_download().waitForFinished(), CancelledException);
     }
 

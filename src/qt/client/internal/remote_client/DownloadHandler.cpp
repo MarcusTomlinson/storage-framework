@@ -45,7 +45,7 @@ void DownloadHandler::finished(QDBusPendingCallWatcher* call)
     if (reply.isError())
     {
         qDebug() << reply.error().message();  // TODO, remove this
-        qf_.reportException(StorageException());  // TODO
+        qf_.reportException(ResourceException("error"));  // TODO
         qf_.reportFinished();
         return;
     }
@@ -54,7 +54,7 @@ void DownloadHandler::finished(QDBusPendingCallWatcher* call)
     auto fd = reply.argumentAt<1>();
     if (fd.fileDescriptor() < 0)
     {
-        qf_.reportException(StorageException());  // TODO
+        qf_.reportException(ResourceException("error"));  // TODO
     }
     else
     {

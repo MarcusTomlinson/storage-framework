@@ -44,7 +44,7 @@ void CreateFolderHandler::finished(QDBusPendingCallWatcher* call)
     if (reply.isError())
     {
         qDebug() << reply.error().message();  // TODO, remove this
-        qf_.reportException(StorageException());  // TODO
+        qf_.reportException(ResourceException("error"));  // TODO
         qf_.reportFinished();
         return;
     }
@@ -53,7 +53,7 @@ void CreateFolderHandler::finished(QDBusPendingCallWatcher* call)
     auto md = reply.value();
     if (md.type != ItemType::folder)
     {
-        qf_.reportException(StorageException());  // TODO need to log this as well, server error
+        qf_.reportException(ResourceException("error"));  // TODO need to log this as well, server error
     }
     else
     {

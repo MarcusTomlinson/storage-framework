@@ -42,7 +42,7 @@ RuntimeImpl::RuntimeImpl()
 {
     if (!conn_.isConnected())
     {
-        throw LocalCommsException();  // LCOV_EXCL_LINE  // TODO, details
+        throw LocalCommsException("Runtime: cannot connect to session bus");  // LCOV_EXCL_LINE
     }
     qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
     qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();
@@ -116,7 +116,7 @@ void RuntimeImpl::manager_ready()
 
 void RuntimeImpl::timeout()
 {
-    qf_.reportException(StorageException());  // TODO
+    qf_.reportException(ResourceException("error"));  // TODO
     qf_.reportFinished();
 }
 

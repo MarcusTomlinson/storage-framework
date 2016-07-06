@@ -30,7 +30,7 @@ Runtime* AccountBase::runtime() const
     {
         return runtime.get();
     }
-    throw RuntimeDestroyedException();  // TODO
+    throw RuntimeDestroyedException("AccountBase::runtime()");
 }
 
 void AccountBase::set_public_instance(weak_ptr<Account> const& p)

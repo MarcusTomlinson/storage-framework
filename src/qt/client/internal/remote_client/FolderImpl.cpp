@@ -45,7 +45,7 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
     QFutureInterface<QVector<shared_ptr<Item>>> qf;
     if (deleted_)
     {
-        qf.reportException(DeletedException());  // TODO
+        qf.reportException(deleted_ex("Filder::list()"));
         qf.reportFinished();
         return qf.future();
     }
@@ -59,7 +59,7 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
     if (deleted_)
     {
         QFutureInterface<QVector<shared_ptr<Item>>> qf;
-        qf.reportException(DeletedException());  // TODO
+        qf.reportException(deleted_ex("Filder::lookup()"));
         qf.reportFinished();
         return qf.future();
     }
@@ -72,7 +72,7 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
     if (deleted_)
     {
         QFutureInterface<shared_ptr<Folder>> qf;
-        qf.reportException(DeletedException());  // TODO
+        qf.reportException(deleted_ex("Filder::create_folder()"));
         qf.reportFinished();
         return qf.future();
     }
@@ -85,7 +85,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
     if (deleted_)
     {
         QFutureInterface<shared_ptr<Uploader>> qf;
-        qf.reportException(DeletedException());  // TODO
+        qf.reportException(deleted_ex("Filder::create_file()"));
         qf.reportFinished();
         return qf.future();
     }

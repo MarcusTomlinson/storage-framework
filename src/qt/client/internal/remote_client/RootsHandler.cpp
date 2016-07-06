@@ -44,7 +44,7 @@ void RootsHandler::finished(QDBusPendingCallWatcher* call)
     if (reply.isError())
     {
         qDebug() << reply.error().message();  // TODO, remove this
-        qf_.reportException(StorageException());  // TODO
+        qf_.reportException(ResourceException("error"));  // TODO
     }
     else
     {

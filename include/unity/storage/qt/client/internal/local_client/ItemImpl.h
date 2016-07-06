@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unity/storage/common.h>
+#include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/ItemBase.h>
 
 #include <boost/filesystem.hpp>
@@ -42,8 +43,10 @@ public:
     std::unique_lock<std::mutex> get_lock();
 
 protected:
-    static boost::filesystem::path sanitize(QString const& name);
-    static bool is_reserved_path(boost::filesystem::path const& path);
+    static boost::filesystem::path sanitize(QString const& name, QString const& method);
+    static bool is_reserved_path(boost::filesystem::path const& path) noexcept;
+
+    DeletedException deleted_ex(QString const& method) const noexcept;
 
     bool deleted_;
     QString name_;

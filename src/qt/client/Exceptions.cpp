@@ -9,21 +9,17 @@ namespace qt
 namespace client
 {
 
-StorageException::StorageException() = default;
+StorageException::StorageException(QString const& error_message)
+    : error_message_(error_message)
+{
+}
 
 StorageException::~StorageException() = default;
 
-StorageException* StorageException::clone() const
+LocalCommsException::LocalCommsException(QString const& error_message)
+    : StorageException(error_message)
 {
-    return new StorageException(*this);
 }
-
-void StorageException::raise() const
-{
-    throw *this;
-}
-
-LocalCommsException::LocalCommsException() = default;
 
 LocalCommsException::~LocalCommsException() = default;
 
@@ -37,7 +33,10 @@ void LocalCommsException::raise() const
     throw *this;
 }
 
-RemoteCommsException::RemoteCommsException() = default;
+RemoteCommsException::RemoteCommsException(QString const& error_message)
+    : StorageException(error_message)
+{
+}
 
 RemoteCommsException::~RemoteCommsException() = default;
 
@@ -51,7 +50,12 @@ void RemoteCommsException::raise() const
     throw *this;
 }
 
-DeletedException::DeletedException() = default;
+DeletedException::DeletedException(QString const& error_message, QString const& identity, QString const& name)
+    : StorageException(error_message)
+    , identity_(identity)
+    , name_(name)
+{
+}
 
 DeletedException::~DeletedException() = default;
 
@@ -65,7 +69,20 @@ void DeletedException::raise() const
     throw *this;
 }
 
-RuntimeDestroyedException::RuntimeDestroyedException() = default;
+QString DeletedException::native_identity() const
+{
+    return identity_;
+}
+
+QString DeletedException::name() const
+{
+    return name_;
+}
+
+RuntimeDestroyedException::RuntimeDestroyedException(QString const& method)
+    : StorageException(method + ": Runtime was destroyed previously")
+{
+}
 
 RuntimeDestroyedException::~RuntimeDestroyedException() = default;
 
@@ -79,21 +96,62 @@ void RuntimeDestroyedException::raise() const
     throw *this;
 }
 
-NotExistException::NotExistException() = default;
-
-NotExistException::~NotExistException() = default;
-
-NotExistException* NotExistException::clone() const
+NotExistsException::NotExistsException(QString const& error_message, QString const& key)
+    : StorageException(error_message)
+    , key_(key)
 {
-    return new NotExistException(*this);
 }
 
-void NotExistException::raise() const
+NotExistsException::~NotExistsException() = default;
+
+NotExistsException* NotExistsException::clone() const
+{
+    return new NotExistsException(*this);
+}
+
+void NotExistsException::raise() const
 {
     throw *this;
 }
 
-ConflictException::ConflictException() = default;
+QString NotExistsException::key() const
+{
+    return key_;
+}
+
+ExistsException::ExistsException(QString const& error_message, QString const& identity, QString const& name)
+    : StorageException(error_message)
+    , identity_(identity)
+    , name_(name)
+{
+}
+
+ExistsException::~ExistsException() = default;
+
+ExistsException* ExistsException::clone() const
+{
+    return new ExistsException(*this);
+}
+
+void ExistsException::raise() const
+{
+    throw *this;
+}
+
+QString ExistsException::native_identity() const
+{
+    return identity_;
+}
+
+QString ExistsException::name() const
+{
+    return name_;
+}
+
+ConflictException::ConflictException(QString const& error_message)
+    : StorageException(error_message)
+{
+}
 
 ConflictException::~ConflictException() = default;
 
@@ -107,7 +165,10 @@ void ConflictException::raise() const
     throw *this;
 }
 
-CancelledException::CancelledException() = default;
+CancelledException::CancelledException(QString const& error_message)
+    : StorageException(error_message)
+{
+}
 
 CancelledException::~CancelledException() = default;
 
@@ -117,6 +178,57 @@ CancelledException* CancelledException::clone() const
 }
 
 void CancelledException::raise() const
+{
+    throw *this;
+}
+
+LogicException::LogicException(QString const& error_message)
+    : StorageException(error_message)
+{
+}
+
+LogicException::~LogicException() = default;
+
+LogicException* LogicException::clone() const
+{
+    return new LogicException(*this);
+}
+
+void LogicException::raise() const
+{
+    throw *this;
+}
+
+InvalidArgumentException::InvalidArgumentException(QString const& error_message)
+    : StorageException(error_message)
+{
+}
+
+InvalidArgumentException::~InvalidArgumentException() = default;
+
+InvalidArgumentException* InvalidArgumentException::clone() const
+{
+    return new InvalidArgumentException(*this);
+}
+
+void InvalidArgumentException::raise() const
+{
+    throw *this;
+}
+
+ResourceException::ResourceException(QString const& error_message)
+    : StorageException(error_message)
+{
+}
+
+ResourceException::~ResourceException() = default;
+
+ResourceException* ResourceException::clone() const
+{
+    return new ResourceException(*this);
+}
+
+void ResourceException::raise() const
 {
     throw *this;
 }

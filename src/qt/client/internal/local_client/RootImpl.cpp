@@ -31,7 +31,8 @@ RootImpl::RootImpl(QString const& identity, weak_ptr<Account> const& account)
     path id_path = path(identity.toStdString());
     if (!id_path.is_absolute())
     {
-        throw StorageException();  // TODO
+        QString msg = QString("Root: root path \"") + identity + "\" must be absolute";
+        throw InvalidArgumentException(msg);
     }
     path can_path = canonical(id_path);
     auto id_len = std::distance(id_path.begin(), id_path.end());
@@ -40,7 +41,8 @@ RootImpl::RootImpl(QString const& identity, weak_ptr<Account> const& account)
     {
         // identity denotes a weird path that we won't trust because
         // it might contain ".." or similar.
-        throw StorageException();  // TODO
+        QString msg = QString("Root: root path \"") + identity + "\" cannot contain \".\" or \"..\" components";
+        throw InvalidArgumentException(msg);
     }
     assert(account.lock());
 }
@@ -67,7 +69,7 @@ QFuture<void> RootImpl::delete_item()
 {
     // Cannot delete root.
     QFutureInterface<void> qf;
-    qf.reportException(StorageException());
+    qf.reportException(LogicException("Root::delete_item(): Cannot delete root folder"));
     qf.reportFinished();
     return qf.future();
 }
@@ -82,9 +84,9 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
         space_info si = space(identity_.toStdString());
         qf.reportResult(si.available);
     }
-    catch (std::exception const&)
+    catch (std::exception const& e)
     {
-        qf.reportException(StorageException());  // TODO
+        qf.reportException(ResourceException(QString("Root::free_space_bytes(): ") + e.what()));
     }
     qf.reportFinished();
     return qf.future();
@@ -100,9 +102,9 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
         space_info si = space(identity_.toStdString());
         qf.reportResult(si.capacity - si.available);
     }
-    catch (std::exception const&)
+    catch (std::exception const& e)
     {
-        qf.reportException(StorageException());  // TODO
+        qf.reportException(ResourceException(QString("Root::used_space_bytes(): ") + e.what()));
     }
     qf.reportFinished();
     return qf.future();
@@ -118,7 +120,7 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         path id_path = native_identity.toStdString();
         if (!id_path.is_absolute())
         {
-            throw StorageException();  // TODO
+            throw InvalidArgumentException("Root::get(): identity must be an absolute path");
         }
 
         // Make sure that native_identity is contained in or equal to the root path.
@@ -126,22 +128,17 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         auto root_path = path(root()->native_identity().toStdString());
         auto id_len = std::distance(id_path.begin(), id_path.end());
         auto root_len = std::distance(root_path.begin(), root_path.end());
-        if (id_len < root_len)
+        if (id_len < root_len || !std::equal(root_path.begin(), root_path.end(), id_path.begin()))
         {
             // native_identity can't possibly point at something below the root.
-            throw StorageException();  // TODO
-        }
-        if (!std::equal(root_path.begin(), root_path.end(), id_path.begin()))
-        {
-            // id_path differs from root path in some path component, so id_path
-            // does not point at a location that's contained in root_path.
-            throw StorageException();
+            QString msg = QString("Root::get(): identity \"") + native_identity + "\" points outside the root folder";
+            throw InvalidArgumentException(msg);
         }
 
         // Don't allow reserved files to be found.
         if (is_reserved_path(id_path))
         {
-            throw NotExistException();
+            throw NotExistsException(QString("Root::get(): no such item: ") + native_identity, native_identity);
         }
 
         file_status s = status(id_path);
@@ -166,9 +163,13 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
             // Ignore everything that's not a directory or file.
         }
     }
-    catch (std::exception const&)
+    catch (StorageException const& e)
     {
-        qf.reportException(StorageException());  // TODO
+        qf.reportException(e);
+    }
+    catch (std::exception const& e)
+    {
+        qf.reportException(ResourceException(QString("Root::get(): ") + e.what()));
     }
     qf.reportFinished();
     return qf.future();

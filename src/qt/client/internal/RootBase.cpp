@@ -29,7 +29,7 @@ Account* RootBase::account() const
     {
         return acc.get();
     }
-    throw RuntimeDestroyedException();
+    throw RuntimeDestroyedException("Root::account()");
 }
 
 }  // namespace internal

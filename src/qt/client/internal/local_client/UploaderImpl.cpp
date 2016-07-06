@@ -1,5 +1,6 @@
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 
+#include <unity/storage/internal/safe_strerror.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
@@ -116,13 +117,14 @@ void UploadWorker::do_finish()
         }
         case cancelled:
         {
-            qf_.reportException(CancelledException());  // TODO: details
+            QString msg = "Uploader::finish_upload(): upload was cancelled";
+            qf_.reportException(CancelledException(msg));
             qf_.reportFinished();
             break;
         }
         case error:
         {
-            qf_.reportException(StorageException());  // TODO, report details
+            qf_.reportException(ResourceException(error_msg_));
             qf_.reportFinished();
             break;
         }
@@ -156,11 +158,15 @@ void UploadWorker::on_bytes_ready()
     if (buf.size() != 0)
     {
         auto bytes_written = output_file_->write(buf);
-        if (bytes_written != buf.size())
+        if (bytes_written == -1)
         {
-            // TODO: Store error details.
-            handle_error();
-            return;
+            handle_error("socket error: " + output_file_->errorString());
+        }
+        else if (bytes_written != buf.size())
+        {
+            QString msg = "write error, requested " + QString::number(buf.size()) + " B, but wrote only "
+                          + bytes_written + " B.";
+            handle_error(msg);
         }
     }
 }
@@ -173,7 +179,7 @@ void UploadWorker::on_read_channel_finished()
 
 void UploadWorker::on_error()
 {
-    handle_error();
+    handle_error(read_socket_->errorString());
 }
 
 void UploadWorker::finalize()
@@ -194,7 +200,7 @@ void UploadWorker::finalize()
         }
         catch (std::exception const&)
         {
-            qf_.reportException(ConflictException());  // TODO: store error details.
+            qf_.reportException(ConflictException("Uploader::finish_upload(): eTag mismatch"));
             qf_.reportFinished();
             return;
         }
@@ -202,14 +208,19 @@ void UploadWorker::finalize()
     else
     {
         // This uploader was returned by FolderImpl::create_file().
-        int fd = open(path_.toStdString().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
+        string path = path_.toStdString();
+        int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
         if (fd == -1)
         {
-            qf_.reportException(StorageException());  // TODO
+            QString msg = "Uploader::finish_upload(): item with name \"" + path_ + "\" exists already";
+            QString name = QString::fromStdString(boost::filesystem::path(path).filename().native());
+            qf_.reportException(ExistsException(msg, path_, name));
         }
         if (close(fd) == -1)
         {
-            qf_.reportException(StorageException());  // TODO
+            QString msg = "Uploader::finish_upload(): cannot close tmp file: "
+                          + QString::fromStdString(storage::internal::safe_strerror(errno));
+            qf_.reportException(ResourceException(msg));
         }
 
         file = FileImpl::make_file(path_, root_);
@@ -220,7 +231,8 @@ void UploadWorker::finalize()
 
     if (!output_file_->flush())
     {
-        qf_.reportException(StorageException());  // TODO: Store error details.
+        QString msg = "Uploader::finish_upload(): cannot flush output file: " + output_file_->errorString();
+        qf_.reportException(ResourceException(msg));
         qf_.reportFinished();
         return;
     }
@@ -232,7 +244,9 @@ void UploadWorker::finalize()
     if (linkat(-1, oldpath.c_str(), tmp_fd_.get(), newpath.c_str(), AT_SYMLINK_FOLLOW) == -1)
     {
         state_ = error;
-        qf_.reportException(StorageException());  // TODO
+        QString msg = "Uploader::finish_upload(): linkat \"" + file->native_identity() + "\" failed: "
+                      + QString::fromStdString(storage::internal::safe_strerror(errno));
+        qf_.reportException(ResourceException(msg));
         qf_.reportFinished();
         return;
     }
@@ -243,7 +257,7 @@ void UploadWorker::finalize()
     qf_.reportFinished();
 }
 
-void UploadWorker::handle_error()
+void UploadWorker::handle_error(QString const& msg)
 {
     if (state_ == in_progress)
     {
@@ -251,6 +265,7 @@ void UploadWorker::handle_error()
         read_socket_->abort();
     }
     state_ = error;
+    error_msg_ = "Uploader: " + msg;
     do_finish();
 }
 
@@ -258,7 +273,6 @@ void UploadWorker::check_modified_time() const
 {
     if (policy_ == ConflictPolicy::error_if_conflict)
     {
-        // TODO: What if file does not yet exist on disk?
         auto file = file_.lock();
         assert(file);
         auto mtime = boost::filesystem::last_write_time(file->native_identity().toStdString());
@@ -267,7 +281,7 @@ void UploadWorker::check_modified_time() const
         auto file_impl = dynamic_pointer_cast<FileImpl>(file->p_);
         if (modified_time != file_impl->get_modified_time())
         {
-            throw ConflictException();  // TODO
+            qf_.reportException(ConflictException("Uploader::finish_upload(): eTag mismatch"));
         }
     }
 }
@@ -285,17 +299,23 @@ void UploadThread::run()
 
 UploaderImpl::UploaderImpl(weak_ptr<File> file, QString const& path, ConflictPolicy policy, weak_ptr<Root> root)
     : UploaderBase(policy)
+    , write_socket_(new QLocalSocket)
 {
     // Set up socket pair.
     int fds[2];
     int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
     if (rc == -1)
     {
-        throw StorageException();  // LCOV_EXCL_LINE  // TODO
+        // LCOV_EXCL_START
+        QString msg = "Uploader: cannot create socket pair: "
+                      + QString::fromStdString(storage::internal::safe_strerror(errno));
+        qf_.reportException(ResourceException(msg));
+        qf_.reportFinished();
+        return;
+        // LCOV_EXCL_STOP
     }
 
     // Write socket is for the client.
-    write_socket_.reset(new QLocalSocket);
     write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
     shutdown(fds[1], SHUT_RD);
 
@@ -317,8 +337,11 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, QString const& path, ConflictPol
 
 UploaderImpl::~UploaderImpl()
 {
-    Q_EMIT do_cancel();
-    upload_thread_->wait();
+    if (upload_thread_->isRunning())
+    {
+        Q_EMIT do_cancel();
+        upload_thread_->wait();
+    }
 }
 
 shared_ptr<QLocalSocket> UploaderImpl::socket() const
@@ -338,9 +361,7 @@ QFuture<File::SPtr> UploaderImpl::finish_upload()
 QFuture<void> UploaderImpl::cancel() noexcept
 {
     Q_EMIT do_cancel();
-    QFutureInterface<void> qf;
-    qf.reportFinished();
-    return qf.future();
+    return qf_.future();
 }
 
 }  // namespace local_client

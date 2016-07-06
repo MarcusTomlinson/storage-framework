@@ -42,7 +42,7 @@ AccountImpl::AccountImpl(weak_ptr<Runtime> const& runtime,
     provider_.reset(new ProviderInterface(BUS_NAME, bus_path, rt_impl->connection()));
     if (!provider_->isValid())
     {
-        throw LocalCommsException();  // TODO, details
+        throw LocalCommsException("error");  // TODO, details
     }
 }
 

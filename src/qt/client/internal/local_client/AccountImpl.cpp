@@ -38,16 +38,22 @@ string get_data_dir()
     char const* dir = getenv("STORAGE_FRAMEWORK_ROOT");
     if (!dir || *dir == '\0')
     {
-        dir = g_get_user_data_dir();
+        dir = g_get_user_data_dir();  // Never fails.
     }
 
     boost::system::error_code ec;
 
     // The directory must exist.
     bool is_dir = boost::filesystem::is_directory(dir, ec);
-    if (ec || !is_dir)
+    if (ec)
     {
-        throw StorageException();  // TODO
+        QString msg = "Account::roots(): Cannot stat " + QString(dir) + ": " + QString::fromStdString(ec.message());
+        throw ResourceException(msg);
+    }
+    if (!is_dir)
+    {
+        QString msg = "Account::roots(): Environment variable STORAGE_FRAMEWORK_ROOT must denote a directory";
+        throw InvalidArgumentException(msg);
     }
 
     // Create the storage-framework directory if it doesn't exist yet.
@@ -58,7 +64,9 @@ string get_data_dir()
         boost::filesystem::create_directories(data_dir, ec);
         if (ec)
         {
-            throw StorageException();  // TODO
+            QString msg = "Account::roots(): Cannot create " + QString(dir) + ": "
+                          + QString::fromStdString(ec.message());
+            throw ResourceException(msg);
         }
     }
     return data_dir;
@@ -108,18 +116,12 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
         return qf.future();
     }
 
-    try
-    {
-        // Create the root on first access.
-        auto rpath = canonical(get_data_dir()).native();
-        auto root = RootImpl::make_root(QString::fromStdString(rpath), public_instance_);
-        roots_.append(root);
-        qf.reportResult(roots_);
-    }
-    catch (std::exception const&)
-    {
-        qf.reportException(StorageException());  // TODO
-    }
+    // Create the root on first access.
+    auto rpath = canonical(get_data_dir()).native();
+    auto root = RootImpl::make_root(QString::fromStdString(rpath), public_instance_);
+    roots_.append(root);
+
+    qf.reportResult(roots_);
     qf.reportFinished();
     return qf.future();
 }

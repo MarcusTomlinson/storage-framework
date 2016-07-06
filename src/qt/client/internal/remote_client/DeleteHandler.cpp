@@ -41,7 +41,7 @@ void DeleteHandler::finished(QDBusPendingCallWatcher* call)
     if (reply.isError())
     {
         qDebug() << reply.error().message();  // TODO: remove this
-        qf_.reportException(StorageException());  // TODO
+        qf_.reportException(ResourceException("error"));  // TODO
     }
     impl_->deleted_ = true;
     qf_.reportFinished();

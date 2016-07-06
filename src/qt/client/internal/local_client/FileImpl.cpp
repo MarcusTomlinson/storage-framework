@@ -35,10 +35,9 @@ QString FileImpl::name() const
 
     if (deleted_)
     {
-        throw DeletedException();
+        throw deleted_ex("File::name()");
     }
-    auto name = boost::filesystem::path(identity_.toStdString()).filename().native();
-    return QString::fromStdString(name);
+    return name_;
 }
 
 int64_t FileImpl::size() const
@@ -47,7 +46,7 @@ int64_t FileImpl::size() const
 
     if (deleted_)
     {
-        throw DeletedException();
+        throw deleted_ex("File::size()");
     }
 
     try
@@ -55,9 +54,9 @@ int64_t FileImpl::size() const
         boost::filesystem::path p = identity_.toStdString();
         return file_size(p);
     }
-    catch (std::exception const&)
+    catch (std::exception const& e)
     {
-        throw StorageException();  // TODO
+        throw ResourceException(e.what());
     }
 }
 
@@ -68,23 +67,17 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
     QFutureInterface<Uploader::SPtr> qf;
     if (deleted_)
     {
-        qf.reportException(DeletedException());
+        qf.reportException(deleted_ex("File::create_uploader()"));
         qf.reportFinished();
         return qf.future();
     }
 
-    try
-    {
-        auto file = dynamic_pointer_cast<File>(public_instance_.lock());
-        assert(file);
-        auto impl(new UploaderImpl(file, identity_, policy, root_));
-        Uploader::SPtr ul(new Uploader(impl));
-        qf.reportResult(ul);
-    }
-    catch (std::exception const&)
-    {
-        qf.reportException(StorageException());  // TODO
-    }
+    auto file = dynamic_pointer_cast<File>(public_instance_.lock());
+    assert(file);
+    auto impl(new UploaderImpl(file, identity_, policy, root_));
+    Uploader::SPtr ul(new Uploader(impl));
+
+    qf.reportResult(ul);
     qf.reportFinished();
     return qf.future();
 }
@@ -96,24 +89,18 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
     QFutureInterface<Downloader::SPtr> qf;
     if (deleted_)
     {
-        qf.reportException(DeletedException());
+        qf.reportException(deleted_ex("File::create_downloader()"));
         qf.reportFinished();
         return qf.future();
     }
 
-    try
-    {
-        auto pi = public_instance_.lock();
-        assert(pi);
-        auto file_ptr = static_pointer_cast<File>(pi);
-        auto impl = new DownloaderImpl(file_ptr);
-        Downloader::SPtr dl(new Downloader(impl));
-        qf.reportResult(dl);
-    }
-    catch (std::exception const&)
-    {
-        qf.reportException(StorageException());  // TODO
-    }
+    auto pi = public_instance_.lock();
+    assert(pi);
+    auto file_ptr = static_pointer_cast<File>(pi);
+    auto impl = new DownloaderImpl(file_ptr);
+    Downloader::SPtr dl(new Downloader(impl));
+
+    qf.reportResult(dl);
     qf.reportFinished();
     return qf.future();
 }

@@ -47,7 +47,7 @@ void LookupHandler::finished(QDBusPendingCallWatcher* call)
     if (reply.isError())
     {
         qDebug() << reply.error().message();  // TODO, remove this
-        qf_.reportException(StorageException());  // TODO
+        qf_.reportException(ResourceException("error"));  // TODO
         qf_.reportFinished();
         return;
     }
@@ -84,7 +84,7 @@ void LookupHandler::finished(QDBusPendingCallWatcher* call)
     }
     if (items.isEmpty())
     {
-        qf_.reportException(StorageException());  // TODO
+        qf_.reportException(ResourceException("error"));  // TODO
     }
     else
     {
