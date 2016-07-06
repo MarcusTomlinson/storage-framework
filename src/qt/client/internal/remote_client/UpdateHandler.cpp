@@ -62,7 +62,7 @@ void UpdateHandler::finished(QDBusPendingCallWatcher* call)
     }
     else
     {
-        auto uploader = UploaderImpl::make_uploader(upload_id, fd.fileDescriptor(), old_etag_, root_, provider_);
+        auto uploader = UploaderImpl::make_uploader(upload_id, fd, old_etag_, root_, provider_);
         qf_.reportResult(uploader);
     }
 

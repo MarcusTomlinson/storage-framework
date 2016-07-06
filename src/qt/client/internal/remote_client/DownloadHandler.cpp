@@ -58,7 +58,7 @@ void DownloadHandler::finished(QDBusPendingCallWatcher* call)
     }
     else
     {
-        auto downloader = DownloaderImpl::make_downloader(download_id, fd.fileDescriptor(), file_, provider_);
+        auto downloader = DownloaderImpl::make_downloader(download_id, fd, file_, provider_);
         qf_.reportResult(downloader);
     }
 

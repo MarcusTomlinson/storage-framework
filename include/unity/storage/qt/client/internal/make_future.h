@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QFuture>
 #include <QFutureInterface>
 
 namespace unity

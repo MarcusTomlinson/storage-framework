@@ -27,18 +27,19 @@ namespace remote_client
 {
 
 DownloaderImpl::DownloaderImpl(QString const& download_id,
-                               int fd,
+                               QDBusUnixFileDescriptor fd,
                                shared_ptr<File> const& file,
                                ProviderInterface& provider)
     : DownloaderBase(file)
     , download_id_(download_id)
+    , fd_(fd)
     , file_(file)
     , provider_(provider)
     , read_socket_(new QLocalSocket)
 {
     assert(!download_id.isEmpty());
-    assert(fd >= 0);
-    read_socket_->setSocketDescriptor(fd, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
+    assert(fd.isValid());
+    read_socket_->setSocketDescriptor(fd.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 }
 
 DownloaderImpl::~DownloaderImpl()
@@ -69,7 +70,7 @@ QFuture<void> DownloaderImpl::cancel() noexcept
 }
 
 Downloader::SPtr DownloaderImpl::make_downloader(QString const& download_id,
-                                                 int fd,
+                                                 QDBusUnixFileDescriptor fd,
                                                  shared_ptr<File> const& file,
                                                  ProviderInterface& provider)
 {

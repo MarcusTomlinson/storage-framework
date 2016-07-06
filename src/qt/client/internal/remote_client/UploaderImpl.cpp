@@ -22,13 +22,14 @@ namespace internal
 namespace remote_client
 {
 
-UploaderImpl::UploaderImpl(QString upload_id,
-                           int fd,
+UploaderImpl::UploaderImpl(QString const& upload_id,
+                           QDBusUnixFileDescriptor fd,
                            QString const& old_etag,
                            weak_ptr<Root> root,
                            ProviderInterface& provider)
     : UploaderBase(old_etag == "" ? ConflictPolicy::overwrite : ConflictPolicy::error_if_conflict)
     , upload_id_(upload_id)
+    , fd_(fd)
     , old_etag_(old_etag)
     , root_(root)
     , provider_(provider)
@@ -36,8 +37,8 @@ UploaderImpl::UploaderImpl(QString upload_id,
 {
     assert(!upload_id.isEmpty());
     assert(root_.lock());
-    assert(fd >= 0);
-    write_socket_->setSocketDescriptor(fd, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+    assert(fd.isValid());
+    write_socket_->setSocketDescriptor(fd_.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 }
 
 UploaderImpl::~UploaderImpl()
@@ -63,7 +64,7 @@ QFuture<void> UploaderImpl::cancel() noexcept
 }
 
 Uploader::SPtr UploaderImpl::make_uploader(QString const& upload_id,
-                                           int fd,
+                                           QDBusUnixFileDescriptor fd,
                                            QString const& old_etag,
                                            weak_ptr<Root> root,
                                            ProviderInterface& provider)

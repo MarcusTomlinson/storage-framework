@@ -53,7 +53,7 @@ void CreateFileHandler::finished(QDBusPendingCallWatcher* call)
 
     auto upload_id = reply.argumentAt<0>();
     auto fd = reply.argumentAt<1>();
-    auto uploader = UploaderImpl::make_uploader(upload_id, fd.fileDescriptor(), "", root_, provider_);
+    auto uploader = UploaderImpl::make_uploader(upload_id, fd, "", root_, provider_);
     qf_.reportResult(uploader);
     qf_.reportFinished();
 }
