@@ -4,11 +4,9 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/Folder.h>
 #include <unity/storage/qt/client/internal/make_future.h>
-#include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
-#include <unity/storage/qt/client/internal/remote_client/CreateFileHandler.h>
-#include <unity/storage/qt/client/internal/remote_client/CreateFolderHandler.h>
-#include <unity/storage/qt/client/internal/remote_client/ListHandler.h>
-#include <unity/storage/qt/client/internal/remote_client/LookupHandler.h>
+#include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/Handler.h>
+#include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>
 
 #include <QtConcurrent>
 
@@ -47,9 +45,70 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
     {
         return make_exceptional_future<QVector<shared_ptr<Item>>>(DeletedException());
     }
-    QFutureInterface<QVector<shared_ptr<Item>>> qf;
-    qf.reportStarted();
-    auto handler = new ListHandler(provider().List(md_.item_id, ""), root_, md_.item_id, provider(), qf);
+
+    // Sorry for the mess, but we can't use auto for the lambda because it calls itself,
+    // and the compiler can't deduce the type of the lambda while it's still parsing its body.
+    std::function<void(QDBusPendingReply<QList<storage::internal::ItemMetadata>, QString> const&,
+                       QFutureInterface<QVector<std::shared_ptr<Item>>>&)> process_list_reply
+        = [this, process_list_reply](QDBusPendingReply<QList<storage::internal::ItemMetadata>, QString> const& reply,
+                                     QFutureInterface<QVector<std::shared_ptr<Item>>>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+            qf.reportFinished();
+            return;
+        }
+
+        QVector<shared_ptr<Item>> items;
+        auto metadata = reply.argumentAt<0>();
+        for (auto const& md : metadata)
+        {
+            switch (md.type)
+            {
+                case ItemType::file:
+                {
+                    auto file = FileImpl::make_file(md, root_);
+                    items.append(file);
+                    break;
+                }
+                case ItemType::folder:
+                {
+                    auto folder = FolderImpl::make_folder(md, root_);
+                    items.append(folder);
+                    break;
+                }
+                case ItemType::root:
+                {
+                    // TODO: log impossible item type here
+                    continue;
+                }
+                default:
+                {
+                    abort();  // LCOV_EXCL_LINE  // Impossible
+                }
+            }
+        }
+        qf.reportResult(items, qf.resultCount());
+
+        QString token = reply.argumentAt<1>();
+        if (token.isEmpty())
+        {
+            qf.reportFinished();  // This was the last lot of results.
+        }
+        else
+        {
+            // Request next lot.
+            new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this),
+                                                   provider().List(md_.item_id, token),
+                                                   process_list_reply);
+        }
+    };
+
+    auto handler = new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this),
+                                                          provider().List(md_.item_id, ""),
+                                                          process_list_reply);
     return handler->future();
 }
 
@@ -59,7 +118,62 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
     {
         return make_exceptional_future<QVector<shared_ptr<Item>>>(DeletedException());
     }
-    auto handler = new LookupHandler(provider().Lookup(md_.item_id, name), root_);
+
+    auto process_lookup_reply = [this](QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                       QFutureInterface<QVector<std::shared_ptr<Item>>>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+            qf.reportFinished();
+            return;
+        }
+
+        QVector<Item::SPtr> items;
+        auto metadata = reply.value();
+        for (auto const& md : metadata)
+        {
+            Item::SPtr item;
+            switch (md.type)
+            {
+                case ItemType::file:
+                {
+                    item = FileImpl::make_file(md, root_);
+                    break;
+                }
+                case ItemType::folder:
+                {
+                    item = FolderImpl::make_folder(md, root_);
+                    break;
+                }
+                case ItemType::root:
+                {
+                    // TODO: log impossible item type here
+                    continue;
+                    break;
+                }
+                default:
+                {
+                    abort();  // LCOV_EXCL_LINE  // Impossible
+                }
+            }
+            items.append(item);
+        }
+        if (items.isEmpty())
+        {
+            qf.reportException(StorageException());  // TODO
+        }
+        else
+        {
+            qf.reportResult(items);
+        }
+        qf.reportFinished();
+    };
+
+    auto handler = new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this),
+                                                          provider().Lookup(md_.item_id, name),
+                                                          process_lookup_reply);
     return handler->future();
 }
 
@@ -69,7 +183,34 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
     {
         return make_exceptional_future<shared_ptr<Folder>>(DeletedException());
     }
-    auto handler = new CreateFolderHandler(provider().CreateFolder(md_.item_id, name), root_);
+
+    auto process_create_folder_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                                              QFutureInterface<std::shared_ptr<Folder>>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+            qf.reportFinished();
+            return;
+        }
+
+        shared_ptr<Item> item;
+        auto md = reply.value();
+        if (md.type != ItemType::folder)
+        {
+            qf.reportException(StorageException());  // TODO need to log this as well, server error
+        }
+        else
+        {
+            qf.reportResult(FolderImpl::make_folder(md, root_));
+        }
+        qf.reportFinished();
+    };
+
+    auto handler = new Handler<shared_ptr<Folder>>(this,
+                                                   provider().CreateFolder(md_.item_id, name),
+                                                   process_create_folder_reply);
     return handler->future();
 }
 
@@ -79,9 +220,31 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
     {
         return make_exceptional_future<shared_ptr<Uploader>>(DeletedException());
     }
-    auto handler = new CreateFileHandler(provider().CreateFile(md_.item_id, name, "application/octet-stream", false),
-                                         root_,
-                                         provider());
+
+    auto process_create_file_reply = [this](QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                                            QFutureInterface<std::shared_ptr<Uploader>>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+            qf.reportFinished();
+            return;
+        }
+
+        auto upload_id = reply.argumentAt<0>();
+        auto fd = reply.argumentAt<1>();
+        auto uploader = UploaderImpl::make_uploader(upload_id, fd, "", root_, provider());
+        qf.reportResult(uploader);
+        qf.reportFinished();
+    };
+
+    auto handler = new Handler<shared_ptr<Uploader>>(this,
+                                                     provider().CreateFile(md_.item_id,
+                                                                           name,
+                                                                           "application/octet-stream",
+                                                                           false),
+                                                     process_create_file_reply);
     return handler->future();
 }
 

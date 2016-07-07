@@ -4,8 +4,9 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/make_future.h>
-#include <unity/storage/qt/client/internal/remote_client/DownloadHandler.h>
-#include <unity/storage/qt/client/internal/remote_client/UpdateHandler.h>
+#include <unity/storage/qt/client/internal/remote_client/Handler.h>
+#include <unity/storage/qt/client/internal/remote_client/DownloaderImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>
 
 using namespace std;
 
@@ -45,8 +46,35 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
         return make_exceptional_future<shared_ptr<Uploader>>(DeletedException());
     }
     QString old_etag = policy == ConflictPolicy::overwrite ? "" : md_.etag;
-    ProviderInterface& prov = provider();
-    auto handler = new UpdateHandler(prov.Update(md_.item_id, old_etag), old_etag, root_, prov);
+
+    auto process_create_uploader_reply = [this, old_etag]
+                                            (QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                                             QFutureInterface<std::shared_ptr<Uploader>>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+            qf.reportFinished();
+            return;
+        }
+
+        auto upload_id = reply.argumentAt<0>();
+        auto fd = reply.argumentAt<1>();
+        if (fd.fileDescriptor() < 0)
+        {
+            qf.reportException(StorageException());  // TODO
+        }
+        else
+        {
+            auto uploader = UploaderImpl::make_uploader(upload_id, fd, old_etag, root_, provider());
+            qf.reportResult(uploader);
+        }
+        qf.reportFinished();
+    };
+    auto handler = new Handler<shared_ptr<Uploader>>(this,
+                                                     provider().Update(md_.item_id, old_etag),
+                                                     process_create_uploader_reply);
     return handler->future();
 }
 
@@ -56,9 +84,36 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
     {
         return make_exceptional_future<shared_ptr<Downloader>>(DeletedException());
     }
-    ProviderInterface& prov = provider();
-    auto handler = new DownloadHandler(prov.Download(md_.item_id), dynamic_pointer_cast<File>(shared_from_this()),
-                                       prov);
+
+    auto process_create_downloader_reply = [this](QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                                                  QFutureInterface<std::shared_ptr<Downloader>>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+            qf.reportFinished();
+            return;
+        }
+
+        auto download_id = reply.argumentAt<0>();
+        auto fd = reply.argumentAt<1>();
+        if (fd.fileDescriptor() < 0)
+        {
+            qf.reportException(StorageException());  // TODO
+        }
+        else
+        {
+            auto file = dynamic_pointer_cast<File>(public_instance_.lock());
+            auto downloader = DownloaderImpl::make_downloader(download_id, fd, file, provider());
+            qf.reportResult(downloader);
+        }
+        qf.reportFinished();
+    };
+
+    auto handler = new Handler<shared_ptr<Downloader>>(this,
+                                                       provider().Download(md_.item_id),
+                                                       process_create_downloader_reply);
     return handler->future();
 }
 

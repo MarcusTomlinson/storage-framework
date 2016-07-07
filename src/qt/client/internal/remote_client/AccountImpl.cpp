@@ -5,8 +5,8 @@
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/Runtime.h>
+#include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
-#include <unity/storage/qt/client/internal/remote_client/RootsHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
 
 using namespace std;
@@ -63,7 +63,33 @@ QString AccountImpl::description() const
 
 QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {
-    auto handler = new RootsHandler(provider_->Roots(), public_instance_);
+    auto process_roots_reply = [this](QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                      QFutureInterface<QVector<Root::SPtr>>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+        }
+        else
+        {
+            QVector<shared_ptr<Root>> roots;
+            auto metadata = reply.value();
+            for (auto const& md : metadata)
+            {
+                if (md.type != ItemType::root)
+                {
+                    // TODO: log impossible item type here
+                    continue;
+                }
+                auto root = RootImpl::make_root(md, public_instance_);
+                roots.append(root);
+            }
+            qf.reportResult(roots);
+        }
+        qf.reportFinished();
+    };
+    auto handler = new Handler<QVector<Root::SPtr>>(this, provider_->Roots(), process_roots_reply);
     return handler->future();
 }
 

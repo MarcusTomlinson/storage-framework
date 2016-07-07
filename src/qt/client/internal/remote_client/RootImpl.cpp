@@ -3,10 +3,8 @@
 #include "ProviderInterface.h"
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/make_future.h>
-#include <unity/storage/qt/client/internal/remote_client/MetadataHandler.h>
-#include <unity/storage/qt/client/Root.h>
-
-#include <boost/filesystem.hpp>
+#include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/Handler.h>
 
 using namespace std;
 
@@ -44,8 +42,7 @@ QVector<QString> RootImpl::parent_ids() const
 
 QFuture<void> RootImpl::delete_item()
 {
-    // Cannot delete root.
-    return make_exceptional_future(StorageException());
+    return make_exceptional_future(StorageException());  // Cannot delete root.
 }
 
 QFuture<int64_t> RootImpl::free_space_bytes() const
@@ -62,7 +59,48 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 {
-    auto handler = new MetadataHandler(provider().Metadata(native_identity), root_);
+    auto process_get_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                                    QFutureInterface<Item::SPtr>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+            qf.reportFinished();
+            return;
+        }
+
+        auto md = reply.value();
+        Item::SPtr item;
+        switch (md.type)
+        {
+            case ItemType::file:
+            {
+                item = FileImpl::make_file(md, root_);
+                break;
+            }
+            case ItemType::folder:
+            {
+                item = FolderImpl::make_folder(md, root_);
+                break;
+            }
+            case ItemType::root:
+            {
+                item = RootImpl::make_root(md, dynamic_pointer_cast<RootImpl>(root_.lock()->p_)->account_);
+                break;
+            }
+            default:
+            {
+                abort();  // LCOV_EXCL_LINE  // Impossible
+            }
+        }
+        qf.reportResult(item);
+        qf.reportFinished();
+    };
+
+    auto handler = new Handler<Item::SPtr>(const_cast<RootImpl*>(this),
+                                           provider().Metadata(native_identity),
+                                           process_get_reply);
     return handler->future();
 }
 

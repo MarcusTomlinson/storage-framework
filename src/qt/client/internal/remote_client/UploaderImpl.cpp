@@ -1,8 +1,9 @@
 #include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>
 
 #include "ProviderInterface.h"
-#include <unity/storage/qt/client/internal/remote_client/CancelUploadHandler.h>
-#include <unity/storage/qt/client/internal/remote_client/FinishUploadHandler.h>
+#include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/Uploader.h>
 
 #include <cassert>
@@ -53,13 +54,47 @@ shared_ptr<QLocalSocket> UploaderImpl::socket() const
 
 QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
 {
-    auto handler = new FinishUploadHandler(provider_.FinishUpload(upload_id_), root_);
+    auto process_finish_upload_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                                              QFutureInterface<shared_ptr<File>>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+            qf.reportFinished();
+            return;
+        }
+
+        auto md = reply.value();
+        if (md.type != ItemType::file)
+        {
+            // Log this, server error
+            qf.reportException(StorageException());  // TODO
+            qf.reportFinished();
+            return;
+        }
+        qf.reportResult(FileImpl::make_file(md, root_));
+        qf.reportFinished();
+    };
+
+    auto handler = new Handler<shared_ptr<File>>(this, provider_.FinishUpload(upload_id_), process_finish_upload_reply);
     return handler->future();
 }
 
 QFuture<void> UploaderImpl::cancel() noexcept
 {
-    auto handler = new CancelUploadHandler(provider_.CancelUpload(upload_id_));
+    auto process_cancel_upload_reply = [this](QDBusPendingReply<void> const& reply,
+                                              QFutureInterface<void>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+        }
+        qf.reportFinished();
+    };
+
+    auto handler = new Handler<void>(this, provider_.CancelUpload(upload_id_), process_cancel_upload_reply);
     return handler->future();
 }
 

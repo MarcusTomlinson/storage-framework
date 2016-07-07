@@ -4,10 +4,9 @@
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
-#include <unity/storage/qt/client/internal/remote_client/CopyHandler.h>
-#include <unity/storage/qt/client/internal/remote_client/DeleteHandler.h>
+#include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/make_future.h>
-#include <unity/storage/qt/client/internal/remote_client/MoveHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
 
 using namespace std;
@@ -66,7 +65,56 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
     {
         return make_exceptional_future<shared_ptr<Item>>(DeletedException());
     }
-    auto handler = new CopyHandler(provider().Copy(md_.item_id, new_parent->native_identity(), new_name), root_);
+
+    auto process_copy_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                                     QFutureInterface<std::shared_ptr<Item>>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+            qf.reportFinished();
+            return;
+        }
+
+        auto md = reply.value();
+        shared_ptr<Item> item;
+        switch (md.type)
+        {
+            case ItemType::file:
+            {
+                item = FileImpl::make_file(md, root_);
+                break;
+            }
+            case ItemType::folder:
+            {
+                item = FolderImpl::make_folder(md, root_);
+                break;
+            }
+            case ItemType::root:
+            {
+                // TODO: log impossible item type here
+                break;
+            }
+            default:
+            {
+                abort();  // LCOV_EXCL_LINE  // Impossible
+            }
+        }
+        if (item)
+        {
+            qf.reportResult(item);
+        }
+        else
+        {
+            qf.reportException(StorageException());
+        }
+        qf.reportFinished();
+    };
+
+    auto handler = new Handler<shared_ptr<Item>>(this,
+                                                 provider().Copy(md_.item_id, new_parent->native_identity(), new_name),
+                                                 process_copy_reply);
     return handler->future();
 }
 
@@ -76,7 +124,56 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
     {
         return make_exceptional_future<shared_ptr<Item>>(DeletedException());
     }
-    auto handler = new MoveHandler(provider().Move(md_.item_id, new_parent->native_identity(), new_name), root_);
+
+    auto process_move_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                                     QFutureInterface<std::shared_ptr<Item>>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+            qf.reportFinished();
+            return;
+        }
+
+        auto md = reply.value();
+        shared_ptr<Item> item;
+        switch (md.type)
+        {
+            case ItemType::file:
+            {
+                item = FileImpl::make_file(md, root_);
+                break;
+            }
+            case ItemType::folder:
+            {
+                item = FolderImpl::make_folder(md, root_);
+                break;
+            }
+            case ItemType::root:
+            {
+                // TODO: log impossible item type here
+                break;
+            }
+            default:
+            {
+                abort();  // LCOV_EXCL_LINE  // Impossible
+            }
+        }
+        if (item)
+        {
+            qf.reportResult(item);
+        }
+        else
+        {
+            qf.reportException(StorageException());  // TODO
+        }
+        qf.reportFinished();
+    };
+
+    auto handler = new Handler<shared_ptr<Item>>(this,
+                                                 provider().Move(md_.item_id, new_parent->native_identity(), new_name),
+                                                 process_move_reply);
     return handler->future();
 }
 
@@ -106,8 +203,19 @@ QFuture<void> ItemImpl::delete_item()
     {
         return make_exceptional_future(DeletedException());
     }
-    auto handler = new DeleteHandler(provider().Delete(md_.item_id),
-                                     dynamic_pointer_cast<ItemImpl>(shared_from_this()));
+
+    auto process_delete_reply = [this](QDBusPendingReply<void> const& reply, QFutureInterface<void>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO: remove this
+            qf.reportException(StorageException());  // TODO
+        }
+        deleted_ = true;
+        qf.reportFinished();
+    };
+
+    auto handler = new Handler<void>(this, provider().Delete(md_.item_id), process_delete_reply);
     return handler->future();
 }
 

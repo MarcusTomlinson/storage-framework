@@ -4,7 +4,7 @@
 #include <unity/storage/qt/client/Downloader.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/make_future.h>
-#include <unity/storage/qt/client/internal/remote_client/FinishDownloadHandler.h>
+#include <unity/storage/qt/client/internal/remote_client/Handler.h>
 
 #include <cassert>
 
@@ -59,7 +59,19 @@ shared_ptr<QLocalSocket> DownloaderImpl::socket() const
 
 QFuture<void> DownloaderImpl::finish_download()
 {
-    auto handler = new FinishDownloadHandler(provider_.FinishDownload(download_id_));
+    auto process_finish_download_reply = [this](QDBusPendingReply<void> const& reply,
+                                                QFutureInterface<void>& qf)
+    {
+        if (reply.isError())
+        {
+            qDebug() << reply.error().message();  // TODO, remove this
+            qf.reportException(StorageException());  // TODO
+        }
+        qf.reportFinished();
+    };
+
+    auto handler = new Handler<void>(this, provider_.FinishDownload(download_id_), process_finish_download_reply);
+    //auto handler = new FinishDownloadHandler(provider_.FinishDownload(download_id_));
     return handler->future();
 }
 

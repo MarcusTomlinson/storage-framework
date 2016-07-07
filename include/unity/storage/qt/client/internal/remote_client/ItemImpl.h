@@ -22,7 +22,7 @@ namespace remote_client
 
 class DeleteHandler;
 
-class ItemImpl : public virtual ItemBase
+class ItemImpl : public virtual ItemBase, public virtual QObject
 {
 public:
     ItemImpl(storage::internal::ItemMetadata const& md, ItemType type);

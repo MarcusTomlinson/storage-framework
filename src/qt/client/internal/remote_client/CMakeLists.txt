@@ -7,45 +7,19 @@ qt5_add_dbus_interface(generated_files
 
 set(QT_CLIENT_LIB_INTERNAL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/AccountImpl.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/CancelUploadHandler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/CopyHandler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/CreateFileHandler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/CreateFolderHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/dbusmarshal.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/DeleteHandler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/DownloadHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DownloaderImpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FileImpl.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/FinishDownloadHandler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/FinishUploadHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FolderImpl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/HandlerBase.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ItemImpl.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/ListHandler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/LookupHandler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/MetadataHandler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/MoveHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RootImpl.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/RootsHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Runtime_create.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RuntimeImpl.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/UpdateHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/UploaderImpl.cpp
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/CancelUploadHandler.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/CopyHandler.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/CreateFileHandler.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/CreateFolderHandler.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/DeleteHandler.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/DownloadHandler.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/DownloaderImpl.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/FinishDownloadHandler.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/FinishUploadHandler.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/ListHandler.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/LookupHandler.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/MetadataHandler.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/MoveHandler.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/RootsHandler.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/HandlerBase.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/RuntimeImpl.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/UpdateHandler.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/UploaderImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/RuntimeBase.h
     ${generated_files}

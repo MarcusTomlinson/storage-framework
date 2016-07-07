@@ -22,7 +22,7 @@ namespace internal
 namespace remote_client
 {
 
-class AccountImpl : public virtual AccountBase
+class AccountImpl : public virtual AccountBase, public QObject
 {
 public:
     AccountImpl(std::weak_ptr<Runtime> const& runtime,

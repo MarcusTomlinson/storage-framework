@@ -1,10 +1,12 @@
 #pragma once
 
-#include <QDBusPendingReply>
-#include <QFuture>
+#include <QDBusPendingCallWatcher>
 #include <QObject>
+#include <QRunnable>
 
-#include <memory>
+#include <functional>
+
+class QDBusPendingCall;
 
 namespace unity
 {
@@ -19,21 +21,25 @@ namespace internal
 namespace remote_client
 {
 
-class CancelUploadHandler : public QObject
+class HandlerBase : public QObject, public QRunnable
 {
     Q_OBJECT
 
 public:
-    CancelUploadHandler(QDBusPendingReply<void> const& reply);
+    HandlerBase(QObject* parent,
+                QDBusPendingCall const& call,
+                std::function<void(QDBusPendingCallWatcher const&)> closure);
 
-    QFuture<void> future();
+    virtual void run() override;
 
 public Q_SLOTS:
     void finished(QDBusPendingCallWatcher* call);
 
-private:
+protected:
     QDBusPendingCallWatcher watcher_;
-    QFutureInterface<void> qf_;
+
+private:
+    std::function<void(QDBusPendingCallWatcher const&)> closure_;
 };
 
 }  // namespace remote_client
