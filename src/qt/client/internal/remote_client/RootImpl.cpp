@@ -63,27 +63,13 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
     {
         auto md = reply.value();
         Item::SPtr item;
-        switch (md.type)
+        if (md.type == ItemType::root)
         {
-            case ItemType::file:
-            {
-                item = FileImpl::make_file(md, root_);
-                break;
-            }
-            case ItemType::folder:
-            {
-                item = FolderImpl::make_folder(md, root_);
-                break;
-            }
-            case ItemType::root:
-            {
-                item = RootImpl::make_root(md, dynamic_pointer_cast<RootImpl>(root_.lock()->p_)->account_);
-                break;
-            }
-            default:
-            {
-                abort();  // LCOV_EXCL_LINE  // Impossible
-            }
+            item = make_root(md, dynamic_pointer_cast<RootImpl>(root_.lock()->p_)->account_);
+        }
+        else
+        {
+            item = ItemImpl::make_item(md, root_);
         }
         make_ready_future(qf, item);
     };

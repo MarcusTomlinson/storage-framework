@@ -69,37 +69,12 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
                                      QFutureInterface<std::shared_ptr<Item>>& qf)
     {
         auto md = reply.value();
-        shared_ptr<Item> item;
-        switch (md.type)
+        if (md.type == ItemType::root)
         {
-            case ItemType::file:
-            {
-                item = FileImpl::make_file(md, root_);
-                break;
-            }
-            case ItemType::folder:
-            {
-                item = FolderImpl::make_folder(md, root_);
-                break;
-            }
-            case ItemType::root:
-            {
-                // TODO: log impossible item type here
-                break;
-            }
-            default:
-            {
-                abort();  // LCOV_EXCL_LINE  // Impossible
-            }
+            // TODO: log server error here
+            return make_exceptional_future(qf, StorageException());  // TODO
         }
-        if (item)
-        {
-            make_ready_future(qf, item);
-        }
-        else
-        {
-            make_exceptional_future(StorageException());
-        }
+        return make_ready_future(qf, ItemImpl::make_item(md, root_));
     };
 
     auto handler = new Handler<shared_ptr<Item>>(this,
@@ -119,37 +94,12 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
                                      QFutureInterface<std::shared_ptr<Item>>& qf)
     {
         auto md = reply.value();
-        shared_ptr<Item> item;
-        switch (md.type)
+        if (md.type == ItemType::root)
         {
-            case ItemType::file:
-            {
-                item = FileImpl::make_file(md, root_);
-                break;
-            }
-            case ItemType::folder:
-            {
-                item = FolderImpl::make_folder(md, root_);
-                break;
-            }
-            case ItemType::root:
-            {
-                // TODO: log impossible item type here
-                break;
-            }
-            default:
-            {
-                abort();  // LCOV_EXCL_LINE  // Impossible
-            }
+            // TODO: log server error here
+            return make_exceptional_future(qf, StorageException());  // TODO
         }
-        if (item)
-        {
-            make_ready_future(qf, item);
-        }
-        else
-        {
-            make_exceptional_future(qf, StorageException());  // TODO
-        }
+        return make_ready_future(qf, ItemImpl::make_item(md, root_));
     };
 
     auto handler = new Handler<shared_ptr<Item>>(this,
@@ -216,6 +166,32 @@ ProviderInterface& ItemImpl::provider() const noexcept
     auto root_impl = dynamic_pointer_cast<RootImpl>(root_.lock()->p_);
     auto account_impl = dynamic_pointer_cast<AccountImpl>(root_impl->account_.lock()->p_);
     return account_impl->provider();
+}
+
+shared_ptr<Item> ItemImpl::make_item(storage::internal::ItemMetadata const& md, std::weak_ptr<Root> root)
+{
+    assert(md.type == ItemType::file || md.type == ItemType::folder);
+
+    shared_ptr<Item> item;
+    switch (md.type)
+    {
+        case ItemType::file:
+        {
+            item = FileImpl::make_file(md, root);
+            break;
+        }
+        case ItemType::folder:
+        {
+            item = FolderImpl::make_folder(md, root);
+            break;
+        }
+        default:
+        {
+            abort();  // LCOV_EXCL_LINE  // Impossible
+        }
+    }
+    assert(item);
+    return item;
 }
 
 }  // namespace remote_client

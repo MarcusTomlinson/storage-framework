@@ -56,30 +56,12 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         auto metadata = reply.argumentAt<0>();
         for (auto const& md : metadata)
         {
-            switch (md.type)
+            if (md.type == ItemType::root)
             {
-                case ItemType::file:
-                {
-                    auto file = FileImpl::make_file(md, root_);
-                    items.append(file);
-                    break;
-                }
-                case ItemType::folder:
-                {
-                    auto folder = FolderImpl::make_folder(md, root_);
-                    items.append(folder);
-                    break;
-                }
-                case ItemType::root:
-                {
-                    // TODO: log impossible item type here
-                    continue;
-                }
-                default:
-                {
-                    abort();  // LCOV_EXCL_LINE  // Impossible
-                }
+                // TODO: log server error here
+                continue;
             }
+            items.append(ItemImpl::make_item(md, root_));
         }
         qf.reportResult(items, qf.resultCount());
 
@@ -117,31 +99,12 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
         auto metadata = reply.value();
         for (auto const& md : metadata)
         {
-            Item::SPtr item;
-            switch (md.type)
+            if (md.type == ItemType::root)
             {
-                case ItemType::file:
-                {
-                    item = FileImpl::make_file(md, root_);
-                    break;
-                }
-                case ItemType::folder:
-                {
-                    item = FolderImpl::make_folder(md, root_);
-                    break;
-                }
-                case ItemType::root:
-                {
-                    // TODO: log impossible item type here
-                    continue;
-                    break;
-                }
-                default:
-                {
-                    abort();  // LCOV_EXCL_LINE  // Impossible
-                }
+                // TODO: log server error here
+                continue;
             }
-            items.append(item);
+            items.append(ItemImpl::make_item(md, root_));
         }
         if (items.isEmpty())
         {
