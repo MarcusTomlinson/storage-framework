@@ -1,7 +1,6 @@
 #include <unity/storage/qt/client/internal/remote_client/FolderImpl.h>
 
 #include "ProviderInterface.h"
-#include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/Folder.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>

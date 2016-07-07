@@ -2,7 +2,6 @@
 
 #include "ProviderInterface.h"
 #include <unity/storage/qt/client/Account.h>
-#include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>

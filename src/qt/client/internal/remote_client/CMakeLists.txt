@@ -17,6 +17,7 @@ set(QT_CLIENT_LIB_INTERNAL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/Runtime_create.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RuntimeImpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/UploaderImpl.cpp
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/AccountImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/DownloaderImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/HandlerBase.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/remote_client/RuntimeImpl.h

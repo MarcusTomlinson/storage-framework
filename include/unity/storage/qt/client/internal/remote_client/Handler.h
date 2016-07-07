@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/remote_client/HandlerBase.h>
 
 #include <QDBusPendingReply>
