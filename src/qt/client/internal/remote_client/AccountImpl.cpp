@@ -4,10 +4,11 @@
 #include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
-#include <unity/storage/qt/client/Runtime.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
+#include <unity/storage/qt/client/Runtime.h>
 
 using namespace std;
 
@@ -66,29 +67,21 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
     auto process_roots_reply = [this](QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
                                       QFutureInterface<QVector<Root::SPtr>>& qf)
     {
-        if (reply.isError())
+        QVector<shared_ptr<Root>> roots;
+        auto metadata = reply.value();
+        for (auto const& md : metadata)
         {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-        }
-        else
-        {
-            QVector<shared_ptr<Root>> roots;
-            auto metadata = reply.value();
-            for (auto const& md : metadata)
+            if (md.type != ItemType::root)
             {
-                if (md.type != ItemType::root)
-                {
-                    // TODO: log impossible item type here
-                    continue;
-                }
-                auto root = RootImpl::make_root(md, public_instance_);
-                roots.append(root);
+                // TODO: log impossible item type here
+                continue;
             }
-            qf.reportResult(roots);
+            auto root = RootImpl::make_root(md, public_instance_);
+            roots.append(root);
         }
-        qf.reportFinished();
+        make_ready_future(qf, roots);
     };
+
     auto handler = new Handler<QVector<Root::SPtr>>(this, provider_->Roots(), process_roots_reply);
     return handler->future();
 }

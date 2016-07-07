@@ -69,14 +69,6 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
     auto process_copy_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
                                      QFutureInterface<std::shared_ptr<Item>>& qf)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-            qf.reportFinished();
-            return;
-        }
-
         auto md = reply.value();
         shared_ptr<Item> item;
         switch (md.type)
@@ -103,13 +95,12 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         }
         if (item)
         {
-            qf.reportResult(item);
+            make_ready_future(qf, item);
         }
         else
         {
-            qf.reportException(StorageException());
+            make_exceptional_future(StorageException());
         }
-        qf.reportFinished();
     };
 
     auto handler = new Handler<shared_ptr<Item>>(this,
@@ -128,14 +119,6 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
     auto process_move_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
                                      QFutureInterface<std::shared_ptr<Item>>& qf)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-            qf.reportFinished();
-            return;
-        }
-
         auto md = reply.value();
         shared_ptr<Item> item;
         switch (md.type)
@@ -162,13 +145,12 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         }
         if (item)
         {
-            qf.reportResult(item);
+            make_ready_future(qf, item);
         }
         else
         {
-            qf.reportException(StorageException());  // TODO
+            make_exceptional_future(qf, StorageException());  // TODO
         }
-        qf.reportFinished();
     };
 
     auto handler = new Handler<shared_ptr<Item>>(this,
@@ -204,15 +186,11 @@ QFuture<void> ItemImpl::delete_item()
         return make_exceptional_future(DeletedException());
     }
 
-    auto process_delete_reply = [this](QDBusPendingReply<void> const& reply, QFutureInterface<void>& qf)
+    auto process_delete_reply = [this](QDBusPendingReply<void> const&, QFutureInterface<void>& qf)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO: remove this
-            qf.reportException(StorageException());  // TODO
-        }
+        qDebug() << "IN LAMBDA";
         deleted_ = true;
-        qf.reportFinished();
+        make_ready_future(qf);
     };
 
     auto handler = new Handler<void>(this, provider().Delete(md_.item_id), process_delete_reply);

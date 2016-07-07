@@ -51,26 +51,17 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
                                             (QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                                              QFutureInterface<std::shared_ptr<Uploader>>& qf)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-            qf.reportFinished();
-            return;
-        }
-
         auto upload_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();
         if (fd.fileDescriptor() < 0)
         {
-            qf.reportException(StorageException());  // TODO
+            make_exceptional_future(qf, StorageException());  // TODO
         }
         else
         {
             auto uploader = UploaderImpl::make_uploader(upload_id, fd, old_etag, root_, provider());
-            qf.reportResult(uploader);
+            make_ready_future(qf, uploader);
         }
-        qf.reportFinished();
     };
     auto handler = new Handler<shared_ptr<Uploader>>(this,
                                                      provider().Update(md_.item_id, old_etag),
@@ -88,27 +79,18 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
     auto process_create_downloader_reply = [this](QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                                                   QFutureInterface<std::shared_ptr<Downloader>>& qf)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-            qf.reportFinished();
-            return;
-        }
-
         auto download_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();
         if (fd.fileDescriptor() < 0)
         {
-            qf.reportException(StorageException());  // TODO
+            make_exceptional_future(qf, StorageException());  // TODO
         }
         else
         {
             auto file = dynamic_pointer_cast<File>(public_instance_.lock());
             auto downloader = DownloaderImpl::make_downloader(download_id, fd, file, provider());
-            qf.reportResult(downloader);
+            make_ready_future(qf, downloader);
         }
-        qf.reportFinished();
     };
 
     auto handler = new Handler<shared_ptr<Downloader>>(this,

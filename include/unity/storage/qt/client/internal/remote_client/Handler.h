@@ -37,7 +37,19 @@ private:
 template<typename T>
 template<typename F, typename ... DBusArgs>
 Handler<T>::Handler(QObject* parent, QDBusPendingReply<DBusArgs...> const& reply, F closure)
-    : HandlerBase(parent, reply, [this, closure](QDBusPendingCallWatcher const& call) { closure(call, qf_); })
+    : HandlerBase(parent,
+                  reply,
+                  [this, closure](QDBusPendingCallWatcher const& call)
+                      {
+                          if (call.isError())
+                          {
+                              qDebug() << call.error().message();  // TODO, remove this
+                              qf_.reportException(StorageException());  // TODO
+                              qf_.reportFinished();
+                              return;
+                          }
+                          closure(call, qf_);
+                      })
 {
     qf_.setRunnable(this);
     qf_.reportStarted();

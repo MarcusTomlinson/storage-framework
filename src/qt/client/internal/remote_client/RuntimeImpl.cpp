@@ -3,6 +3,7 @@
 #include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/dbusmarshal.h>
 
@@ -105,13 +106,12 @@ void RuntimeImpl::manager_ready()
             impl->set_public_instance(acc);
             accounts.append(acc);
         }
-        qf_.reportResult(accounts);
+        make_ready_future(qf_, accounts);
     }
     catch (StorageException const& e)
     {
-        qf_.reportException(e);
+        make_exceptional_future(qf_, e);
     }
-    qf_.reportFinished();
 }
 
 void RuntimeImpl::timeout()

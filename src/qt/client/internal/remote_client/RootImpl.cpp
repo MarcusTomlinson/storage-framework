@@ -62,14 +62,6 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
     auto process_get_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
                                     QFutureInterface<Item::SPtr>& qf)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-            qf.reportFinished();
-            return;
-        }
-
         auto md = reply.value();
         Item::SPtr item;
         switch (md.type)
@@ -94,8 +86,7 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
                 abort();  // LCOV_EXCL_LINE  // Impossible
             }
         }
-        qf.reportResult(item);
-        qf.reportFinished();
+        make_ready_future(qf, item);
     };
 
     auto handler = new Handler<Item::SPtr>(const_cast<RootImpl*>(this),

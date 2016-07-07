@@ -53,14 +53,6 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         = [this, process_list_reply](QDBusPendingReply<QList<storage::internal::ItemMetadata>, QString> const& reply,
                                      QFutureInterface<QVector<std::shared_ptr<Item>>>& qf)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-            qf.reportFinished();
-            return;
-        }
-
         QVector<shared_ptr<Item>> items;
         auto metadata = reply.argumentAt<0>();
         for (auto const& md : metadata)
@@ -122,14 +114,6 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
     auto process_lookup_reply = [this](QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
                                        QFutureInterface<QVector<std::shared_ptr<Item>>>& qf)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-            qf.reportFinished();
-            return;
-        }
-
         QVector<Item::SPtr> items;
         auto metadata = reply.value();
         for (auto const& md : metadata)
@@ -162,13 +146,12 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
         }
         if (items.isEmpty())
         {
-            qf.reportException(StorageException());  // TODO
+            make_exceptional_future(qf, StorageException());  // TODO
         }
         else
         {
-            qf.reportResult(items);
+            make_ready_future(qf, items);
         }
-        qf.reportFinished();
     };
 
     auto handler = new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this),
@@ -187,25 +170,16 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
     auto process_create_folder_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
                                               QFutureInterface<std::shared_ptr<Folder>>& qf)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-            qf.reportFinished();
-            return;
-        }
-
         shared_ptr<Item> item;
         auto md = reply.value();
         if (md.type != ItemType::folder)
         {
-            qf.reportException(StorageException());  // TODO need to log this as well, server error
+            make_exceptional_future(qf, StorageException());  // TODO need to log this as well, server error
         }
         else
         {
-            qf.reportResult(FolderImpl::make_folder(md, root_));
+            make_ready_future(qf, FolderImpl::make_folder(md, root_));
         }
-        qf.reportFinished();
     };
 
     auto handler = new Handler<shared_ptr<Folder>>(this,
@@ -224,19 +198,10 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
     auto process_create_file_reply = [this](QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                                             QFutureInterface<std::shared_ptr<Uploader>>& qf)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-            qf.reportFinished();
-            return;
-        }
-
         auto upload_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();
         auto uploader = UploaderImpl::make_uploader(upload_id, fd, "", root_, provider());
-        qf.reportResult(uploader);
-        qf.reportFinished();
+        make_ready_future(qf, uploader);
     };
 
     auto handler = new Handler<shared_ptr<Uploader>>(this,

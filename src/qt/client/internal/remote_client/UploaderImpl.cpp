@@ -2,6 +2,7 @@
 
 #include "ProviderInterface.h"
 #include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/Uploader.h>
@@ -57,24 +58,14 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
     auto process_finish_upload_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
                                               QFutureInterface<shared_ptr<File>>& qf)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-            qf.reportFinished();
-            return;
-        }
-
         auto md = reply.value();
         if (md.type != ItemType::file)
         {
             // Log this, server error
-            qf.reportException(StorageException());  // TODO
-            qf.reportFinished();
+            make_exceptional_future(qf, StorageException());  // TODO
             return;
         }
-        qf.reportResult(FileImpl::make_file(md, root_));
-        qf.reportFinished();
+        make_ready_future(qf, FileImpl::make_file(md, root_));
     };
 
     auto handler = new Handler<shared_ptr<File>>(this, provider_.FinishUpload(upload_id_), process_finish_upload_reply);
@@ -83,15 +74,9 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
 
 QFuture<void> UploaderImpl::cancel() noexcept
 {
-    auto process_cancel_upload_reply = [this](QDBusPendingReply<void> const& reply,
-                                              QFutureInterface<void>& qf)
+    auto process_cancel_upload_reply = [this](QDBusPendingReply<void> const&, QFutureInterface<void>&)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-        }
-        qf.reportFinished();
+        make_ready_future();
     };
 
     auto handler = new Handler<void>(this, provider_.CancelUpload(upload_id_), process_cancel_upload_reply);

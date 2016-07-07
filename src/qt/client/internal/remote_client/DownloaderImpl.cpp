@@ -59,19 +59,12 @@ shared_ptr<QLocalSocket> DownloaderImpl::socket() const
 
 QFuture<void> DownloaderImpl::finish_download()
 {
-    auto process_finish_download_reply = [this](QDBusPendingReply<void> const& reply,
-                                                QFutureInterface<void>& qf)
+    auto process_finish_download_reply = [this](QDBusPendingReply<void> const&, QFutureInterface<void>&)
     {
-        if (reply.isError())
-        {
-            qDebug() << reply.error().message();  // TODO, remove this
-            qf.reportException(StorageException());  // TODO
-        }
-        qf.reportFinished();
+        make_ready_future();
     };
 
     auto handler = new Handler<void>(this, provider_.FinishDownload(download_id_), process_finish_download_reply);
-    //auto handler = new FinishDownloadHandler(provider_.FinishDownload(download_id_));
     return handler->future();
 }
 

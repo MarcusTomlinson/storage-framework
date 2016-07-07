@@ -22,6 +22,13 @@ QFuture<T> make_ready_future()
     return qf.future();
 }
 
+template<typename T = void>
+QFuture<T> make_ready_future(QFutureInterface<T> qf)
+{
+    qf.reportFinished();
+    return qf.future();
+}
+
 template<typename T>
 QFuture<T> make_ready_future(T const& val)
 {
