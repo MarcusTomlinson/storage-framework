@@ -137,7 +137,6 @@ QFuture<void> ItemImpl::delete_item()
 
     auto process_delete_reply = [this](QDBusPendingReply<void> const&, QFutureInterface<void>& qf)
     {
-        qDebug() << "IN LAMBDA";
         deleted_ = true;
         make_ready_future(qf);
     };

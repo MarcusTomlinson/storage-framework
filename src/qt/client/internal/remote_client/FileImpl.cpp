@@ -44,8 +44,8 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
     {
         return make_exceptional_future<shared_ptr<Uploader>>(DeletedException());
     }
-    QString old_etag = policy == ConflictPolicy::overwrite ? "" : md_.etag;
 
+    QString old_etag = policy == ConflictPolicy::overwrite ? "" : md_.etag;
     auto process_create_uploader_reply = [this, old_etag]
                                             (QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                                              QFutureInterface<std::shared_ptr<Uploader>>& qf)

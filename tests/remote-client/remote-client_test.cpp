@@ -237,6 +237,18 @@ TEST(Folder, basic)
     EXPECT_EQ(0, file->size());
     EXPECT_EQ("some_id", file->native_identity());
 
+    // For coverage: getting a file must return the correct one.
+    auto get_fut = root->get("child_id");
+    {
+        QFutureWatcher<Item::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(get_fut);
+        assert(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    file = dynamic_pointer_cast<File>(get_fut.result());
+    EXPECT_EQ("child_id", file->native_identity());
+    EXPECT_EQ("Child", file->name());
+
 #if 0
     // Create a folder and check that it was created with correct type and name.
     auto create_folder_fut = root->create_folder("folder1");

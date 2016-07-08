@@ -73,7 +73,7 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
             if (md.type != ItemType::root)
             {
                 // TODO: log impossible item type here
-                continue;
+                continue;  // LCOV_EXCL_LINE
             }
             auto root = RootImpl::make_root(md, public_instance_);
             roots.append(root);

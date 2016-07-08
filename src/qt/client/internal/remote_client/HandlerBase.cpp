@@ -28,12 +28,6 @@ HandlerBase::HandlerBase(QObject* parent,
 {
     assert(closure);
     connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &HandlerBase::finished);
-    setAutoDelete(false);
-}
-
-void HandlerBase::run()
-{
-    watcher_.waitForFinished();
 }
 
 void HandlerBase::finished(QDBusPendingCallWatcher* call)

@@ -2,7 +2,6 @@
 
 #include <QDBusPendingCallWatcher>
 #include <QObject>
-#include <QRunnable>
 
 #include <functional>
 
@@ -21,7 +20,7 @@ namespace internal
 namespace remote_client
 {
 
-class HandlerBase : public QObject, public QRunnable
+class HandlerBase : public QObject
 {
     Q_OBJECT
 
@@ -29,8 +28,6 @@ public:
     HandlerBase(QObject* parent,
                 QDBusPendingCall const& call,
                 std::function<void(QDBusPendingCallWatcher const&)> closure);
-
-    virtual void run() override;
 
 public Q_SLOTS:
     void finished(QDBusPendingCallWatcher* call);

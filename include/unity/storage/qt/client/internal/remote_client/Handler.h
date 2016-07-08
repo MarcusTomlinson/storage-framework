@@ -52,7 +52,6 @@ Handler<T>::Handler(QObject* parent, QDBusPendingReply<DBusArgs...> const& reply
                           closure(call, qf_);
                       })
 {
-    qf_.setRunnable(this);
     qf_.reportStarted();
 }
 
