@@ -99,4 +99,3 @@ Uploader::SPtr UploaderImpl::make_uploader(QString const& upload_id,
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-

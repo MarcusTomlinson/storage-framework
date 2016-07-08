@@ -27,8 +27,6 @@ namespace internal
 
 class UploaderBase : public QObject
 {
-    Q_OBJECT
-
 public:
     UploaderBase(ConflictPolicy policy);
     UploaderBase(UploaderBase&) = delete;
