@@ -26,8 +26,6 @@ namespace remote_client
 
 class UploaderImpl : public UploaderBase
 {
-    Q_OBJECT
-
 public:
     UploaderImpl(QString const& upload_id,
                  QDBusUnixFileDescriptor fd,

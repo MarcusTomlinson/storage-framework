@@ -193,5 +193,3 @@ shared_ptr<Folder> FolderImpl::make_folder(storage::internal::ItemMetadata const
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "FolderImpl.moc"

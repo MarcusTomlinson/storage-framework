@@ -90,5 +90,3 @@ Downloader::SPtr DownloaderImpl::make_downloader(QString const& download_id,
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "DownloaderImpl.moc"

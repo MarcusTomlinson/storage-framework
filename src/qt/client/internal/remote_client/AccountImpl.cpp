@@ -96,5 +96,3 @@ ProviderInterface& AccountImpl::provider()
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "AccountImpl.moc"

@@ -26,8 +26,6 @@ namespace internal
 
 class RuntimeBase : public QObject
 {
-    Q_OBJECT
-
 public:
     RuntimeBase();
     virtual ~RuntimeBase() = default;

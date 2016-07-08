@@ -25,8 +25,6 @@ namespace remote_client
 
 class DownloaderImpl : public DownloaderBase
 {
-    Q_OBJECT
-
 public:
     DownloaderImpl(QString const& download_id,
                    QDBusUnixFileDescriptor fd,

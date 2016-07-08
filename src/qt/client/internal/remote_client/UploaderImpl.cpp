@@ -100,4 +100,3 @@ Uploader::SPtr UploaderImpl::make_uploader(QString const& upload_id,
 }  // namespace storage
 }  // namespace unity
 
-#include "UploaderImpl.moc"
