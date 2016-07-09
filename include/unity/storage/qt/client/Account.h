@@ -21,17 +21,28 @@ namespace client
 {
 
 class Runtime;
-
 class Root;
 
 namespace internal
 {
 
-class AccountImpl;
+class AccountBase;
+
+namespace local_client
+{
+
+class RuntimeImpl;
+
+}  // namespace local_client
+
+namespace remote_client
+{
+
 class ItemImpl;
 class RuntimeImpl;
 
-}
+}  // namespace remote_client
+}  // namespace internal
 
 /**
 \brief Class that represents an account.
@@ -64,12 +75,13 @@ public:
     QFuture<QVector<std::shared_ptr<Root>>> roots() const;
 
 private:
-    Account(internal::AccountImpl*);
+    Account(internal::AccountBase*) UNITY_STORAGE_HIDDEN;
 
-    std::unique_ptr<internal::AccountImpl> p_;
+    std::shared_ptr<internal::AccountBase> p_;
 
-    friend class internal::ItemImpl;
-    friend class internal::RuntimeImpl;
+    friend class internal::local_client::RuntimeImpl;
+    friend class internal::remote_client::ItemImpl;
+    friend class internal::remote_client::RuntimeImpl;
 };
 
 }  // namespace client

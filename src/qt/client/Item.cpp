@@ -1,6 +1,6 @@
 #include <unity/storage/qt/client/Item.h>
 
-#include <unity/storage/qt/client/internal/ItemImpl.h>
+#include <unity/storage/qt/client/internal/ItemBase.h>
 
 #include <cassert>
 
@@ -15,7 +15,7 @@ namespace qt
 namespace client
 {
 
-Item::Item(internal::ItemImpl* p)
+Item::Item(internal::ItemBase* p)
     : p_(p)
 {
     assert(p != nullptr);
@@ -72,14 +72,14 @@ QFuture<Item::SPtr> Item::move(std::shared_ptr<Folder> const& new_parent, QStrin
     return p_->move(new_parent, new_name);
 }
 
-QFuture<void> Item::destroy()
+QFuture<void> Item::delete_item()
 {
-    return p_->destroy();
+    return p_->delete_item();
 }
 
 bool Item::equal_to(Item::SPtr const& other) const noexcept
 {
-    return p_->operator==(*other->p_);
+    return p_->equal_to(*other->p_);
 }
 
 }  // namespace client

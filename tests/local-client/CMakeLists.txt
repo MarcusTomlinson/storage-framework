@@ -10,6 +10,6 @@ target_link_libraries(local-client_test
     gtest
 )
 add_test(local-client local-client_test)
-list(APPEND UNIT_TEST_TARGETS "local-client")
+add_dependencies(local-client_test qt-client-all-headers)
 
 set(UNIT_TEST_TARGETS ${UNIT_TEST_TARGETS} PARENT_SCOPE)

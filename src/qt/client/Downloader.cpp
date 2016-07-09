@@ -1,6 +1,6 @@
 #include <unity/storage/qt/client/Downloader.h>
 
-#include <unity/storage/qt/client/internal/DownloaderImpl.h>
+#include <unity/storage/qt/client/internal/DownloaderBase.h>
 
 namespace unity
 {
@@ -11,7 +11,7 @@ namespace qt
 namespace client
 {
 
-Downloader::Downloader(internal::DownloaderImpl* p)
+Downloader::Downloader(internal::DownloaderBase* p)
     : p_(p)
 {
 }
@@ -28,7 +28,7 @@ std::shared_ptr<QLocalSocket> Downloader::socket() const
     return p_->socket();
 }
 
-QFuture<TransferState> Downloader::finish_download()
+QFuture<void> Downloader::finish_download()
 {
     return p_->finish_download();
 }

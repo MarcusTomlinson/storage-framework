@@ -1,6 +1,9 @@
 #include <unity/storage/qt/client/Uploader.h>
 
-#include <unity/storage/qt/client/internal/UploaderImpl.h>
+#include <unity/storage/qt/client/File.h>
+#include <unity/storage/qt/client/internal/UploaderBase.h>
+
+using namespace std;
 
 class QLocalSocket;
 
@@ -13,24 +16,19 @@ namespace qt
 namespace client
 {
 
-Uploader::Uploader(internal::UploaderImpl* p)
+Uploader::Uploader(internal::UploaderBase* p)
     : p_(p)
 {
 }
 
 Uploader::~Uploader() = default;
 
-std::shared_ptr<File> Uploader::file() const
-{
-    return p_->file();
-}
-
 std::shared_ptr<QLocalSocket> Uploader::socket() const
 {
     return p_->socket();
 }
 
-QFuture<TransferState> Uploader::finish_upload()
+QFuture<shared_ptr<File>> Uploader::finish_upload()
 {
     return p_->finish_upload();
 }

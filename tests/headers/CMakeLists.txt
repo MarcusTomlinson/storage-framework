@@ -5,13 +5,17 @@
 set(root_inc_dir ${CMAKE_SOURCE_DIR}/include)
 
 set(subdirs
-    unity/storage/qt/client
     unity/storage
+    unity/storage/qt/client
+    unity/storage/qt/client/internal/local_client
+    unity/storage/qt/client/internal/remote_client
 )
 
 set(extra_inc_dirs "${Qt5Core_INCLUDE_DIRS}")
+set(extra_inc_dirs "${extra_inc_dirs};${Qt5DBus_INCLUDE_DIRS}")
 set(extra_inc_dirs "${extra_inc_dirs};${Qt5Network_INCLUDE_DIRS}")
 set(extra_inc_dirs "${extra_inc_dirs};${GIO_DEPS_INCLUDE_DIRS}")
+set(extra_inc_dirs "${extra_inc_dirs};${ONLINEACCOUNTS_DEPS_INCLUDE_DIRS}")
 
 # Replace ; with -I as the include directories are separated by ";"
 string(REPLACE ";" " -I/" extra_inc_dirs "${extra_inc_dirs}")
@@ -41,6 +45,8 @@ foreach(dir ${subdirs})
                 ${internal_inc_dir} ${CMAKE_CXX_COMPILER} "${CMAKE_CXX_COMPILER_ARG1} -fPIC -fsyntax-only -I${root_inc_dir} -I${internal_inc_dir} ${other_inc_dirs} ${CMAKE_CXX_FLAGS} ${extra_inc_dirs}")
     endif()
 
-    # Test that no public header includes an internal header
-    add_test(clean-public-${location}-headers ${CMAKE_CURRENT_SOURCE_DIR}/check_public_headers.py ${public_inc_dir})
+    if (NOT ${public_inc_dir} MATCHES "/internal/")
+        # Test that no public header includes an internal header
+        add_test(clean-public-${location}-headers ${CMAKE_CURRENT_SOURCE_DIR}/check_public_headers.py ${public_inc_dir})
+    endif()
 endforeach()

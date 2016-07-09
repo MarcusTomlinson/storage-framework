@@ -51,16 +51,16 @@ void RemoteCommsException::raise() const
     throw *this;
 }
 
-DestroyedException::DestroyedException() = default;
+DeletedException::DeletedException() = default;
 
-DestroyedException::~DestroyedException() = default;
+DeletedException::~DeletedException() = default;
 
-DestroyedException* DestroyedException::clone() const
+DeletedException* DeletedException::clone() const
 {
-    return new DestroyedException(*this);
+    return new DeletedException(*this);
 }
 
-void DestroyedException::raise() const
+void DeletedException::raise() const
 {
     throw *this;
 }
@@ -103,6 +103,20 @@ ConflictException* ConflictException::clone() const
 }
 
 void ConflictException::raise() const
+{
+    throw *this;
+}
+
+CancelledException::CancelledException() = default;
+
+CancelledException::~CancelledException() = default;
+
+CancelledException* CancelledException::clone() const
+{
+    return new CancelledException(*this);
+}
+
+void CancelledException::raise() const
 {
     throw *this;
 }

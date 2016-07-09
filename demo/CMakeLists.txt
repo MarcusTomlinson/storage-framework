@@ -1,2 +1,1 @@
-add_subdirectory(local_client)
 add_subdirectory(provider_test)

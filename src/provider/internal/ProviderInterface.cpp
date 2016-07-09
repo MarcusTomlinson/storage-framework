@@ -67,7 +67,7 @@ void ProviderInterface::request_finished()
     handler->deleteLater();
 }
 
-QList<ItemMetadata> ProviderInterface::Roots()
+QList<ProviderInterface::IMD> ProviderInterface::Roots()
 {
     queue_request([](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().roots(ctx);
@@ -81,7 +81,7 @@ QList<ItemMetadata> ProviderInterface::Roots()
     return {};
 }
 
-QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString const& page_token, QString& /*next_token*/)
+QList<ProviderInterface::IMD> ProviderInterface::List(QString const& item_id, QString const& page_token, QString& /*next_token*/)
 {
     queue_request([item_id, page_token](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().list(item_id.toStdString(), page_token.toStdString(), ctx);
@@ -100,7 +100,7 @@ QList<ItemMetadata> ProviderInterface::List(QString const& item_id, QString cons
     return {};
 }
 
-QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString const& name)
+QList<ProviderInterface::IMD> ProviderInterface::Lookup(QString const& parent_id, QString const& name)
 {
     queue_request([parent_id, name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().lookup(parent_id.toStdString(), name.toStdString(), ctx);
@@ -112,7 +112,7 @@ QList<ItemMetadata> ProviderInterface::Lookup(QString const& parent_id, QString 
     return {};
 }
 
-ItemMetadata ProviderInterface::Metadata(QString const& item_id)
+ProviderInterface::IMD ProviderInterface::Metadata(QString const& item_id)
 {
     queue_request([item_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().metadata(item_id.toStdString(), ctx);
@@ -126,7 +126,7 @@ ItemMetadata ProviderInterface::Metadata(QString const& item_id)
     return {};
 }
 
-ItemMetadata ProviderInterface::CreateFolder(QString const& parent_id, QString const& name)
+ProviderInterface::IMD ProviderInterface::CreateFolder(QString const& parent_id, QString const& name)
 {
     queue_request([parent_id, name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().create_folder(
@@ -196,7 +196,7 @@ QString ProviderInterface::Update(QString const& item_id, QString const& old_eta
     return "";
 }
 
-ItemMetadata ProviderInterface::FinishUpload(QString const& upload_id)
+ProviderInterface::IMD ProviderInterface::FinishUpload(QString const& upload_id)
 {
     queue_request([upload_id](shared_ptr<AccountData> const& account, Context const& /*ctx*/, QDBusMessage const& message) {
             // Throws if job is not available
@@ -302,7 +302,7 @@ void ProviderInterface::Delete(QString const& item_id)
         });
 }
 
-ItemMetadata ProviderInterface::Move(QString const& item_id, QString const& new_parent_id, QString const& new_name)
+ProviderInterface::IMD ProviderInterface::Move(QString const& item_id, QString const& new_parent_id, QString const& new_name)
 {
     queue_request([item_id, new_parent_id, new_name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().move(
@@ -318,7 +318,7 @@ ItemMetadata ProviderInterface::Move(QString const& item_id, QString const& new_
     return {};
 }
 
-ItemMetadata ProviderInterface::Copy(QString const& item_id, QString const& new_parent_id, QString const& new_name)
+ProviderInterface::IMD ProviderInterface::Copy(QString const& item_id, QString const& new_parent_id, QString const& new_name)
 {
     queue_request([item_id, new_parent_id, new_name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().copy(

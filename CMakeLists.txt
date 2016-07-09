@@ -120,6 +120,7 @@ add_subdirectory(demo)
 enable_coverage_report(
     TARGETS
         qt-client-lib-public
+        storage-framework-qt-client
         storage-framework-qt-local-client
     FILTER
         ${CMAKE_SOURCE_DIR}/tests/*
