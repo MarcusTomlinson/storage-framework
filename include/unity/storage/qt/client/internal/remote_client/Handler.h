@@ -24,10 +24,10 @@ template<typename T>
 class Handler : public HandlerBase
 {
 public:
-    template<typename F, typename ... DBusArgs>
+    template<typename ... DBusArgs>
     Handler(QObject* parent,
             QDBusPendingReply<DBusArgs...> const& reply,
-            F closure);
+            std::function<void(decltype(reply) const&, QFutureInterface<T>&)> closure);
 
     QFuture<T> future();
 
@@ -36,8 +36,8 @@ private:
 };
 
 template<typename T>
-template<typename F, typename ... DBusArgs>
-Handler<T>::Handler(QObject* parent, QDBusPendingReply<DBusArgs...> const& reply, F closure)
+template<typename ... DBusArgs>
+Handler<T>::Handler(QObject* parent, QDBusPendingReply<DBusArgs...> const& reply, std::function<void(decltype(reply) const&, QFutureInterface<T>&)> closure)
     : HandlerBase(parent,
                   reply,
                   [this, closure](QDBusPendingCallWatcher const& call)
