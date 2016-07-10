@@ -46,9 +46,9 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
     }
 
     QString old_etag = policy == ConflictPolicy::overwrite ? "" : md_.etag;
-    auto process_create_uploader_reply = [this, old_etag]
-                                            (QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
-                                             QFutureInterface<std::shared_ptr<Uploader>>& qf)
+    auto reply = provider().Update(md_.item_id, old_etag);
+
+    auto process_reply = [this, old_etag](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Uploader>>& qf)
     {
         auto upload_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();
@@ -62,9 +62,7 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
             make_ready_future(qf, uploader);
         }
     };
-    auto handler = new Handler<shared_ptr<Uploader>>(this,
-                                                     provider().Update(md_.item_id, old_etag),
-                                                     process_create_uploader_reply);
+    auto handler = new Handler<shared_ptr<Uploader>>(this, reply, process_reply);
     return handler->future();
 }
 
