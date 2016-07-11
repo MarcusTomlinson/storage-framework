@@ -24,7 +24,7 @@
 # Usage: check_public_headers.py directory
 #
 # The directory specifies the location of the header files. All files in that directory ending in .h (but not
-# in subdirectories) are tested.
+# in subdirectories) are tested, provided they do not contain "internal" as a path component.
 #
 
 import argparse
@@ -44,12 +44,22 @@ def error(msg):
 def message(msg):
     print(os.path.basename(sys.argv[0]) + ": " + msg)
 
+def split(path):
+    (head, tail) = os.path.split(path)
+    while (head != os.sep):
+        (head, tail) = os.path.split(head)
+        yield tail
+
 #
-# For each of the supplied headers, check whether that header includes something in an internal directory.
+# For each of the supplied headers, check whether that header includes something in an internal directory,
+# provided the header path does not contain "internal" as a path component.
 # Return the count of headers that do this.
 #
 def test_files(hdr_dir, hdrs):
     num_errs = 0
+    for dir in split(hdr_dir):
+        if dir == 'internal':
+            return 0
     for hdr in hdrs:
         try:
             hdr_name = os.path.join(hdr_dir, hdr)

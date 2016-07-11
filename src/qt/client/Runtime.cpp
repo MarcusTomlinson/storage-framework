@@ -1,6 +1,6 @@
 #include <unity/storage/qt/client/Runtime.h>
 
-#include <unity/storage/qt/client/internal/RuntimeImpl.h>
+#include <unity/storage/qt/client/internal/RuntimeBase.h>
 
 #include <cassert>
 
@@ -15,7 +15,9 @@ namespace qt
 namespace client
 {
 
-Runtime::Runtime(internal::RuntimeImpl* p)
+// Runtime::SPtr Runtime::create() is defined by local_client and remote_client, respectively.
+
+Runtime::Runtime(internal::RuntimeBase* p)
     : p_(p)
 {
     assert(p != nullptr);
@@ -24,14 +26,6 @@ Runtime::Runtime(internal::RuntimeImpl* p)
 Runtime::~Runtime()
 {
     shutdown();
-}
-
-Runtime::SPtr Runtime::create()
-{
-    auto impl = new internal::RuntimeImpl;
-    Runtime::SPtr runtime(new Runtime(impl));
-    impl->set_public_instance(weak_ptr<Runtime>(runtime));
-    return runtime;
 }
 
 void Runtime::shutdown()

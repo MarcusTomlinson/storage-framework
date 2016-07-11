@@ -25,7 +25,7 @@ public:
     boost::future<Item> metadata(
         string const& item_id, Context const& ctx) override;
     boost::future<Item> create_folder(
-        std::string const& parent_id, std::string const& name,
+        string const& parent_id, string const& name,
         Context const& ctx) override;
 
     boost::future<unique_ptr<UploadJob>> create_file(
@@ -40,13 +40,13 @@ public:
         string const& item_id, Context const& ctx) override;
 
     boost::future<void> delete_item(
-        std::string const& item_id, Context const& ctx) override;
+        string const& item_id, Context const& ctx) override;
     boost::future<Item> move(
-        std::string const& item_id, std::string const& new_parent_id,
-        std::string const& new_name, Context const& ctx) override;
+        string const& item_id, string const& new_parent_id,
+        string const& new_name, Context const& ctx) override;
     boost::future<Item> copy(
-        std::string const& item_id, std::string const& new_parent_id,
-        std::string const& new_name, Context const& ctx) override;
+        string const& item_id, string const& new_parent_id,
+        string const& new_name, Context const& ctx) override;
 };
 
 class MyUploadJob : public TempfileUploadJob
@@ -133,7 +133,7 @@ boost::future<Item> MyProvider::metadata(string const& item_id,
 }
 
 boost::future<Item> MyProvider::create_folder(
-    std::string const& parent_id, std::string const& name,
+    string const& parent_id, string const& name,
     Context const& ctx)
 {
     printf("create_folder('%s', '%s') called by %s (%d)\n", parent_id.c_str(), name.c_str(), ctx.security_label.c_str(), ctx.pid);
@@ -176,15 +176,15 @@ boost::future<unique_ptr<DownloadJob>> MyProvider::download(
 }
 
 boost::future<void> MyProvider::delete_item(
-    std::string const& item_id, Context const& ctx)
+    string const& item_id, Context const& ctx)
 {
     printf("delete('%s') called by %s (%d)\n", item_id.c_str(), ctx.security_label.c_str(), ctx.pid);
     return boost::make_ready_future();
 }
 
 boost::future<Item> MyProvider::move(
-    std::string const& item_id, std::string const& new_parent_id,
-    std::string const& new_name, Context const& ctx)
+    string const& item_id, string const& new_parent_id,
+    string const& new_name, Context const& ctx)
 {
     printf("move('%s', '%s', '%s') called by %s (%d)\n", item_id.c_str(), new_parent_id.c_str(), new_name.c_str(), ctx.security_label.c_str(), ctx.pid);
     Item metadata{item_id, new_parent_id, new_name, "etag", ItemType::file, {}};
@@ -192,8 +192,8 @@ boost::future<Item> MyProvider::move(
 }
 
 boost::future<Item> MyProvider::copy(
-    std::string const& item_id, std::string const& new_parent_id,
-    std::string const& new_name, Context const& ctx)
+    string const& item_id, string const& new_parent_id,
+    string const& new_name, Context const& ctx)
 {
     printf("copy('%s', '%s', '%s') called by %s (%d)\n", item_id.c_str(), new_parent_id.c_str(), new_name.c_str(), ctx.security_label.c_str(), ctx.pid);
     Item metadata{"new_item_id", new_parent_id, new_name, "etag", ItemType::file, {}};

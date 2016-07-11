@@ -10,12 +10,7 @@ enum class ItemType
     file,
     folder,
     root,
-};
-
-enum class TransferState
-{
-    ok,
-    cancelled,
+    LAST_ENTRY__
 };
 
 enum class ConflictPolicy

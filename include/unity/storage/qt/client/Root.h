@@ -17,11 +17,22 @@ class Item;
 namespace internal
 {
 
-class AccountImpl;
-class ItemImpl;
+class RootBase;
+
+namespace local_client
+{
+
 class RootImpl;
 
-}
+}  // namespace local_client
+
+namespace remote_client
+{
+
+class RootImpl;
+
+}  // namespace remote_client
+}  // namespace internal
 
 /**
 \brief Class that represents a root folder.
@@ -29,9 +40,10 @@ class RootImpl;
 class UNITY_STORAGE_EXPORT Root final : public Folder
 {
 public:
+    // @cond
     virtual ~Root();
-    Root(Root const&) = delete;
-    Root& operator=(Root const&) = delete;
+    /// @endcond
+
     Root(Root&&);
     Root& operator=(Root&&);
 
@@ -50,11 +62,10 @@ public:
     // TODO: Do we need a method to get lots of things?
 
 private:
-    Root(internal::RootImpl*);
+    Root(internal::RootBase*) UNITY_STORAGE_HIDDEN;
 
-    //friend class internal::AccountImpl;
-    friend class internal::ItemImpl;
-    friend class internal::RootImpl;
+    friend class internal::local_client::RootImpl;
+    friend class internal::remote_client::RootImpl;
 };
 
 }  // namespace client

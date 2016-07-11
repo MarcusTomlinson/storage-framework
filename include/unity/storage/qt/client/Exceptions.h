@@ -53,15 +53,15 @@ public:
 };
 
 /**
-\brief Indicates that the caller invoked an operation on an item that was destroyed.
+\brief Indicates that the caller invoked an operation on a file or folder that was deleted.
 */
-class UNITY_STORAGE_EXPORT DestroyedException : public StorageException
+class UNITY_STORAGE_EXPORT DeletedException : public StorageException
 {
 public:
-    DestroyedException();
-    ~DestroyedException();
+    DeletedException();
+    ~DeletedException();
 
-    virtual DestroyedException* clone() const override;
+    virtual DeletedException* clone() const override;
     virtual void raise() const override;
 };
 
@@ -101,6 +101,19 @@ public:
     ~ConflictException();
 
     virtual ConflictException* clone() const override;
+    virtual void raise() const override;
+};
+
+/**
+\brief Indicates that an upload or download was cancelled before it could complete.
+*/
+class UNITY_STORAGE_EXPORT CancelledException : public StorageException
+{
+public:
+    CancelledException();
+    ~CancelledException();
+
+    virtual CancelledException* clone() const override;
     virtual void raise() const override;
 };
 
