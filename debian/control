@@ -53,7 +53,7 @@ Section: libdevel
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
-Depends: libstorage-framework-qt-client-1-0 (= ${binary:Version},
+Depends: libstorage-framework-qt-client-1-0 (= ${binary:Version}),
          libstorage-framework-qt-local-client-1-0 (= ${binary:Version}),
          qtbase5-dev,
          ${misc:Depends},
