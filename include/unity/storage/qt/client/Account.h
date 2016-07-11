@@ -74,7 +74,7 @@ public:
     QFuture<QVector<std::shared_ptr<Root>>> roots() const;
 
 private:
-    Account(internal::AccountBase*);
+    Account(internal::AccountBase*) UNITY_STORAGE_HIDDEN;
 
     std::shared_ptr<internal::AccountBase> p_;
 

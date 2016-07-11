@@ -92,7 +92,7 @@ public:
     QFuture<std::shared_ptr<Uploader>> create_file(QString const& name);
 
 protected:
-    Folder(internal::FolderBase*);
+    Folder(internal::FolderBase*) UNITY_STORAGE_HIDDEN;
 
     friend class internal::local_client::FolderImpl;
     friend class internal::local_client::ItemImpl;

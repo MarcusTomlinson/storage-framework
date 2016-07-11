@@ -2,8 +2,11 @@
 
 #include <unity/storage/common.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QMap>
 #include <QVariant>
+#pragma GCC diagnostic pop
 
 namespace unity
 {

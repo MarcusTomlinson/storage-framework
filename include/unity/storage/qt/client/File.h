@@ -75,7 +75,7 @@ public:
     QFuture<std::shared_ptr<Downloader>> create_downloader();
 
 private:
-    File(internal::FileBase*);
+    File(internal::FileBase*) UNITY_STORAGE_HIDDEN;
 
     friend class internal::local_client::FileImpl;
     friend class internal::remote_client::FileImpl;
