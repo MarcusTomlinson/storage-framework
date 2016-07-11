@@ -9,7 +9,10 @@
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 
 #include <boost/algorithm/string/predicate.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QtConcurrent>
+#pragma GCC diagnostic pop
 
 using namespace std;
 

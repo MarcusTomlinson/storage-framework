@@ -1,6 +1,9 @@
 #include <unity/storage/qt/client/internal/remote_client/HandlerBase.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
+#pragma GCC diagnostic pop
 
 #include <cassert>
 
@@ -42,5 +45,3 @@ void HandlerBase::finished(QDBusPendingCallWatcher* call)
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "HandlerBase.moc"

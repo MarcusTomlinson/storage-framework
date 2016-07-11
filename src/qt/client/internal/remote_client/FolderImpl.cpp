@@ -7,8 +7,6 @@
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>
 
-#include <QtConcurrent>
-
 using namespace std;
 
 namespace unity
