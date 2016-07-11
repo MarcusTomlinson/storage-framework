@@ -106,7 +106,7 @@ public:
     QFuture<void> cancel();
 
 private:
-    Downloader(internal::DownloaderBase*);
+    Downloader(internal::DownloaderBase*) UNITY_STORAGE_HIDDEN;
 
     std::shared_ptr<internal::DownloaderBase> p_;
 

@@ -2,13 +2,17 @@
 
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/local_client/RootImpl.h>
 #include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
 
 #include <boost/algorithm/string/predicate.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QtConcurrent>
+#pragma GCC diagnostic pop
 
 #include <sys/stat.h>
 
@@ -263,9 +267,7 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
     QFutureInterface<QVector<Folder::SPtr>> qf;
     if (deleted_)
     {
-        qf.reportException(DeletedException());
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<QVector<Folder::SPtr>>(DeletedException());
     }
 
     Root::SPtr root = root_.lock();
@@ -289,9 +291,7 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
     {
         results.append(root);
     }
-    qf.reportResult(results);
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future(results);
 }
 
 QVector<QString> ItemImpl::parent_ids() const

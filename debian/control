@@ -1,5 +1,5 @@
 Source: storage-framework
-Section: libdevel
+Section: libs
 Priority: optional
 Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Standards-Version: 3.9.6
@@ -7,12 +7,64 @@ Build-Depends: cmake,
                cmake-extras (>= 0.4),
                debhelper (>= 9),
                devscripts,
-               google-mock,
-               libgtest-dev,
                doxygen,
-               unity-api-dev,
+               google-mock,
+               libapparmor-dev,
+               libboost-filesystem-dev,
+               libboost-system-dev,
+               libboost-thread-dev,
+               libglib2.0-dev,
+               libgtest-dev,
+               libonline-accounts-qt-dev,
+               qtbase5-dev,
+               qtbase5-dev-tools,
 Homepage: https://launchpad.net/storage-framework
 # if you don't have have commit access to this branch but would like to upload
 # directly to Ubuntu, don't worry: your changes will be merged back into the
 # upstream branch
 Vcs-Bzr: lp:storage-framework
+
+Package: libstorage-framework-provider-1-0
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends},
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+Description: A library used by providers for the Storage Framework
+
+Package: libstorage-framework-qt-client-1-0
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends},
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+Description: A client library for the Storage Framework
+
+Package: libstorage-framework-qt-local-client-1-0
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends},
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+Description: A client library for the Storage Framework backed by the local file system
+
+Package: storage-framework-client-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends},
+Depends: libstorage-framework-qt-client-1-0 (= ${binary:Version}),
+         libstorage-framework-qt-local-client-1-0 (= ${binary:Version}),
+         qtbase5-dev,
+         ${misc:Depends},
+Description: Header files for the Storage Framework client libraries
+
+Package: storage-framework-provider-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends},
+Depends: libstorage-framework-provider-1-0 (= ${binary:Version}),
+         libboost-thread-dev,
+         ${misc:Depends},
+Description: Header files for the Storage Framework provider library

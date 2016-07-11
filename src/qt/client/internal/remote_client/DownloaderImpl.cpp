@@ -2,8 +2,8 @@
 
 #include "ProviderInterface.h"
 #include <unity/storage/qt/client/Downloader.h>
-#include <unity/storage/qt/client/Exceptions.h>
-#include <unity/storage/qt/client/internal/remote_client/FinishDownloadHandler.h>
+#include <unity/storage/qt/client/internal/make_future.h>
+#include <unity/storage/qt/client/internal/remote_client/Handler.h>
 
 #include <cassert>
 
@@ -26,18 +26,19 @@ namespace remote_client
 {
 
 DownloaderImpl::DownloaderImpl(QString const& download_id,
-                               int fd,
+                               QDBusUnixFileDescriptor fd,
                                shared_ptr<File> const& file,
                                ProviderInterface& provider)
     : DownloaderBase(file)
     , download_id_(download_id)
+    , fd_(fd)
     , file_(file)
     , provider_(provider)
     , read_socket_(new QLocalSocket)
 {
     assert(!download_id.isEmpty());
-    assert(fd >= 0);
-    read_socket_->setSocketDescriptor(fd, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
+    assert(fd.isValid());
+    read_socket_->setSocketDescriptor(fd.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 }
 
 DownloaderImpl::~DownloaderImpl()
@@ -57,20 +58,25 @@ shared_ptr<QLocalSocket> DownloaderImpl::socket() const
 
 QFuture<void> DownloaderImpl::finish_download()
 {
-    auto handler = new FinishDownloadHandler(provider_.FinishDownload(download_id_));
+    auto reply = provider_.FinishDownload(download_id_);
+
+    auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>&)
+    {
+        make_ready_future();
+    };
+
+    auto handler = new Handler<void>(this, reply, process_reply);
     return handler->future();
 }
 
 QFuture<void> DownloaderImpl::cancel() noexcept
 {
     read_socket_->abort();
-    QFutureInterface<void> qf;
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future();
 }
 
 Downloader::SPtr DownloaderImpl::make_downloader(QString const& download_id,
-                                                 int fd,
+                                                 QDBusUnixFileDescriptor fd,
                                                  shared_ptr<File> const& file,
                                                  ProviderInterface& provider)
 {
@@ -86,5 +92,3 @@ Downloader::SPtr DownloaderImpl::make_downloader(QString const& download_id,
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "DownloaderImpl.moc"

@@ -1,6 +1,7 @@
 #include <unity/storage/qt/client/internal/local_client/AccountImpl.h>
 
 #include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/RootImpl.h>
 
 #pragma GCC diagnostic push
@@ -99,13 +100,9 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {
     using namespace boost::filesystem;
 
-    QFutureInterface<QVector<Root::SPtr>> qf;
-
     if (!roots_.isEmpty())
     {
-        qf.reportResult(roots_);
-        qf.reportFinished();
-        return qf.future();
+        return make_ready_future(roots_);
     }
 
     try
@@ -114,14 +111,12 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
         auto rpath = canonical(get_data_dir()).native();
         auto root = RootImpl::make_root(QString::fromStdString(rpath), public_instance_);
         roots_.append(root);
-        qf.reportResult(roots_);
+        return make_ready_future(roots_);
     }
     catch (std::exception const&)
     {
-        qf.reportException(StorageException());  // TODO
+        return make_exceptional_future<QVector<Root::SPtr>>(StorageException());
     }
-    qf.reportFinished();
-    return qf.future();
 }
 
 }  // namespace local_client

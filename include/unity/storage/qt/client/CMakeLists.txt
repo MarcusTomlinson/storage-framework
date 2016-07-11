@@ -1,15 +1,15 @@
-set(convenience_hdr client-api.h)
-set(prefix unity/storage/qt/client)
+set(includeprefix unity/storage/qt/client)
 file(GLOB public_hdrs *.h)
+set(convenience_hdr ${CMAKE_CURRENT_BINARY_DIR}/client-api.h)
 
 add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${convenience_hdr}
+    OUTPUT ${convenience_hdr}
     COMMAND ${CMAKE_SOURCE_DIR}/tools/create_globalheader.py
-        ${CMAKE_CURRENT_BINARY_DIR}/${convenience_hdr} ${prefix} ${CMAKE_CURRENT_SOURCE_DIR}
+        ${convenience_hdr} ${includeprefix} ${CMAKE_CURRENT_SOURCE_DIR}
     DEPENDS ${public_hdrs})
 
-add_custom_target(qt-client-all-headers ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${convenience_hdr})
+add_custom_target(qt-client-all-headers ALL DEPENDS ${convenience_hdr})
 
 install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/${convenience_hdr}
-    DESTINATION include/${prefix})
+    FILES ${public_hdrs} ${convenience_hdr}
+    DESTINATION ${client_base_includedir}/${includeprefix})

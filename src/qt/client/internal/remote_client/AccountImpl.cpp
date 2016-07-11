@@ -3,11 +3,11 @@
 #include "ProviderInterface.h"
 #include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/Account.h>
-#include <unity/storage/qt/client/Exceptions.h>
-#include <unity/storage/qt/client/Runtime.h>
+#include <unity/storage/qt/client/internal/make_future.h>
+#include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
-#include <unity/storage/qt/client/internal/remote_client/RootsHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
+#include <unity/storage/qt/client/Runtime.h>
 
 using namespace std;
 
@@ -63,7 +63,26 @@ QString AccountImpl::description() const
 
 QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {
-    auto handler = new RootsHandler(provider_->Roots(), public_instance_);
+    auto reply = provider_->Roots();
+
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<QVector<Root::SPtr>>& qf)
+    {
+        QVector<shared_ptr<Root>> roots;
+        auto metadata = reply.value();
+        for (auto const& md : metadata)
+        {
+            if (md.type != ItemType::root)
+            {
+                // TODO: log impossible item type here
+                continue;  // LCOV_EXCL_LINE
+            }
+            auto root = RootImpl::make_root(md, public_instance_);
+            roots.append(root);
+        }
+        make_ready_future(qf, roots);
+    };
+
+    auto handler = new Handler<QVector<Root::SPtr>>(this, reply, process_reply);
     return handler->future();
 }
 
@@ -78,5 +97,3 @@ ProviderInterface& AccountImpl::provider()
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "AccountImpl.moc"
