@@ -22,7 +22,7 @@ namespace internal
 namespace remote_client
 {
 
-class AccountImpl : public virtual AccountBase
+class AccountImpl : public QObject, public virtual AccountBase
 {
 public:
     AccountImpl(std::weak_ptr<Runtime> const& runtime,
@@ -30,7 +30,6 @@ public:
                 QString const& owner,
                 QString const& owner_id,
                 QString const& description);
-    ~AccountImpl() = default;
 
     virtual QString owner() const override;
     virtual QString owner_id() const override;

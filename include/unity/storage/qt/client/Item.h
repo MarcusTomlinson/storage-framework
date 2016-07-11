@@ -154,7 +154,7 @@ public:
     bool equal_to(Item::SPtr const& other) const noexcept;
 
 protected:
-    Item(internal::ItemBase* p);
+    Item(internal::ItemBase* p) UNITY_STORAGE_HIDDEN;
 
     std::shared_ptr<internal::ItemBase> p_;
 

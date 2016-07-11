@@ -36,7 +36,7 @@ public:
     virtual QFuture<int64_t> used_space_bytes() const override;
     virtual QFuture<Item::SPtr> get(QString native_identity) const override;
 
-    static std::shared_ptr<Root> make_root(storage::internal::ItemMetadata const&,
+    static std::shared_ptr<Root> make_root(storage::internal::ItemMetadata const& md,
                                            std::weak_ptr<Account> const& account);
 
     friend class FolderImpl;

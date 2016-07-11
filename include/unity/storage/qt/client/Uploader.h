@@ -102,7 +102,7 @@ public:
     QFuture<void> cancel();
 
 private:
-    Uploader(internal::UploaderBase*);
+    Uploader(internal::UploaderBase*) UNITY_STORAGE_HIDDEN;
 
     std::shared_ptr<internal::UploaderBase> p_;
 

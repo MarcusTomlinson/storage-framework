@@ -74,7 +74,7 @@ public:
     QFuture<QVector<std::shared_ptr<Account>>> accounts();
 
 private:
-    Runtime(internal::RuntimeBase* p);
+    Runtime(internal::RuntimeBase* p) UNITY_STORAGE_HIDDEN;
 
     std::shared_ptr<internal::RuntimeBase> p_;
 

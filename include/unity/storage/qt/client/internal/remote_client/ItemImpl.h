@@ -22,7 +22,7 @@ namespace remote_client
 
 class DeleteHandler;
 
-class ItemImpl : public virtual ItemBase
+class ItemImpl : public virtual ItemBase, public virtual QObject
 {
 public:
     ItemImpl(storage::internal::ItemMetadata const& md, ItemType type);
@@ -38,6 +38,8 @@ public:
     virtual bool equal_to(ItemBase const& other) const noexcept override;
 
     ProviderInterface& provider() const noexcept;
+
+    static std::shared_ptr<Item> make_item(storage::internal::ItemMetadata const& md, std::weak_ptr<Root> root);
 
 protected:
     bool deleted_ = false;

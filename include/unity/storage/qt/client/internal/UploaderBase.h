@@ -4,6 +4,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Wswitch-default"
 #include <QFuture>
 #pragma GCC diagnostic pop
 
@@ -27,8 +28,6 @@ namespace internal
 
 class UploaderBase : public QObject
 {
-    Q_OBJECT
-
 public:
     UploaderBase(ConflictPolicy policy, int64_t size);
     UploaderBase(UploaderBase&) = delete;
