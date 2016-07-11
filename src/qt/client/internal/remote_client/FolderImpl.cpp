@@ -48,9 +48,9 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
     auto reply = provider().List(md_.item_id, "");
 
     // Sorry for the mess, but we can't use auto for the lambda because it calls itself,
-    // and the compiler can't deduce the type of the lambda while it's still parsing its body.
-    std::function<void(decltype(reply) const&, QFutureInterface<QVector<std::shared_ptr<Item>>>&)> process_reply
-        = [this, process_reply](decltype(reply) const& reply, QFutureInterface<QVector<std::shared_ptr<Item>>>& qf)
+    // and the compiler can't deduce the type of the lambda while it's still parsing the lambda body.
+    function<void(decltype(reply) const&, QFutureInterface<QVector<shared_ptr<Item>>>&)> process_reply
+        = [this, &process_reply](decltype(reply) const& reply, QFutureInterface<QVector<shared_ptr<Item>>>& qf)
     {
         QVector<shared_ptr<Item>> items;
         auto metadata = reply.argumentAt<0>();
@@ -73,7 +73,8 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         else
         {
             // Request next lot.
-            new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this), reply, process_reply);
+            auto next_reply = provider().List(md_.item_id, token);
+            new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this), next_reply, process_reply);
         }
     };
 
@@ -89,7 +90,7 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
     }
 
     auto reply = provider().Lookup(md_.item_id, name);
-    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<QVector<std::shared_ptr<Item>>>& qf)
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<QVector<shared_ptr<Item>>>& qf)
     {
         QVector<Item::SPtr> items;
         auto metadata = reply.value();
@@ -124,7 +125,7 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
     }
 
     auto reply = provider().CreateFolder(md_.item_id, name);
-    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Folder>>& qf)
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<Folder>>& qf)
     {
         shared_ptr<Item> item;
         auto md = reply.value();
@@ -150,7 +151,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
     }
 
     auto reply = provider().CreateFile(md_.item_id, name, "application/octet-stream", false);
-    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Uploader>>& qf)
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<Uploader>>& qf)
     {
         auto upload_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();

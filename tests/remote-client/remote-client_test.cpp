@@ -70,7 +70,7 @@ Folder::SPtr get_parent(Item::SPtr const& item)
     return parents[0];
 }
 
-void clear_folder(Folder::SPtr folder)
+void clear_folder(Folder::SPtr const& folder)
 {
     auto list_fut = folder->list();
     {
