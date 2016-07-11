@@ -9,7 +9,7 @@
       "(ssssia{sv})" is used, where the struct members are:
         - item_id
         - parent_id
-        - title
+        - name
         - etag
         - type (enum: file, folder, root)
         - metadata
