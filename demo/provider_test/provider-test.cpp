@@ -4,6 +4,7 @@
 #include <unity/storage/provider/TempfileUploadJob.h>
 #include <unity/storage/provider/UploadJob.h>
 
+#include <inttypes.h>
 #include <unistd.h>
 
 using namespace unity::storage;
@@ -29,11 +30,11 @@ public:
         Context const& ctx) override;
 
     boost::future<unique_ptr<UploadJob>> create_file(
-        string const& parent_id, string const& title,
-        string const& content_type, bool allow_overwrite,
+        string const& parent_id, string const& name,
+        int64_t size, string const& content_type, bool allow_overwrite,
         Context const& ctx) override;
     boost::future<unique_ptr<UploadJob>> update(
-        string const& item_id, string const& old_etag,
+        string const& item_id, int64_t size, string const& old_etag,
         Context const& ctx) override;
 
     boost::future<unique_ptr<DownloadJob>> download(
@@ -148,18 +149,18 @@ string make_job_id()
 }
 
 boost::future<unique_ptr<UploadJob>> MyProvider::create_file(
-    string const& parent_id, string const& title,
-    string const& content_type, bool allow_overwrite,
+    string const& parent_id, string const& name,
+    int64_t size, string const& content_type, bool allow_overwrite,
     Context const& ctx)
 {
-    printf("create_file('%s', '%s', '%s', %d) called by %s (%d)\n", parent_id.c_str(), title.c_str(), content_type.c_str(), allow_overwrite, ctx.security_label.c_str(), ctx.pid);
+    printf("create_file('%s', '%s', %" PRId64 ", '%s', %d) called by %s (%d)\n", parent_id.c_str(), name.c_str(), size, content_type.c_str(), allow_overwrite, ctx.security_label.c_str(), ctx.pid);
     return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_job_id())));
 }
 
 boost::future<unique_ptr<UploadJob>> MyProvider::update(
-    string const& item_id, string const& old_etag, Context const& ctx)
+    string const& item_id, int64_t size, string const& old_etag, Context const& ctx)
 {
-    printf("update('%s', '%s') called by %s (%d)\n", item_id.c_str(), old_etag.c_str(), ctx.security_label.c_str(), ctx.pid);
+    printf("update('%s', %" PRId64 ", '%s') called by %s (%d)\n", item_id.c_str(), size, old_etag.c_str(), ctx.security_label.c_str(), ctx.pid);
     return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_job_id())));
 }
 

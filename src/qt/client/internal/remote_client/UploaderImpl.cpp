@@ -32,12 +32,15 @@ UploaderImpl::UploaderImpl(QString const& upload_id,
     : UploaderBase(old_etag == "" ? ConflictPolicy::overwrite : ConflictPolicy::error_if_conflict, size)
     , upload_id_(upload_id)
     , fd_(fd)
+    , size_(size)
     , old_etag_(old_etag)
     , root_(root)
     , provider_(provider)
     , write_socket_(new QLocalSocket)
 {
     assert(!upload_id.isEmpty());
+    assert(fd.isValid());
+    assert(size >= 0);
     assert(root_.lock());
     assert(fd.isValid());
     write_socket_->setSocketDescriptor(fd_.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::WriteOnly);

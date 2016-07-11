@@ -34,7 +34,7 @@ struct UNITY_STORAGE_EXPORT Item
 {
     std::string item_id;
     std::string parent_id;
-    std::string title;
+    std::string name;
     std::string etag;
     unity::storage::ItemType type;
     // Should be map<string,variant>
@@ -67,11 +67,11 @@ public:
         Context const& context) = 0;
 
     virtual boost::future<std::unique_ptr<UploadJob>> create_file(
-        std::string const& parent_id, std::string const& title,
-        std::string const& content_type, bool allow_overwrite,
+        std::string const& parent_id, std::string const& name,
+        int64_t size, std::string const& content_type, bool allow_overwrite,
         Context const& context) = 0;
     virtual boost::future<std::unique_ptr<UploadJob>> update(
-        std::string const& item_id, std::string const& old_etag,
+        std::string const& item_id, int64_t size, std::string const& old_etag,
         Context const& context) = 0;
 
     virtual boost::future<std::unique_ptr<DownloadJob>> download(

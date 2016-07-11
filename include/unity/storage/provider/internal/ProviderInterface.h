@@ -41,8 +41,8 @@ public Q_SLOTS:
     QList<IMD> Lookup(QString const& parent_id, QString const& name);
     IMD Metadata(QString const& item_id);
     IMD CreateFolder(QString const& parent_id, QString const& name);
-    QString CreateFile(QString const& parent_id, QString const& name, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& file_descriptor);
-    QString Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& file_descriptor);
+    QString CreateFile(QString const& parent_id, QString const& name, int64_t size, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& file_descriptor);
+    QString Update(QString const& item_id, int64_t size, QString const& old_etag, QDBusUnixFileDescriptor& file_descriptor);
     IMD FinishUpload(QString const& upload_id);
     void CancelUpload(QString const& upload_id);
     QString Download(QString const& item_id, QDBusUnixFileDescriptor& file_descriptor);

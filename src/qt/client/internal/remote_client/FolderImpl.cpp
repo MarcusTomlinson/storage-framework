@@ -152,7 +152,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
         return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException());  // TODO
     }
 
-    auto reply = provider().CreateFile(md_.item_id, name, "application/octet-stream", false);
+    auto reply = provider().CreateFile(md_.item_id, name, size, "application/octet-stream", false);
     auto process_reply = [this, size](decltype(reply) const& reply, QFutureInterface<shared_ptr<Uploader>>& qf)
     {
         auto upload_id = reply.argumentAt<0>();

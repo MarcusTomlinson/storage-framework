@@ -95,6 +95,7 @@
         @short_description: create a new file
         @parent_id: the ID of the parent folder
         @name: the name of the new file
+        @size: the size of the file
         @content_type: the content type of the new file
         @allow_overwrite: if false, the file creation will fail if it
         would overwrite an existing file.
@@ -109,6 +110,7 @@
     <method name="CreateFile">
       <arg type="s" name="parent_id" direction="in"/>
       <arg type="s" name="name" direction="in"/>
+      <arg type="x" name="size" direction="in"/>
       <arg type="s" name="content_type" direction="in"/>
       <arg type="b" name="allow_overwrite" direction="in"/>
       <arg type="s" name="upload_id" direction="out"/>
@@ -119,6 +121,7 @@
         Update:
         @short_description: update the contents of an existing file
         @item_id: the ID of the file
+        @size: the size of the upload
         @old_etag: if not empty, the expected etag of the old version
         of the file.
         @upload_id: the identifier for this upload job
@@ -136,6 +139,7 @@
     -->
     <method name="Update">
       <arg type="s" name="item_id" direction="in"/>
+      <arg type="x" name="size" direction="in"/>
       <arg type="s" name="old_etag" direction="in"/>
       <arg type="s" name="upload_id" direction="out"/>
       <arg type="h" name="file_descriptor" direction="out"/>
