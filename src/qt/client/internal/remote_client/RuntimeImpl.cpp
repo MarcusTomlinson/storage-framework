@@ -126,5 +126,3 @@ void RuntimeImpl::timeout()
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "RuntimeImpl.moc"
