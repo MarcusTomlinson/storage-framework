@@ -12,4 +12,4 @@ add_custom_target(qt-client-all-headers ALL DEPENDS ${convenience_hdr})
 
 install(
     FILES ${public_hdrs} ${convenience_hdr}
-    DESTINATION ${base_includedir}/${includeprefix})
+    DESTINATION ${client_base_includedir}/${includeprefix})

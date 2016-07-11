@@ -37,9 +37,9 @@ qt5_use_modules(storage-framework-qt-local-client Concurrent Core Network)
 set_target_properties(storage-framework-qt-local-client PROPERTIES
   AUTOMOC TRUE
   LINK_FLAGS "-Wl,--no-undefined"
-  OUTPUT_NAME "storage-framework-qt-local-client-${STORAGE_FRAMEWORK_API_VERSION}"
-  SOVERSION ${STORAGE_CLIENT_SOVERSION}
-  VERSION ${STORAGE_CLIENT_LIBVERSION}
+  OUTPUT_NAME "storage-framework-qt-local-client-${SF_CLIENT_API_VERSION}"
+  SOVERSION ${SF_CLIENT_SOVERSION}
+  VERSION ${SF_CLIENT_LIBVERSION}
 )
 target_link_libraries(storage-framework-qt-local-client
     Qt5::Concurrent
@@ -55,10 +55,10 @@ install(
 
 configure_file(
   storage-framework-qt-local-client.pc.in
-  storage-framework-qt-local-client-${STORAGE_FRAMEWORK_API_VERSION}.pc
+  storage-framework-qt-local-client-${SF_CLIENT_API_VERSION}.pc
 )
 install(
-  FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-local-client-${STORAGE_FRAMEWORK_API_VERSION}.pc
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-local-client-${SF_CLIENT_API_VERSION}.pc
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
 
@@ -71,9 +71,9 @@ qt5_use_modules(storage-framework-qt-client Core DBus Network)
 set_target_properties(storage-framework-qt-client PROPERTIES
   AUTOMOC TRUE
   LINK_FLAGS "-Wl,--no-undefined"
-  OUTPUT_NAME "storage-framework-qt-client-${STORAGE_FRAMEWORK_API_VERSION}"
-  SOVERSION ${STORAGE_CLIENT_SOVERSION}
-  VERSION ${STORAGE_CLIENT_LIBVERSION}
+  OUTPUT_NAME "storage-framework-qt-client-${SF_CLIENT_API_VERSION}"
+  SOVERSION ${SF_CLIENT_SOVERSION}
+  VERSION ${SF_CLIENT_LIBVERSION}
 )
 target_link_libraries(storage-framework-qt-client
     Qt5::Concurrent
@@ -90,9 +90,9 @@ install(
 
 configure_file(
   storage-framework-qt-client.pc.in
-  storage-framework-qt-client-${STORAGE_FRAMEWORK_API_VERSION}.pc
+  storage-framework-qt-client-${SF_CLIENT_API_VERSION}.pc
 )
 install(
-  FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-client-${STORAGE_FRAMEWORK_API_VERSION}.pc
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-client-${SF_CLIENT_API_VERSION}.pc
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )

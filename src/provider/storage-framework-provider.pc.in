@@ -1,5 +1,5 @@
-Name: storage-framework-provider-@STORAGE_FRAMEWORK_API_VERSION@
+Name: storage-framework-provider-@SF_PROVIDER_API_VERSION@
 Description: A library for developing providers for storage-framework
 Version: @PROJECT_VERSION@
-Cflags: -I@CMAKE_INSTALL_FULL_INCLUDEDIR@/storage-framework-@STORAGE_FRAMEWORK_API_VERSION@ -DBOOST_THREAD_VERSION=4
-Libs: -L@CMAKE_INSTALL_FULL_LIBDIR@ -lstorage-framework-provider-@STORAGE_FRAMEWORK_API_VERSION@
+Cflags: -I@CMAKE_INSTALL_FULL_INCLUDEDIR@/storage-framework-provider-@SF_PROVIDER_API_VERSION@ -DBOOST_THREAD_VERSION=4
+Libs: -L@CMAKE_INSTALL_FULL_LIBDIR@ -lstorage-framework-provider-@SF_PROVIDER_API_VERSION@

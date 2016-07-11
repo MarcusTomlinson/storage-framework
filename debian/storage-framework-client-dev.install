@@ -1,0 +1,3 @@
+usr/include/storage-framework-client-*
+usr/lib/*/libstorage-framework*client*.so
+usr/lib/*/pkgconfig/storage-framework*client*.pc
