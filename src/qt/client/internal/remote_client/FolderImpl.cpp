@@ -43,12 +43,12 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         return make_exceptional_future<QVector<shared_ptr<Item>>>(DeletedException());
     }
 
+    auto reply = provider().List(md_.item_id, "");
+
     // Sorry for the mess, but we can't use auto for the lambda because it calls itself,
-    // and the compiler can't deduce the type of the lambda while it's still parsing its body.
-    std::function<void(QDBusPendingReply<QList<storage::internal::ItemMetadata>, QString> const&,
-                       QFutureInterface<QVector<std::shared_ptr<Item>>>&)> process_list_reply
-        = [this, process_list_reply](QDBusPendingReply<QList<storage::internal::ItemMetadata>, QString> const& reply,
-                                     QFutureInterface<QVector<std::shared_ptr<Item>>>& qf)
+    // and the compiler can't deduce the type of the lambda while it's still parsing the lambda body.
+    function<void(decltype(reply) const&, QFutureInterface<QVector<shared_ptr<Item>>>&)> process_reply
+        = [this, &process_reply](decltype(reply) const& reply, QFutureInterface<QVector<shared_ptr<Item>>>& qf)
     {
         QVector<shared_ptr<Item>> items;
         auto metadata = reply.argumentAt<0>();
@@ -71,15 +71,12 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         else
         {
             // Request next lot.
-            new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this),
-                                                   provider().List(md_.item_id, token),
-                                                   process_list_reply);
+            auto next_reply = provider().List(md_.item_id, token);
+            new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this), next_reply, process_reply);
         }
     };
 
-    auto handler = new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this),
-                                                          provider().List(md_.item_id, ""),
-                                                          process_list_reply);
+    auto handler = new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this), reply, process_reply);
     return handler->future();
 }
 
@@ -90,8 +87,8 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
         return make_exceptional_future<QVector<shared_ptr<Item>>>(DeletedException());
     }
 
-    auto process_lookup_reply = [this](QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                                       QFutureInterface<QVector<std::shared_ptr<Item>>>& qf)
+    auto reply = provider().Lookup(md_.item_id, name);
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<QVector<shared_ptr<Item>>>& qf)
     {
         QVector<Item::SPtr> items;
         auto metadata = reply.value();
@@ -114,9 +111,7 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
         }
     };
 
-    auto handler = new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this),
-                                                          provider().Lookup(md_.item_id, name),
-                                                          process_lookup_reply);
+    auto handler = new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this), reply, process_reply);
     return handler->future();
 }
 
@@ -127,8 +122,8 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
         return make_exceptional_future<shared_ptr<Folder>>(DeletedException());
     }
 
-    auto process_create_folder_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
-                                              QFutureInterface<std::shared_ptr<Folder>>& qf)
+    auto reply = provider().CreateFolder(md_.item_id, name);
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<Folder>>& qf)
     {
         shared_ptr<Item> item;
         auto md = reply.value();
@@ -142,9 +137,7 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
         }
     };
 
-    auto handler = new Handler<shared_ptr<Folder>>(this,
-                                                   provider().CreateFolder(md_.item_id, name),
-                                                   process_create_folder_reply);
+    auto handler = new Handler<shared_ptr<Folder>>(this, reply, process_reply);
     return handler->future();
 }
 
@@ -155,8 +148,8 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         return make_exceptional_future<shared_ptr<Uploader>>(DeletedException());
     }
 
-    auto process_create_file_reply = [this](QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
-                                            QFutureInterface<std::shared_ptr<Uploader>>& qf)
+    auto reply = provider().CreateFile(md_.item_id, name, "application/octet-stream", false);
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<Uploader>>& qf)
     {
         auto upload_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();
@@ -164,12 +157,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         make_ready_future(qf, uploader);
     };
 
-    auto handler = new Handler<shared_ptr<Uploader>>(this,
-                                                     provider().CreateFile(md_.item_id,
-                                                                           name,
-                                                                           "application/octet-stream",
-                                                                           false),
-                                                     process_create_file_reply);
+    auto handler = new Handler<shared_ptr<Uploader>>(this, reply, process_reply);
     return handler->future();
 }
 

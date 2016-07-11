@@ -58,8 +58,9 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 {
-    auto process_get_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
-                                    QFutureInterface<Item::SPtr>& qf)
+    auto reply = provider().Metadata(native_identity);
+
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<Item::SPtr>& qf)
     {
         auto md = reply.value();
         Item::SPtr item;
@@ -74,9 +75,7 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         make_ready_future(qf, item);
     };
 
-    auto handler = new Handler<Item::SPtr>(const_cast<RootImpl*>(this),
-                                           provider().Metadata(native_identity),
-                                           process_get_reply);
+    auto handler = new Handler<Item::SPtr>(const_cast<RootImpl*>(this), reply, process_reply);
     return handler->future();
 }
 

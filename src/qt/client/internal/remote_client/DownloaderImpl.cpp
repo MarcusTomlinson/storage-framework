@@ -58,12 +58,14 @@ shared_ptr<QLocalSocket> DownloaderImpl::socket() const
 
 QFuture<void> DownloaderImpl::finish_download()
 {
-    auto process_finish_download_reply = [this](QDBusPendingReply<void> const&, QFutureInterface<void>&)
+    auto reply = provider_.FinishDownload(download_id_);
+
+    auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>&)
     {
         make_ready_future();
     };
 
-    auto handler = new Handler<void>(this, provider_.FinishDownload(download_id_), process_finish_download_reply);
+    auto handler = new Handler<void>(this, reply, process_reply);
     return handler->future();
 }
 

@@ -1,6 +1,9 @@
 #include <unity/storage/qt/client/internal/remote_client/HandlerBase.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
+#pragma GCC diagnostic pop
 
 #include <cassert>
 

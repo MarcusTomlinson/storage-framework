@@ -63,8 +63,9 @@ QString AccountImpl::description() const
 
 QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {
-    auto process_roots_reply = [this](QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                                      QFutureInterface<QVector<Root::SPtr>>& qf)
+    auto reply = provider_->Roots();
+
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<QVector<Root::SPtr>>& qf)
     {
         QVector<shared_ptr<Root>> roots;
         auto metadata = reply.value();
@@ -81,7 +82,7 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
         make_ready_future(qf, roots);
     };
 
-    auto handler = new Handler<QVector<Root::SPtr>>(this, provider_->Roots(), process_roots_reply);
+    auto handler = new Handler<QVector<Root::SPtr>>(this, reply, process_reply);
     return handler->future();
 }
 

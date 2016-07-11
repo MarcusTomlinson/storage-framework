@@ -5,6 +5,7 @@ set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES
 qt5_add_dbus_interface(generated_files
     ${CMAKE_SOURCE_DIR}/data/provider.xml
     ProviderInterface)
+set_source_files_properties(${generated_files} PROPERTIES COMPILE_FLAGS -Wno-ctor-dtor-privacy)
 
 add_library(qt-client-lib-remote OBJECT
     AccountImpl.cpp

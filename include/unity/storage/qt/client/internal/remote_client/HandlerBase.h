@@ -1,6 +1,10 @@
 #pragma once
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Wswitch-default"
 #include <QDBusPendingCallWatcher>
+#pragma GCC diagnostic pop
 #include <QObject>
 
 #include <functional>

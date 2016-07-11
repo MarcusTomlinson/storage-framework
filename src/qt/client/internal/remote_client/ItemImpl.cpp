@@ -65,8 +65,8 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         return make_exceptional_future<shared_ptr<Item>>(DeletedException());
     }
 
-    auto process_copy_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
-                                     QFutureInterface<std::shared_ptr<Item>>& qf)
+    auto reply = provider().Copy(md_.item_id, new_parent->native_identity(), new_name);
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Item>>& qf)
     {
         auto md = reply.value();
         if (md.type == ItemType::root)
@@ -77,9 +77,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         return make_ready_future(qf, ItemImpl::make_item(md, root_));
     };
 
-    auto handler = new Handler<shared_ptr<Item>>(this,
-                                                 provider().Copy(md_.item_id, new_parent->native_identity(), new_name),
-                                                 process_copy_reply);
+    auto handler = new Handler<shared_ptr<Item>>(this, reply, process_reply);
     return handler->future();
 }
 
@@ -90,8 +88,8 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         return make_exceptional_future<shared_ptr<Item>>(DeletedException());
     }
 
-    auto process_move_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
-                                     QFutureInterface<std::shared_ptr<Item>>& qf)
+    auto reply = provider().Move(md_.item_id, new_parent->native_identity(), new_name);
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Item>>& qf)
     {
         auto md = reply.value();
         if (md.type == ItemType::root)
@@ -102,9 +100,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         return make_ready_future(qf, ItemImpl::make_item(md, root_));
     };
 
-    auto handler = new Handler<shared_ptr<Item>>(this,
-                                                 provider().Move(md_.item_id, new_parent->native_identity(), new_name),
-                                                 process_move_reply);
+    auto handler = new Handler<shared_ptr<Item>>(this, reply, process_reply);
     return handler->future();
 }
 
@@ -135,13 +131,14 @@ QFuture<void> ItemImpl::delete_item()
         return make_exceptional_future(DeletedException());
     }
 
-    auto process_delete_reply = [this](QDBusPendingReply<void> const&, QFutureInterface<void>& qf)
+    auto reply = provider().Delete(md_.item_id);
+    auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>& qf)
     {
         deleted_ = true;
         make_ready_future(qf);
     };
 
-    auto handler = new Handler<void>(this, provider().Delete(md_.item_id), process_delete_reply);
+    auto handler = new Handler<void>(this, reply, process_reply);
     return handler->future();
 }
 
