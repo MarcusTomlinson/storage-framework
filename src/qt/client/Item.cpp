@@ -43,6 +43,11 @@ ItemType Item::type() const
     return p_->type();
 }
 
+QString Item::etag() const
+{
+    return p_->etag();
+}
+
 QVariantMap Item::metadata() const
 {
     return p_->metadata();

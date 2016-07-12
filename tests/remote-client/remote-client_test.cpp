@@ -156,6 +156,7 @@ TEST(Root, basic)
     EXPECT_EQ(acc.get(), root->account());
     EXPECT_EQ(ItemType::root, root->type());
     EXPECT_EQ("Root", root->name());
+    EXPECT_NE("", root->etag());
 
     auto parents = root->parents().result();
     EXPECT_TRUE(parents.isEmpty());

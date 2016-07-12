@@ -14,6 +14,8 @@
 #include <QtConcurrent>
 #pragma GCC diagnostic pop
 
+#include <sys/stat.h>
+
 #include <cassert>
 
 using namespace std;
@@ -40,6 +42,7 @@ ItemImpl::ItemImpl(QString const& identity, ItemType type)
     name_ = QString::fromStdString(path.filename().native());
     auto mtime = boost::filesystem::last_write_time(native_identity().toStdString());
     modified_time_ = QDateTime::fromTime_t(mtime);
+    etag_ = QString::number(mtime);
 }
 
 ItemImpl::~ItemImpl() = default;
@@ -53,6 +56,17 @@ QString ItemImpl::name() const
         throw DeletedException();  // TODO
     }
     return name_;
+}
+
+QString ItemImpl::etag() const
+{
+    lock_guard<mutex> guard(mutex_);
+
+    if (deleted_)
+    {
+        throw DeletedException();  // TODO
+    }
+    return etag_;
 }
 
 QVariantMap ItemImpl::metadata() const
@@ -356,8 +370,17 @@ void ItemImpl::update_modified_time()
 {
     assert(!mutex_.try_lock());
 
-    auto mtime = boost::filesystem::last_write_time(native_identity().toStdString());
+    string id = identity_.toStdString();
+    auto mtime = boost::filesystem::last_write_time(id);
     modified_time_ = QDateTime::fromTime_t(mtime);
+
+    // Use nano-second resolution for the ETag, if the file system supports it.
+    struct stat st;
+    if (stat(id.c_str(), &st) == -1)
+    {
+        throw StorageException();  // LCOV_EXCL_LINE  // TODO: details
+    }
+    etag_ = QString::number(int64_t(st.st_mtim.tv_sec) * 1000000000 + st.st_mtim.tv_nsec);
 }
 
 unique_lock<mutex> ItemImpl::get_lock()

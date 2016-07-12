@@ -116,6 +116,7 @@ TEST(Root, basic)
     EXPECT_EQ(acc.get(), root->account());
     EXPECT_EQ(ItemType::root, root->type());
     EXPECT_EQ("", root->name());
+    EXPECT_NE("", root->etag());
 
     auto parents = root->parents().result();
     EXPECT_TRUE(parents.isEmpty());
@@ -321,6 +322,12 @@ TEST(File, upload)
         auto file = uploader->finish_upload().result();
         ASSERT_EQ(0, file->size());
 
+        // Again, and check that the ETag is still the same.
+        auto old_etag = file->etag();
+        uploader = file->create_uploader(ConflictPolicy::overwrite).result();
+        file = uploader->finish_upload().result();
+        EXPECT_EQ(old_etag, file->etag());
+
         file->delete_item().waitForFinished();
     }
 
@@ -352,6 +359,7 @@ TEST(File, create_uploader)
     }
     auto file = file_fut.result();
     EXPECT_EQ(0, file->size());
+    auto old_etag = file->etag();
 
     // Create uploader for the file and write nothing.
     uploader = file->create_uploader(ConflictPolicy::overwrite).result();
@@ -371,6 +379,9 @@ TEST(File, create_uploader)
     std::string s(1000000, 'a');
     uploader->socket()->write(&s[0], s.size());
 
+    // Need to sleep here, otherwise it is possible for the
+    // upload to finish within the granularity of the file system time stamps.
+    sleep(1);
     file_fut = uploader->finish_upload();
     {
         QFutureWatcher<File::SPtr> w;
@@ -381,6 +392,7 @@ TEST(File, create_uploader)
     }
     file = file_fut.result();
     EXPECT_EQ(1000000, file->size());
+    EXPECT_NE(old_etag, file->etag());
 
     file->delete_item().waitForFinished();
 }

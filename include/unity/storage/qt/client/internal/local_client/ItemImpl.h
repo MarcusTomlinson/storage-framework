@@ -27,6 +27,7 @@ public:
     virtual ~ItemImpl();
 
     virtual QString name() const override;
+    virtual QString etag() const override;
     virtual QVariantMap metadata() const override;
     virtual QDateTime last_modified_time() const override;
     virtual QFuture<std::shared_ptr<Item>> copy(std::shared_ptr<Folder> const& new_parent, QString const& new_name) override;
@@ -47,6 +48,7 @@ protected:
 
     bool deleted_;
     QString name_;
+    QString etag_;
     QDateTime modified_time_;
     QVariantMap metadata_;
     std::mutex mutable mutex_;
