@@ -46,7 +46,6 @@ set_target_properties(storage-framework-provider PROPERTIES
   SOVERSION ${SF_PROVIDER_SOVERSION}
   VERSION ${SF_PROVIDER_LIBVERSION}
 )
-qt5_use_modules(storage-framework-provider Core DBus Network)
 target_link_libraries(storage-framework-provider
   Qt5::Core
   Qt5::DBus

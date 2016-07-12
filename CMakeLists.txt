@@ -106,6 +106,7 @@ find_package(Qt5Concurrent REQUIRED)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5DBus REQUIRED)
 find_package(Qt5Network REQUIRED)
+find_package(Qt5Test REQUIRED)
 
 include(FindPkgConfig)
 pkg_check_modules(APPARMOR_DEPS REQUIRED libapparmor)

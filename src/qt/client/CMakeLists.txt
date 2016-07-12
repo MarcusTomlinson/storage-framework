@@ -33,7 +33,6 @@ add_subdirectory(internal)
 add_library(storage-framework-qt-local-client SHARED
   $<TARGET_OBJECTS:qt-client-lib-public>
   $<TARGET_OBJECTS:qt-client-lib-local>)
-qt5_use_modules(storage-framework-qt-local-client Concurrent Core Network)
 set_target_properties(storage-framework-qt-local-client PROPERTIES
   AUTOMOC TRUE
   LINK_FLAGS "-Wl,--no-undefined"
