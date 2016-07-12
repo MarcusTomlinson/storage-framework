@@ -324,7 +324,7 @@ TEST(File, upload)
 
         // Again, and check that the ETag is still the same.
         auto old_etag = file->etag();
-        uploader = file->create_uploader(ConflictPolicy::overwrite).result();
+        uploader = file->create_uploader(ConflictPolicy::overwrite, 0).result();
         file = uploader->finish_upload().result();
         EXPECT_EQ(old_etag, file->etag());
 
