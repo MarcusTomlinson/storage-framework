@@ -38,8 +38,8 @@ namespace internal
 namespace remote_client
 {
 
-RuntimeImpl::RuntimeImpl()
-    : conn_(QDBusConnection::sessionBus())
+RuntimeImpl::RuntimeImpl(QDBusConnection const& bus)
+    : conn_(bus)
 {
     if (!conn_.isConnected())
     {

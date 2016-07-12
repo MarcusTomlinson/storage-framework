@@ -2,6 +2,8 @@
 
 #include <unity/storage/qt/client/internal/local_client/RuntimeImpl.h>
 
+#include <QDBusConnection>
+
 #include <cassert>
 
 using namespace std;
@@ -15,7 +17,7 @@ namespace qt
 namespace client
 {
 
-Runtime::SPtr Runtime::create()
+Runtime::SPtr Runtime::create(QDBusConnection const&)
 {
     auto impl = new internal::local_client::RuntimeImpl;
     Runtime::SPtr runtime(new Runtime(impl));

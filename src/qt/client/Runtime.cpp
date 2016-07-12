@@ -2,6 +2,8 @@
 
 #include <unity/storage/qt/client/internal/RuntimeBase.h>
 
+#include <QDBusConnection>
+
 #include <cassert>
 
 using namespace std;
@@ -26,6 +28,11 @@ Runtime::Runtime(internal::RuntimeBase* p)
 Runtime::~Runtime()
 {
     shutdown();
+}
+
+Runtime::SPtr Runtime::create()
+{
+    return Runtime::create(QDBusConnection::sessionBus());
 }
 
 void Runtime::shutdown()

@@ -21,7 +21,8 @@ add_library(qt-client-lib-public OBJECT
 )
 target_include_directories(qt-client-lib-public PRIVATE
   ${Qt5Core_INCLUDE_DIRS}
-  ${Qt5Network_INCLUDE_DIRS})
+  ${Qt5Network_INCLUDE_DIRS}
+  ${Qt5DBus_INCLUDE_DIRS})
 set_target_properties(qt-client-lib-public PROPERTIES
   AUTOMOC TRUE
   POSITION_INDEPENDENT_CODE TRUE
@@ -44,6 +45,7 @@ set_target_properties(storage-framework-qt-local-client PROPERTIES
 target_link_libraries(storage-framework-qt-local-client
     Qt5::Concurrent
     Qt5::Core
+    Qt5::DBus
     Qt5::Network
     ${Boost_LIBRARIES}
     ${GLIB_DEPS_LIBRARIES})
