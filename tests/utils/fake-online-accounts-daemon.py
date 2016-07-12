@@ -18,7 +18,7 @@ AUTH_SASL = 4
 
 class OAuth1:
     method = AUTH_OAUTH1
-    def __init__(self, consumer_key, consumer_secret, token, token_secret, signature_method='HMAC-SHA1'):
+    def __init__(self, consumer_key, consumer_secret, token, token_secret, signature_method="HMAC-SHA1"):
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
         self.token = token
@@ -27,11 +27,11 @@ class OAuth1:
 
     def serialise(self):
         return {
-            'ConsumerKey': GLib.Variant("s", self.consumer_key),
-            'ConsumerSecret': GLib.Variant("s", self.consumer_secret),
-            'Token': GLib.Variant("s", self.token),
-            'TokenSecret': GLib.Variant("s", self.token_secret),
-            'SignatureMethod': GLib.Variant("s", self.signature_method),
+            "ConsumerKey": GLib.Variant("s", self.consumer_key),
+            "ConsumerSecret": GLib.Variant("s", self.consumer_secret),
+            "Token": GLib.Variant("s", self.token),
+            "TokenSecret": GLib.Variant("s", self.token_secret),
+            "SignatureMethod": GLib.Variant("s", self.signature_method),
         }
 
 class OAuth2:
@@ -43,9 +43,9 @@ class OAuth2:
 
     def serialise(self):
         return {
-            'AccessToken': GLib.Variant("s", self.access_token),
-            'ExpiresIn': GLib.Variant("i", self.expires_in),
-            'GrantedScopes': GLib.Variant("as", self.granted_scopes),
+            "AccessToken": GLib.Variant("s", self.access_token),
+            "ExpiresIn": GLib.Variant("i", self.expires_in),
+            "GrantedScopes": GLib.Variant("as", self.granted_scopes),
         }
 
 class Password:
@@ -56,8 +56,8 @@ class Password:
 
     def serialise(self):
         return {
-            'Username': GLib.Variant("s", self.username),
-            'Password': GLib.Variant("s", self.password),
+            "Username": GLib.Variant("s", self.username),
+            "Password": GLib.Variant("s", self.password),
         }
 
 class Account:
@@ -69,16 +69,16 @@ class Account:
 
     def serialise(self):
         return (self.account_id, {
-            'displayName': GLib.Variant("s", self.display_name),
-            'serviceId': GLib.Variant("s", self.service_id),
-            'authMethod': GLib.Variant("i", self.credentials.method),
+            "displayName": GLib.Variant("s", self.display_name),
+            "serviceId": GLib.Variant("s", self.service_id),
+            "authMethod": GLib.Variant("i", self.credentials.method),
             })
 
 class Manager:
     def __init__(self, connection, object_path, accounts):
         self.connection = connection
 
-        with open(INTERFACE_XML, 'r') as fp:
+        with open(INTERFACE_XML, "r") as fp:
             introspection_data = Gio.DBusNodeInfo.new_for_xml(fp.read())
         connection.register_object(
             OBJECT_PATH, introspection_data.interfaces[0],
@@ -89,7 +89,7 @@ class Manager:
 
     def _on_method_call(self, connection, sender, object_path, interface_name,
                        method_name, parameters, invocation):
-        if method_name.startswith('_'):
+        if method_name.startswith("_"):
             invocation.return_error_literal(
                 Gio.DBusError.quark(),
                 Gio.DBusError.UNKNOWN_METHOD,
@@ -169,14 +169,14 @@ class Server:
     def on_name_lost(self, connection, name):
         self.main_loop.quit()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     accounts = [
-        Account(1, 'OAuth1 account', 'oauth1-service',
-                OAuth1('consumer_key', 'consumer_secret', 'token', 'token_secret')),
-        Account(2, 'OAuth2 account', 'oauth2-service',
-                OAuth2('access_token', 0, ['scope1', 'scope2'])),
-        Account(3, 'Password account', 'password-service',
-                Password('user', 'pass')),
+        Account(1, "OAuth1 account", "oauth1-service",
+                OAuth1("consumer_key", "consumer_secret", "token", "token_secret")),
+        Account(2, "OAuth2 account", "oauth2-service",
+                OAuth2("access_token", 0, ["scope1", "scope2"])),
+        Account(3, "Password account", "password-service",
+                Password("user", "pass")),
     ]
     server = Server(accounts)
     server.run()
