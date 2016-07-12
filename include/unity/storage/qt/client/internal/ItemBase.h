@@ -44,6 +44,7 @@ public:
     Root* root() const;
 
     virtual QString name() const = 0;
+    virtual QString etag() const = 0;
     virtual QVariantMap metadata() const = 0;
     virtual QDateTime last_modified_time() const = 0;
 

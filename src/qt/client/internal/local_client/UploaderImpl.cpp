@@ -194,42 +194,44 @@ void UploadWorker::finalize()
 {
     auto file = file_.lock();
     shared_ptr<FileImpl> impl;
-    if (file)
+    try
     {
-        // Upload is for a pre-existing file.
-        impl = dynamic_pointer_cast<FileImpl>(file->p_);
-
-        auto lock = impl->get_lock();
-
-        try
+        if (file)
         {
+            // Upload is for a pre-existing file.
+            impl = dynamic_pointer_cast<FileImpl>(file->p_);
+
+            auto lock = impl->get_lock();
             check_modified_time();  // Throws if time stamps don't match and policy is error_if_conflict.
-            impl->update_modified_time();
         }
-        catch (std::exception const&)
+        else
         {
-            qf_.reportException(ConflictException());  // TODO: store error details.
-            qf_.reportFinished();
-            return;
+            // This uploader was returned by FolderImpl::create_file().
+            int fd = open(path_.toStdString().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
+            if (fd == -1)
+            {
+                throw StorageException();  // TODO
+            }
+            if (close(fd) == -1)
+            {
+                throw StorageException();  // TODO
+            }
+
+            file = FileImpl::make_file(path_, root_);
+            impl = dynamic_pointer_cast<FileImpl>(file->p_);
         }
     }
-    else
+    catch (StorageException const& e)
     {
-        // This uploader was returned by FolderImpl::create_file().
-        int fd = open(path_.toStdString().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
-        if (fd == -1)
-        {
-            qf_.reportException(StorageException());  // TODO
-        }
-        if (close(fd) == -1)
-        {
-            qf_.reportException(StorageException());  // TODO
-        }
-
-        file = FileImpl::make_file(path_, root_);
-        impl = dynamic_pointer_cast<FileImpl>(file->p_);
-        auto lock = impl->get_lock();
-        impl->update_modified_time();
+        qf_.reportException(e);
+        qf_.reportFinished();
+        return;
+    }
+    catch (std::exception const&)
+    {
+        qf_.reportException(StorageException());  // TODO: store error details.
+        qf_.reportFinished();
+        return;
     }
 
     if (!output_file_->flush())
@@ -253,6 +255,18 @@ void UploadWorker::finalize()
 
     state_ = finalized;
     output_file_->close();
+    try
+    {
+
+        auto lock = impl->get_lock();
+        impl->update_modified_time();
+    }
+    catch (StorageException const& e)
+    {
+        qf_.reportException(e);
+        qf_.reportFinished();
+        return;
+    }
     qf_.reportResult(file);
     qf_.reportFinished();
 }
