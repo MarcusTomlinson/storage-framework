@@ -38,6 +38,25 @@ QString ItemImpl::name() const
     return md_.name;
 }
 
+QString ItemImpl::etag() const
+{
+    if (deleted_)
+    {
+        throw DeletedException();  // TODO
+    }
+    return md_.etag;
+}
+
+QVariantMap ItemImpl::metadata() const
+{
+    if (deleted_)
+    {
+        throw DeletedException();  // TODO
+    }
+    // TODO: need to agree on metadata representation
+    return QVariantMap();
+}
+
 QDateTime ItemImpl::last_modified_time() const
 {
     if (deleted_)

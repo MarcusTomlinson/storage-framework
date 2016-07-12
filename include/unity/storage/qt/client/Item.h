@@ -92,6 +92,21 @@ public:
     ItemType type() const;
 
     /**
+    \brief Returns a version identifier for the item.
+
+    The version identifier changes each time the file is updated (possibly
+    via some channel other than this API).
+    */
+    QString etag() const;
+
+    /**
+    \brief Returns metadata for the item.
+
+    TODO: Needs a lot more doc. Explain standard and provider-specific metadata.
+    */
+    QVariantMap metadata() const;
+
+    /**
     \brief Returns the time at which the item was last modified.
     */
     QDateTime last_modified_time() const;
@@ -172,6 +187,19 @@ public:
     */
     MetadataMap native_metadata() const;
 
+    /**
+    \brief Compares two items for equality.
+
+    Equality comparison is deep, that is, it compares the native identities of two items, not
+    their `shared_ptr` values.
+    \note If you retrieve the same item more than once (such as by calling Root::get() twice
+    with the same file ID) and then perform an upload using one of the two file handles, the
+    files still have the same identity after the upload. However, the etag() values of the two
+    file handles differ after the upload. Despite this, equal_to() still returns `true` for
+    the two files, that is, the ETags are ignored for equality comparison.
+    \return `!this->native_identity() == other->native_identity()`
+    \throws DeletedException if `this` or `other` have been deleted.
+    */
     bool equal_to(Item::SPtr const& other) const noexcept;
 
 protected:

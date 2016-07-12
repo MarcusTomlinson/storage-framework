@@ -43,6 +43,16 @@ ItemType Item::type() const
     return p_->type();
 }
 
+QString Item::etag() const
+{
+    return p_->etag();
+}
+
+QVariantMap Item::metadata() const
+{
+    return p_->metadata();
+}
+
 QDateTime Item::last_modified_time() const
 {
     return p_->last_modified_time();
