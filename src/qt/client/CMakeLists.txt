@@ -66,7 +66,6 @@ install(
 add_library(storage-framework-qt-client SHARED
     $<TARGET_OBJECTS:qt-client-lib-public>
     $<TARGET_OBJECTS:qt-client-lib-remote>)
-qt5_use_modules(storage-framework-qt-client Core DBus Network)
 set_target_properties(storage-framework-qt-client PROPERTIES
   AUTOMOC TRUE
   LINK_FLAGS "-Wl,--no-undefined"
