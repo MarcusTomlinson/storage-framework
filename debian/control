@@ -31,7 +31,8 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-Description: A library used by providers for the Storage Framework
+Description: Library for Storage Framework providers
+ Server-side runtime support for provider implementations.
 
 Package: libstorage-framework-qt-client-1-0
 Architecture: any
@@ -39,7 +40,8 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-Description: A client library for the Storage Framework
+Description: Client library for the Storage Framework
+ Runtime support for storage framework clients.
 
 Package: libstorage-framework-qt-local-client-1-0
 Architecture: any
@@ -47,7 +49,11 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-Description: A client library for the Storage Framework backed by the local file system
+Description: Client library for the Storage Framework backed by the local file system
+ A version of the client-side API that implements a local
+ file system provider. This is intended mainly for testing;
+ it allows application code to use the storage framework
+ API without requiring use of DBus and cloud service account.
 
 Package: storage-framework-client-dev
 Section: libdevel
@@ -59,6 +65,7 @@ Depends: libstorage-framework-qt-client-1-0 (= ${binary:Version}),
          qtbase5-dev,
          ${misc:Depends},
 Description: Header files for the Storage Framework client libraries
+ Development C++ headers for the client side API.
 
 Package: storage-framework-provider-dev
 Section: libdevel
@@ -69,3 +76,4 @@ Depends: libstorage-framework-provider-1-0 (= ${binary:Version}),
          libboost-thread-dev,
          ${misc:Depends},
 Description: Header files for the Storage Framework provider library
+ Development C++ headers for the provider API.
