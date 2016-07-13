@@ -53,7 +53,7 @@ private:
     QFutureInterface<T> qf_;
 };
 
-// TODO: HACK: The reply argument really should be pass by const reference, which also
+// TODO: HACK: The reply argument really should be passed by const reference, which also
 //             would make the explicit conversion of the call to QDBusPendingReply<QDBusArgs...>
 //             unnecessary. But this doesn't work with gcc 4.9: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60420
 //             Once we get rid of Vivid, this should be changed back to
