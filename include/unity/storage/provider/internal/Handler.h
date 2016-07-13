@@ -34,7 +34,7 @@ namespace storage
 namespace provider
 {
 
-class Context;
+struct Context;
 class ProviderBase;
 
 namespace internal
