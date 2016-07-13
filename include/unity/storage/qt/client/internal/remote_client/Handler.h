@@ -53,6 +53,15 @@ private:
     QFutureInterface<T> qf_;
 };
 
+// TODO: HACK: The reply argument really should be pass by const reference, which also
+//             would make the explicit conversion of the call to QDBusPendingReply<QDBusArgs...>
+//             unnecessary. But this doesn't work with gcc 4.9: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60420
+//             Once we get rid of Vivid, this should be changed back to
+//
+//             Handler<T>::Handler(QObject* parent,
+//                                 QDBusPendingReply<DBusArgs...> const& reply,
+//                                 std::function<void(decltype(reply) const&, QFutureInterface<T>&)> closure)
+
 template<typename T>
 template<typename ... DBusArgs>
 Handler<T>::Handler(QObject* parent,
@@ -69,6 +78,7 @@ Handler<T>::Handler(QObject* parent,
                               qf_.reportFinished();
                               return;
                           }
+                          // TODO: See HACK above. Should just be closure(call, qf_);
                           QDBusPendingReply<DBusArgs...> r = call;
                           closure(r, qf_);
                       })

@@ -83,7 +83,7 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {
     auto reply = provider_->Roots();
 
-    auto process_reply = [this](decltype(reply)& reply, QFutureInterface<QVector<Root::SPtr>>& qf)
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<QVector<Root::SPtr>>& qf)
     {
         QVector<shared_ptr<Root>> roots;
         auto metadata = reply.value();
