@@ -44,8 +44,8 @@ class Handler : public HandlerBase
 public:
     template<typename ... DBusArgs>
     Handler(QObject* parent,
-            QDBusPendingReply<DBusArgs...> const& reply,
-            std::function<void(decltype(reply) const&, QFutureInterface<T>&)> closure);
+            QDBusPendingReply<DBusArgs...>& reply,
+            std::function<void(decltype(reply)&, QFutureInterface<T>&)> closure);
 
     QFuture<T> future();
 
@@ -56,11 +56,11 @@ private:
 template<typename T>
 template<typename ... DBusArgs>
 Handler<T>::Handler(QObject* parent,
-                    QDBusPendingReply<DBusArgs...> const& reply,
-                    std::function<void(decltype(reply) const&, QFutureInterface<T>&)> closure)
+                    QDBusPendingReply<DBusArgs...>& reply,
+                    std::function<void(decltype(reply)&, QFutureInterface<T>&)> closure)
     : HandlerBase(parent,
                   reply,
-                  [this, closure](QDBusPendingCallWatcher const& call)
+                  [this, closure](QDBusPendingCallWatcher& call)
                       {
                           if (call.isError())
                           {
@@ -69,7 +69,8 @@ Handler<T>::Handler(QObject* parent,
                               qf_.reportFinished();
                               return;
                           }
-                          closure(call, qf_);
+                          QDBusPendingReply<DBusArgs...> r = call;
+                          closure(r, qf_);
                       })
 {
     qf_.reportStarted();

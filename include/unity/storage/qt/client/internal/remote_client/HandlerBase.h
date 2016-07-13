@@ -48,8 +48,8 @@ class HandlerBase : public QObject
 
 public:
     HandlerBase(QObject* parent,
-                QDBusPendingCall const& call,
-                std::function<void(QDBusPendingCallWatcher const&)> const& closure);
+                QDBusPendingCall& call,
+                std::function<void(QDBusPendingCallWatcher&)> const& closure);
 
 public Q_SLOTS:
     void finished(QDBusPendingCallWatcher* call);
@@ -58,7 +58,7 @@ protected:
     QDBusPendingCallWatcher watcher_;
 
 private:
-    std::function<void(QDBusPendingCallWatcher const&)> closure_;
+    std::function<void(QDBusPendingCallWatcher&)> closure_;
 };
 
 }  // namespace remote_client
