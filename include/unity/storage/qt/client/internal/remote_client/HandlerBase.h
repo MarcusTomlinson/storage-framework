@@ -49,7 +49,7 @@ class HandlerBase : public QObject
 public:
     HandlerBase(QObject* parent,
                 QDBusPendingCall const& call,
-                std::function<void(QDBusPendingCallWatcher const&)> closure);
+                std::function<void(QDBusPendingCallWatcher const&)> const& closure);
 
 public Q_SLOTS:
     void finished(QDBusPendingCallWatcher* call);
