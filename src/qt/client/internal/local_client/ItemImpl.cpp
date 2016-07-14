@@ -59,9 +59,7 @@ ItemImpl::ItemImpl(QString const& identity, ItemType type)
     assert(!identity.isEmpty());
     auto path = boost::filesystem::canonical(identity.toStdString());
     name_ = QString::fromStdString(path.filename().native());
-    auto mtime = boost::filesystem::last_write_time(native_identity().toStdString());
-    modified_time_ = QDateTime::fromTime_t(mtime);
-    etag_ = QString::number(mtime);
+    set_timestamps();
 }
 
 ItemImpl::~ItemImpl() = default;
@@ -386,30 +384,36 @@ bool ItemImpl::equal_to(ItemBase const& other) const noexcept
     return identity_ == other_impl->identity_;
 }
 
-QDateTime ItemImpl::get_modified_time()
+void ItemImpl::set_timestamps() noexcept
 {
-    assert(!mutex_.try_lock());
-
-    return modified_time_;
-}
-
-void ItemImpl::update_modified_time()
-{
-    assert(!mutex_.try_lock());
+    lock_guard<mutex> guard(mutex_);
 
     string id = identity_.toStdString();
-    auto mtime = boost::filesystem::last_write_time(id);
-    modified_time_ = QDateTime::fromTime_t(mtime);
-
     // Use nano-second resolution for the ETag, if the file system supports it.
     struct stat st;
     if (stat(id.c_str(), &st) == -1)
     {
-        QString msg = "Item: cannot stat \"" + identity_ + "\": "
-                      + QString::fromStdString(storage::internal::safe_strerror(errno));
-        throw ResourceException(msg);  // LCOV_EXCL_LINE
+        // TODO: log this error
+        modified_time_ = QDateTime::fromTime_t(0);
+        etag_ = "";
     }
+    modified_time_ = QDateTime::fromMSecsSinceEpoch(int64_t(st.st_mtim.tv_sec) * 1000 + st.st_mtim.tv_nsec / 1000000);
     etag_ = QString::number(int64_t(st.st_mtim.tv_sec) * 1000000000 + st.st_mtim.tv_nsec);
+}
+
+bool ItemImpl::has_conflict() const noexcept
+{
+    lock_guard<mutex> guard(mutex_);
+
+    string id = identity_.toStdString();
+    struct stat st;
+    if (stat(id.c_str(), &st) == -1)
+    {
+        // TODO: log this error
+        return true;
+    }
+    auto new_etag = QString::number(int64_t(st.st_mtim.tv_sec) * 1000000000 + st.st_mtim.tv_nsec);
+    return etag_ != new_etag;
 }
 
 unique_lock<mutex> ItemImpl::get_lock()

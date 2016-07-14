@@ -401,7 +401,7 @@ TEST(File, create_uploader)
 
     // Need to sleep here, otherwise it is possible for the
     // upload to finish within the granularity of the file system time stamps.
-    sleep(2);
+    sleep(1);
     file_fut = uploader->finish_upload();
     {
         QFutureWatcher<File::SPtr> w;
@@ -487,8 +487,7 @@ TEST(File, upload_conflict)
     auto uploader = file->create_uploader(ConflictPolicy::error_if_conflict).result();
 
     // Touch the file on disk to give it a new time stamp.
-    // Need to sleep because time_t provides only 1-second resolution.
-    sleep(2);
+    sleep(1);
     ASSERT_EQ(0, system((string("touch ") + file->native_identity().toStdString()).c_str()));
 
     try
@@ -898,8 +897,7 @@ TEST(Item, modified_time)
     clear_folder(root);
 
     auto now = QDateTime::currentDateTimeUtc();
-    // Need to sleep because time_t provides only 1-second resolution.
-    sleep(2);
+    sleep(1);
     auto uploader = root->create_file("file").result();
     auto file_fut = uploader->finish_upload();
     {

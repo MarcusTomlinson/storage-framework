@@ -55,8 +55,8 @@ public:
     virtual QFuture<void> delete_item() override;
     virtual bool equal_to(ItemBase const& other) const noexcept override;
 
-    QDateTime get_modified_time();
-    void update_modified_time();
+    void set_timestamps() noexcept;
+    bool has_conflict() const noexcept;
 
     std::unique_lock<std::mutex> get_lock();
 

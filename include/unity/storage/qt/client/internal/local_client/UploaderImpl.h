@@ -71,7 +71,6 @@ private:
     void read_and_write_chunk();
     void finalize();
     void handle_error(QString const& msg);
-    bool has_conflict() const;
 
     enum State { in_progress, finalized, cancelled, error };
 

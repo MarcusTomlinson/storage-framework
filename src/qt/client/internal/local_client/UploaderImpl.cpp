@@ -209,8 +209,7 @@ void UploadWorker::finalize()
         // Upload is for a pre-existing file.
         impl = dynamic_pointer_cast<FileImpl>(file->p_);
 
-        auto lock = impl->get_lock();
-        if (has_conflict())
+        if (impl->has_conflict())
         {
             make_exceptional_future(qf_, ConflictException("Uploader::finish_upload(): ETag mismatch"));
             return;
@@ -261,17 +260,7 @@ void UploadWorker::finalize()
 
     state_ = finalized;
     output_file_->close();
-    try
-    {
-
-        auto lock = impl->get_lock();
-        impl->update_modified_time();
-    }
-    catch (StorageException const& e)
-    {
-        make_exceptional_future(qf_, e);
-        return;
-    }
+    impl->set_timestamps();
     make_ready_future(qf_, file);
 }
 
@@ -285,23 +274,6 @@ void UploadWorker::handle_error(QString const& msg)
     state_ = error;
     error_msg_ = "Uploader: " + msg;
     do_finish();
-}
-
-bool UploadWorker::has_conflict() const
-{
-    if (policy_ == ConflictPolicy::overwrite)
-    {
-        return false;
-    }
-
-    auto file = file_.lock();  // TODO: Dubious, file may no longer exist?
-    assert(file);
-    auto mtime = boost::filesystem::last_write_time(file->native_identity().toStdString()); // TODO: what if this throws?
-    QDateTime modified_time;
-    modified_time.setTime_t(mtime);
-    // TODO: need to get mutex on impl?
-    auto file_impl = dynamic_pointer_cast<FileImpl>(file->p_);
-    return modified_time != file_impl->get_modified_time();
 }
 
 UploadThread::UploadThread(UploadWorker* worker)

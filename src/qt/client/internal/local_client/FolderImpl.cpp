@@ -184,7 +184,6 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         }
         p /= sanitized_name;
         create_directory(p);
-        update_modified_time();
         return make_ready_future(make_folder(QString::fromStdString(p.native()), root_));
     }
     catch (std::exception const& e)
