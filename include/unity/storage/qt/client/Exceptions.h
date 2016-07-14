@@ -37,7 +37,7 @@ namespace client
 /**
 \brief Base exception class for all exceptions returned by the API.
 */
-class UNITY_STORAGE_EXPORT StorageException : public QException //QtConcurrent::Exception
+class UNITY_STORAGE_EXPORT StorageException : public QtConcurrent::Exception
 {
 public:
     StorageException(QString const& error_message);
