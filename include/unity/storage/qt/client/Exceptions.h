@@ -161,6 +161,32 @@ public:
 };
 
 /**
+\brief Indicates that an operation failed because of a permission problem.
+*/
+class UNITY_STORAGE_EXPORT PermissionException : public StorageException
+{
+public:
+    PermissionException(QString const& error_message);
+    ~PermissionException();
+
+    virtual PermissionException* clone() const override;
+    virtual void raise() const override;
+};
+
+/**
+\brief Indicates that an update failed because the provider ran out of space.
+*/
+class UNITY_STORAGE_EXPORT QuotaException : public StorageException
+{
+public:
+    QuotaException(QString const& error_message);
+    ~QuotaException();
+
+    virtual QuotaException* clone() const override;
+    virtual void raise() const override;
+};
+
+/**
 \brief Indicates that an upload or download was cancelled before it could complete.
 */
 class UNITY_STORAGE_EXPORT CancelledException : public StorageException

@@ -183,6 +183,40 @@ void ConflictException::raise() const
     throw *this;
 }
 
+PermissionException::PermissionException(QString const& error_message)
+    : StorageException(error_message)
+{
+}
+
+PermissionException::~PermissionException() = default;
+
+PermissionException* PermissionException::clone() const
+{
+    return new PermissionException(*this);
+}
+
+void PermissionException::raise() const
+{
+    throw *this;
+}
+
+QuotaException::QuotaException(QString const& error_message)
+    : StorageException(error_message)
+{
+}
+
+QuotaException::~QuotaException() = default;
+
+QuotaException* QuotaException::clone() const
+{
+    return new QuotaException(*this);
+}
+
+void QuotaException::raise() const
+{
+    throw *this;
+}
+
 CancelledException::CancelledException(QString const& error_message)
     : StorageException(error_message)
 {
