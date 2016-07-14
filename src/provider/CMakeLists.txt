@@ -11,6 +11,8 @@ qt5_add_dbus_adaptor(generated_files ${CMAKE_SOURCE_DIR}/data/provider.xml unity
 set_source_files_properties(bus.xml PROPERTIES CLASSNAME BusInterface)
 qt5_add_dbus_interface(generated_files bus.xml businterface)
 
+set_source_files_properties(${generated_files} PROPERTIES GENERATED TRUE)
+
 add_library(storage-framework-provider SHARED
   DownloadJob.cpp
   ProviderBase.cpp
@@ -39,8 +41,13 @@ add_library(storage-framework-provider SHARED
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/UploadJobImpl.h
   ${generated_files})
 
-set_target_properties(storage-framework-provider PROPERTIES AUTOMOC TRUE)
-qt5_use_modules(storage-framework-provider Core DBus Network)
+set_target_properties(storage-framework-provider PROPERTIES
+  AUTOMOC TRUE
+  LINK_FLAGS "-Wl,--no-undefined"
+  OUTPUT_NAME "storage-framework-provider-${SF_PROVIDER_API_VERSION}"
+  SOVERSION ${SF_PROVIDER_SOVERSION}
+  VERSION ${SF_PROVIDER_LIBVERSION}
+)
 target_link_libraries(storage-framework-provider
   Qt5::Core
   Qt5::DBus
@@ -48,4 +55,18 @@ target_link_libraries(storage-framework-provider
   ${Boost_LIBRARIES}
   ${APPARMOR_DEPS_LDFLAGS}
   ${ONLINEACCOUNTS_DEPS_LDFLAGS}
+)
+
+install(
+  TARGETS storage-framework-provider
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+configure_file(
+  storage-framework-provider.pc.in
+  storage-framework-provider-${SF_PROVIDER_API_VERSION}.pc
+)
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-provider-${SF_PROVIDER_API_VERSION}.pc
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )

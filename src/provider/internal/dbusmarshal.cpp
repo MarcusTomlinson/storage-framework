@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: James Henstridge <james.henstridge@canonical.com>
+ */
+
 #include <unity/storage/provider/internal/dbusmarshal.h>
 #include <unity/storage/provider/ProviderBase.h>
 
@@ -33,7 +51,7 @@ QDBusArgument& operator<<(QDBusArgument& argument, Item const& item)
     return argument;
 }
 
-QDBusArgument const& operator>>(QDBusArgument const& argument, Item& item)
+QDBusArgument const& operator>>(QDBusArgument const&, Item&)
 {
     throw std::runtime_error("Item decode not implemented");
 }
@@ -49,7 +67,7 @@ QDBusArgument& operator<<(QDBusArgument& argument, ItemList const& items)
     return argument;
 }
 
-QDBusArgument const& operator>>(QDBusArgument const& argument, ItemList& items)
+QDBusArgument const& operator>>(QDBusArgument const&, ItemList&)
 {
     throw std::runtime_error("std::vector<Item> decode not implemented");
 }

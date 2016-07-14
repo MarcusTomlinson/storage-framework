@@ -1,14 +1,39 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/local_client/ItemImpl.h>
 
+#include <unity/storage/internal/safe_strerror.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/local_client/RootImpl.h>
 #include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
 
 #include <boost/algorithm/string/predicate.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QtConcurrent>
+#pragma GCC diagnostic pop
+
+#include <sys/stat.h>
 
 #include <cassert>
 
@@ -36,6 +61,7 @@ ItemImpl::ItemImpl(QString const& identity, ItemType type)
     name_ = QString::fromStdString(path.filename().native());
     auto mtime = boost::filesystem::last_write_time(native_identity().toStdString());
     modified_time_ = QDateTime::fromTime_t(mtime);
+    etag_ = QString::number(mtime);
 }
 
 ItemImpl::~ItemImpl() = default;
@@ -49,6 +75,17 @@ QString ItemImpl::name() const
         throw deleted_ex("Item::name()");
     }
     return name_;
+}
+
+QString ItemImpl::etag() const
+{
+    lock_guard<mutex> guard(mutex_);
+
+    if (deleted_)
+    {
+        throw deleted_ex("Item::etag()");
+    }
+    return etag_;
 }
 
 QVariantMap ItemImpl::metadata() const
@@ -117,11 +154,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         lock_guard<mutex> this_guard(This->mutex_, std::adopt_lock);
         lock_guard<mutex> other_guard(new_parent_impl->mutex_, adopt_lock);
 
-        if (This->deleted_)
-        {
-            throw This->deleted_ex("Item::copy");
-        }
-        if (new_parent_impl->deleted_)
+        if (This->deleted_ || new_parent_impl->deleted_)
         {
             throw This->deleted_ex("Item::copy");
         }
@@ -204,11 +237,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         lock_guard<mutex> this_guard(This->mutex_, std::adopt_lock);
         lock_guard<mutex> other_guard(new_parent_impl->mutex_, adopt_lock);
 
-        if (This->deleted_)
-        {
-            throw This->deleted_ex("Item::move");
-        }
-        if (new_parent_impl->deleted_)
+        if (This->deleted_ || new_parent_impl->deleted_)
         {
             throw This->deleted_ex("Item::move");
         }
@@ -265,17 +294,13 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
     QFutureInterface<QVector<Folder::SPtr>> qf;
     if (deleted_)
     {
-        qf.reportException(deleted_ex("Item::parents()"));
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<QVector<Folder::SPtr>>(deleted_ex("Item::parents()"));
     }
 
     Root::SPtr root = root_.lock();
     if (!root)
     {
-        qf.reportException(RuntimeDestroyedException("Item::parents()"));
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<QVector<Folder::SPtr>>(RuntimeDestroyedException("Item::parents()"));
     }
 
     using namespace boost::filesystem;
@@ -293,9 +318,7 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
     {
         results.append(root);
     }
-    qf.reportResult(results);
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future(results);
 }
 
 QVector<QString> ItemImpl::parent_ids() const
@@ -374,8 +397,19 @@ void ItemImpl::update_modified_time()
 {
     assert(!mutex_.try_lock());
 
-    auto mtime = boost::filesystem::last_write_time(native_identity().toStdString());
+    string id = identity_.toStdString();
+    auto mtime = boost::filesystem::last_write_time(id);
     modified_time_ = QDateTime::fromTime_t(mtime);
+
+    // Use nano-second resolution for the ETag, if the file system supports it.
+    struct stat st;
+    if (stat(id.c_str(), &st) == -1)
+    {
+        QString msg = "Item: cannot stat \"" + identity_ + "\": "
+                      + QString::fromStdString(storage::internal::safe_strerror(errno));
+        throw ResourceException(msg);  // LCOV_EXCL_LINE
+    }
+    etag_ = QString::number(int64_t(st.st_mtim.tv_sec) * 1000000000 + st.st_mtim.tv_nsec);
 }
 
 unique_lock<mutex> ItemImpl::get_lock()

@@ -1,6 +1,25 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/local_client/AccountImpl.h>
 
 #include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/RootImpl.h>
 
 #pragma GCC diagnostic push
@@ -107,23 +126,16 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {
     using namespace boost::filesystem;
 
-    QFutureInterface<QVector<Root::SPtr>> qf;
-
     if (!roots_.isEmpty())
     {
-        qf.reportResult(roots_);
-        qf.reportFinished();
-        return qf.future();
+        return make_ready_future(roots_);
     }
 
     // Create the root on first access.
     auto rpath = canonical(get_data_dir()).native();
     auto root = RootImpl::make_root(QString::fromStdString(rpath), public_instance_);
     roots_.append(root);
-
-    qf.reportResult(roots_);
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future(roots_);
 }
 
 }  // namespace local_client

@@ -1,6 +1,25 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/local_client/RootImpl.h>
 
 #include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
 #include <unity/storage/qt/client/Root.h>
 
@@ -54,10 +73,7 @@ QString RootImpl::name() const
 
 QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 {
-    QFutureInterface<QVector<Folder::SPtr>> qf;
-    qf.reportResult(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
 }
 
 QVector<QString> RootImpl::parent_ids() const
@@ -68,46 +84,37 @@ QVector<QString> RootImpl::parent_ids() const
 QFuture<void> RootImpl::delete_item()
 {
     // Cannot delete root.
-    QFutureInterface<void> qf;
-    qf.reportException(LogicException("Root::delete_item(): Cannot delete root folder"));
-    qf.reportFinished();
-    return qf.future();
+    return make_exceptional_future(LogicException("Root::delete_item(): Cannot delete root folder"));
 }
 
 QFuture<int64_t> RootImpl::free_space_bytes() const
 {
     using namespace boost::filesystem;
 
-    QFutureInterface<int64_t> qf;
     try
     {
         space_info si = space(identity_.toStdString());
-        qf.reportResult(si.available);
+        return make_ready_future<int64_t>(si.available);
     }
     catch (std::exception const& e)
     {
-        qf.reportException(ResourceException(QString("Root::free_space_bytes(): ") + e.what()));
+        return make_exceptional_future<int64_t>(ResourceException(QString("Root::free_space_bytes(): ") + e.what()));
     }
-    qf.reportFinished();
-    return qf.future();
 }
 
 QFuture<int64_t> RootImpl::used_space_bytes() const
 {
     using namespace boost::filesystem;
 
-    QFutureInterface<int64_t> qf;
     try
     {
         space_info si = space(identity_.toStdString());
-        qf.reportResult(si.capacity - si.available);
+        return make_ready_future<int64_t>(si.capacity - si.available);
     }
     catch (std::exception const& e)
     {
-        qf.reportException(ResourceException(QString("Root::used_space_bytes(): ") + e.what()));
+        return make_exceptional_future<int64_t>(ResourceException(QString("Root::used_space_bytes(): ") + e.what()));
     }
-    qf.reportFinished();
-    return qf.future();
 }
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
@@ -120,7 +127,8 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         path id_path = native_identity.toStdString();
         if (!id_path.is_absolute())
         {
-            throw InvalidArgumentException("Root::get(): identity must be an absolute path");
+            QString msg = "Root::get(): identity must be an absolute path";
+            return make_exceptional_future<Item::SPtr>(InvalidArgumentException(msg));
         }
 
         // Make sure that native_identity is contained in or equal to the root path.
@@ -132,13 +140,14 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         {
             // native_identity can't possibly point at something below the root.
             QString msg = QString("Root::get(): identity \"") + native_identity + "\" points outside the root folder";
-            throw InvalidArgumentException(msg);
+            return make_exceptional_future<Item::SPtr>(InvalidArgumentException(msg));
         }
 
         // Don't allow reserved files to be found.
         if (is_reserved_path(id_path))
         {
-            throw NotExistsException(QString("Root::get(): no such item: ") + native_identity, native_identity);
+            QString msg = "Root::get(): no such item: " + native_identity;
+            return make_exceptional_future<Item::SPtr>(NotExistsException(msg, native_identity));
         }
 
         file_status s = status(id_path);
@@ -147,32 +156,21 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         {
             if (id_path == root_path)
             {
-                qf.reportResult(make_root(path, account_));
+                return make_ready_future<Item::SPtr>(make_root(path, account_));
             }
-            else
-            {
-                qf.reportResult(make_folder(path, root_));
-            }
+            return make_ready_future<Item::SPtr>(make_folder(path, root_));
         }
-        else if (is_regular_file(s))
+        if (is_regular_file(s))
         {
-            qf.reportResult(FileImpl::make_file(path, root_));
+            return make_ready_future<Item::SPtr>(FileImpl::make_file(path, root_));
         }
-        else
-        {
-            // Ignore everything that's not a directory or file.
-        }
-    }
-    catch (StorageException const& e)
-    {
-        qf.reportException(e);
+        QString msg = "Root::get(): no such item: " + native_identity;
+        return make_exceptional_future<Item::SPtr>(NotExistsException(msg, native_identity));
     }
     catch (std::exception const& e)
     {
-        qf.reportException(ResourceException(QString("Root::get(): ") + e.what()));
+        return make_exceptional_future<Item::SPtr>(ResourceException(QString("Root::get(): ") + e.what()));
     }
-    qf.reportFinished();
-    return qf.future();
 }
 
 Root::SPtr RootImpl::make_root(QString const& identity, std::weak_ptr<Account> const& account)

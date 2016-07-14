@@ -1,15 +1,37 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/local_client/FolderImpl.h>
 
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/Folder.h>
 #include <unity/storage/qt/client/Uploader.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 
 #include <boost/algorithm/string/predicate.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QtConcurrent>
+#pragma GCC diagnostic pop
 
 using namespace std;
 
@@ -146,9 +168,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     QFutureInterface<Folder::SPtr> qf;
     if (deleted_)
     {
-        qf.reportException(deleted_ex("Folder::create_folder()"));
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<Folder::SPtr>(deleted_ex("Folder::lookup()"));
     }
 
     try
@@ -160,35 +180,26 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         if (is_reserved_path(sanitized_name))
         {
             QString msg = "Folder::create_folder(): names beginning with " + QString(TMPFILE_PREFIX) + " are reserved";
-            throw InvalidArgumentException(msg);
+            return make_exceptional_future<Folder::SPtr>(InvalidArgumentException(msg));
         }
         p /= sanitized_name;
         create_directory(p);
         update_modified_time();
-        qf.reportResult(make_folder(QString::fromStdString(p.native()), root_));
-    }
-    catch (StorageException const& e)
-    {
-        qf.reportException(e);
+        return make_ready_future(make_folder(QString::fromStdString(p.native()), root_));
     }
     catch (std::exception const& e)
     {
-        qf.reportException(ResourceException(QString("Folder::create_folder: ") + e.what()));
+        return make_exceptional_future<Folder::SPtr>(ResourceException(QString("Folder::create_folder: ") + e.what()));
     }
-    qf.reportFinished();
-    return qf.future();
 }
 
-QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
+QFuture<Uploader::SPtr> FolderImpl::create_file(QString const& name)
 {
     unique_lock<mutex> guard(mutex_);
 
-    QFutureInterface<shared_ptr<Uploader>> qf;
     if (deleted_)
     {
-        qf.reportException(deleted_ex("Folder::create_file()"));
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<Uploader::SPtr>(deleted_ex("Folder::create_file()"));
     }
 
     try
@@ -200,31 +211,25 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         if (is_reserved_path(sanitized_name))
         {
             QString msg = "Folder::create_file(): names beginning with " + QString(TMPFILE_PREFIX) + " are reserved";
-            throw InvalidArgumentException(msg);
+            return make_exceptional_future<Uploader::SPtr>(InvalidArgumentException(msg));
         }
         p /= sanitized_name;
         if (exists(p))
         {
             QString msg = "Folder::create_file(): item with name \"" + name + "\" exists already";
-            throw ExistsException(msg, identity_, name);
+            return make_exceptional_future<Uploader::SPtr>(ExistsException(msg, native_identity(), name));
         }
-        auto impl = new UploaderImpl(shared_ptr<File>(),
+        auto impl = new UploaderImpl(File::SPtr(),
                                      QString::fromStdString(p.native()),
                                      ConflictPolicy::error_if_conflict,
                                      root_);
-        shared_ptr<Uploader> uploader(new Uploader(impl));
-        qf.reportResult(uploader);
-    }
-    catch (StorageException const& e)
-    {
-        qf.reportException(e);
+        Uploader::SPtr uploader(new Uploader(impl));
+        return make_ready_future(uploader);
     }
     catch (std::exception const& e)
     {
-        qf.reportException(ResourceException(QString("Folder::create_file: ") + e.what()));
+        return make_exceptional_future<Uploader::SPtr>(ResourceException(QString("Folder::create_file: ") + e.what()));
     }
-    qf.reportFinished();
-    return qf.future();
 }
 
 Folder::SPtr FolderImpl::make_folder(QString const& identity, weak_ptr<Root> root)

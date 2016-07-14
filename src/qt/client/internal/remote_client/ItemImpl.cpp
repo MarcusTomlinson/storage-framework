@@ -1,15 +1,29 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/remote_client/ItemImpl.h>
 
 #include "ProviderInterface.h"
-// TODO: check this include list
-#include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/Account.h>
-#include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
-#include <unity/storage/qt/client/internal/remote_client/CopyHandler.h>
-#include <unity/storage/qt/client/internal/remote_client/DeleteHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
-#include <unity/storage/qt/client/internal/remote_client/MoveHandler.h>
+#include <unity/storage/qt/client/internal/remote_client/Handler.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
 
 using namespace std;
@@ -42,6 +56,15 @@ QString ItemImpl::name() const
     return md_.name;
 }
 
+QString ItemImpl::etag() const
+{
+    if (deleted_)
+    {
+        throw deleted_ex("Item::etag()");
+    }
+    return md_.etag;
+}
+
 QVariantMap ItemImpl::metadata() const
 {
     if (deleted_)
@@ -66,12 +89,24 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
 {
     if (deleted_)
     {
-        QFutureInterface<shared_ptr<Item>> qf;
-        qf.reportException(deleted_ex("Item::copy()"));
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<shared_ptr<Item>>(deleted_ex("Item::copy()"));
     }
-    auto handler = new CopyHandler(provider().Copy(md_.item_id, new_parent->native_identity(), new_name), root_);
+
+    auto reply = provider().Copy(md_.item_id, new_parent->native_identity(), new_name);
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Item>>& qf)
+    {
+        auto md = reply.value();
+        if (md.type == ItemType::root)
+        {
+            // TODO: log server error here
+            QString msg = "File::create_folder(): impossible item type returned by server: "
+                          + QString::number(int(md.type));
+            return make_exceptional_future(qf, LocalCommsException(msg));
+        }
+        return make_ready_future(qf, ItemImpl::make_item(md, root_));
+    };
+
+    auto handler = new Handler<shared_ptr<Item>>(this, reply, process_reply);
     return handler->future();
 }
 
@@ -79,12 +114,23 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
 {
     if (deleted_)
     {
-        QFutureInterface<shared_ptr<Item>> qf;
-        qf.reportException(deleted_ex("Item::move()"));
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<shared_ptr<Item>>(deleted_ex("Item::move()"));
     }
-    auto handler = new MoveHandler(provider().Move(md_.item_id, new_parent->native_identity(), new_name), root_);
+
+    auto reply = provider().Move(md_.item_id, new_parent->native_identity(), new_name);
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Item>>& qf)
+    {
+        auto md = reply.value();
+        if (md.type == ItemType::root)
+        {
+            // TODO: log server error here
+            QString msg = "Item::move(): impossible root item returned by server";
+            return make_exceptional_future(qf, LocalCommsException(msg));
+        }
+        return make_ready_future(qf, ItemImpl::make_item(md, root_));
+    };
+
+    auto handler = new Handler<shared_ptr<Item>>(this, reply, process_reply);
     return handler->future();
 }
 
@@ -92,10 +138,7 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
 {
     if (deleted_)
     {
-        QFutureInterface<QVector<shared_ptr<Folder>>> qf;
-        qf.reportException(deleted_ex("Item::parents()"));
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<QVector<Folder::SPtr>>(deleted_ex("Item::parents()"));
     }
     // TODO, need different metadata representation, affects xml
     return QFuture<QVector<Folder::SPtr>>();
@@ -115,13 +158,17 @@ QFuture<void> ItemImpl::delete_item()
 {
     if (deleted_)
     {
-        QFutureInterface<void> qf;
-        qf.reportException(deleted_ex("Item::delete_item()"));
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future(deleted_ex("Item::delete_item()"));
     }
-    auto handler = new DeleteHandler(provider().Delete(md_.item_id),
-                                     dynamic_pointer_cast<ItemImpl>(shared_from_this()));
+
+    auto reply = provider().Delete(md_.item_id);
+    auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>& qf)
+    {
+        deleted_ = true;
+        make_ready_future(qf);
+    };
+
+    auto handler = new Handler<void>(this, reply, process_reply);
     return handler->future();
 }
 
@@ -145,6 +192,32 @@ ProviderInterface& ItemImpl::provider() const noexcept
     auto root_impl = dynamic_pointer_cast<RootImpl>(root_.lock()->p_);
     auto account_impl = dynamic_pointer_cast<AccountImpl>(root_impl->account_.lock()->p_);
     return account_impl->provider();
+}
+
+shared_ptr<Item> ItemImpl::make_item(storage::internal::ItemMetadata const& md, std::weak_ptr<Root> root)
+{
+    assert(md.type == ItemType::file || md.type == ItemType::folder);
+
+    shared_ptr<Item> item;
+    switch (md.type)
+    {
+        case ItemType::file:
+        {
+            item = FileImpl::make_file(md, root);
+            break;
+        }
+        case ItemType::folder:
+        {
+            item = FolderImpl::make_folder(md, root);
+            break;
+        }
+        default:
+        {
+            abort();  // LCOV_EXCL_LINE  // Impossible
+        }
+    }
+    assert(item);
+    return item;
 }
 
 DeletedException ItemImpl::deleted_ex(QString const& method) const noexcept

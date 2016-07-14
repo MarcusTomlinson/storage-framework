@@ -1,13 +1,31 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 
 #include "ProviderInterface.h"
 #include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/Account.h>
-#include <unity/storage/qt/client/Exceptions.h>
-#include <unity/storage/qt/client/Runtime.h>
+#include <unity/storage/qt/client/internal/make_future.h>
+#include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
-#include <unity/storage/qt/client/internal/remote_client/RootsHandler.h>
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
+#include <unity/storage/qt/client/Runtime.h>
 
 using namespace std;
 
@@ -42,7 +60,7 @@ AccountImpl::AccountImpl(weak_ptr<Runtime> const& runtime,
     provider_.reset(new ProviderInterface(BUS_NAME, bus_path, rt_impl->connection()));
     if (!provider_->isValid())
     {
-        throw LocalCommsException("error");  // TODO, details
+        throw LocalCommsException("AccountImpl(): " + provider_->lastError().message());
     }
 }
 
@@ -63,7 +81,26 @@ QString AccountImpl::description() const
 
 QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {
-    auto handler = new RootsHandler(provider_->Roots(), public_instance_);
+    auto reply = provider_->Roots();
+
+    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<QVector<Root::SPtr>>& qf)
+    {
+        QVector<shared_ptr<Root>> roots;
+        auto metadata = reply.value();
+        for (auto const& md : metadata)
+        {
+            if (md.type != ItemType::root)
+            {
+                // TODO: log impossible item type here
+                continue;  // LCOV_EXCL_LINE
+            }
+            auto root = RootImpl::make_root(md, public_instance_);
+            roots.append(root);
+        }
+        make_ready_future(qf, roots);
+    };
+
+    auto handler = new Handler<QVector<Root::SPtr>>(this, reply, process_reply);
     return handler->future();
 }
 
@@ -78,5 +115,3 @@ ProviderInterface& AccountImpl::provider()
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "AccountImpl.moc"

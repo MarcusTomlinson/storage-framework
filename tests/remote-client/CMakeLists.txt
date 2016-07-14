@@ -4,7 +4,6 @@ set_target_properties(remote-client_test PROPERTIES AUTOMOC TRUE)
 add_definitions(-DTEST_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 include_directories(${GLIB_DEPS_INCLUDE_DIRS})
 
-qt5_use_modules(remote-client_test Test)
 target_link_libraries(remote-client_test
     storage-framework-qt-client
     Qt5::Network

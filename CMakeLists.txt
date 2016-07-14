@@ -4,9 +4,23 @@ if (NOT DEFINED CMAKE_INSTALL_PREFIX)
     set(LOCAL_INSTALL "ON")
 endif()
 
-project(storage-framework C CXX)
-
 cmake_minimum_required(VERSION 3.0.2)
+project(storage-framework VERSION "0.1" LANGUAGES C CXX)
+
+# These variables should be incremented when we wish to create a new
+# source incompatible version of the the library where users of the
+# old API could will not compile against the new one.  It is not
+# necessary to increment this for ABI breaks that are source compatible.
+set(SF_PROVIDER_API_VERSION "1")
+set(SF_CLIENT_API_VERSION "1")
+
+# These two should be incremented when the ABI changes.
+set(SF_PROVIDER_SOVERSION "0")
+set(SF_CLIENT_SOVERSION "0")
+
+set(SF_PROVIDER_LIBVERSION "${SF_PROVIDER_SOVERSION}.${PROJECT_VERSION}")
+set(SF_CLIENT_LIBVERSION "${SF_CLIENT_SOVERSION}.${PROJECT_VERSION}")
+
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower) # Build types should always be lower case
 
@@ -85,11 +99,14 @@ enable_testing()
 
 include(EnableCoverageReport)
 
+include(GNUInstallDirs)
+
 find_package(Boost COMPONENTS filesystem system thread REQUIRED)
 find_package(Qt5Concurrent REQUIRED)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5DBus REQUIRED)
 find_package(Qt5Network REQUIRED)
+find_package(Qt5Test REQUIRED)
 
 include(FindPkgConfig)
 pkg_check_modules(APPARMOR_DEPS REQUIRED libapparmor)

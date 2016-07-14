@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/client-api.h>
 
 #include <gtest/gtest.h>
@@ -70,7 +88,7 @@ Folder::SPtr get_parent(Item::SPtr const& item)
     return parents[0];
 }
 
-void clear_folder(Folder::SPtr folder)
+void clear_folder(Folder::SPtr const& folder)
 {
     auto list_fut = folder->list();
     {
@@ -156,6 +174,7 @@ TEST(Root, basic)
     EXPECT_EQ(acc.get(), root->account());
     EXPECT_EQ(ItemType::root, root->type());
     EXPECT_EQ("Root", root->name());
+    EXPECT_NE("", root->etag());
 
     auto parents = root->parents().result();
     EXPECT_TRUE(parents.isEmpty());
@@ -236,6 +255,18 @@ TEST(Folder, basic)
     EXPECT_EQ("some_upload", file->name());
     EXPECT_EQ(0, file->size());
     EXPECT_EQ("some_id", file->native_identity());
+
+    // For coverage: getting a file must return the correct one.
+    auto get_fut = root->get("child_id");
+    {
+        QFutureWatcher<Item::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(get_fut);
+        assert(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    file = dynamic_pointer_cast<File>(get_fut.result());
+    EXPECT_EQ("child_id", file->native_identity());
+    EXPECT_EQ("Child", file->name());
 
 #if 0
     // Create a folder and check that it was created with correct type and name.

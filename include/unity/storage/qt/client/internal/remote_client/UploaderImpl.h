@@ -1,10 +1,28 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #pragma once
 
 #include <unity/storage/qt/client/internal/UploaderBase.h>
 
-#include <QLocalSocket>
-#include <QString>
+#include <QDBusUnixFileDescriptor>
 
+class QLocalSocket;
 class ProviderInterface;
 
 namespace unity
@@ -26,11 +44,9 @@ namespace remote_client
 
 class UploaderImpl : public UploaderBase
 {
-    Q_OBJECT
-
 public:
-    UploaderImpl(QString upload_id,
-                 int fd,
+    UploaderImpl(QString const& upload_id,
+                 QDBusUnixFileDescriptor fd,
                  QString const& old_etag,
                  std::weak_ptr<Root> root,
                  ProviderInterface& provider);
@@ -41,13 +57,14 @@ public:
     virtual QFuture<void> cancel() noexcept override;
 
     static std::shared_ptr<Uploader> make_uploader(QString const& upload_id,
-                                                   int fd,
+                                                   QDBusUnixFileDescriptor fd,
                                                    QString const& old_etag,
                                                    std::weak_ptr<Root> root,
                                                    ProviderInterface& provider);
 
 private:
     QString upload_id_;
+    QDBusUnixFileDescriptor fd_;
     QString old_etag_;
     std::weak_ptr<Root> root_;
     ProviderInterface& provider_;

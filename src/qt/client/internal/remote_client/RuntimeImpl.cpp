@@ -1,8 +1,27 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
 
 #include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/dbusmarshal.h>
 
@@ -105,13 +124,12 @@ void RuntimeImpl::manager_ready()
             impl->set_public_instance(acc);
             accounts.append(acc);
         }
-        qf_.reportResult(accounts);
+        make_ready_future(qf_, accounts);
     }
     catch (StorageException const& e)
     {
-        qf_.reportException(e);
+        make_exceptional_future(qf_, e);
     }
-    qf_.reportFinished();
 }
 
 void RuntimeImpl::timeout()
@@ -126,5 +144,3 @@ void RuntimeImpl::timeout()
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "RuntimeImpl.moc"

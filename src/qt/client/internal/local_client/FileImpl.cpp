@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
 
 #include <unity/storage/qt/client/Downloader.h>
@@ -5,6 +23,7 @@
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/local_client/DownloaderImpl.h>
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/Uploader.h>
 
 using namespace std;
@@ -64,34 +83,25 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
 {
     lock_guard<mutex> guard(mutex_);
 
-    QFutureInterface<Uploader::SPtr> qf;
     if (deleted_)
     {
-        qf.reportException(deleted_ex("File::create_uploader()"));
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<Uploader::SPtr>(deleted_ex("File::create_uploader()"));
     }
 
     auto file = dynamic_pointer_cast<File>(public_instance_.lock());
     assert(file);
     auto impl(new UploaderImpl(file, identity_, policy, root_));
     Uploader::SPtr ul(new Uploader(impl));
-
-    qf.reportResult(ul);
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future(ul);
 }
 
 QFuture<Downloader::SPtr> FileImpl::create_downloader()
 {
     lock_guard<mutex> guard(mutex_);
 
-    QFutureInterface<Downloader::SPtr> qf;
     if (deleted_)
     {
-        qf.reportException(deleted_ex("File::create_downloader()"));
-        qf.reportFinished();
-        return qf.future();
+        return make_exceptional_future<Downloader::SPtr>(deleted_ex("File::create_downloader()"));
     }
 
     auto pi = public_instance_.lock();
@@ -99,10 +109,7 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
     auto file_ptr = static_pointer_cast<File>(pi);
     auto impl = new DownloaderImpl(file_ptr);
     Downloader::SPtr dl(new Downloader(impl));
-
-    qf.reportResult(dl);
-    qf.reportFinished();
-    return qf.future();
+    return make_ready_future(dl);
 }
 
 File::SPtr FileImpl::make_file(QString const& identity, weak_ptr<Root> root)

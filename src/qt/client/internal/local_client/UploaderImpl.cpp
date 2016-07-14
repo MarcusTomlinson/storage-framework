@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 
 #include <unity/storage/internal/safe_strerror.h>
@@ -5,6 +23,7 @@
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 
 #include <QLocalSocket>
 
@@ -76,9 +95,10 @@ void UploadWorker::start_uploading() noexcept
         tmp_fd_.reset(mkstemp(const_cast<char*>(tmpfile.data())));
         if (tmp_fd_.get() == -1)
         {
+            error_msg_ = "Uploader: cannot create temp file \"" + QString::fromStdString(tmpfile)
+                         + "\": " + QString::fromStdString(storage::internal::safe_strerror(errno));
             worker_initialized_.reportFinished();
             state_ = error;
-            // TODO: store error details.
             do_finish();
             return;
         }
@@ -118,14 +138,12 @@ void UploadWorker::do_finish()
         case cancelled:
         {
             QString msg = "Uploader::finish_upload(): upload was cancelled";
-            qf_.reportException(CancelledException(msg));
-            qf_.reportFinished();
+            make_exceptional_future(qf_, CancelledException(msg));
             break;
         }
         case error:
         {
-            qf_.reportException(ResourceException(error_msg_));
-            qf_.reportFinished();
+            make_exceptional_future(qf_, ResourceException(error_msg_));
             break;
         }
         default:
@@ -192,48 +210,39 @@ void UploadWorker::finalize()
         impl = dynamic_pointer_cast<FileImpl>(file->p_);
 
         auto lock = impl->get_lock();
-
-        try
+        if (has_conflict())
         {
-            check_modified_time();  // Throws if time stamps don't match and policy is error_if_conflict.
-            impl->update_modified_time();
-        }
-        catch (std::exception const&)
-        {
-            qf_.reportException(ConflictException("Uploader::finish_upload(): eTag mismatch"));
-            qf_.reportFinished();
+            make_exceptional_future(qf_, ConflictException("Uploader::finish_upload(): ETag mismatch"));
             return;
         }
     }
     else
     {
         // This uploader was returned by FolderImpl::create_file().
-        string path = path_.toStdString();
-        int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
+        int fd = open(path_.toStdString().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
         if (fd == -1)
         {
             QString msg = "Uploader::finish_upload(): item with name \"" + path_ + "\" exists already";
-            QString name = QString::fromStdString(boost::filesystem::path(path).filename().native());
-            qf_.reportException(ExistsException(msg, path_, name));
+            QString name = QString::fromStdString(boost::filesystem::path(path_.toStdString()).filename().native());
+            make_exceptional_future(qf_, ExistsException(msg, path_, name));
+            return;
         }
         if (close(fd) == -1)
         {
             QString msg = "Uploader::finish_upload(): cannot close tmp file: "
                           + QString::fromStdString(storage::internal::safe_strerror(errno));
-            qf_.reportException(ResourceException(msg));
+            make_exceptional_future(qf_, ResourceException(msg));
+            return;
         }
 
         file = FileImpl::make_file(path_, root_);
         impl = dynamic_pointer_cast<FileImpl>(file->p_);
-        auto lock = impl->get_lock();
-        impl->update_modified_time();
     }
 
     if (!output_file_->flush())
     {
         QString msg = "Uploader::finish_upload(): cannot flush output file: " + output_file_->errorString();
-        qf_.reportException(ResourceException(msg));
-        qf_.reportFinished();
+        make_exceptional_future(qf_, ResourceException(msg));
         return;
     }
 
@@ -246,15 +255,24 @@ void UploadWorker::finalize()
         state_ = error;
         QString msg = "Uploader::finish_upload(): linkat \"" + file->native_identity() + "\" failed: "
                       + QString::fromStdString(storage::internal::safe_strerror(errno));
-        qf_.reportException(ResourceException(msg));
-        qf_.reportFinished();
+        make_exceptional_future(qf_, ResourceException(msg));
         return;
     }
 
     state_ = finalized;
     output_file_->close();
-    qf_.reportResult(file);
-    qf_.reportFinished();
+    try
+    {
+
+        auto lock = impl->get_lock();
+        impl->update_modified_time();
+    }
+    catch (StorageException const& e)
+    {
+        make_exceptional_future(qf_, e);
+        return;
+    }
+    make_ready_future(qf_, file);
 }
 
 void UploadWorker::handle_error(QString const& msg)
@@ -269,21 +287,21 @@ void UploadWorker::handle_error(QString const& msg)
     do_finish();
 }
 
-void UploadWorker::check_modified_time() const
+bool UploadWorker::has_conflict() const
 {
-    if (policy_ == ConflictPolicy::error_if_conflict)
+    if (policy_ == ConflictPolicy::overwrite)
     {
-        auto file = file_.lock();
-        assert(file);
-        auto mtime = boost::filesystem::last_write_time(file->native_identity().toStdString());
-        QDateTime modified_time;
-        modified_time.setTime_t(mtime);
-        auto file_impl = dynamic_pointer_cast<FileImpl>(file->p_);
-        if (modified_time != file_impl->get_modified_time())
-        {
-            qf_.reportException(ConflictException("Uploader::finish_upload(): eTag mismatch"));
-        }
+        return false;
     }
+
+    auto file = file_.lock();  // TODO: Dubious, file may no longer exist?
+    assert(file);
+    auto mtime = boost::filesystem::last_write_time(file->native_identity().toStdString()); // TODO: what if this throws?
+    QDateTime modified_time;
+    modified_time.setTime_t(mtime);
+    // TODO: need to get mutex on impl?
+    auto file_impl = dynamic_pointer_cast<FileImpl>(file->p_);
+    return modified_time != file_impl->get_modified_time();
 }
 
 UploadThread::UploadThread(UploadWorker* worker)
