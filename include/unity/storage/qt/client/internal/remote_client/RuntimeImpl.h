@@ -22,9 +22,7 @@
 
 #include <OnlineAccounts/Manager>
 #include <QDBusConnection>
-#include <QFuture>
 #include <QTimer>
-#include <QVector>
 
 namespace unity
 {

@@ -20,11 +20,6 @@
 
 #include <unity/storage/qt/client/internal/AccountBase.h>
 
-#include <QFuture>
-#include <QVector>
-
-#include <memory>
-
 class ProviderInterface;
 
 namespace unity

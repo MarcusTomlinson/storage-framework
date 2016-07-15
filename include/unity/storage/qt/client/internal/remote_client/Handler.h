@@ -22,13 +22,6 @@
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/HandlerBase.h>
 
-#include <QDBusPendingReply>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#include <QFuture>
-#pragma GCC diagnostic pop
-#include <QFutureInterface>
-
 namespace unity
 {
 namespace storage

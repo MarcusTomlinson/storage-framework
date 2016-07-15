@@ -20,7 +20,6 @@
 
 #include "ProviderInterface.h"
 #include <unity/storage/qt/client/Folder.h>
-#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>

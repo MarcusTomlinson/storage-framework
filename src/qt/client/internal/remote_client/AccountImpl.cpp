@@ -19,9 +19,6 @@
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 
 #include "ProviderInterface.h"
-#include <unity/storage/internal/ItemMetadata.h>
-#include <unity/storage/qt/client/Account.h>
-#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
