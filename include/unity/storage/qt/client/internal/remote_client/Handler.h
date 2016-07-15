@@ -22,6 +22,8 @@
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/HandlerBase.h>
 
+#include <QDBusPendingReply>
+
 namespace unity
 {
 namespace storage
