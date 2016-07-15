@@ -168,7 +168,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     QFutureInterface<Folder::SPtr> qf;
     if (deleted_)
     {
-        return make_exceptional_future<Folder::SPtr>(deleted_ex("Folder::lookup()"));
+        return make_exceptional_future<Folder::SPtr>(deleted_ex("Folder::create_folder()"));
     }
 
     try

@@ -77,18 +77,31 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 {
-    auto reply = provider().Metadata(native_identity);
+    auto prov = provider();
+    if (!prov)
+    {
+        return make_exceptional_future<Item::SPtr>(RuntimeDestroyedException("Root::get()"));
+    }
+    auto reply = prov->Metadata(native_identity);
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<Item::SPtr>& qf)
     {
+        auto account = account_.lock();
+        if (!account)
+        {
+            make_exceptional_future<Item::SPtr>(qf, RuntimeDestroyedException("Root::get()"));
+            return;
+        }
+
         auto md = reply.value();
         Item::SPtr item;
         if (md.type == ItemType::root)
         {
-            item = make_root(md, dynamic_pointer_cast<RootImpl>(root_.lock()->p_)->account_);
+            item = make_root(md, account);
         }
         else
         {
+            assert(root_.lock());  // Account owns the root, so it can't go away.
             item = ItemImpl::make_item(md, root_);
         }
         make_ready_future(qf, item);

@@ -97,6 +97,7 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
             auto root = RootImpl::make_root(md, public_instance_);
             roots.append(root);
         }
+        roots_ = roots;
         make_ready_future(qf, roots);
     };
 
@@ -104,9 +105,9 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
     return handler->future();
 }
 
-ProviderInterface& AccountImpl::provider()
+shared_ptr<ProviderInterface> AccountImpl::provider() const noexcept
 {
-    return *provider_;
+    return provider_;
 }
 
 }  // namespace local_client

@@ -45,7 +45,7 @@ UploaderImpl::UploaderImpl(QString const& upload_id,
                            QDBusUnixFileDescriptor fd,
                            QString const& old_etag,
                            weak_ptr<Root> root,
-                           ProviderInterface& provider)
+                           shared_ptr<ProviderInterface> const& provider)
     : UploaderBase(old_etag == "" ? ConflictPolicy::overwrite : ConflictPolicy::error_if_conflict)
     , upload_id_(upload_id)
     , fd_(fd)
@@ -56,6 +56,7 @@ UploaderImpl::UploaderImpl(QString const& upload_id,
 {
     assert(!upload_id.isEmpty());
     assert(root_.lock());
+    assert(provider);
     assert(fd.isValid());
     write_socket_->setSocketDescriptor(fd_.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 }
@@ -72,9 +73,16 @@ shared_ptr<QLocalSocket> UploaderImpl::socket() const
 
 QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
 {
-    auto reply = provider_.FinishUpload(upload_id_);
+    auto reply = provider_->FinishUpload(upload_id_);
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<File>>& qf)
     {
+        auto root = root_.lock();
+        if (!root)
+        {
+            make_exceptional_future(qf, RuntimeDestroyedException("Uploader::finish_upload()"));
+            return;
+        }
+
         auto md = reply.value();
         if (md.type != ItemType::file)
         {
@@ -84,7 +92,7 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
             make_exceptional_future(qf, LocalCommsException(msg));
             return;
         }
-        make_ready_future(qf, FileImpl::make_file(md, root_));
+        make_ready_future(qf, FileImpl::make_file(md, root));
     };
 
     auto handler = new Handler<shared_ptr<File>>(this, reply, process_reply);
@@ -93,7 +101,7 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
 
 QFuture<void> UploaderImpl::cancel() noexcept
 {
-    auto reply = provider_.CancelUpload(upload_id_);
+    auto reply = provider_->CancelUpload(upload_id_);
     auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>&)
     {
         make_ready_future();
@@ -107,8 +115,9 @@ Uploader::SPtr UploaderImpl::make_uploader(QString const& upload_id,
                                            QDBusUnixFileDescriptor fd,
                                            QString const& old_etag,
                                            weak_ptr<Root> root,
-                                           ProviderInterface& provider)
+                                           shared_ptr<ProviderInterface> const& provider)
 {
+    assert(provider);
     auto impl = new UploaderImpl(upload_id, fd, old_etag, root, provider);
     Uploader::SPtr uploader(new Uploader(impl));
     return uploader;

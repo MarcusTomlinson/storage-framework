@@ -138,7 +138,8 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         auto root_len = std::distance(root_path.begin(), root_path.end());
         if (id_len < root_len || !std::equal(root_path.begin(), root_path.end(), id_path.begin()))
         {
-            // native_identity can't possibly point at something below the root.
+            // Too few components, or wrong path prefix. Therefore, native_identity can't
+            // possibly point at something below the root.
             QString msg = QString("Root::get(): identity \"") + native_identity + "\" points outside the root folder";
             return make_exceptional_future<Item::SPtr>(InvalidArgumentException(msg));
         }

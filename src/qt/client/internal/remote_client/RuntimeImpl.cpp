@@ -124,6 +124,7 @@ void RuntimeImpl::manager_ready()
             impl->set_public_instance(acc);
             accounts.append(acc);
         }
+        accounts_ = accounts;
         make_ready_future(qf_, accounts);
     }
     catch (StorageException const& e)

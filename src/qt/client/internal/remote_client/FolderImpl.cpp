@@ -61,13 +61,25 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         return make_exceptional_future<QVector<shared_ptr<Item>>>(deleted_ex("Folder::list()"));
     }
 
-    auto reply = provider().List(md_.item_id, "");
+    auto prov = provider();
+    if (!prov)
+    {
+        return make_exceptional_future<QVector<shared_ptr<Item>>>(RuntimeDestroyedException("Folder::list()"));
+    }
+    auto reply = prov->List(md_.item_id, "");
 
     // Sorry for the mess, but we can't use auto for the lambda because it calls itself,
     // and the compiler can't deduce the type of the lambda while it's still parsing the lambda body.
     function<void(decltype(reply) const&, QFutureInterface<QVector<shared_ptr<Item>>>&)> process_reply
-        = [this, &process_reply](decltype(reply) const& reply, QFutureInterface<QVector<shared_ptr<Item>>>& qf)
+        = [this, prov, &process_reply](decltype(reply) const& reply, QFutureInterface<QVector<shared_ptr<Item>>>& qf)
     {
+        auto root = root_.lock();
+        if (!root)
+        {
+            make_exceptional_future(qf, RuntimeDestroyedException("Folder::list()"));
+            return;
+        }
+
         QVector<shared_ptr<Item>> items;
         auto metadata = reply.argumentAt<0>();
         for (auto const& md : metadata)
@@ -77,7 +89,7 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
                 // TODO: log server error here
                 continue;
             }
-            items.append(ItemImpl::make_item(md, root_));
+            items.append(ItemImpl::make_item(md, root));
         }
         qf.reportResult(items, qf.resultCount());
 
@@ -89,7 +101,7 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         else
         {
             // Request next lot.
-            auto next_reply = provider().List(md_.item_id, token);
+            auto next_reply = prov->List(md_.item_id, token);
             new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this), next_reply, process_reply);
         }
     };
@@ -105,9 +117,22 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
         return make_exceptional_future<QVector<shared_ptr<Item>>>(deleted_ex("Folder::lookup()"));
     }
 
-    auto reply = provider().Lookup(md_.item_id, name);
+    auto prov = provider();
+    if (!prov)
+    {
+        return make_exceptional_future<QVector<shared_ptr<Item>>>(RuntimeDestroyedException("Folder::lookup()"));
+    }
+    auto reply = prov->Lookup(md_.item_id, name);
+
     auto process_reply = [this, name](decltype(reply) const& reply, QFutureInterface<QVector<shared_ptr<Item>>>& qf)
     {
+        auto root = root_.lock();
+        if (!root)
+        {
+            make_exceptional_future(qf, RuntimeDestroyedException("Folder::lookup()"));
+            return;
+        }
+
         QVector<Item::SPtr> items;
         auto metadata = reply.value();
         for (auto const& md : metadata)
@@ -117,16 +142,14 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
                 // TODO: log server error here
                 continue;
             }
-            items.append(ItemImpl::make_item(md, root_));
+            items.append(ItemImpl::make_item(md, root));
         }
         if (items.isEmpty())
         {
             make_exceptional_future(qf, NotExistsException("Folder::lookup(): no such item: " + name, name));
+            return;
         }
-        else
-        {
-            make_ready_future(qf, items);
-        }
+        make_ready_future(qf, items);
     };
 
     auto handler = new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this), reply, process_reply);
@@ -140,9 +163,22 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
         return make_exceptional_future<shared_ptr<Folder>>(deleted_ex("Folder::create_folder()"));
     }
 
-    auto reply = provider().CreateFolder(md_.item_id, name);
+    auto prov = provider();
+    if (!prov)
+    {
+        return make_exceptional_future<shared_ptr<Folder>>(RuntimeDestroyedException("Folder::create_folder()"));
+    }
+    auto reply = prov->CreateFolder(md_.item_id, name);
+
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<Folder>>& qf)
     {
+        auto root = root_.lock();
+        if (!root)
+        {
+            make_exceptional_future(qf, RuntimeDestroyedException("Folder::create_folder()"));
+            return;
+        }
+
         shared_ptr<Item> item;
         auto md = reply.value();
         if (md.type != ItemType::folder)
@@ -151,11 +187,9 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
             QString msg = "File::create_folder(): impossible item type returned by server: "
                           + QString::number(int(md.type));
             make_exceptional_future(qf, LocalCommsException(msg));
+            return;
         }
-        else
-        {
-            make_ready_future(qf, FolderImpl::make_folder(md, root_));
-        }
+        make_ready_future(qf, FolderImpl::make_folder(md, root));
     };
 
     auto handler = new Handler<shared_ptr<Folder>>(this, reply, process_reply);
@@ -169,12 +203,25 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
         return make_exceptional_future<shared_ptr<Uploader>>(deleted_ex("Folder::create_file()"));
     }
 
-    auto reply = provider().CreateFile(md_.item_id, name, "application/octet-stream", false);
+    auto prov = provider();
+    if (!prov)
+    {
+        return make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("Folder::create_file()"));
+    }
+    auto reply = prov->CreateFile(md_.item_id, name, "application/octet-stream", false);
+
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<Uploader>>& qf)
     {
+        auto root = root_.lock();
+        if (!root)
+        {
+            make_exceptional_future(qf, RuntimeDestroyedException("Folder::create_file()"));
+            return;
+        }
+
         auto upload_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();
-        auto uploader = UploaderImpl::make_uploader(upload_id, fd, "", root_, provider());
+        auto uploader = UploaderImpl::make_uploader(upload_id, fd, "", root, provider());
         make_ready_future(qf, uploader);
     };
 

@@ -63,6 +63,7 @@ private:
     QDBusConnection conn_;
     std::unique_ptr<OnlineAccounts::Manager> manager_;  // TODO: Hack until we can use the registry
     QTimer timer_;
+    QVector<std::shared_ptr<Account>> accounts_;
     QFutureInterface<QVector<std::shared_ptr<Account>>> qf_;
 };
 

@@ -37,7 +37,6 @@ namespace internal
 class FolderBase : public virtual ItemBase
 {
 public:
-    FolderBase(QString const& identity);
     FolderBase(QString const& identity, ItemType type);
 
     virtual QFuture<QVector<std::shared_ptr<Item>>> list() const = 0;

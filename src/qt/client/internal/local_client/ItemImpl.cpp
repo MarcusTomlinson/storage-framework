@@ -143,7 +143,6 @@ void copy_recursively(path const& source, path const& target)
 QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, QString const& new_name)
 {
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
-
     auto copy = [This, new_parent, new_name]() -> Item::SPtr
     {
         auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
