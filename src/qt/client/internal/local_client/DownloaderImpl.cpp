@@ -21,6 +21,7 @@
 #include <unity/storage/internal/safe_strerror.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 
 #include <QLocalSocket>
 
@@ -114,7 +115,7 @@ void DownloadWorker::do_finish()
                               + QString::number(written) + " byte";
                 msg += written == 1 ? " was" : "s were";
                 msg += " consumed.";
-                qf_.reportException(LogicException(msg));
+                make_exceptional_future(qf_, LogicException(msg));
             }
             else
             {
@@ -129,12 +130,12 @@ void DownloadWorker::do_finish()
         case cancelled:
         {
             QString msg = "Downloader::finish_download(): download of " + filename_ + " was cancelled";
-            qf_.reportException(CancelledException(msg));
+            make_exceptional_future(qf_, CancelledException(msg));
             break;
         }
         case error:
         {
-            qf_.reportException(ResourceException(error_msg_));
+            make_exceptional_future(qf_, ResourceException(error_msg_));
             break;
         }
         default:
@@ -142,7 +143,7 @@ void DownloadWorker::do_finish()
             abort();  // LCOV_EXCL_LINE  // Impossible
         }
     }
-    qf_.reportFinished();
+    make_ready_future(qf_);
     QThread::currentThread()->quit();
 }
 
@@ -253,8 +254,7 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
         // LCOV_EXCL_START
         QString msg = "Downloader: cannot create socket pair: "
                       + QString::fromStdString(storage::internal::safe_strerror(errno));
-        qf_.reportException(ResourceException(msg));
-        qf_.reportFinished();
+        make_exceptional_future(qf_, ResourceException(msg));
         return;
         // LCOV_EXCL_STOP
     }

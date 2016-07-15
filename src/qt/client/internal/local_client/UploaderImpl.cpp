@@ -299,8 +299,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, QString const& path, ConflictPol
         // LCOV_EXCL_START
         QString msg = "Uploader: cannot create socket pair: "
                       + QString::fromStdString(storage::internal::safe_strerror(errno));
-        qf_.reportException(ResourceException(msg));
-        qf_.reportFinished();
+        make_exceptional_future(qf_, ResourceException(msg));
         return;
         // LCOV_EXCL_STOP
     }

@@ -134,8 +134,7 @@ void RuntimeImpl::manager_ready()
 
 void RuntimeImpl::timeout()
 {
-    qf_.reportException(ResourceException("error"));  // TODO
-    qf_.reportFinished();
+    make_exceptional_future(qf_, ResourceException("timeout error"));  // TODO
 }
 
 }  // namespace local_client
