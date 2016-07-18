@@ -96,9 +96,15 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
         space_info si = space(identity_.toStdString());
         return make_ready_future<int64_t>(si.available);
     }
+    catch (boost::filesystem::filesystem_error const& e)
+    {
+        return make_exceptional_future<int64_t>(ResourceException(QString("Root::free_space_bytes(): ") + e.what(),
+                                                                  e.code().value()));
+    }
     catch (std::exception const& e)
     {
-        return make_exceptional_future<int64_t>(ResourceException(QString("Root::free_space_bytes(): ") + e.what()));
+        return make_exceptional_future<int64_t>(ResourceException(QString("Root::free_space_bytes(): ") + e.what(),
+                                                                  errno));
     }
 }
 
@@ -111,9 +117,15 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
         space_info si = space(identity_.toStdString());
         return make_ready_future<int64_t>(si.capacity - si.available);
     }
+    catch (boost::filesystem::filesystem_error const& e)
+    {
+        return make_exceptional_future<int64_t>(ResourceException(QString("Root::used_space_bytes(): ") + e.what(),
+                                                                  e.code().value()));
+    }
     catch (std::exception const& e)
     {
-        return make_exceptional_future<int64_t>(ResourceException(QString("Root::used_space_bytes(): ") + e.what()));
+        return make_exceptional_future<int64_t>(ResourceException(QString("Root::used_space_bytes(): ") + e.what(),
+                                                                  errno));
     }
 }
 
@@ -127,7 +139,7 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         path id_path = native_identity.toStdString();
         if (!id_path.is_absolute())
         {
-            QString msg = "Root::get(): identity must be an absolute path";
+            QString msg = "Root::get(): identity \"" + native_identity + "\" must be an absolute path";
             return make_exceptional_future<Item::SPtr>(InvalidArgumentException(msg));
         }
 
@@ -168,9 +180,13 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         QString msg = "Root::get(): no such item: " + native_identity;
         return make_exceptional_future<Item::SPtr>(NotExistsException(msg, native_identity));
     }
+    catch (boost::filesystem::filesystem_error const& e)
+    {
+        return make_exceptional_future<Item::SPtr>(QString("Root::get(): ") + e.what(), e);
+    }
     catch (std::exception const& e)
     {
-        return make_exceptional_future<Item::SPtr>(ResourceException(QString("Root::get(): ") + e.what()));
+        return make_exceptional_future<Item::SPtr>(ResourceException(QString("Root::get(): ") + e.what(), errno));
     }
 }
 

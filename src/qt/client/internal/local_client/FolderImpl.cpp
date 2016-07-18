@@ -103,9 +103,13 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
             }
             return results;
         }
+        catch (boost::filesystem::filesystem_error const& e)
+        {
+            throw ResourceException(QString("Folder::list(): ") + e.what(), e.code().value());
+        }
         catch (std::exception const& e)
         {
-            throw ResourceException(QString("Folder::list(): ") + e.what());
+            throw ResourceException(QString("Folder::list(): ") + e.what(), errno);
         }
     };
     return QtConcurrent::run(list);
@@ -153,9 +157,13 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
         {
             throw;
         }
+        catch (boost::filesystem::filesystem_error const& e)
+        {
+            throw ResourceException(QString("Folder::lookup(): ") + e.what(), e.code().value());
+        }
         catch (std::exception const& e)
         {
-            throw ResourceException(QString("Folder::lookup(): ") + e.what());
+            throw ResourceException(QString("Folder::lookup(): ") + e.what(), errno);
         }
     };
     return QtConcurrent::run(lookup);
@@ -186,9 +194,15 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         create_directory(p);
         return make_ready_future(make_folder(QString::fromStdString(p.native()), root_));
     }
+    catch (boost::filesystem::filesystem_error const& e)
+    {
+        return make_exceptional_future<Folder::SPtr>(ResourceException(QString("Folder::create_folder: ") + e.what(),
+                                                                       e.code().value()));
+    }
     catch (std::exception const& e)
     {
-        return make_exceptional_future<Folder::SPtr>(ResourceException(QString("Folder::create_folder: ") + e.what()));
+        return make_exceptional_future<Folder::SPtr>(ResourceException(QString("Folder::create_folder: ") + e.what(),
+                                                                       errno));
     }
 }
 
@@ -225,9 +239,15 @@ QFuture<Uploader::SPtr> FolderImpl::create_file(QString const& name)
         Uploader::SPtr uploader(new Uploader(impl));
         return make_ready_future(uploader);
     }
+    catch (boost::filesystem::filesystem_error const& e)
+    {
+        return make_exceptional_future<Uploader::SPtr>(ResourceException(QString("Folder::create_file: ") + e.what(),
+                                                                         e.code().value()));
+    }
     catch (std::exception const& e)
     {
-        return make_exceptional_future<Uploader::SPtr>(ResourceException(QString("Folder::create_file: ") + e.what()));
+        return make_exceptional_future<Uploader::SPtr>(ResourceException(QString("Folder::create_file: ") + e.what(),
+                                                                         errno));
     }
 }
 

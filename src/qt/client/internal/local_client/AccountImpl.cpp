@@ -67,7 +67,7 @@ string get_data_dir()
     if (ec)
     {
         QString msg = "Account::roots(): Cannot stat " + QString(dir) + ": " + QString::fromStdString(ec.message());
-        throw ResourceException(msg);
+        throw ResourceException(msg, errno);
     }
     if (!is_dir)
     {
@@ -85,7 +85,7 @@ string get_data_dir()
         {
             QString msg = "Account::roots(): Cannot create " + QString(dir) + ": "
                           + QString::fromStdString(ec.message());
-            throw ResourceException(msg);
+            throw ResourceException(msg, ec.value());
         }
     }
     return data_dir;

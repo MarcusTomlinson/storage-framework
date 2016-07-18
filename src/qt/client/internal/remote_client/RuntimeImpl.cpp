@@ -19,7 +19,6 @@
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
 
 #include <unity/storage/qt/client/Account.h>
-#include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/dbusmarshal.h>
@@ -133,7 +132,7 @@ void RuntimeImpl::manager_ready()
 
 void RuntimeImpl::timeout()
 {
-    make_exceptional_future(qf_, ResourceException("timeout error"));  // TODO
+    make_exceptional_future(qf_, ResourceException("Runtime::accounts(): timeout retrieving Online accounts", 0));
 }
 
 }  // namespace local_client

@@ -78,7 +78,7 @@ void DownloadWorker::start_downloading() noexcept
     input_file_.reset(new QFile(filename_));
     if (!input_file_->open(QIODevice::ReadOnly))
     {
-        handle_error("cannot open " + filename_ + ": " + input_file_->errorString());
+        handle_error("cannot open " + filename_ + ": " + input_file_->errorString(), input_file_->error());
         return;
     }
     bytes_to_write_ = input_file_->size();
@@ -135,7 +135,7 @@ void DownloadWorker::do_finish()
         }
         case error:
         {
-            make_exceptional_future(qf_, ResourceException(error_msg_));
+            make_exceptional_future(qf_, ResourceException(error_msg_, error_code_));
             break;
         }
         default:
@@ -188,7 +188,7 @@ void DownloadWorker::on_disconnected()
 
 void DownloadWorker::on_error()
 {
-    handle_error(write_socket_->errorString());
+    handle_error(write_socket_->errorString(), write_socket_->error());
 }
 
 // Read the next chunk of data from the input file and write it to the socket.
@@ -202,7 +202,7 @@ void DownloadWorker::read_and_write_chunk()
     auto bytes_read = input_file_->read(buf.data(), buf.size());
     if (bytes_read == -1)
     {
-        handle_error(filename_ + ": read error: " + input_file_->errorString());
+        handle_error(filename_ + ": read error: " + input_file_->errorString(), input_file_->error());
         return;
     }
     buf.resize(bytes_read);
@@ -210,17 +210,17 @@ void DownloadWorker::read_and_write_chunk()
     auto bytes_written = write_socket_->write(buf);
     if (bytes_written == -1)
     {
-        handle_error(filename_ + ": socket error: " + write_socket_->errorString());
+        handle_error(filename_ + ": socket error: " + write_socket_->errorString(), write_socket_->error());
     }
     else if (bytes_written != bytes_read)
     {
         QString msg = filename_ + ": write error, requested " + bytes_read + " B, but wrote only "
                       + bytes_written + " B.";
-        handle_error(msg);
+        handle_error(msg, 0);
     }
 }
 
-void DownloadWorker::handle_error(QString const& msg)
+void DownloadWorker::handle_error(QString const& msg, int error_code)
 {
     if (state_ == in_progress)
     {
@@ -228,6 +228,7 @@ void DownloadWorker::handle_error(QString const& msg)
     }
     state_ = error;
     error_msg_ = "Downloader: " + msg;
+    error_code_ = error_code;
     do_finish();
 }
 
@@ -254,7 +255,7 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
         // LCOV_EXCL_START
         QString msg = "Downloader: cannot create socket pair: "
                       + QString::fromStdString(storage::internal::safe_strerror(errno));
-        make_exceptional_future(qf_, ResourceException(msg));
+        make_exceptional_future(qf_, ResourceException(msg, errno));
         return;
         // LCOV_EXCL_STOP
     }

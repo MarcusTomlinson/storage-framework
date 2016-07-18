@@ -46,6 +46,8 @@ public:
     virtual StorageException* clone() const = 0;
     virtual void raise() const = 0;
 
+    QString error_message() const;
+
 private:
     QString error_message_;
 };
@@ -233,11 +235,16 @@ or any other (usually non-recoverable) kind of error that should not arise durin
 class UNITY_STORAGE_EXPORT ResourceException : public StorageException
 {
 public:
-    ResourceException(QString const& error_message);
+    ResourceException(QString const& error_message, int error_code);
     ~ResourceException();
 
     virtual ResourceException* clone() const override;
     virtual void raise() const override;
+
+    int error_code() const noexcept;
+
+private:
+    int error_code_;
 };
 
 }  // namespace client

@@ -215,9 +215,13 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
             rename(tmp_path, target_path);
             return FolderImpl::make_folder(QString::fromStdString(target_path.native()), new_parent_impl->root_);
         }
+        catch (boost::filesystem::filesystem_error const& e)
+        {
+            throw ResourceException(QString("Item::copy(): ") + e.what(), e.code().value());
+        }
         catch (std::exception const& e)
         {
-            throw ResourceException(QString("Item::copy(): ") + e.what());
+            throw ResourceException(QString("Item::copy(): ") + e.what(), errno);
         }
     };
     return QtConcurrent::run(copy);
@@ -276,9 +280,13 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
             }
             return FileImpl::make_file(QString::fromStdString(target_path.native()), new_parent_impl->root_);
         }
+        catch (boost::filesystem::filesystem_error const& e)
+        {
+            throw ResourceException(QString("Item::move(): ") + e.what(), e.code().value());
+        }
         catch (std::exception const& e)
         {
-            throw ResourceException(QString("Item::move(): ") + e.what());
+            throw ResourceException(QString("Item::move(): ") + e.what(), errno);
         }
     };
     return QtConcurrent::run(move);
@@ -355,9 +363,13 @@ QFuture<void> ItemImpl::delete_item()
             boost::filesystem::remove_all(This->native_identity().toStdString());
             This->deleted_ = true;
         }
+        catch (boost::filesystem::filesystem_error const& e)
+        {
+            throw ResourceException(QString("Item::delete_item(): ") + e.what(), e.code().value());
+        }
         catch (std::exception const& e)
         {
-            throw ResourceException(QString("Item::delete_item(): ") + e.what());
+            throw ResourceException(QString("Item::delete_item(): ") + e.what(), errno);
         }
     };
     return QtConcurrent::run(destroy);

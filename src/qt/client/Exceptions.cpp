@@ -34,6 +34,11 @@ StorageException::StorageException(QString const& error_message)
 
 StorageException::~StorageException() = default;
 
+QString StorageException::error_message() const
+{
+    return error_message_;
+}
+
 LocalCommsException::LocalCommsException(QString const& error_message)
     : StorageException(error_message)
 {
@@ -268,8 +273,9 @@ void InvalidArgumentException::raise() const
     throw *this;
 }
 
-ResourceException::ResourceException(QString const& error_message)
+ResourceException::ResourceException(QString const& error_message, int error_code)
     : StorageException(error_message)
+    , error_code_(errno)
 {
 }
 
@@ -283,6 +289,11 @@ ResourceException* ResourceException::clone() const
 void ResourceException::raise() const
 {
     throw *this;
+}
+
+int ResourceException::error_code() const noexcept
+{
+    return error_code_;
 }
 
 }  // namespace client

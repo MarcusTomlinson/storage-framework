@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <unity/storage/qt/client/Exceptions.h>
+#include <unity/storage/qt/client/internal/boost_filesystem.h>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
@@ -89,6 +92,34 @@ template<typename T, typename E>
 QFuture<T> make_exceptional_future(QFutureInterface<T> qf, E const& ex)
 {
     qf.reportException(ex);
+    qf.reportFinished();
+    return qf.future();
+}
+
+template<typename T>
+QFuture<T> make_exceptional_future(QString const& msg, boost::filesystem::filesystem_error const& e)
+{
+    QFutureInterface<T> qf;
+    switch (e.code().value())
+    {
+        case EACCES:
+        case EPERM:
+        {
+            qf.reportException(PermissionException(msg));
+            break;
+        }
+        case EDQUOT:
+        case ENOSPC:
+        {
+            qf.reportException(QuotaException(msg));
+            break;
+        }
+        default:
+        {
+            qf.reportException(ResourceException(msg, e.code().value()));
+            break;
+        }
+    }
     qf.reportFinished();
     return qf.future();
 }

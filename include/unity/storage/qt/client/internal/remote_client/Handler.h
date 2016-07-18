@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/HandlerBase.h>
 
@@ -72,8 +71,8 @@ Handler<T>::Handler(QObject* parent,
                       {
                           if (call.isError())
                           {
-                              qDebug() << call.error().message();  // TODO, remove this
-                              make_exceptional_future<T>(ResourceException("DBus error return"));
+                              int err = call.error().type();
+                              make_exceptional_future<T>(ResourceException("DBus error return", err));
                               return;
                           }
                           // TODO: See HACK above. Should just be closure(call, qf_);

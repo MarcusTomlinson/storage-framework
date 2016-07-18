@@ -951,9 +951,88 @@ TEST(Item, comparison)
     EXPECT_TRUE(file1->equal_to(other_file1));  // Deep comparison
 }
 
+TEST(Item, root_exceptions)
+{
+    auto runtime = Runtime::create();
+
+    auto acc = get_account(runtime);
+    auto root = get_root(runtime);
+    clear_folder(root);
+
+    {
+        auto fut = root->delete_item();
+        try
+        {
+            fut.waitForFinished();
+            FAIL();
+        }
+        catch (LogicException const& e)
+        {
+            EXPECT_EQ("Root::delete_item(): Cannot delete root folder", e.error_message());
+        }
+    }
+
+    {
+        auto fut = root->get("abc");
+        try
+        {
+            fut.waitForFinished();
+            FAIL();
+        }
+        catch (InvalidArgumentException const& e)
+        {
+            EXPECT_EQ("Root::get(): identity \"abc\" must be an absolute path", e.error_message());
+        }
+    }
+
+    {
+        auto fut = root->get("/etc");
+        try
+        {
+            fut.waitForFinished();
+            FAIL();
+        }
+        catch (InvalidArgumentException const& e)
+        {
+            EXPECT_EQ("Root::get(): identity \"/etc\" points outside the root folder", e.error_message());
+        }
+    }
+
+    {
+        auto folder = root->create_folder("folder").result();
+        write_file(root, "folder/testfile", "hello");
+
+        auto file = dynamic_pointer_cast<File>(folder->lookup("testfile").result()[0]);
+        ASSERT_NE(nullptr, file);
+
+        file = dynamic_pointer_cast<File>(root->get(file->native_identity()).result());
+        EXPECT_EQ("testfile", file->name());
+
+        // Remove permission from folder.
+        string cmd = "chmod -x " + folder->native_identity().toStdString();
+        system(cmd.c_str());
+
+        try
+        {
+            file = dynamic_pointer_cast<File>(root->get(file->native_identity()).result());
+            FAIL();
+        }
+        catch (PermissionException const& e)
+        {
+            EXPECT_TRUE(e.error_message().startsWith("Root::get(): "));
+            EXPECT_TRUE(e.error_message().contains("Permission denied"));
+        }
+
+        cmd = "chmod +x " + folder->native_identity().toStdString();
+        system(cmd.c_str());
+        clear_folder(root);
+    }
+}
+
 int main(int argc, char** argv)
 {
-    boost::filesystem::remove_all(TEST_DIR "/storage-framework");
+    boost::system::error_code ec;
+    boost::filesystem::remove_all(TEST_DIR "/storage-framework", ec);
     setenv("STORAGE_FRAMEWORK_ROOT", TEST_DIR, true);
 
     QCoreApplication app(argc, argv);

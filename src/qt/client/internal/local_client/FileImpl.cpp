@@ -73,9 +73,13 @@ int64_t FileImpl::size() const
         boost::filesystem::path p = identity_.toStdString();
         return file_size(p);
     }
+    catch (boost::filesystem::filesystem_error const& e)
+    {
+        throw ResourceException(e.what(), e.code().value());
+    }
     catch (std::exception const& e)
     {
-        throw ResourceException(e.what());
+        throw ResourceException(e.what(), 0);
     }
 }
 
