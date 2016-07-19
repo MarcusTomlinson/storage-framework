@@ -22,11 +22,56 @@
 #include <unity/storage/provider/TempfileUploadJob.h>
 #include <unity/storage/provider/UploadJob.h>
 
+#include <boost/version.hpp>
+#include <boost/thread/future.hpp>
+
 #include <unistd.h>
 
 using namespace unity::storage;
 using namespace unity::storage::provider;
 using namespace std;
+
+#if BOOST_VERSION >= 105600
+using boost::make_ready_future;
+using boost::make_exceptional_future;
+#else
+namespace
+{
+
+boost::future<void> make_ready_future()
+{
+    boost::promise<void> p;
+    p.set_value();
+    return p.get_future();
+}
+
+template <typename T>
+boost::future<T> make_ready_future(T& value)
+{
+    boost::promise<T> p;
+    p.set_value(value);
+    return p.get_future();
+}
+
+template <typename T>
+boost::future<T> make_ready_future(T&& value)
+{
+    boost::promise<T> p;
+    p.set_value(std::move(value));
+    return p.get_future();
+}
+
+template <typename T, typename E>
+boost::future<T> make_exceptional_future(E ex)
+{
+    boost::promise<T> p;
+    p.set_exception(ex);
+    return p.get_future();
+}
+
+}
+#endif
+
 
 class MyProvider : public ProviderBase
 {
@@ -95,7 +140,7 @@ boost::future<ItemList> MyProvider::roots(Context const& ctx)
     ItemList roots = {
         {"root_id", "", "Root", "etag", ItemType::root, {}},
     };
-    return boost::make_ready_future<ItemList>(roots);
+    return make_ready_future<ItemList>(roots);
 }
 
 boost::future<tuple<ItemList,string>> MyProvider::list(
@@ -130,7 +175,7 @@ boost::future<ItemList> MyProvider::lookup(
     ItemList children = {
         {"child_id", "root_id", "Child", "etag", ItemType::file, {}}
     };
-    return boost::make_ready_future<ItemList>(children);
+    return make_ready_future<ItemList>(children);
 }
 
 boost::future<Item> MyProvider::metadata(string const& item_id,
@@ -140,12 +185,12 @@ boost::future<Item> MyProvider::metadata(string const& item_id,
     if (item_id == "root_id")
     {
         Item metadata{"root_id", "", "Root", "etag", ItemType::root, {}};
-        return boost::make_ready_future<Item>(metadata);
+        return make_ready_future<Item>(metadata);
     }
     else if (item_id == "child_id")
     {
         Item metadata{"child_id", "root_id", "Child", "etag", ItemType::file, {}};
-        return boost::make_ready_future<Item>(metadata);
+        return make_ready_future<Item>(metadata);
     }
     return boost::make_exceptional_future<Item>(runtime_error("no such file"));
 }
@@ -156,7 +201,7 @@ boost::future<Item> MyProvider::create_folder(
 {
     printf("create_folder('%s', '%s') called by %s (%d)\n", parent_id.c_str(), name.c_str(), ctx.security_label.c_str(), ctx.pid);
     Item metadata{"new_folder_id", parent_id, name, "etag", ItemType::folder, {}};
-    return boost::make_ready_future<Item>(metadata);
+    return make_ready_future<Item>(metadata);
 }
 
 string make_job_id()
@@ -171,14 +216,14 @@ boost::future<unique_ptr<UploadJob>> MyProvider::create_file(
     Context const& ctx)
 {
     printf("create_file('%s', '%s', '%s', %d) called by %s (%d)\n", parent_id.c_str(), title.c_str(), content_type.c_str(), allow_overwrite, ctx.security_label.c_str(), ctx.pid);
-    return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_job_id())));
+    return make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_job_id())));
 }
 
 boost::future<unique_ptr<UploadJob>> MyProvider::update(
     string const& item_id, string const& old_etag, Context const& ctx)
 {
     printf("update('%s', '%s') called by %s (%d)\n", item_id.c_str(), old_etag.c_str(), ctx.security_label.c_str(), ctx.pid);
-    return boost::make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_job_id())));
+    return make_ready_future(unique_ptr<UploadJob>(new MyUploadJob(make_job_id())));
 }
 
 boost::future<unique_ptr<DownloadJob>> MyProvider::download(
@@ -190,14 +235,14 @@ boost::future<unique_ptr<DownloadJob>> MyProvider::download(
     const char contents[] = "Hello world";
     write(job->write_socket(), contents, sizeof(contents));
     job->report_complete();
-    return boost::make_ready_future(std::move(job));
+    return make_ready_future(std::move(job));
 }
 
 boost::future<void> MyProvider::delete_item(
     string const& item_id, Context const& ctx)
 {
     printf("delete('%s') called by %s (%d)\n", item_id.c_str(), ctx.security_label.c_str(), ctx.pid);
-    return boost::make_ready_future();
+    return make_ready_future();
 }
 
 boost::future<Item> MyProvider::move(
@@ -206,7 +251,7 @@ boost::future<Item> MyProvider::move(
 {
     printf("move('%s', '%s', '%s') called by %s (%d)\n", item_id.c_str(), new_parent_id.c_str(), new_name.c_str(), ctx.security_label.c_str(), ctx.pid);
     Item metadata{item_id, new_parent_id, new_name, "etag", ItemType::file, {}};
-    return boost::make_ready_future(metadata);
+    return make_ready_future(metadata);
 }
 
 boost::future<Item> MyProvider::copy(
@@ -215,13 +260,13 @@ boost::future<Item> MyProvider::copy(
 {
     printf("copy('%s', '%s', '%s') called by %s (%d)\n", item_id.c_str(), new_parent_id.c_str(), new_name.c_str(), ctx.security_label.c_str(), ctx.pid);
     Item metadata{"new_item_id", new_parent_id, new_name, "etag", ItemType::file, {}};
-    return boost::make_ready_future(metadata);
+    return make_ready_future(metadata);
 }
 
 boost::future<void> MyUploadJob::cancel()
 {
     printf("cancel_upload('%s')\n", upload_id().c_str());
-    return boost::make_ready_future();
+    return make_ready_future();
 }
 
 boost::future<Item> MyUploadJob::finish()
@@ -235,20 +280,21 @@ boost::future<Item> MyUploadJob::finish()
     link(old_filename.c_str(), new_filename.c_str());
 
     Item metadata{"some_id", "", "some_upload", "etag", ItemType::file, {}};
-    return boost::make_ready_future(metadata);
+    return make_ready_future(metadata);
 }
 
 boost::future<void> MyDownloadJob::cancel()
 {
     printf("cancel_download('%s')\n", download_id().c_str());
-    return boost::make_ready_future();
+    return make_ready_future();
 }
 
 boost::future<void> MyDownloadJob::finish()
 {
     printf("finish_download('%s')\n", download_id().c_str());
 
-    return boost::make_ready_future();}
+    return make_ready_future();
+}
 
 
 int main(int argc, char **argv)
