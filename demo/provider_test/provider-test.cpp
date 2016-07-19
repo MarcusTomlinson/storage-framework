@@ -62,10 +62,10 @@ boost::future<T> make_ready_future(T&& value)
 }
 
 template <typename T, typename E>
-boost::future<T> make_exceptional_future(E ex)
+boost::future<T> make_exceptional_future(E const& ex)
 {
     boost::promise<T> p;
-    p.set_exception(ex);
+    p.set_exception(boost::copy_exception(ex));
     return p.get_future();
 }
 
