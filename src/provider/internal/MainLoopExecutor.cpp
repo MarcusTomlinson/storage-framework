@@ -23,6 +23,8 @@
 
 #include <stdexcept>
 
+#ifdef SF_SUPPORTS_EXECUTORS
+
 namespace {
 
 class WorkEvent : public QEvent {
@@ -105,3 +107,5 @@ void MainLoopExecutor::execute(work& closure) noexcept
 }
 }
 }
+
+#endif /* SF_SUPPORTS_EXECUTORS */
