@@ -114,9 +114,37 @@ QFuture<T> make_exceptional_future(QString const& msg, boost::filesystem::filesy
             qf.reportException(QuotaException(msg));
             break;
         }
+        case ENOENT:
+        {
+            //qf.reportException(NotExistsException(msg));
+            qDebug() << "ENOENT";
+            qf.reportException(ResourceException(msg, e.code().value()));
+            break;
+        }
         default:
         {
             qf.reportException(ResourceException(msg, e.code().value()));
+            break;
+        }
+    }
+    qf.reportFinished();
+    return qf.future();
+}
+
+template<typename T>
+QFuture<T> make_exceptional_future(QString const& msg, boost::filesystem::filesystem_error const& e, QString const& key)
+{
+    QFutureInterface<T> qf;
+    switch (e.code().value())
+    {
+        case ENOENT:
+        {
+            qf.reportException(NotExistsException(msg, key));
+            break;
+        }
+        default:
+        {
+            return make_exceptional_future<T>(msg, e);
             break;
         }
     }

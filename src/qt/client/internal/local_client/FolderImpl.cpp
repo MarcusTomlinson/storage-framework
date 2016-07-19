@@ -62,6 +62,17 @@ FolderImpl::FolderImpl(QString const& identity, ItemType type)
 {
 }
 
+QString FolderImpl::name() const
+{
+    lock_guard<mutex> guard(mutex_);
+
+    if (deleted_)
+    {
+        throw deleted_ex("Folder::name()");
+    }
+    return name_;
+}
+
 QFuture<QVector<Item::SPtr>> FolderImpl::list() const
 {
     auto This = dynamic_pointer_cast<FolderImpl const>(shared_from_this());  // Keep this folder alive while the lambda is alive.
@@ -159,6 +170,10 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
         }
         catch (boost::filesystem::filesystem_error const& e)
         {
+            if (e.code().value() == ENOENT)
+            {
+                throw NotExistsException("Folder::lookup(): no such item: " + name, name);
+            }
             throw ResourceException(QString("Folder::lookup(): ") + e.what(), e.code().value());
         }
         catch (std::exception const& e)

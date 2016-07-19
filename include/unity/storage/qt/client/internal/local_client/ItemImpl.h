@@ -44,7 +44,6 @@ public:
     ItemImpl(QString const& identity, ItemType type);
     virtual ~ItemImpl();
 
-    virtual QString name() const override;
     virtual QString etag() const override;
     virtual QVariantMap metadata() const override;
     virtual QDateTime last_modified_time() const override;
@@ -57,8 +56,6 @@ public:
 
     void set_timestamps() noexcept;
     bool has_conflict() const noexcept;
-
-    std::unique_lock<std::mutex> get_lock();
 
 protected:
     static boost::filesystem::path sanitize(QString const& name, QString const& method);

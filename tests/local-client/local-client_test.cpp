@@ -19,6 +19,7 @@
 #include <unity/storage/qt/client/client-api.h>
 
 #include <unity/storage/qt/client/internal/boost_filesystem.h>
+#include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
 
 #include <gtest/gtest.h>
 #include <QCoreApplication>
@@ -194,6 +195,18 @@ TEST(Folder, basic)
     ASSERT_EQ(nullptr, dynamic_pointer_cast<Root>(folder));
     EXPECT_EQ("folder1", folder->name());
 
+    item = root->get(file->native_identity()).result();
+    file = dynamic_pointer_cast<File>(item);
+    ASSERT_NE(nullptr, file);
+    EXPECT_EQ("file1", file->name());
+    EXPECT_EQ(0, file->size());
+
+    item = root->get(folder->native_identity()).result();
+    folder = dynamic_pointer_cast<Folder>(item);
+    ASSERT_NE(nullptr, folder);
+    ASSERT_EQ(nullptr, dynamic_pointer_cast<Root>(folder));
+    EXPECT_EQ("folder1", folder->name());
+
     // Check that list() returns file1 and folder1.
     items = root->list();
     ASSERT_EQ(2, items.size());
@@ -258,6 +271,24 @@ TEST(Folder, nested)
     ASSERT_EQ(0, items.size());
 }
 
+template<typename T>
+bool wait(T fut)
+{
+    QFutureWatcher<decltype(fut.result())> w;
+    QSignalSpy spy(&w, &decltype(w)::finished);
+    w.setFuture(fut);
+    return spy.wait(SIGNAL_WAIT_TIME);
+}
+
+template<>
+bool wait(QFuture<void> fut)
+{
+    QFutureWatcher<void> w;
+    QSignalSpy spy(&w, &decltype(w)::finished);
+    w.setFuture(fut);
+    return spy.wait(SIGNAL_WAIT_TIME);
+}
+
 TEST(File, upload)
 {
     auto runtime = Runtime::create();
@@ -274,11 +305,7 @@ TEST(File, upload)
         ASSERT_EQ(contents.size(), written);
 
         auto file_fut = uploader->finish_upload();
-        QFutureWatcher<File::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(file_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-
+        ASSERT_TRUE(wait(file_fut));
         auto file = file_fut.result();
         EXPECT_EQ(contents.size(), file->size());
         ASSERT_TRUE(content_matches(file, contents));
@@ -303,11 +330,7 @@ TEST(File, upload)
         ASSERT_EQ(contents.size(), written);
 
         auto file_fut = uploader->finish_upload();
-        QFutureWatcher<File::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(file_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-
+        ASSERT_TRUE(wait(file_fut));
         auto file = file_fut.result();
         EXPECT_EQ(contents.size(), file->size());
         ASSERT_TRUE(content_matches(file, contents));
@@ -323,11 +346,7 @@ TEST(File, upload)
         ASSERT_EQ(contents.size(), written);
 
         auto file_fut = uploader->finish_upload();
-        QFutureWatcher<File::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(file_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-
+        ASSERT_TRUE(wait(file_fut));
         auto file = file_fut.result();
         EXPECT_EQ(contents.size(), file->size());
         ASSERT_TRUE(content_matches(file, contents));
@@ -371,12 +390,7 @@ TEST(File, create_uploader)
     // Make a new file first.
     auto uploader = root->create_file("new_file").result();
     auto file_fut = uploader->finish_upload();
-    {
-        QFutureWatcher<File::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(file_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
+    ASSERT_TRUE(wait(file_fut));
     auto file = file_fut.result();
     EXPECT_EQ(0, file->size());
     auto old_etag = file->etag();
@@ -384,12 +398,7 @@ TEST(File, create_uploader)
     // Create uploader for the file and write nothing.
     uploader = file->create_uploader(ConflictPolicy::overwrite).result();
     file_fut = uploader->finish_upload();
-    {
-        QFutureWatcher<File::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(file_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
+    ASSERT_TRUE(wait(file_fut));
     file = file_fut.result();
     EXPECT_EQ(0, file->size());
 
@@ -403,13 +412,7 @@ TEST(File, create_uploader)
     // upload to finish within the granularity of the file system time stamps.
     sleep(1);
     file_fut = uploader->finish_upload();
-    {
-        QFutureWatcher<File::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(file_fut);
-        // Now that we have disconnected, the future must become ready.
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
+    ASSERT_TRUE(wait(file_fut));
     file = file_fut.result();
     EXPECT_EQ(1000000, file->size());
     EXPECT_NE(old_etag, file->etag());
@@ -453,12 +456,7 @@ TEST(File, cancel_upload)
 
         // No finish_upload() here, so the transfer is still in progress. Now cancel.
         auto cancel_fut = uploader->cancel();
-        {
-            QFutureWatcher<void> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(cancel_fut);
-            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
+        ASSERT_TRUE(wait(cancel_fut));
 
         // finish_upload() must indicate that the upload was cancelled.
         EXPECT_THROW(uploader->finish_upload().result(), CancelledException);
@@ -744,23 +742,13 @@ TEST(File, cancel_download)
         ASSERT_FALSE(file == nullptr);
 
         auto download_fut = file->create_downloader();
-        {
-            QFutureWatcher<Downloader::SPtr> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(download_fut);
-            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
+        ASSERT_TRUE(wait(download_fut));
         auto downloader = download_fut.result();
 
         // We haven't read anything, so the cancel is guaranteed to catch the
         // downloader in the in_progress state.
         auto cancel_fut = downloader->cancel();
-        {
-            QFutureWatcher<void> w;
-            QSignalSpy spy(&w, &decltype(w)::finished);
-            w.setFuture(cancel_fut);
-            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-        }
+        ASSERT_TRUE(wait(cancel_fut));
         ASSERT_THROW(downloader->finish_download().waitForFinished(), CancelledException);
     }
 
@@ -900,12 +888,7 @@ TEST(Item, modified_time)
     sleep(1);
     auto uploader = root->create_file("file").result();
     auto file_fut = uploader->finish_upload();
-    {
-        QFutureWatcher<File::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(file_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
+    ASSERT_TRUE(wait(file_fut));
     auto file = file_fut.result();
     auto t = file->last_modified_time();
     // Rough check that the time is sane.
@@ -924,22 +907,12 @@ TEST(Item, comparison)
     // Create two files.
     auto uploader = root->create_file("file1").result();
     auto file_fut = uploader->finish_upload();
-    {
-        QFutureWatcher<File::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(file_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
+    ASSERT_TRUE(wait(file_fut));
     auto file1 = file_fut.result();
 
     uploader = root->create_file("file2").result();
     file_fut = uploader->finish_upload();
-    {
-        QFutureWatcher<File::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(file_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
+    ASSERT_TRUE(wait(file_fut));
     auto file2 = file_fut.result();
 
     EXPECT_FALSE(file1->equal_to(file2));
@@ -949,9 +922,20 @@ TEST(Item, comparison)
     auto other_file1 = dynamic_pointer_cast<File>(item);
     EXPECT_NE(file1, other_file1);              // Compares shared_ptr values
     EXPECT_TRUE(file1->equal_to(other_file1));  // Deep comparison
+
+    // Comparing against a deleted file must return false.
+    auto delete_fut = file1->delete_item();
+    ASSERT_TRUE(wait(delete_fut));
+    EXPECT_FALSE(file1->equal_to(file2));
+    EXPECT_FALSE(file2->equal_to(file1));
+
+    // Delete file2 as well and compare again.
+    delete_fut = file2->delete_item();
+    ASSERT_TRUE(wait(delete_fut));
+    EXPECT_FALSE(file1->equal_to(file2));
 }
 
-TEST(Item, root_exceptions)
+TEST(Root, root_exceptions)
 {
     auto runtime = Runtime::create();
 
@@ -1005,12 +989,9 @@ TEST(Item, root_exceptions)
         auto file = dynamic_pointer_cast<File>(folder->lookup("testfile").result()[0]);
         ASSERT_NE(nullptr, file);
 
-        file = dynamic_pointer_cast<File>(root->get(file->native_identity()).result());
-        EXPECT_EQ("testfile", file->name());
-
         // Remove permission from folder.
         string cmd = "chmod -x " + folder->native_identity().toStdString();
-        system(cmd.c_str());
+        ASSERT_EQ(0, system(cmd.c_str()));
 
         try
         {
@@ -1024,8 +1005,361 @@ TEST(Item, root_exceptions)
         }
 
         cmd = "chmod +x " + folder->native_identity().toStdString();
-        system(cmd.c_str());
+        ASSERT_EQ(0, system(cmd.c_str()));
+
         clear_folder(root);
+    }
+
+    {
+        write_file(root, "testfile", "hello");
+
+        auto file = dynamic_pointer_cast<File>(root->lookup("testfile").result()[0]);
+        ASSERT_NE(nullptr, file);
+
+        QString id = file->native_identity();
+        id.append("_doesnt_exist");
+
+        try
+        {
+            file = dynamic_pointer_cast<File>(root->get(id).result());
+            FAIL();
+        }
+        catch (NotExistsException const& e)
+        {
+            EXPECT_EQ(id, e.key());
+        }
+
+        clear_folder(root);
+    }
+
+    {
+        auto fifo_id = root->native_identity() + "/fifo";
+        string cmd = "mkfifo " + fifo_id.toStdString();
+        ASSERT_EQ(0, system(cmd.c_str()));
+
+        try
+        {
+            root->get(fifo_id).result();
+            FAIL();
+        }
+        catch (NotExistsException const& e)
+        {
+            EXPECT_EQ(fifo_id, e.key());
+        }
+
+        cmd = "rm " + fifo_id.toStdString();
+        system(cmd.c_str());
+    }
+
+    {
+        QString reserved_name = TMPFILE_PREFIX "somefile";
+        write_file(root, reserved_name, "some bytes");
+
+        auto reserved_id = QString(TEST_DIR) + "/storage-framework/" + reserved_name;
+        try
+        {
+            root->get(reserved_id).result();
+            FAIL();
+        }
+        catch (NotExistsException const& e)
+        {
+            EXPECT_EQ(reserved_id, e.key());
+        }
+
+        clear_folder(root);
+    }
+}
+
+File::SPtr make_deleted_file(Folder::SPtr parent, QString const& name)
+{
+    write_file(parent, name, "bytes");
+    auto file_fut = parent->lookup("file");
+    assert(wait(file_fut));
+    auto file = dynamic_pointer_cast<File>(file_fut.result()[0]);
+    auto void_fut = file->delete_item();
+    assert(wait(void_fut));
+    return file;
+}
+
+Folder::SPtr make_deleted_folder(Folder::SPtr parent, QString const& name)
+{
+    auto fut = parent->create_folder(name);
+    assert(wait(fut));
+    auto folder = fut.result();
+    auto void_fut = folder->delete_item();
+    assert(wait(void_fut));
+    return folder;
+}
+
+TEST(Item, deleted_exceptions)
+{
+    auto runtime = Runtime::create();
+
+    auto acc = get_account(runtime);
+    auto root = get_root(runtime);
+    clear_folder(root);
+
+    try
+    {
+        auto file = make_deleted_file(root, "file");
+        file->etag();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("file", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Item::etag(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+
+    try
+    {
+        auto file = make_deleted_file(root, "file");
+        file->metadata();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("file", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Item::metadata(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+
+    try
+    {
+        auto file = make_deleted_file(root, "file");
+        file->last_modified_time();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("file", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Item::last_modified_time(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+
+    try
+    {
+        // Copying deleted file must fail.
+        auto file = make_deleted_file(root, "file");
+        auto fut = file->copy(root, "copy_of_file");
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("file", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Item::copy(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+
+    try
+    {
+        // Copying file into deleted folder must fail.
+
+        // Make target folder.
+        auto fut = root->create_folder("folder");
+        ASSERT_TRUE(wait(fut));
+        auto folder = fut.result();
+
+        // Make a file in the root.
+        auto uploader_fut = root->create_file("file");
+        ASSERT_TRUE(wait(uploader_fut));
+        auto uploader = uploader_fut.result();
+        auto finish_fut = uploader->finish_upload();
+        ASSERT_TRUE(wait(finish_fut));
+        auto file = finish_fut.result();
+
+        // Delete folder.
+        auto void_fut = folder->delete_item();
+        ASSERT_TRUE(wait(void_fut));
+
+        auto copy_fut = file->copy(folder, "file");
+        ASSERT_TRUE(wait(copy_fut));
+        copy_fut.result();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("folder", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Item::copy(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+    clear_folder(root);
+
+    try
+    {
+        // Moving deleted file must fail.
+        auto file = make_deleted_file(root, "file");
+        auto fut = file->move(root, "moved_file");
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("file", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Item::move(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+
+    try
+    {
+        // Moving file into deleted folder must fail.
+
+        // Make target folder.
+        auto fut = root->create_folder("folder");
+        ASSERT_TRUE(wait(fut));
+        auto folder = fut.result();
+
+        // Make a file in the root.
+        auto uploader_fut = root->create_file("file");
+        ASSERT_TRUE(wait(uploader_fut));
+        auto uploader = uploader_fut.result();
+        auto finish_fut = uploader->finish_upload();
+        ASSERT_TRUE(wait(finish_fut));
+        auto file = finish_fut.result();
+
+        // Delete folder.
+        auto void_fut = folder->delete_item();
+        ASSERT_TRUE(wait(void_fut));
+
+        auto move_fut = file->move(folder, "file");
+        ASSERT_TRUE(wait(move_fut));
+        move_fut.result();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("folder", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Item::move(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+    clear_folder(root);
+
+    try
+    {
+        auto file = make_deleted_file(root, "file");
+        file->parents().result();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("file", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Item::parents(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+
+    try
+    {
+        auto file = make_deleted_file(root, "file");
+        file->parent_ids();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("file", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Item::parent_ids(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+
+    try
+    {
+        // Deleting a deleted item must fail.
+        auto file = make_deleted_file(root, "file");
+        auto delete_fut = file->delete_item();
+        ASSERT_TRUE(wait(delete_fut));
+        delete_fut.waitForFinished();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("file", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Item::delete_item(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+}
+
+TEST(Folder, deleted_exceptions)
+{
+    auto runtime = Runtime::create();
+
+    auto acc = get_account(runtime);
+    auto root = get_root(runtime);
+    clear_folder(root);
+
+    try
+    {
+        auto folder = make_deleted_folder(root, "folder");
+        folder->name();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("folder", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Folder::name(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+
+    try
+    {
+        auto folder = make_deleted_folder(root, "folder");
+        auto fut = folder->list();
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("folder", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Folder::list(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+
+    try
+    {
+        auto folder = make_deleted_folder(root, "folder");
+        auto fut = folder->lookup("something");
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("folder", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Folder::lookup(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+
+    try
+    {
+        auto folder = make_deleted_folder(root, "folder");
+        auto fut = folder->create_folder("nested_folder");
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("folder", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Folder::create_folder(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+    }
+
+    try
+    {
+        auto folder = make_deleted_folder(root, "folder");
+        auto fut = folder->create_file("nested_file");
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (DeletedException const& e)
+    {
+        EXPECT_EQ("folder", e.name());
+        EXPECT_TRUE(e.error_message().startsWith("Folder::create_file(): "));
+        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 }
 

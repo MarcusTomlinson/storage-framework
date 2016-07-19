@@ -96,6 +96,7 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
         space_info si = space(identity_.toStdString());
         return make_ready_future<int64_t>(si.available);
     }
+    // LCOV_EXCL_START
     catch (boost::filesystem::filesystem_error const& e)
     {
         return make_exceptional_future<int64_t>(ResourceException(QString("Root::free_space_bytes(): ") + e.what(),
@@ -106,6 +107,7 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
         return make_exceptional_future<int64_t>(ResourceException(QString("Root::free_space_bytes(): ") + e.what(),
                                                                   errno));
     }
+    // LCOV_EXCL_STOP
 }
 
 QFuture<int64_t> RootImpl::used_space_bytes() const
@@ -117,6 +119,7 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
         space_info si = space(identity_.toStdString());
         return make_ready_future<int64_t>(si.capacity - si.available);
     }
+    // LCOV_EXCL_START
     catch (boost::filesystem::filesystem_error const& e)
     {
         return make_exceptional_future<int64_t>(ResourceException(QString("Root::used_space_bytes(): ") + e.what(),
@@ -127,6 +130,7 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
         return make_exceptional_future<int64_t>(ResourceException(QString("Root::used_space_bytes(): ") + e.what(),
                                                                   errno));
     }
+    // LCOV_EXCL_STOP
 }
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
@@ -182,12 +186,14 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
     }
     catch (boost::filesystem::filesystem_error const& e)
     {
-        return make_exceptional_future<Item::SPtr>(QString("Root::get(): ") + e.what(), e);
+        return make_exceptional_future<Item::SPtr>(QString("Root::get(): ") + e.what(), e, native_identity);
     }
+    // LCOV_EXCL_START
     catch (std::exception const& e)
     {
         return make_exceptional_future<Item::SPtr>(ResourceException(QString("Root::get(): ") + e.what(), errno));
     }
+    // LCOV_EXCL_STOP
 }
 
 Root::SPtr RootImpl::make_root(QString const& identity, std::weak_ptr<Account> const& account)

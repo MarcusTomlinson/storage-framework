@@ -64,17 +64,6 @@ ItemImpl::ItemImpl(QString const& identity, ItemType type)
 
 ItemImpl::~ItemImpl() = default;
 
-QString ItemImpl::name() const
-{
-    lock_guard<mutex> guard(mutex_);
-
-    if (deleted_)
-    {
-        throw deleted_ex("Item::name()");
-    }
-    return name_;
-}
-
 QString ItemImpl::etag() const
 {
     lock_guard<mutex> guard(mutex_);
@@ -142,25 +131,38 @@ void copy_recursively(path const& source, path const& target)
 
 QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, QString const& new_name)
 {
-    auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
-    auto copy = [This, new_parent, new_name]() -> Item::SPtr
+    if (!new_parent)
     {
-        auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
+        QString msg = "Item::copy(): new_parent cannot be nullptr";
+        return make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
+    }
 
-        lock(This->mutex_, new_parent_impl->mutex_);
+    auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
+    shared_ptr<Folder> parent = new_parent;
+    QString name = new_name;
+    auto copy = [This, parent, name]() -> Item::SPtr
+    {
+        auto parent_impl = dynamic_pointer_cast<FolderImpl>(parent->p_);
+
+        lock(This->mutex_, parent_impl->mutex_);
         lock_guard<mutex> this_guard(This->mutex_, std::adopt_lock);
-        lock_guard<mutex> other_guard(new_parent_impl->mutex_, adopt_lock);
+        lock_guard<mutex> other_guard(parent_impl->mutex_, adopt_lock);
 
-        if (This->deleted_ || new_parent_impl->deleted_)
+        if (This->deleted_)
         {
-            throw This->deleted_ex("Item::copy");
+            throw This->deleted_ex("Item::copy()");
+        }
+        if (parent_impl->deleted_)
+        {
+            throw parent_impl->deleted_ex("Item::copy()");
         }
 
-        if (This->root()->account() != new_parent->root()->account())
+        // TODO: This needs to deeply compare account identity because the client may have refreshed the accounts list.
+        if (This->root()->account() != parent->root()->account())
         {
             // Can't do cross-account copy.
             QString msg = QString("Item::copy(): Source (") + This->name_ + ") and target ("
-                          + new_name + ") must belong to the same account";
+                          + name + ") must belong to the same account";
             throw LogicException(msg);
         }
 
@@ -169,9 +171,9 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
             using namespace boost::filesystem;
 
             path source_path = This->native_identity().toStdString();
-            path parent_path = new_parent->native_identity().toStdString();
+            path parent_path = parent->native_identity().toStdString();
             path target_path = parent_path;
-            path sanitized_name = sanitize(new_name, "Item::copy()");
+            path sanitized_name = sanitize(name, "Item::copy()");
             target_path /= sanitized_name;
             if (is_reserved_path(target_path))
             {
@@ -182,12 +184,12 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
             if (This->type_ == ItemType::file)
             {
                 copy_file(source_path, target_path);
-                return FileImpl::make_file(QString::fromStdString(target_path.native()), new_parent_impl->root_);
+                return FileImpl::make_file(QString::fromStdString(target_path.native()), parent_impl->root_);
             }
 
             if (exists(target_path))
             {
-                QString msg = "Item::copy(): item with name \"" + new_name + "\" exists already";
+                QString msg = "Item::copy(): item with name \"" + name + "\" exists already";
                 throw ExistsException(msg, This->identity_, This->name_);
             }
 
@@ -213,7 +215,11 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
                 }
             }
             rename(tmp_path, target_path);
-            return FolderImpl::make_folder(QString::fromStdString(target_path.native()), new_parent_impl->root_);
+            return FolderImpl::make_folder(QString::fromStdString(target_path.native()), parent_impl->root_);
+        }
+        catch (StorageException const&)
+        {
+            throw;
         }
         catch (boost::filesystem::filesystem_error const& e)
         {
@@ -229,25 +235,38 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
 
 QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, QString const& new_name)
 {
-    auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
-    auto move = [This, new_parent, new_name]() -> Item::SPtr
+    if (!new_parent)
     {
-        auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
+        QString msg = "Item::move(): new_parent cannot be nullptr";
+        return make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
+    }
 
-        lock(This->mutex_, new_parent_impl->mutex_);
+    auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
+    shared_ptr<Folder> parent = new_parent;
+    QString name = new_name;
+    auto move = [This, parent, name]() -> Item::SPtr
+    {
+        auto parent_impl = dynamic_pointer_cast<FolderImpl>(parent->p_);
+
+        lock(This->mutex_, parent_impl->mutex_);
         lock_guard<mutex> this_guard(This->mutex_, std::adopt_lock);
-        lock_guard<mutex> other_guard(new_parent_impl->mutex_, adopt_lock);
+        lock_guard<mutex> other_guard(parent_impl->mutex_, adopt_lock);
 
-        if (This->deleted_ || new_parent_impl->deleted_)
+        if (This->deleted_)
         {
-            throw This->deleted_ex("Item::move");
+            throw This->deleted_ex("Item::move()");
+        }
+        if (parent_impl->deleted_)
+        {
+            throw parent_impl->deleted_ex("Item::move()");
         }
 
-        if (This->root()->account() != new_parent->root()->account())
+        // TODO: This needs to deeply compare account identity because the client may have refreshed the accounts list.
+        if (This->root()->account() != parent->root()->account())
         {
             // Can't do cross-account move.
             QString msg = QString("Item::move(): Source (") + This->name_ + ") and target ("
-                          + new_name + ") must belong to the same account";
+                          + name + ") must belong to the same account";
             throw LogicException(msg);
         }
         if (This->type_ == ItemType::root)
@@ -260,11 +279,11 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         {
             using namespace boost::filesystem;
 
-            path target_path = new_parent->native_identity().toStdString();
-            target_path /= sanitize(new_name, "Item::move()");
+            path target_path = parent->native_identity().toStdString();
+            target_path /= sanitize(name, "Item::move()");
             if (exists(target_path))
             {
-                QString msg = "Item::move(): item with name \"" + new_name + "\" exists already";
+                QString msg = "Item::move(): item with name \"" + name + "\" exists already";
                 throw ExistsException(msg, This->identity_, This->name_);
             }
             if (is_reserved_path(target_path))
@@ -276,9 +295,13 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
             This->deleted_ = true;
             if (This->type_ == ItemType::folder)
             {
-                return FolderImpl::make_folder(QString::fromStdString(target_path.native()), new_parent_impl->root_);
+                return FolderImpl::make_folder(QString::fromStdString(target_path.native()), parent_impl->root_);
             }
-            return FileImpl::make_file(QString::fromStdString(target_path.native()), new_parent_impl->root_);
+            return FileImpl::make_file(QString::fromStdString(target_path.native()), parent_impl->root_);
+        }
+        catch (StorageException const&)
+        {
+            throw;
         }
         catch (boost::filesystem::filesystem_error const& e)
         {
@@ -427,11 +450,6 @@ bool ItemImpl::has_conflict() const noexcept
     return etag_ != new_etag;
 }
 
-unique_lock<mutex> ItemImpl::get_lock()
-{
-    return unique_lock<mutex>(mutex_);
-}
-
 // Throw if name contains more than one path component.
 // Otherwise, return the relative path for the name.
 // This is to make sure that calling, say, create_file()
@@ -469,7 +487,7 @@ bool ItemImpl::is_reserved_path(boost::filesystem::path const& path) noexcept
 
 DeletedException ItemImpl::deleted_ex(QString const& method) const noexcept
 {
-    QString msg = method + ": " + identity_ + " was deleted previously";
+    QString msg = method + ": \"" + identity_ + "\" was deleted previously";
     return DeletedException(msg, identity_, name_);
 }
 
