@@ -11,6 +11,8 @@ qt5_add_dbus_adaptor(generated_files ${CMAKE_SOURCE_DIR}/data/provider.xml unity
 set_source_files_properties(bus.xml PROPERTIES CLASSNAME BusInterface)
 qt5_add_dbus_interface(generated_files bus.xml businterface)
 
+set_source_files_properties(${generated_files} PROPERTIES GENERATED TRUE)
+
 add_library(storage-framework-provider SHARED
   DownloadJob.cpp
   ProviderBase.cpp
@@ -46,7 +48,6 @@ set_target_properties(storage-framework-provider PROPERTIES
   SOVERSION ${SF_PROVIDER_SOVERSION}
   VERSION ${SF_PROVIDER_LIBVERSION}
 )
-qt5_use_modules(storage-framework-provider Core DBus Network)
 target_link_libraries(storage-framework-provider
   Qt5::Core
   Qt5::DBus

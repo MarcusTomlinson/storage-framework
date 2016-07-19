@@ -41,8 +41,8 @@ namespace remote_client
 {
 
 HandlerBase::HandlerBase(QObject* parent,
-                         QDBusPendingCall const& call,
-                         function<void(QDBusPendingCallWatcher const&)> closure)
+                         QDBusPendingCall& call,
+                         function<void(QDBusPendingCallWatcher&)> const& closure)
     : QObject(parent)
     , watcher_(call)
     , closure_(closure)
