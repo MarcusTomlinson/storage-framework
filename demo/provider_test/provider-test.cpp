@@ -150,11 +150,11 @@ boost::future<tuple<ItemList,string>> MyProvider::list(
     printf("list('%s', '%s') called by %s (%d)\n", item_id.c_str(), page_token.c_str(), ctx.security_label.c_str(), ctx.pid);
     if (item_id != "root_id")
     {
-        return boost::make_exceptional_future<tuple<ItemList,string>>(runtime_error("unknown folder"));
+        return make_exceptional_future<tuple<ItemList,string>>(runtime_error("unknown folder"));
     }
     if (page_token != "")
     {
-        return boost::make_exceptional_future<tuple<ItemList,string>>(runtime_error("unknown page token"));
+        return make_exceptional_future<tuple<ItemList,string>>(runtime_error("unknown page token"));
     }
     ItemList children = {
         {"child_id", "root_id", "Child", "etag", ItemType::file, {}}
@@ -170,7 +170,7 @@ boost::future<ItemList> MyProvider::lookup(
     printf("lookup('%s', '%s') called by %s (%d)\n", parent_id.c_str(), name.c_str(), ctx.security_label.c_str(), ctx.pid);
     if (parent_id != "root_id" || name != "Child")
     {
-        return boost::make_exceptional_future<ItemList>(runtime_error("file not found"));
+        return make_exceptional_future<ItemList>(runtime_error("file not found"));
     }
     ItemList children = {
         {"child_id", "root_id", "Child", "etag", ItemType::file, {}}
@@ -192,7 +192,7 @@ boost::future<Item> MyProvider::metadata(string const& item_id,
         Item metadata{"child_id", "root_id", "Child", "etag", ItemType::file, {}};
         return make_ready_future<Item>(metadata);
     }
-    return boost::make_exceptional_future<Item>(runtime_error("no such file"));
+    return make_exceptional_future<Item>(runtime_error("no such file"));
 }
 
 boost::future<Item> MyProvider::create_folder(
