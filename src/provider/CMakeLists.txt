@@ -56,6 +56,14 @@ target_link_libraries(storage-framework-provider
   ${ONLINEACCOUNTS_DEPS_LDFLAGS}
 )
 
+# moc does not know how to interpret the preprocessor logic in
+# MainLoopExecutor.h, so we reproduce it here.
+if(Boost_VERSION VERSION_GREATER "1.55.9999")
+  set_target_properties(storage-framework-provider PROPERTIES
+    AUTOMOC_MOC_OPTIONS "-DSF_SUPPORTS_EXECUTORS"
+  )
+endif()
+
 install(
   TARGETS storage-framework-provider
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

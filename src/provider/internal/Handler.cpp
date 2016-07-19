@@ -51,31 +51,47 @@ void Handler::begin()
 {
     // Need to put security check in here.
     auto peer_future = account_->dbus_peer().get(message_.service());
-    boost::future<QDBusMessage> msg_future = peer_future.then(
-        //MainLoopExecutor::instance(),
-        [this](decltype(peer_future) f) -> boost::future<QDBusMessage> {
+    creds_future_ = peer_future.then(
+        EXEC_IN_MAIN
+        [this](decltype(peer_future) f) {
             auto info = f.get();
-            if (!info.valid) {
-                throw std::runtime_error("Handler::begin(): could not retrieve credentials");
+            if (info.valid)
+            {
+                context_ = {info.uid, info.pid, std::move(info.label),
+                            account_->credentials()};
+                QMetaObject::invokeMethod(this, "credentials_received");
             }
-            Context ctx{info.uid, info.pid, std::move(info.label), account_->credentials()};
-            return callback_(account_, ctx, message_);
+            else
+            {
+                reply_ = message_.createErrorReply(
+                    ERROR, "Handler::begin(): could not retrieve credentials");
+                QMetaObject::invokeMethod(this, "send_reply");
+            }
         });
-    future_ = msg_future.then(
-        MainLoopExecutor::instance(),
+}
+
+void Handler::credentials_received()
+{
+    auto msg_future = callback_(account_, context_, message_);
+    reply_future_ = msg_future.then(
+        EXEC_IN_MAIN
         [this](decltype(msg_future) f) {
-            QDBusMessage reply;
             try
             {
-                reply = f.get();
+                reply_ = f.get();
             }
             catch (std::exception const& e)
             {
-                reply = message_.createErrorReply(ERROR, e.what());
+                reply_ = message_.createErrorReply(ERROR, e.what());
             }
-            bus_.send(reply);
-            Q_EMIT finished();
+            QMetaObject::invokeMethod(this, "send_reply");
         });
+}
+
+void Handler::send_reply()
+{
+    bus_.send(reply_);
+    Q_EMIT finished();
 }
 
 }
