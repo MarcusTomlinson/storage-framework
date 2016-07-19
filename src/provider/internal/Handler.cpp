@@ -59,13 +59,15 @@ void Handler::begin()
             {
                 context_ = {info.uid, info.pid, std::move(info.label),
                             account_->credentials()};
-                QMetaObject::invokeMethod(this, "credentials_received");
+                QMetaObject::invokeMethod(this, "credentials_received",
+                                          Qt::QueuedConnection);
             }
             else
             {
                 reply_ = message_.createErrorReply(
                     ERROR, "Handler::begin(): could not retrieve credentials");
-                QMetaObject::invokeMethod(this, "send_reply");
+                QMetaObject::invokeMethod(this, "send_reply",
+                                          Qt::QueuedConnection);
             }
         });
 }
@@ -84,7 +86,7 @@ void Handler::credentials_received()
             {
                 reply_ = message_.createErrorReply(ERROR, e.what());
             }
-            QMetaObject::invokeMethod(this, "send_reply");
+            QMetaObject::invokeMethod(this, "send_reply", Qt::QueuedConnection);
         });
 }
 
