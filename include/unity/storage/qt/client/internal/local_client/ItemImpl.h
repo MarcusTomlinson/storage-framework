@@ -19,9 +19,8 @@
 #pragma once
 
 #include <unity/storage/common.h>
+#include <unity/storage/qt/client/internal/boost_filesystem.h>
 #include <unity/storage/qt/client/internal/ItemBase.h>
-
-#include <boost/filesystem.hpp>
 
 #include <mutex>
 

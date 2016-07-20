@@ -51,7 +51,6 @@ private:
     QString owner_id_;                        // Immutable
     QString description_;                     // Immutable
     QVector<std::shared_ptr<Root>> roots_;    // Immutable
-    std::atomic_bool copy_in_progress_;
 };
 
 }  // namespace local_client

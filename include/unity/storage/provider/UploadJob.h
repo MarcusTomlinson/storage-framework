@@ -30,7 +30,7 @@ namespace storage
 namespace provider
 {
 
-class Item;
+struct Item;
 
 namespace internal
 {
