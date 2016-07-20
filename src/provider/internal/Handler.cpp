@@ -74,7 +74,14 @@ void Handler::begin()
 
 void Handler::credentials_received()
 {
-    auto msg_future = callback_(account_, context_, message_);
+    boost::future<QDBusMessage> msg_future;
+    try {
+        msg_future = callback_(account_, context_, message_);
+    } catch (std::exception const& e) {
+        reply_ = message_.createErrorReply(ERROR, e.what());
+        QMetaObject::invokeMethod(this, "send_reply", Qt::QueuedConnection);
+        return;
+    }
     reply_future_ = msg_future.then(
         EXEC_IN_MAIN
         [this](decltype(msg_future) f) {
