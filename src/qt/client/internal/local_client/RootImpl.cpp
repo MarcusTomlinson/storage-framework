@@ -68,27 +68,48 @@ RootImpl::RootImpl(QString const& identity, weak_ptr<Account> const& account)
 
 QString RootImpl::name() const
 {
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("Root::name()");
+    }
     return "";
 }
 
 QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 {
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("Root::parents()");
+    }
     return make_ready_future(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
 }
 
 QVector<QString> RootImpl::parent_ids() const
 {
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("Root::parent_ids()");
+    }
     return QVector<QString>();  // For the root, we return an empty vector.
 }
 
 QFuture<void> RootImpl::delete_item()
 {
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("Root::delete_item()");
+    }
     // Cannot delete root.
     return make_exceptional_future(LogicException("Root::delete_item(): Cannot delete root folder"));
 }
 
 QFuture<int64_t> RootImpl::free_space_bytes() const
 {
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("Root::free_space_bytes()");
+    }
+
     using namespace boost::filesystem;
 
     try
@@ -112,6 +133,11 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
 
 QFuture<int64_t> RootImpl::used_space_bytes() const
 {
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("Root::used_space_bytes()");
+    }
+
     using namespace boost::filesystem;
 
     try
@@ -135,6 +161,12 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 {
+    auto root = get_root();
+    if (!root)
+    {
+        throw RuntimeDestroyedException("Root::native_identity()");
+    }
+
     using namespace boost::filesystem;
 
     QFutureInterface<Item::SPtr> qf;
@@ -149,7 +181,7 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 
         // Make sure that native_identity is contained in or equal to the root path.
         id_path = canonical(id_path);
-        auto root_path = path(root()->native_identity().toStdString());
+        auto root_path = path(root->native_identity().toStdString());
         auto id_len = std::distance(id_path.begin(), id_path.end());
         auto root_len = std::distance(root_path.begin(), root_path.end());
         if (id_len < root_len || !std::equal(root_path.begin(), root_path.end(), id_path.begin()))
@@ -173,16 +205,20 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         {
             if (id_path == root_path)
             {
-                return make_ready_future<Item::SPtr>(make_root(path, account_));
+                return make_ready_future<Item::SPtr>(make_root(path, account()));
             }
-            return make_ready_future<Item::SPtr>(make_folder(path, root_));
+            return make_ready_future<Item::SPtr>(make_folder(path, root));
         }
         if (is_regular_file(s))
         {
-            return make_ready_future<Item::SPtr>(FileImpl::make_file(path, root_));
+            return make_ready_future<Item::SPtr>(FileImpl::make_file(path, root));
         }
         QString msg = "Root::get(): no such item: " + native_identity;
         return make_exceptional_future<Item::SPtr>(NotExistsException(msg, native_identity));
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<Item::SPtr>(e);
     }
     catch (boost::filesystem::filesystem_error const& e)
     {

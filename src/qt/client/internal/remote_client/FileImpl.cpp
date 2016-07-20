@@ -52,6 +52,10 @@ int64_t FileImpl::size() const
     {
         throw deleted_ex("File::size()");
     }
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("File::size()");
+    }
     return 0;  // TODO
 }
 
@@ -61,18 +65,18 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
     {
         return make_exceptional_future<shared_ptr<Uploader>>(deleted_ex("File::create_uploader()"));
     }
+    if (!get_root())
+    {
+        return make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("File::create_uploader()"));
+    }
 
     QString old_etag = policy == ConflictPolicy::overwrite ? "" : md_.etag;
     auto prov = provider();
-    if (!prov)
-    {
-        return make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("File::create_uploader"));
-    }
     auto reply = prov->Update(md_.item_id, old_etag);
 
     auto process_reply = [this, old_etag, prov](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Uploader>>& qf)
     {
-        auto root = root_.lock();
+        auto root = get_root();
         if (!root)
         {
             make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("File::create_uploader()"));
@@ -102,17 +106,24 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
     {
         return make_exceptional_future<shared_ptr<Downloader>>(deleted_ex("File::create_downloader()"));
     }
+    if (!get_root())
+    {
+        return make_exceptional_future<shared_ptr<Downloader>>(RuntimeDestroyedException("File::create_downloader()"));
+    }
 
     auto prov = provider();
-    if (!prov)
-    {
-        return make_exceptional_future<shared_ptr<Downloader>>(RuntimeDestroyedException("File::create_downloader"));
-    }
     auto reply = prov->Download(md_.item_id);
 
     auto process_reply = [this, prov](QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                                       QFutureInterface<std::shared_ptr<Downloader>>& qf)
     {
+        auto root = get_root();
+        if (!root)
+        {
+            make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("File::create_downloader()"));
+            return;
+        }
+
         auto download_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();
         if (fd.fileDescriptor() < 0)

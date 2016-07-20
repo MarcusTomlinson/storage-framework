@@ -48,45 +48,70 @@ RootImpl::RootImpl(storage::internal::ItemMetadata const& md, weak_ptr<Account> 
 
 QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 {
+    if (!get_root())
+    {
+        return make_exceptional_future<QVector<Folder::SPtr>>(RuntimeDestroyedException("Root::parents()"));
+    }
     return make_ready_future(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
 }
 
 QVector<QString> RootImpl::parent_ids() const
 {
+    if (!get_root())
+    {
+        return make_exceptional_future<QVector<QString>>(RuntimeDestroyedException("Root::parent_ids()"));
+    }
     return QVector<QString>();  // For the root, we return an empty vector.
 }
 
 QFuture<void> RootImpl::delete_item()
 {
+    if (!get_root())
+    {
+        return make_exceptional_future(RuntimeDestroyedException("Root::delete_item()"));
+    }
     // Cannot delete root.
     return make_exceptional_future(LogicException("Root::delete_item(): root item cannot be deleted"));
 }
 
 QFuture<int64_t> RootImpl::free_space_bytes() const
 {
+    if (!get_root())
+    {
+        return make_exceptional_future<int64_t>(RuntimeDestroyedException("Root::free_space_bytes()"));
+    }
     // TODO, need to refresh metadata here instead.
     return make_ready_future(int64_t(1));
 }
 
 QFuture<int64_t> RootImpl::used_space_bytes() const
 {
+    if (!get_root())
+    {
+        return make_exceptional_future<int64_t>(RuntimeDestroyedException("Root::used_space_bytes()"));
+    }
     // TODO, need to refresh metadata here instead.
     return make_ready_future(int64_t(1));
 }
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 {
-    auto prov = provider();
-    if (!prov)
+    if (!get_root())
     {
         return make_exceptional_future<Item::SPtr>(RuntimeDestroyedException("Root::get()"));
     }
+
+    auto prov = provider();
     auto reply = prov->Metadata(native_identity);
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<Item::SPtr>& qf)
     {
-        auto account = account_.lock();
-        if (!account)
+        shared_ptr<Account> acc;
+        try
+        {
+            acc = account();
+        }
+        catch (RuntimeDestroyedException const&)
         {
             make_exceptional_future<Item::SPtr>(qf, RuntimeDestroyedException("Root::get()"));
             return;
@@ -96,11 +121,11 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         Item::SPtr item;
         if (md.type == ItemType::root)
         {
-            item = make_root(md, account);
+            item = make_root(md, acc);
         }
         else
         {
-            assert(root_.lock());  // Account owns the root, so it can't go away.
+            // acc owns the root, so the root weak_ptr is guaranteed to be lockable.
             item = ItemImpl::make_item(md, root_);
         }
         make_ready_future(qf, item);

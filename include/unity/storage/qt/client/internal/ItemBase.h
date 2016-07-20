@@ -77,6 +77,8 @@ public:
     void set_public_instance(std::weak_ptr<Item> p);
 
 protected:
+    std::shared_ptr<Root> get_root() const noexcept;
+
     const QString identity_;
     const ItemType type_;
     std::weak_ptr<Root> root_;

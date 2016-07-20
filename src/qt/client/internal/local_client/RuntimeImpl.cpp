@@ -68,14 +68,19 @@ RuntimeImpl::~RuntimeImpl()
 
 void RuntimeImpl::shutdown()
 {
-    if (destroyed_.exchange(true))
+    if (destroyed_)
     {
         return;
     }
+    destroyed_ = true;
 }
 
 QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 {
+    if (destroyed_)
+    {
+        throw RuntimeDestroyedException("Runtime::accounts()");
+    }
 
     char const* user = g_get_user_name();
     assert(*user != '\0');

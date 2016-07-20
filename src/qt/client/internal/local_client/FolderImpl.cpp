@@ -84,6 +84,11 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
         {
             throw This->deleted_ex("Folder::list()");
         }
+        auto root = This->get_root();
+        if (!root)
+        {
+            throw RuntimeDestroyedException("Folder::list()");
+        }
 
         try
         {
@@ -101,11 +106,11 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
                 QString path = QString::fromStdString(dirent.path().native());
                 if (is_directory(s))
                 {
-                    results.append(make_folder(path, This->root_));
+                    results.append(make_folder(path, root));
                 }
                 else if (is_regular_file(s))
                 {
-                    results.append(FileImpl::make_file(path, This->root_));
+                    results.append(FileImpl::make_file(path, root));
                 }
                 else
                 {
@@ -137,6 +142,11 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
         {
             throw This->deleted_ex("Folder::lookup()");
         }
+        auto root = This->get_root();
+        if (!root)
+        {
+            throw RuntimeDestroyedException("Folder::lookup()");
+        }
 
         try
         {
@@ -153,13 +163,13 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
             if (is_directory(s))
             {
                 QVector<Item::SPtr> v;
-                v.append(make_folder(QString::fromStdString(p.native()), This->root_));
+                v.append(make_folder(QString::fromStdString(p.native()), root));
                 return v;
             }
             if (is_regular_file(s))
             {
                 QVector<Item::SPtr> v;
-                v.append(FileImpl::make_file(QString::fromStdString(p.native()), This->root_));
+                v.append(FileImpl::make_file(QString::fromStdString(p.native()), root));
                 return v;
             }
             throw NotExistsException("Folder::lookup(): no such item: " + name, name);
@@ -193,6 +203,11 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     {
         return make_exceptional_future<Folder::SPtr>(deleted_ex("Folder::create_folder()"));
     }
+    auto root = get_root();
+    if (!root)
+    {
+        return make_exceptional_future<Folder::SPtr>(RuntimeDestroyedException("Folder::create_folder()"));
+    }
 
     try
     {
@@ -207,7 +222,11 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         }
         p /= sanitized_name;
         create_directory(p);
-        return make_ready_future(make_folder(QString::fromStdString(p.native()), root_));
+        return make_ready_future(make_folder(QString::fromStdString(p.native()), root));
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<Folder::SPtr>(e);
     }
     catch (boost::filesystem::filesystem_error const& e)
     {
@@ -228,6 +247,11 @@ QFuture<Uploader::SPtr> FolderImpl::create_file(QString const& name)
     if (deleted_)
     {
         return make_exceptional_future<Uploader::SPtr>(deleted_ex("Folder::create_file()"));
+    }
+    auto root = get_root();
+    if (!root)
+    {
+        return make_exceptional_future<Uploader::SPtr>(RuntimeDestroyedException("Folder::create_file()"));
     }
 
     try
@@ -250,9 +274,13 @@ QFuture<Uploader::SPtr> FolderImpl::create_file(QString const& name)
         auto impl = new UploaderImpl(File::SPtr(),
                                      QString::fromStdString(p.native()),
                                      ConflictPolicy::error_if_conflict,
-                                     root_);
+                                     root);
         Uploader::SPtr uploader(new Uploader(impl));
         return make_ready_future(uploader);
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<Uploader::SPtr>(e);
     }
     catch (boost::filesystem::filesystem_error const& e)
     {

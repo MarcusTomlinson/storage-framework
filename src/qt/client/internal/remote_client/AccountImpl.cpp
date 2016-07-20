@@ -63,16 +63,19 @@ AccountImpl::AccountImpl(weak_ptr<Runtime> const& runtime,
 
 QString AccountImpl::owner() const
 {
+    runtime();  // Throws if runtime was destroyed.
     return owner_;
 }
 
 QString AccountImpl::owner_id() const
 {
+    runtime();  // Throws if runtime was destroyed.
     return owner_id_;
 }
 
 QString AccountImpl::description() const
 {
+    runtime();  // Throws if runtime was destroyed.
     return description_;
 }
 
@@ -82,6 +85,16 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<QVector<Root::SPtr>>& qf)
     {
+        try
+        {
+            this->runtime();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            make_exceptional_future(qf, RuntimeDestroyedException("Account::roots()"));
+            return;
+        }
+
         QVector<shared_ptr<Root>> roots;
         auto metadata = reply.value();
         for (auto const& md : metadata)

@@ -52,6 +52,10 @@ QString ItemImpl::name() const
     {
         throw deleted_ex("Item::name()");
     }
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("Item::name()");
+    }
     return md_.name;
 }
 
@@ -61,6 +65,10 @@ QString ItemImpl::etag() const
     {
         throw deleted_ex("Item::etag()");
     }
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("Item::etag()");
+    }
     return md_.etag;
 }
 
@@ -69,6 +77,10 @@ QVariantMap ItemImpl::metadata() const
     if (deleted_)
     {
         throw deleted_ex("Item::metadata()");
+    }
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("Item::metadata()");
     }
     // TODO: need to agree on metadata representation
     return QVariantMap();
@@ -80,6 +92,10 @@ QDateTime ItemImpl::last_modified_time() const
     {
         throw deleted_ex("Item::last_modified_time()");
     }
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("Item::last_modified_time()");
+    }
     // TODO: need to agree on metadata representation
     return QDateTime();
 }
@@ -90,17 +106,17 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
     {
         return make_exceptional_future<shared_ptr<Item>>(deleted_ex("Item::copy()"));
     }
-
-    auto prov = provider();
-    if (!prov)
+    if (!get_root())
     {
         return make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::copy()"));
     }
+
+    auto prov = provider();
     auto reply = prov->Copy(md_.item_id, new_parent->native_identity(), new_name);
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Item>>& qf)
     {
-        auto root = root_.lock();
+        auto root = get_root();
         if (!root)
         {
             make_exceptional_future(qf, RuntimeDestroyedException("Item::copy()"));
@@ -130,6 +146,10 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
     {
         return make_exceptional_future<shared_ptr<Item>>(deleted_ex("Item::move()"));
     }
+    if (!get_root())
+    {
+        return make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::copy()"));
+    }
 
     auto prov = provider();
     if (!prov)
@@ -140,10 +160,10 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Item>>& qf)
     {
-        auto root = root_.lock();
+        auto root = get_root();
         if (!root)
         {
-            make_exceptional_future(qf, RuntimeDestroyedException("Item::copy()"));
+            make_exceptional_future(qf, RuntimeDestroyedException("Item::move()"));
             return;
         }
 
@@ -168,6 +188,10 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
     {
         return make_exceptional_future<QVector<Folder::SPtr>>(deleted_ex("Item::parents()"));
     }
+    if (!get_root())
+    {
+        return make_exceptional_future<QVector<Folder::SPtr>>(RuntimeDestroyedException("Item::parents()"));
+    }
     // TODO, need different metadata representation, affects xml
     return QFuture<QVector<Folder::SPtr>>();
 }
@@ -177,6 +201,10 @@ QVector<QString> ItemImpl::parent_ids() const
     if (deleted_)
     {
         throw deleted_ex("Item::parent_ids()");
+    }
+    if (!get_root())
+    {
+        RuntimeDestroyedException("Item::parent_ids()");
     }
     // TODO, need different metadata representation, affects xml
     return QVector<QString>();
@@ -188,12 +216,12 @@ QFuture<void> ItemImpl::delete_item()
     {
         return make_exceptional_future(deleted_ex("Item::delete_item()"));
     }
+    if (!get_root())
+    {
+        return make_exceptional_future(RuntimeDestroyedException("Item::parents()"));
+    }
 
     auto prov = provider();
-    if (!prov)
-    {
-        return make_exceptional_future(RuntimeDestroyedException("Item::delete_item()"));
-    }
     auto reply = prov->Delete(md_.item_id);
 
     auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>& qf)

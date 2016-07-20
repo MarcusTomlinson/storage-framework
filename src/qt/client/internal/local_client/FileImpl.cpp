@@ -56,6 +56,10 @@ QString FileImpl::name() const
     {
         throw deleted_ex("File::name()");
     }
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("File::name()");
+    }
     return name_;
 }
 
@@ -66,6 +70,10 @@ int64_t FileImpl::size() const
     if (deleted_)
     {
         throw deleted_ex("File::size()");
+    }
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("File::size()");
     }
 
     try
@@ -91,10 +99,15 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
     {
         return make_exceptional_future<Uploader::SPtr>(deleted_ex("File::create_uploader()"));
     }
+    auto root = get_root();
+    if (!root)
+    {
+        throw RuntimeDestroyedException("File::create_uploader()");
+    }
 
     auto file = dynamic_pointer_cast<File>(public_instance_.lock());
     assert(file);
-    auto impl(new UploaderImpl(file, identity_, policy, root_));
+    auto impl(new UploaderImpl(file, identity_, policy, root));
     Uploader::SPtr ul(new Uploader(impl));
     return make_ready_future(ul);
 }
@@ -106,6 +119,10 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
     if (deleted_)
     {
         return make_exceptional_future<Downloader::SPtr>(deleted_ex("File::create_downloader()"));
+    }
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("File::create_downloader()");
     }
 
     auto pi = public_instance_.lock();

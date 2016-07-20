@@ -140,7 +140,7 @@ TEST(Runtime, basic)
     auto runtime = Runtime::create();
 
     auto acc = get_account(runtime);
-    EXPECT_EQ(runtime.get(), acc->runtime());
+    EXPECT_EQ(runtime, acc->runtime());
     qDebug() << "owner:      " << acc->owner();
     qDebug() << "owner ID:   " << acc->owner_id();
     qDebug() << "description:" << acc->description();
@@ -171,7 +171,7 @@ TEST(Root, basic)
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
     EXPECT_EQ("root_id", root->native_identity());
-    EXPECT_EQ(acc.get(), root->account());
+    EXPECT_EQ(acc, root->account());
     EXPECT_EQ(ItemType::root, root->type());
     EXPECT_EQ("Root", root->name());
     EXPECT_NE("", root->etag());

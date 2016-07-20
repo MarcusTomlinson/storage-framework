@@ -25,7 +25,6 @@
 #pragma GCC diagnostic pop
 #include <QVector>
 
-#include <atomic>
 #include <memory>
 
 namespace unity
@@ -43,10 +42,12 @@ class Runtime;
 namespace internal
 {
 
+class AccountBase;
+
 class RuntimeBase : public QObject
 {
 public:
-    RuntimeBase();
+    RuntimeBase() = default;
     virtual ~RuntimeBase() = default;
     RuntimeBase(RuntimeBase const&) = delete;
     RuntimeBase& operator=(RuntimeBase const&) = delete;
@@ -57,9 +58,11 @@ public:
     void set_public_instance(std::weak_ptr<Runtime> p);
 
 protected:
-    std::atomic_bool destroyed_;
-    QVector<std::shared_ptr<Account>> accounts_;  // Immutable once set
+    bool destroyed_ = false;
+    QVector<std::shared_ptr<Account>> accounts_;
     std::weak_ptr<Runtime> public_instance_;      // Immutable once set
+
+    friend class unity::storage::qt::client::internal::AccountBase;
 };
 
 }  // namespace internal

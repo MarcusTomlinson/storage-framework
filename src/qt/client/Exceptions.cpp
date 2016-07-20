@@ -275,7 +275,7 @@ void InvalidArgumentException::raise() const
 
 ResourceException::ResourceException(QString const& error_message, int error_code)
     : StorageException(error_message)
-    , error_code_(errno)
+    , error_code_(error_code)
 {
 }
 

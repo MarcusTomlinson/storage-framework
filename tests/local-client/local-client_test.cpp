@@ -105,7 +105,7 @@ TEST(Runtime, basic)
     auto runtime = Runtime::create();
 
     auto acc = get_account(runtime);
-    EXPECT_EQ(runtime.get(), acc->runtime());
+    EXPECT_EQ(runtime, acc->runtime());
     auto owner = acc->owner();
     EXPECT_EQ(QString(g_get_user_name()), owner);
     auto owner_id = acc->owner_id();
@@ -133,7 +133,7 @@ TEST(Root, basic)
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
-    EXPECT_EQ(acc.get(), root->account());
+    EXPECT_EQ(acc, root->account());
     EXPECT_EQ(ItemType::root, root->type());
     EXPECT_EQ("", root->name());
     EXPECT_NE("", root->etag());
@@ -1110,6 +1110,7 @@ TEST(Item, deleted_exceptions)
         EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::etag(): "));
         EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
+        EXPECT_EQ(TEST_DIR "/storage-framework/file", e.native_identity());
     }
 
     try
@@ -1122,7 +1123,6 @@ TEST(Item, deleted_exceptions)
     {
         EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::metadata(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 
     try
@@ -1135,7 +1135,6 @@ TEST(Item, deleted_exceptions)
     {
         EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::last_modified_time(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 
     try
@@ -1151,7 +1150,6 @@ TEST(Item, deleted_exceptions)
     {
         EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::copy(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 
     try
@@ -1184,7 +1182,6 @@ TEST(Item, deleted_exceptions)
     {
         EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::copy(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
     clear_folder(root);
 
@@ -1201,7 +1198,6 @@ TEST(Item, deleted_exceptions)
     {
         EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::move(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 
     try
@@ -1234,7 +1230,6 @@ TEST(Item, deleted_exceptions)
     {
         EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::move(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
     clear_folder(root);
 
@@ -1248,7 +1243,6 @@ TEST(Item, deleted_exceptions)
     {
         EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::parents(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 
     try
@@ -1261,7 +1255,6 @@ TEST(Item, deleted_exceptions)
     {
         EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::parent_ids(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 
     try
@@ -1277,7 +1270,6 @@ TEST(Item, deleted_exceptions)
     {
         EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::delete_item(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 }
 
@@ -1299,7 +1291,6 @@ TEST(Folder, deleted_exceptions)
     {
         EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Folder::name(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 
     try
@@ -1314,7 +1305,6 @@ TEST(Folder, deleted_exceptions)
     {
         EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Folder::list(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 
     try
@@ -1329,7 +1319,6 @@ TEST(Folder, deleted_exceptions)
     {
         EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Folder::lookup(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 
     try
@@ -1344,7 +1333,6 @@ TEST(Folder, deleted_exceptions)
     {
         EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Folder::create_folder(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
 
     try
@@ -1359,8 +1347,133 @@ TEST(Folder, deleted_exceptions)
     {
         EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Folder::create_file(): "));
-        EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
     }
+}
+
+TEST(Runtime, runtime_destroyed_exceptions)
+{
+    // Gettting an account after shutting down the runtime must fail.
+    {
+        auto runtime = Runtime::create();
+        auto acc = get_account(runtime);
+        runtime->shutdown();
+        try
+        {
+            acc->runtime();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Account::runtime(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting an account after destroying the runtime must fail.
+    {
+        auto runtime = Runtime::create();
+        auto acc = get_account(runtime);
+        runtime.reset();
+        try
+        {
+            acc->runtime();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Account::runtime(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting the account from a root with a destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create();
+        auto acc = get_account(runtime);
+        auto root = get_root(runtime);
+        runtime.reset();
+        try
+        {
+            root->account();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Root::account(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting the account from a root with a destroyed account must fail.
+    {
+        auto runtime = Runtime::create();
+        auto acc = get_account(runtime);
+        auto root = get_root(runtime);
+        runtime.reset();
+        acc.reset();
+        try
+        {
+            root->account();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Root::account(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting the root from an item with a destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create();
+        auto acc = get_account(runtime);
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto create_fut = root->create_file("file1");
+        ASSERT_TRUE(wait(create_fut));
+        auto uploader = create_fut.result();
+        auto finish_fut = uploader->finish_upload();
+        ASSERT_TRUE(wait(finish_fut));
+        auto file = finish_fut.result();
+
+        runtime.reset();
+        try
+        {
+            file->root();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::root(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting the root from an item with a destroyed account must fail.
+    {
+        auto runtime = Runtime::create();
+        auto acc = get_account(runtime);
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto create_fut = root->create_file("file1");
+        ASSERT_TRUE(wait(create_fut));
+        auto uploader = create_fut.result();
+        auto finish_fut = uploader->finish_upload();
+        ASSERT_TRUE(wait(finish_fut));
+        auto file = finish_fut.result();
+
+        runtime.reset();
+        acc.reset();
+        root.reset();
+        try
+        {
+            file->root();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::root(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // TODO: Lots more places to cover here.
 }
 
 int main(int argc, char** argv)
