@@ -18,7 +18,14 @@
 
 #pragma once
 
-#include <boost/thread/executor.hpp>
+#include <boost/version.hpp>
+
+#if BOOST_VERSION >= 105600
+#  define SF_SUPPORTS_EXECUTORS
+#endif
+#ifdef SF_SUPPORTS_EXECUTORS
+#  include <boost/thread/executor.hpp>
+#endif
 #include <QObject>
 
 #include <functional>
@@ -31,6 +38,20 @@ namespace provider
 {
 namespace internal
 {
+
+#ifdef SF_SUPPORTS_EXECUTORS
+
+/* Declare future continuations like so to execute within the event
+ * loop if possible:
+ *
+ *   auto f2 = f.then(EXEC_IN_MAIN [](decltype(f) f) { ... });
+ *
+ * On Boost >= 1.56, this will use a custom executor to run the
+ * continuation as an event in the main thread.  On older versions,
+ * the continuation will be executed in a new thread.
+ */
+
+#define EXEC_IN_MAIN MainLoopExecutor::instance(),
 
 class MainLoopExecutor : public QObject, public boost::executors::executor {
     Q_OBJECT
@@ -50,6 +71,12 @@ private:
 
     Q_DISABLE_COPY(MainLoopExecutor)
 };
+
+#else
+
+#define EXEC_IN_MAIN /*nothing*/
+
+#endif
 
 }
 }
