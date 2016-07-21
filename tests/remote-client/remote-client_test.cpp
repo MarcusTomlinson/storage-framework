@@ -54,6 +54,8 @@ protected:
     void SetUp() override
     {
         dbus_.reset(new DBusEnvironment);
+        dbus_->add_demo_provider("google-drive-scope");
+        dbus_->start_services();
     }
 
     void TearDown() override

@@ -177,6 +177,8 @@ if __name__ == "__main__":
                 OAuth2("access_token", 0, ["scope1", "scope2"])),
         Account(3, "Password account", "password-service",
                 Password("user", "pass")),
+        Account(42, "Fake google account", "google-drive-scope",
+                OAuth2("fake-google-access-token", 0, [])),
     ]
     server = Server(accounts)
     server.run()
