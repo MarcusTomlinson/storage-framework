@@ -299,7 +299,13 @@ boost::future<void> MyDownloadJob::finish()
 
 int main(int argc, char **argv)
 {
-    Server<MyProvider> server("com.canonical.StorageFramework.Provider.ProviderTest", "google-drive-scope");
+    const std::string bus_name = "com.canonical.StorageFramework.Provider.ProviderTest";
+    std::string account_service_id = "google-drive-scope";
+    if (argc > 1)
+    {
+        account_service_id = argv[1];
+    }
+    Server<MyProvider> server(bus_name, account_service_id);
     server.init(argc, argv);
     server.run();
 }

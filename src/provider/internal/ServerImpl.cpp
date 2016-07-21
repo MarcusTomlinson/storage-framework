@@ -56,7 +56,7 @@ void ServerImpl::init(int& argc, char **argv)
     MainLoopExecutor::instance();
 #endif
 
-    manager_.reset(new OnlineAccounts::Manager(""));
+    manager_.reset(new OnlineAccounts::Manager("", bus));
     connect(manager_.get(), &OnlineAccounts::Manager::ready,
                      this, &ServerImpl::account_manager_ready);
 }

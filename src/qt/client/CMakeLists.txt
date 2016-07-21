@@ -23,6 +23,7 @@ add_library(qt-client-lib-common OBJECT
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/client/internal/UploaderBase.h
 )
 target_include_directories(qt-client-lib-common PRIVATE
+    ${Qt5DBus_INCLUDE_DIRS}
     ${Qt5Network_INCLUDE_DIRS}
 )
 set_target_properties(qt-client-lib-common PROPERTIES
@@ -45,13 +46,9 @@ add_library(storage-framework-qt-local-client SHARED
 )
 target_include_directories(storage-framework-qt-local-client PRIVATE
     ${GLIB_DEPS_INCLUDE_DIRS}
-    ${Qt5Core_INCLUDE_DIRS}
-    ${Qt5Network_INCLUDE_DIRS}
-    ${Qt5Concurrent_INCLUDE_DIRS}
 )
 set_target_properties(storage-framework-qt-local-client PROPERTIES
     AUTOMOC TRUE
-    POSITION_INDEPENDENT_CODE TRUE
     LINK_FLAGS "-Wl,--no-undefined"
     OUTPUT_NAME "storage-framework-qt-local-client-${SF_CLIENT_API_VERSION}"
     SOVERSION ${SF_CLIENT_SOVERSION}
@@ -60,6 +57,7 @@ set_target_properties(storage-framework-qt-local-client PROPERTIES
 target_link_libraries(storage-framework-qt-local-client
     Qt5::Concurrent
     Qt5::Core
+    Qt5::DBus
     Qt5::Network
     ${Boost_LIBRARIES}
     ${GLIB_DEPS_LIBRARIES}
@@ -101,9 +99,6 @@ add_library(storage-framework-qt-client SHARED
 target_include_directories(storage-framework-qt-client PRIVATE
     ${GLIB_DEPS_INCLUDE_DIRS}
     ${ONLINEACCOUNTS_DEPS_INCLUDE_DIRS}
-    ${Qt5Core_INCLUDE_DIRS}
-    ${Qt5DBus_INCLUDE_DIRS}
-    ${Qt5Network_INCLUDE_DIRS}
 )
 set_target_properties(storage-framework-qt-client PROPERTIES
     AUTOMOC TRUE

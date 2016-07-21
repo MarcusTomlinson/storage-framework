@@ -47,7 +47,7 @@ class RuntimeImpl : public RuntimeBase
     Q_OBJECT
 
 public:
-    RuntimeImpl();
+    RuntimeImpl(QDBusConnection const& bus);
     virtual ~RuntimeImpl();
 
     virtual void shutdown() override;
