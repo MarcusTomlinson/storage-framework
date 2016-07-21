@@ -54,6 +54,10 @@ public:
     virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const override;
     virtual QVector<QString> parent_ids() const override;
     virtual QFuture<void> delete_item() override;
+
+    virtual QDateTime creation_time() const override;
+    virtual MetadataMap native_metadata() const override;
+
     virtual bool equal_to(ItemBase const& other) const noexcept override;
 
     ProviderInterface& provider() const noexcept;

@@ -357,6 +357,16 @@ QFuture<void> ItemImpl::delete_item()
     return QtConcurrent::run(destroy);
 }
 
+QDateTime ItemImpl::creation_time() const
+{
+    return QDateTime();
+}
+
+MetadataMap ItemImpl::native_metadata() const
+{
+    return MetadataMap();
+}
+
 bool ItemImpl::equal_to(ItemBase const& other) const noexcept
 {
     auto other_impl = dynamic_cast<ItemImpl const*>(&other);
