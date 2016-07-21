@@ -139,6 +139,34 @@ void CancelledException::raise() const
     throw *this;
 }
 
+LogicException::LogicException() = default;
+
+LogicException::~LogicException() = default;
+
+LogicException* LogicException::clone() const
+{
+    return new LogicException(*this);
+}
+
+void LogicException::raise() const
+{
+    throw *this;
+}
+
+InvalidArgumentException::InvalidArgumentException() = default;
+
+InvalidArgumentException::~InvalidArgumentException() = default;
+
+InvalidArgumentException* InvalidArgumentException::clone() const
+{
+    return new InvalidArgumentException(*this);
+}
+
+void InvalidArgumentException::raise() const
+{
+    throw *this;
+}
+
 }  // namespace client
 }  // namespace qt
 }  // namespace storage

@@ -54,9 +54,9 @@ QFuture<Folder::SPtr> Folder::create_folder(QString const& name)
     return dynamic_cast<FolderBase*>(p_.get())->create_folder(name);
 }
 
-QFuture<shared_ptr<Uploader>> Folder::create_file(QString const& name)
+QFuture<shared_ptr<Uploader>> Folder::create_file(QString const& name, int64_t size)
 {
-    return dynamic_cast<FolderBase*>(p_.get())->create_file(name);
+    return dynamic_cast<FolderBase*>(p_.get())->create_file(name, size);
 }
 
 }  // namespace client

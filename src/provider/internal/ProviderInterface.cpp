@@ -161,12 +161,12 @@ ProviderInterface::IMD ProviderInterface::CreateFolder(QString const& parent_id,
     return {};
 }
 
-QString ProviderInterface::CreateFile(QString const& parent_id, QString const& title, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& /*file_descriptor*/)
+QString ProviderInterface::CreateFile(QString const& parent_id, QString const& name, int64_t size, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& /*file_descriptor*/)
 {
-    queue_request([parent_id, title, content_type, allow_overwrite](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+    queue_request([parent_id, name, size, content_type, allow_overwrite](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().create_file(
-                parent_id.toStdString(), title.toStdString(),
-                content_type.toStdString(), allow_overwrite, ctx);
+                parent_id.toStdString(), name.toStdString(),
+                size, content_type.toStdString(), allow_overwrite, ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
@@ -189,11 +189,11 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& t
     return "";
 }
 
-QString ProviderInterface::Update(QString const& item_id, QString const& old_etag, QDBusUnixFileDescriptor& /*file_descriptor*/)
+QString ProviderInterface::Update(QString const& item_id, int64_t size, QString const& old_etag, QDBusUnixFileDescriptor& /*file_descriptor*/)
 {
-    queue_request([item_id, old_etag](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+    queue_request([item_id, size, old_etag](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().update(
-                item_id.toStdString(), old_etag.toStdString(), ctx);
+                item_id.toStdString(), size, old_etag.toStdString(), ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {

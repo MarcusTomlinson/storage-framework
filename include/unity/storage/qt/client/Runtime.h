@@ -27,6 +27,8 @@
 
 #include <memory>
 
+class QDBusConnection;
+
 namespace unity
 {
 namespace storage
@@ -77,6 +79,7 @@ public:
     \brief Initializes the runtime.
     */
     static SPtr create();
+    static SPtr create(QDBusConnection const& bus);
 
     /**
     \brief Shuts down the runtime.

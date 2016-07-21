@@ -80,7 +80,7 @@ int64_t FileImpl::size() const
     }
 }
 
-QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
+QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy, int64_t size)
 {
     lock_guard<mutex> guard(mutex_);
 
@@ -93,7 +93,7 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy)
     {
         auto file = dynamic_pointer_cast<File>(public_instance_.lock());
         assert(file);
-        auto impl(new UploaderImpl(file, identity_, policy, root_));
+        auto impl(new UploaderImpl(file, size, identity_, policy, root_));
         Uploader::SPtr ul(new Uploader(impl));
         return make_ready_future(ul);
     }
