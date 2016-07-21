@@ -83,9 +83,13 @@ public:
     the contents of the file will be overwritten even if the file was modified
     after this File instance was retrieved. Otherwise, if set to ConflictPolicy::error_if_conflict,
     an attempt to retrieve the File instance from the future returned by Uploader::finish_upload()
-    throws ConflictException.
+    throws ConflictException if the file was was modified via some other channel.
+    \param size The size of the upload in bytes.
+    \note The provided file size must match the number of bytes that you write for the upload, otherwise
+    an attampt to retrive the File instance from the future returned by Uploader::finish_upload()
+    throws LogicException.
     */
-    QFuture<std::shared_ptr<Uploader>> create_uploader(ConflictPolicy policy);
+    QFuture<std::shared_ptr<Uploader>> create_uploader(ConflictPolicy policy, int64_t size);
 
     /**
     \brief Creates a downloader for the file.

@@ -135,6 +135,33 @@ public:
     virtual void raise() const override;
 };
 
+/**
+\brief Indicates incorrect use of the API, such as calling methods in the wrong order.
+*/
+class UNITY_STORAGE_EXPORT LogicException : public StorageException
+{
+public:
+    LogicException();
+    ~LogicException();
+
+    virtual LogicException* clone() const override;
+    virtual void raise() const override;
+};
+
+/**
+\brief Indicates an invalid parameter, such as a negative value when a positive one was
+expected, or a string that does not parse correctly or is empty when it should be non-empty.
+*/
+class UNITY_STORAGE_EXPORT InvalidArgumentException : public StorageException
+{
+public:
+    InvalidArgumentException();
+    ~InvalidArgumentException();
+
+    virtual InvalidArgumentException* clone() const override;
+    virtual void raise() const override;
+};
+
 }  // namespace client
 }  // namespace qt
 }  // namespace storage

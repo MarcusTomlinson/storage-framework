@@ -47,6 +47,7 @@ namespace local_client
 
 UploadWorker::UploadWorker(int read_fd,
                            weak_ptr<File> file,
+                           int64_t size,
                            QString const& path,
                            ConflictPolicy policy,
                            weak_ptr<Root> root,
@@ -54,6 +55,8 @@ UploadWorker::UploadWorker(int read_fd,
                            QFutureInterface<void>& worker_initialized)
     : read_fd_(read_fd)
     , file_(file)
+    , size_(size)
+    , bytes_read_(0)
     , path_(path)
     , root_(root)
     , tmp_fd_([](int fd){ if (fd != -1) ::close(fd); })
@@ -62,6 +65,7 @@ UploadWorker::UploadWorker(int read_fd,
     , worker_initialized_(worker_initialized)
 {
     assert(read_fd > 0);
+    assert(size >= 0);
     qf_.reportStarted();
     worker_initialized_.reportStarted();
 }
@@ -128,8 +132,17 @@ void UploadWorker::do_finish()
     {
         case in_progress:
         {
-            state_ = finalized;
-            finalize();
+            if (bytes_read_ != size_)
+            {
+                state_ = error;
+                qf_.reportException(LogicException());  // TODO, report details
+                qf_.reportFinished();
+            }
+            else
+            {
+                state_ = finalized;
+                finalize();
+            }
             break;
         }
         case finalized:
@@ -177,6 +190,7 @@ void UploadWorker::on_bytes_ready()
     auto buf = read_socket_->read(read_socket_->bytesAvailable());
     if (buf.size() != 0)
     {
+        bytes_read_ += buf.size();
         auto bytes_written = output_file_->write(buf);
         if (bytes_written != buf.size())
         {
@@ -319,8 +333,12 @@ void UploadThread::run()
     exec();
 }
 
-UploaderImpl::UploaderImpl(weak_ptr<File> file, QString const& path, ConflictPolicy policy, weak_ptr<Root> root)
-    : UploaderBase(policy)
+UploaderImpl::UploaderImpl(weak_ptr<File> file,
+                           int64_t size,
+                           QString const& path,
+                           ConflictPolicy policy,
+                           weak_ptr<Root> root)
+    : UploaderBase(policy, size)
 {
     // Set up socket pair.
     int fds[2];
@@ -342,7 +360,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, QString const& path, ConflictPol
     // Create worker and connect slots, so we can signal the worker when the client calls
     // finish_download() or cancel();
     QFutureInterface<void> worker_initialized;
-    worker_.reset(new UploadWorker(fds[0], file, path, policy, root, qf_, worker_initialized));
+    worker_.reset(new UploadWorker(fds[0], file, size, path, policy, root, qf_, worker_initialized));
     connect(this, &UploaderImpl::do_finish, worker_.get(), &UploadWorker::do_finish);
     connect(this, &UploaderImpl::do_cancel, worker_.get(), &UploadWorker::do_cancel);
 

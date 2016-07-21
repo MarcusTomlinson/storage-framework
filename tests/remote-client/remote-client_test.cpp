@@ -268,7 +268,7 @@ TEST_F(FolderTest, basic)
     ASSERT_EQ(1, items.size());
 
     // Create a file and check that it was created with correct type, name, and size 0.
-    auto create_file_fut = root->create_file("file1");
+    auto create_file_fut = root->create_file("file1", 0);
     {
         QFutureWatcher<Uploader::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
@@ -416,7 +416,7 @@ TEST_F(FileTest, upload)
     EXPECT_EQ("child_id", file->native_identity());
     EXPECT_EQ("Child", file->name());
 
-    auto create_uploader_fut = file->create_uploader(ConflictPolicy::error_if_conflict);
+    auto create_uploader_fut = file->create_uploader(ConflictPolicy::error_if_conflict, 0);
     {
         QFutureWatcher<Uploader::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);

@@ -51,6 +51,7 @@ class UploadWorker : public QObject
 public:
     UploadWorker(int read_fd,
                  std::weak_ptr<File> file,
+                 int64_t size,
                  QString const& path,
                  ConflictPolicy policy,
                  std::weak_ptr<Root> root,
@@ -79,6 +80,8 @@ private:
     int read_fd_;
     std::shared_ptr<QLocalSocket> read_socket_;
     std::weak_ptr<File> file_;
+    int64_t size_;
+    int64_t bytes_read_;
     QString path_;
     std::weak_ptr<Root> root_;
     std::unique_ptr<QFile> output_file_;
@@ -105,7 +108,11 @@ class UploaderImpl : public UploaderBase
     Q_OBJECT
 
 public:
-    UploaderImpl(std::weak_ptr<File> file, QString const& path, ConflictPolicy policy, std::weak_ptr<Root> root);
+    UploaderImpl(std::weak_ptr<File> file,
+                 int64_t size,
+                 QString const& path,
+                 ConflictPolicy policy,
+                 std::weak_ptr<Root> root);
     virtual ~UploaderImpl();
 
     virtual std::shared_ptr<QLocalSocket> socket() const override;

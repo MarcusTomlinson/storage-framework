@@ -56,17 +56,21 @@ int64_t FileImpl::size() const
     return 0;  // TODO
 }
 
-QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
+QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, int64_t size)
 {
     if (deleted_)
     {
         return make_exceptional_future<shared_ptr<Uploader>>(DeletedException());
     }
+    if (size < 0)
+    {
+        return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException());  // TODO
+    }
 
     QString old_etag = policy == ConflictPolicy::overwrite ? "" : md_.etag;
-    auto reply = provider().Update(md_.item_id, old_etag);
+    auto reply = provider().Update(md_.item_id, size, old_etag);
 
-    auto process_reply = [this, old_etag](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Uploader>>& qf)
+    auto process_reply = [this, size, old_etag](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Uploader>>& qf)
     {
         auto upload_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();
@@ -76,7 +80,7 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
         }
         else
         {
-            auto uploader = UploaderImpl::make_uploader(upload_id, fd, old_etag, root_, provider());
+            auto uploader = UploaderImpl::make_uploader(upload_id, fd, size, old_etag, root_, provider());
             make_ready_future(qf, uploader);
         }
     };

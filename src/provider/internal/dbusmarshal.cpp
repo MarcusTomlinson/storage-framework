@@ -36,7 +36,7 @@ QDBusArgument& operator<<(QDBusArgument& argument, Item const& item)
     argument.beginStructure();
     argument << QString::fromStdString(item.item_id);
     argument << QString::fromStdString(item.parent_id);
-    argument << QString::fromStdString(item.title);
+    argument << QString::fromStdString(item.name);
     argument << QString::fromStdString(item.etag);
     argument << static_cast<int32_t>(item.type);
     argument.beginMap(QVariant::String, qMetaTypeId<QDBusVariant>());

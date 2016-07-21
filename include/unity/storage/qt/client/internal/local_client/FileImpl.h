@@ -41,7 +41,7 @@ public:
 
     virtual QString name() const override;
     virtual int64_t size() const override;
-    virtual QFuture<std::shared_ptr<Uploader>> create_uploader(ConflictPolicy policy) override;
+    virtual QFuture<std::shared_ptr<Uploader>> create_uploader(ConflictPolicy policy, int64_t size) override;
     virtual QFuture<std::shared_ptr<Downloader>> create_downloader() override;
 
     static std::shared_ptr<File> make_file(QString const& identity, std::weak_ptr<Root> root);
