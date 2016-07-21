@@ -11,6 +11,7 @@ target_link_libraries(remote-client_test
     Qt5::Test
     ${Boost_LIBRARIES}
     ${GLIB_DEPS_LIBRARIES}
+    testutils
     gtest
 )
 add_test(remote-client remote-client_test)

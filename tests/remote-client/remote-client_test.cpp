@@ -1,5 +1,7 @@
 #include <unity/storage/qt/client/client-api.h>
 
+#include <utils/DBusEnvironment.h>
+
 #include <gtest/gtest.h>
 #include <QCoreApplication>
 #include <QFile>
@@ -21,6 +23,35 @@ using namespace std;
 static constexpr int SIGNAL_WAIT_TIME = 1000;
 
 // Bunch of helper function to reduce the amount of noise in the tests.
+
+class RemoteClientTest : public ::testing::Test
+{
+public:
+    QDBusConnection const& connection()
+    {
+        return dbus_->connection();
+    }
+
+protected:
+    void SetUp() override
+    {
+        dbus_.reset(new DBusEnvironment);
+    }
+
+    void TearDown() override
+    {
+        dbus_.reset();
+    }
+
+private:
+    unique_ptr<DBusEnvironment> dbus_;
+};
+
+class RuntimeTest : public RemoteClientTest {};
+class RootTest : public RemoteClientTest {};
+class FolderTest : public RemoteClientTest {};
+class FileTest : public RemoteClientTest {};
+class ItemTest : public RemoteClientTest {};
 
 Account::SPtr get_account(Runtime::SPtr const& runtime)
 {
@@ -110,16 +141,16 @@ void write_file(Folder::SPtr const& folder, QString const& name, QByteArray cons
     }
 }
 
-TEST(Runtime, lifecycle)
+TEST_F(RuntimeTest, lifecycle)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
     runtime->shutdown();
     runtime->shutdown();  // Just to show that this is safe.
 }
 
-TEST(Runtime, basic)
+TEST_F(RuntimeTest, basic)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     EXPECT_EQ(runtime.get(), acc->runtime());
@@ -128,9 +159,9 @@ TEST(Runtime, basic)
     qDebug() << "description:" << acc->description();
 }
 
-TEST(Runtime, roots)
+TEST_F(RuntimeTest, roots)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     ASSERT_NE(nullptr, acc);
@@ -146,9 +177,9 @@ TEST(Runtime, roots)
     EXPECT_EQ("root_id", roots[0]->native_identity());
 }
 
-TEST(Root, basic)
+TEST_F(RootTest, basic)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -197,9 +228,9 @@ TEST(Root, basic)
     EXPECT_GT(used_space, 0);
 }
 
-TEST(Folder, basic)
+TEST_F(FolderTest, basic)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -320,9 +351,9 @@ TEST(Folder, basic)
 }
 
 #if 0
-TEST(Folder, nested)
+TEST_F(FolderTest, nested)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -342,9 +373,9 @@ TEST(Folder, nested)
 }
 #endif
 
-TEST(File, upload)
+TEST_F(FileTest, upload)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -426,9 +457,9 @@ TEST(File, upload)
 }
 #if 0
 
-TEST(File, create_uploader)
+TEST_F(FileTest, create_uploader)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -487,9 +518,9 @@ TEST(File, create_uploader)
     file->delete_item().waitForFinished();
 }
 
-TEST(File, cancel_upload)
+TEST_F(FileTest, cancel_upload)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -567,9 +598,9 @@ TEST(File, cancel_upload)
     }
 }
 
-TEST(File, upload_conflict)
+TEST_F(FileTest, upload_conflict)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -608,9 +639,9 @@ TEST(File, upload_conflict)
     file->delete_item().waitForFinished();
 }
 
-TEST(File, download)
+TEST_F(FileTest, download)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -805,9 +836,9 @@ TEST(File, download)
     }
 }
 
-TEST(File, cancel_download)
+TEST_F(FileTest, cancel_download)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -863,9 +894,9 @@ TEST(File, cancel_download)
     }
 }
 
-TEST(Item, move)
+Test_F(ItemTest, move)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -894,9 +925,9 @@ TEST(Item, move)
     EXPECT_EQ("folder2", folder->name());
 }
 
-TEST(Item, copy)
+Test_F(ItemTest, copy)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -913,9 +944,9 @@ TEST(Item, copy)
     EXPECT_TRUE(content_matches(copied_file, contents));
 }
 
-TEST(Item, recursive_copy)
+Test_F(ItemTest, recursive_copy)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -951,9 +982,9 @@ TEST(Item, recursive_copy)
     EXPECT_NO_THROW(folder2->lookup("file").result());
 }
 
-TEST(Item, modified_time)
+Test_F(ItemTest, modified_time)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
@@ -969,9 +1000,9 @@ TEST(Item, modified_time)
     EXPECT_LE(t, now.addSecs(5));
 }
 
-TEST(Item, comparison)
+Test_F(ItemTest, comparison)
 {
-    auto runtime = Runtime::create();
+    auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
