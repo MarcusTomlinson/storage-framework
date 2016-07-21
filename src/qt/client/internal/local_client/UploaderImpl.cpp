@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 
 #include <unity/storage/qt/client/Exceptions.h>
@@ -180,42 +198,44 @@ void UploadWorker::finalize()
 {
     auto file = file_.lock();
     shared_ptr<FileImpl> impl;
-    if (file)
+    try
     {
-        // Upload is for a pre-existing file.
-        impl = dynamic_pointer_cast<FileImpl>(file->p_);
-
-        auto lock = impl->get_lock();
-
-        try
+        if (file)
         {
+            // Upload is for a pre-existing file.
+            impl = dynamic_pointer_cast<FileImpl>(file->p_);
+
+            auto lock = impl->get_lock();
             check_modified_time();  // Throws if time stamps don't match and policy is error_if_conflict.
-            impl->update_modified_time();
         }
-        catch (std::exception const&)
+        else
         {
-            qf_.reportException(ConflictException());  // TODO: store error details.
-            qf_.reportFinished();
-            return;
+            // This uploader was returned by FolderImpl::create_file().
+            int fd = open(path_.toStdString().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
+            if (fd == -1)
+            {
+                throw StorageException();  // TODO
+            }
+            if (close(fd) == -1)
+            {
+                throw StorageException();  // TODO
+            }
+
+            file = FileImpl::make_file(path_, root_);
+            impl = dynamic_pointer_cast<FileImpl>(file->p_);
         }
     }
-    else
+    catch (StorageException const& e)
     {
-        // This uploader was returned by FolderImpl::create_file().
-        int fd = open(path_.toStdString().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
-        if (fd == -1)
-        {
-            qf_.reportException(StorageException());  // TODO
-        }
-        if (close(fd) == -1)
-        {
-            qf_.reportException(StorageException());  // TODO
-        }
-
-        file = FileImpl::make_file(path_, root_);
-        impl = dynamic_pointer_cast<FileImpl>(file->p_);
-        auto lock = impl->get_lock();
-        impl->update_modified_time();
+        qf_.reportException(e);
+        qf_.reportFinished();
+        return;
+    }
+    catch (std::exception const&)
+    {
+        qf_.reportException(StorageException());  // TODO: store error details.
+        qf_.reportFinished();
+        return;
     }
 
     if (!output_file_->flush())
@@ -239,6 +259,18 @@ void UploadWorker::finalize()
 
     state_ = finalized;
     output_file_->close();
+    try
+    {
+
+        auto lock = impl->get_lock();
+        impl->update_modified_time();
+    }
+    catch (StorageException const& e)
+    {
+        qf_.reportException(e);
+        qf_.reportFinished();
+        return;
+    }
     qf_.reportResult(file);
     qf_.reportFinished();
 }

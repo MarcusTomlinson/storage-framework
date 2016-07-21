@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #pragma once
 
 #include <unity/storage/qt/client/Exceptions.h>
@@ -26,8 +44,8 @@ class Handler : public HandlerBase
 public:
     template<typename ... DBusArgs>
     Handler(QObject* parent,
-            QDBusPendingReply<DBusArgs...> const& reply,
-            std::function<void(decltype(reply) const&, QFutureInterface<T>&)> closure);
+            QDBusPendingReply<DBusArgs...>& reply,
+            std::function<void(decltype(reply)&, QFutureInterface<T>&)> closure);
 
     QFuture<T> future();
 
@@ -35,12 +53,23 @@ private:
     QFutureInterface<T> qf_;
 };
 
+// TODO: HACK: The reply argument really should be passed by const reference, which also
+//             would make the explicit conversion of the call to QDBusPendingReply<QDBusArgs...>
+//             unnecessary. But this doesn't work with gcc 4.9: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60420
+//             Once we get rid of Vivid, this should be changed back to
+//
+//             Handler<T>::Handler(QObject* parent,
+//                                 QDBusPendingReply<DBusArgs...> const& reply,
+//                                 std::function<void(decltype(reply) const&, QFutureInterface<T>&)> closure)
+
 template<typename T>
 template<typename ... DBusArgs>
-Handler<T>::Handler(QObject* parent, QDBusPendingReply<DBusArgs...> const& reply, std::function<void(decltype(reply) const&, QFutureInterface<T>&)> closure)
+Handler<T>::Handler(QObject* parent,
+                    QDBusPendingReply<DBusArgs...>& reply,
+                    std::function<void(decltype(reply)&, QFutureInterface<T>&)> closure)
     : HandlerBase(parent,
                   reply,
-                  [this, closure](QDBusPendingCallWatcher const& call)
+                  [this, closure](QDBusPendingCallWatcher& call)
                       {
                           if (call.isError())
                           {
@@ -49,7 +78,9 @@ Handler<T>::Handler(QObject* parent, QDBusPendingReply<DBusArgs...> const& reply
                               qf_.reportFinished();
                               return;
                           }
-                          closure(call, qf_);
+                          // TODO: See HACK above. Should just be closure(call, qf_);
+                          QDBusPendingReply<DBusArgs...> r = call;
+                          closure(r, qf_);
                       })
 {
     qf_.reportStarted();

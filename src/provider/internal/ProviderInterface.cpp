@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: James Henstridge <james.henstridge@canonical.com>
+ */
+
 #include <unity/storage/provider/internal/ProviderInterface.h>
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/ProviderBase.h>
@@ -72,7 +90,7 @@ QList<ProviderInterface::IMD> ProviderInterface::Roots()
     queue_request([](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().roots(ctx);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto roots = f.get();
                     return message.createReply(QVariant::fromValue(roots));
@@ -86,7 +104,7 @@ QList<ProviderInterface::IMD> ProviderInterface::List(QString const& item_id, QS
     queue_request([item_id, page_token](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().list(item_id.toStdString(), page_token.toStdString(), ctx);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     vector<Item> children;
                     string next_token;
@@ -104,7 +122,9 @@ QList<ProviderInterface::IMD> ProviderInterface::Lookup(QString const& parent_id
 {
     queue_request([parent_id, name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().lookup(parent_id.toStdString(), name.toStdString(), ctx);
-            return f.then([account, message](decltype(f) f) -> QDBusMessage {
+            return f.then(
+                EXEC_IN_MAIN
+                [account, message](decltype(f) f) -> QDBusMessage {
                     auto items = f.get();
                     return message.createReply(QVariant::fromValue(items));
                 });
@@ -117,7 +137,7 @@ ProviderInterface::IMD ProviderInterface::Metadata(QString const& item_id)
     queue_request([item_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().metadata(item_id.toStdString(), ctx);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));
@@ -132,7 +152,7 @@ ProviderInterface::IMD ProviderInterface::CreateFolder(QString const& parent_id,
             auto f = account->provider().create_folder(
                 parent_id.toStdString(), name.toStdString(), ctx);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));
@@ -148,7 +168,7 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& t
                 parent_id.toStdString(), title.toStdString(),
                 content_type.toStdString(), allow_overwrite, ctx);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
                     job->p_->set_sender_bus_name(message.service().toStdString());
@@ -175,7 +195,7 @@ QString ProviderInterface::Update(QString const& item_id, QString const& old_eta
             auto f = account->provider().update(
                 item_id.toStdString(), old_etag.toStdString(), ctx);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
                     job->p_->set_sender_bus_name(message.service().toStdString());
@@ -210,7 +230,7 @@ ProviderInterface::IMD ProviderInterface::FinishUpload(QString const& upload_id)
             account->jobs().remove_upload(upload_id.toStdString());
             auto f = job->p_->finish(*job);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message, job](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));
@@ -231,7 +251,7 @@ void ProviderInterface::CancelUpload(QString const& upload_id)
             account->jobs().remove_upload(upload_id.toStdString());
             auto f = job->p_->cancel(*job);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message, job](decltype(f) f) -> QDBusMessage {
                     f.get();
                     return message.createReply();
@@ -245,7 +265,7 @@ QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescrip
             auto f = account->provider().download(
                 item_id.toStdString(), ctx);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
                     job->p_->set_sender_bus_name(message.service().toStdString());
@@ -280,7 +300,7 @@ void ProviderInterface::FinishDownload(QString const& download_id)
             account->jobs().remove_download(download_id.toStdString());
             auto f = job->p_->finish(*job);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message, job](decltype(f) f) -> QDBusMessage {
                     f.get();
                     return message.createReply();
@@ -294,7 +314,7 @@ void ProviderInterface::Delete(QString const& item_id)
             auto f = account->provider().delete_item(
                 item_id.toStdString(), ctx);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     f.get();
                     return message.createReply();
@@ -309,7 +329,7 @@ ProviderInterface::IMD ProviderInterface::Move(QString const& item_id, QString c
                 item_id.toStdString(), new_parent_id.toStdString(),
                 new_name.toStdString(), ctx);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));
@@ -325,7 +345,7 @@ ProviderInterface::IMD ProviderInterface::Copy(QString const& item_id, QString c
                 item_id.toStdString(), new_parent_id.toStdString(),
                 new_name.toStdString(), ctx);
             return f.then(
-                MainLoopExecutor::instance(),
+                EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
                     return message.createReply(QVariant::fromValue(item));

@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: James Henstridge <james.henstridge@canonical.com>
+ */
+
 #include <unity/storage/provider/internal/ServerImpl.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/internal/AccountData.h>
@@ -33,8 +51,10 @@ void ServerImpl::init(int& argc, char **argv)
     auto bus = QDBusConnection::sessionBus();
     dbus_peer_ = make_shared<DBusPeerCache>(bus);
 
+#ifdef SF_SUPPORTS_EXECUTORS
     // Ensure the executor is instantiated in the main thread.
     MainLoopExecutor::instance();
+#endif
 
     manager_.reset(new OnlineAccounts::Manager("", bus));
     connect(manager_.get(), &OnlineAccounts::Manager::ready,

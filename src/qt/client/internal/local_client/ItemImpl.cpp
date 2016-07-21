@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/local_client/ItemImpl.h>
 
 #include <unity/storage/qt/client/Account.h>
@@ -13,6 +31,8 @@
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QtConcurrent>
 #pragma GCC diagnostic pop
+
+#include <sys/stat.h>
 
 #include <cassert>
 
@@ -40,6 +60,7 @@ ItemImpl::ItemImpl(QString const& identity, ItemType type)
     name_ = QString::fromStdString(path.filename().native());
     auto mtime = boost::filesystem::last_write_time(native_identity().toStdString());
     modified_time_ = QDateTime::fromTime_t(mtime);
+    etag_ = QString::number(mtime);
 }
 
 ItemImpl::~ItemImpl() = default;
@@ -53,6 +74,17 @@ QString ItemImpl::name() const
         throw DeletedException();  // TODO
     }
     return name_;
+}
+
+QString ItemImpl::etag() const
+{
+    lock_guard<mutex> guard(mutex_);
+
+    if (deleted_)
+    {
+        throw DeletedException();  // TODO
+    }
+    return etag_;
 }
 
 QVariantMap ItemImpl::metadata() const
@@ -356,8 +388,17 @@ void ItemImpl::update_modified_time()
 {
     assert(!mutex_.try_lock());
 
-    auto mtime = boost::filesystem::last_write_time(native_identity().toStdString());
+    string id = identity_.toStdString();
+    auto mtime = boost::filesystem::last_write_time(id);
     modified_time_ = QDateTime::fromTime_t(mtime);
+
+    // Use nano-second resolution for the ETag, if the file system supports it.
+    struct stat st;
+    if (stat(id.c_str(), &st) == -1)
+    {
+        throw StorageException();  // LCOV_EXCL_LINE  // TODO: details
+    }
+    etag_ = QString::number(int64_t(st.st_mtim.tv_sec) * 1000000000 + st.st_mtim.tv_nsec);
 }
 
 unique_lock<mutex> ItemImpl::get_lock()

@@ -1,6 +1,25 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/client-api.h>
 
-#include <boost/filesystem.hpp>
+#include <unity/storage/qt/client/internal/boost_filesystem.h>
+
 #include <gtest/gtest.h>
 #include <QCoreApplication>
 #include <QFile>
@@ -116,6 +135,7 @@ TEST(Root, basic)
     EXPECT_EQ(acc.get(), root->account());
     EXPECT_EQ(ItemType::root, root->type());
     EXPECT_EQ("", root->name());
+    EXPECT_NE("", root->etag());
 
     auto parents = root->parents().result();
     EXPECT_TRUE(parents.isEmpty());
@@ -316,10 +336,17 @@ TEST(File, upload)
     }
 
     {
-        // Don't upload anything.
+        // Upload empty file.
         auto uploader = root->create_file("new_file").result();
         auto file = uploader->finish_upload().result();
         ASSERT_EQ(0, file->size());
+
+        // Again, and check that the ETag is different.
+        auto old_etag = file->etag();
+        sleep(1);
+        uploader = file->create_uploader(ConflictPolicy::overwrite).result();
+        file = uploader->finish_upload().result();
+        EXPECT_NE(old_etag, file->etag());
 
         file->delete_item().waitForFinished();
     }
@@ -352,6 +379,7 @@ TEST(File, create_uploader)
     }
     auto file = file_fut.result();
     EXPECT_EQ(0, file->size());
+    auto old_etag = file->etag();
 
     // Create uploader for the file and write nothing.
     uploader = file->create_uploader(ConflictPolicy::overwrite).result();
@@ -371,6 +399,9 @@ TEST(File, create_uploader)
     std::string s(1000000, 'a');
     uploader->socket()->write(&s[0], s.size());
 
+    // Need to sleep here, otherwise it is possible for the
+    // upload to finish within the granularity of the file system time stamps.
+    sleep(2);
     file_fut = uploader->finish_upload();
     {
         QFutureWatcher<File::SPtr> w;
@@ -381,6 +412,7 @@ TEST(File, create_uploader)
     }
     file = file_fut.result();
     EXPECT_EQ(1000000, file->size());
+    EXPECT_NE(old_etag, file->etag());
 
     file->delete_item().waitForFinished();
 }

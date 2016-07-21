@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 
 #include "ProviderInterface.h"
@@ -73,8 +91,10 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
         return make_exceptional_future<shared_ptr<Downloader>>(DeletedException());
     }
 
-    auto process_create_downloader_reply = [this](QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
-                                                  QFutureInterface<std::shared_ptr<Downloader>>& qf)
+    auto reply = provider().Download(md_.item_id);
+
+    auto process_reply = [this](QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                                QFutureInterface<std::shared_ptr<Downloader>>& qf)
     {
         auto download_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();
@@ -90,9 +110,7 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
         }
     };
 
-    auto handler = new Handler<shared_ptr<Downloader>>(this,
-                                                       provider().Download(md_.item_id),
-                                                       process_create_downloader_reply);
+    auto handler = new Handler<shared_ptr<Downloader>>(this, reply, process_reply);
     return handler->future();
 }
 

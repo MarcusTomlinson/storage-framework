@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: James Henstridge <james.henstridge@canonical.com>
+ */
+
 #include <unity/storage/provider/internal/PendingJobs.h>
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/UploadJob.h>
@@ -133,6 +151,7 @@ void PendingJobs::service_disconnected(QString const& service_name)
             // This continuation also ensures that the job remains
             // alive until the cancel method has completed.
             f.then(
+                EXEC_IN_MAIN
                 [job](decltype(f) f) {
                     try
                     {
@@ -161,6 +180,7 @@ void PendingJobs::service_disconnected(QString const& service_name)
             // This continuation also ensures that the job remains
             // alive until the cancel method has completed.
             f.then(
+                EXEC_IN_MAIN
                 [job](decltype(f) f) {
                     try
                     {
