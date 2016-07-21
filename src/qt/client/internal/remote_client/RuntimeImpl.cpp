@@ -76,7 +76,7 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 {
     if (!manager_)
     {
-        manager_.reset(new OnlineAccounts::Manager(""));
+        manager_.reset(new OnlineAccounts::Manager("", conn_));
         connect(manager_.get(), &OnlineAccounts::Manager::ready, this, &RuntimeImpl::manager_ready);
         connect(&timer_, &QTimer::timeout, this, &RuntimeImpl::timeout);
         timer_.setSingleShot(true);

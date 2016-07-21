@@ -36,7 +36,7 @@ void ServerImpl::init(int& argc, char **argv)
     // Ensure the executor is instantiated in the main thread.
     MainLoopExecutor::instance();
 
-    manager_.reset(new OnlineAccounts::Manager(""));
+    manager_.reset(new OnlineAccounts::Manager("", bus));
     connect(manager_.get(), &OnlineAccounts::Manager::ready,
                      this, &ServerImpl::account_manager_ready);
 }
