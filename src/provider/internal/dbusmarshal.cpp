@@ -51,7 +51,7 @@ QDBusArgument& operator<<(QDBusArgument& argument, Item const& item)
     return argument;
 }
 
-QDBusArgument const& operator>>(QDBusArgument const& argument, Item& item)
+QDBusArgument const& operator>>(QDBusArgument const&, Item&)
 {
     throw std::runtime_error("Item decode not implemented");
 }
@@ -67,7 +67,7 @@ QDBusArgument& operator<<(QDBusArgument& argument, ItemList const& items)
     return argument;
 }
 
-QDBusArgument const& operator>>(QDBusArgument const& argument, ItemList& items)
+QDBusArgument const& operator>>(QDBusArgument const&, ItemList&)
 {
     throw std::runtime_error("std::vector<Item> decode not implemented");
 }
