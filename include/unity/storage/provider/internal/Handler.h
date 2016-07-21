@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <unity/storage/provider/ProviderBase.h>
+#include <unity/storage/provider/internal/DBusPeerCache.h>
+
 #include <boost/thread/future.hpp>
 
 #include <QObject>
@@ -33,10 +36,6 @@ namespace storage
 {
 namespace provider
 {
-
-class Context;
-class ProviderBase;
-
 namespace internal
 {
 
@@ -56,6 +55,10 @@ public:
 public Q_SLOTS:
     void begin();
 
+private Q_SLOTS:
+    void credentials_received();
+    void send_reply();
+
 Q_SIGNALS:
     void finished();
 
@@ -65,7 +68,10 @@ private:
     QDBusConnection const bus_;
     QDBusMessage const message_;
 
-    boost::future<void> future_;
+    boost::future<void> creds_future_;
+    boost::future<void> reply_future_;
+    Context context_;
+    QDBusMessage reply_;
 
     Q_DISABLE_COPY(Handler)
 };

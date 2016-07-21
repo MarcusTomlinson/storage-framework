@@ -33,9 +33,9 @@ namespace qt
 namespace client
 {
 
-Runtime::SPtr Runtime::create()
+Runtime::SPtr Runtime::create(QDBusConnection const& bus)
 {
-    auto impl = new internal::remote_client::RuntimeImpl;
+    auto impl = new internal::remote_client::RuntimeImpl(bus);
     Runtime::SPtr runtime(new Runtime(impl));
     impl->set_public_instance(weak_ptr<Runtime>(runtime));
     return runtime;

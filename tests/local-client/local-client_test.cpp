@@ -18,7 +18,8 @@
 
 #include <unity/storage/qt/client/client-api.h>
 
-#include <boost/filesystem.hpp>
+#include <unity/storage/qt/client/internal/boost_filesystem.h>
+
 #include <gtest/gtest.h>
 #include <QCoreApplication>
 #include <QFile>

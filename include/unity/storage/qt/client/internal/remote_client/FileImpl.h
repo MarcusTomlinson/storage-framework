@@ -28,7 +28,7 @@ namespace storage
 namespace internal
 {
 
-class ItemMetadata;
+struct ItemMetadata;
 
 }  // namespace internal
 

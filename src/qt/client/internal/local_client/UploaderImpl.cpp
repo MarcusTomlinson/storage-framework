@@ -74,7 +74,11 @@ void UploadWorker::start_uploading() noexcept
 {
     read_socket_.reset(new QLocalSocket);
     read_socket_->setSocketDescriptor(read_fd_, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
-    shutdown(read_fd_, SHUT_WR);
+
+    // We should be able to close the write channel of the client-side read socket, but
+    // doing this causes the client to never see the readyRead signal.
+    // Possibly a problem with QLocalSocket.
+    // shutdown(read_fd_, SHUT_WR);
 
     // Monitor read socket for ready-to-read, disconnected, and error events.
     connect(read_socket_.get(), &QLocalSocket::readyRead, this, &UploadWorker::on_bytes_ready);
@@ -347,7 +351,11 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file,
     // Write socket is for the client.
     write_socket_.reset(new QLocalSocket);
     write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
-    shutdown(fds[1], SHUT_RD);
+
+    // We should be able to close the read channel of the write socket,
+    // but doing this causes the disconnected signal to go AWOL.
+    // Possibly a problem wit QLocalSocket.
+    // shutdown(fds[1], SHUT_RD);
 
     // Create worker and connect slots, so we can signal the worker when the client calls
     // finish_download() or cancel();
