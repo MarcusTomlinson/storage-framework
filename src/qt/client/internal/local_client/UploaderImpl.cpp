@@ -95,6 +95,7 @@ void UploadWorker::start_uploading() noexcept
     tmp_fd_.reset(open(parent_path.native().c_str(), O_TMPFILE | O_WRONLY, 0600));
     if (tmp_fd_.get() == -1)
     {
+        qDebug() << "NOTICE: falling back to mkstemp() because O_TMPFILE didn't work";
         // LCOV_EXCL_START
         // Some kernels on the phones don't support O_TMPFILE and return various errno values when this fails.
         // So, if anything at all goes wrong, we fall back on conventional temp file creation and
@@ -256,8 +257,9 @@ void UploadWorker::finalize()
 
     // Link the anonymous tmp file into the file system.
     int rc = system("ls -l /proc/self/fd");
-    qDebug() << "sytem returned" << rc;
+    qDebug() << "system returned" << rc;
     string oldpath = string("/proc/self/fd/") + std::to_string(tmp_fd_.get());
+    qDebug() << "oldpath:" << rc;
     string newpath = file->native_identity().toStdString();
     ::unlink(newpath.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
     if (linkat(-1, oldpath.c_str(), tmp_fd_.get(), newpath.c_str(), AT_SYMLINK_FOLLOW) == -1)
