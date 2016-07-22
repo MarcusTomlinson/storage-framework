@@ -278,7 +278,12 @@ boost::future<Item> MyUploadJob::finish()
     string new_filename = upload_id() + ".txt";
     printf("Linking %s to %s\n", old_filename.c_str(), new_filename.c_str());
     unlink(new_filename.c_str());
-    link(old_filename.c_str(), new_filename.c_str());
+    if (link(old_filename.c_str(), new_filename.c_str()) == -1)
+    {
+        string msg = string("MyUploadJob::finish(): cannot link ") + old_filename + " to " + new_filename
+                     + ", errno = " + to_string(errno);
+        return make_exceptional_future<Item>(runtime_error("cannot link "));
+    }
 
     Item metadata{"some_id", "", "some_upload", "etag", ItemType::file, {}};
     return make_ready_future(metadata);

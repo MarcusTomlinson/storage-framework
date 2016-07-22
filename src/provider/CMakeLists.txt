@@ -11,7 +11,10 @@ qt5_add_dbus_adaptor(generated_files ${CMAKE_SOURCE_DIR}/data/provider.xml unity
 set_source_files_properties(bus.xml PROPERTIES CLASSNAME BusInterface)
 qt5_add_dbus_interface(generated_files bus.xml businterface)
 
-set_source_files_properties(${generated_files} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${generated_files} PROPERTIES
+    COMPILE_FLAGS "-Wno-ctor-dtor-privacy -Wmissing-field-initializers"
+    GENERATED TRUE
+)
 
 add_library(storage-framework-provider SHARED
   DownloadJob.cpp
