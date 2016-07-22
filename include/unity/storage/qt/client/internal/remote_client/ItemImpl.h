@@ -19,6 +19,7 @@
 #pragma once
 
 #include <unity/storage/internal/ItemMetadata.h>
+#include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/ItemBase.h>
 
 #include <memory>
@@ -60,11 +61,13 @@ public:
 
     virtual bool equal_to(ItemBase const& other) const noexcept override;
 
-    ProviderInterface& provider() const noexcept;
+    std::shared_ptr<ProviderInterface> provider() const noexcept;
 
     static std::shared_ptr<Item> make_item(storage::internal::ItemMetadata const& md, std::weak_ptr<Root> root);
 
 protected:
+    DeletedException deleted_ex(QString const& method) const noexcept;
+
     bool deleted_ = false;
     storage::internal::ItemMetadata md_;
 

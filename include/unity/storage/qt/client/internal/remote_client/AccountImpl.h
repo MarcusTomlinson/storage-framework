@@ -20,11 +20,6 @@
 
 #include <unity/storage/qt/client/internal/AccountBase.h>
 
-#include <QFuture>
-#include <QVector>
-
-#include <memory>
-
 class ProviderInterface;
 
 namespace unity
@@ -54,12 +49,13 @@ public:
     virtual QString description() const override;
     virtual QFuture<QVector<std::shared_ptr<Root>>> roots() override;
 
-    ProviderInterface& provider();
+    std::shared_ptr<ProviderInterface> provider() const noexcept;
 
 private:
     QString owner_;
     QString owner_id_;
     QString description_;
+    QVector<std::shared_ptr<Root>> roots_;
     std::shared_ptr<ProviderInterface> provider_;
 };
 

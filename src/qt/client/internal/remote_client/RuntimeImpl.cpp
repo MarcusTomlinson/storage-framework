@@ -18,14 +18,12 @@
 
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
 
-#include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/dbusmarshal.h>
 
-#include <QFutureInterface>
 #include <QDBusMetaType>
 
 // TODO: Hack until we can use the registry instead
@@ -61,7 +59,7 @@ RuntimeImpl::RuntimeImpl(QDBusConnection const& bus)
 {
     if (!conn_.isConnected())
     {
-        throw LocalCommsException();  // LCOV_EXCL_LINE  // TODO, details
+        throw LocalCommsException("Runtime: cannot connect to session bus");  // LCOV_EXCL_LINE
     }
     qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
     qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();
@@ -124,6 +122,7 @@ void RuntimeImpl::manager_ready()
             impl->set_public_instance(acc);
             accounts.append(acc);
         }
+        accounts_ = accounts;
         make_ready_future(qf_, accounts);
     }
     catch (StorageException const& e)
@@ -134,8 +133,7 @@ void RuntimeImpl::manager_ready()
 
 void RuntimeImpl::timeout()
 {
-    qf_.reportException(StorageException());  // TODO
-    qf_.reportFinished();
+    make_exceptional_future(qf_, ResourceException("timeout error"));  // TODO
 }
 
 }  // namespace local_client

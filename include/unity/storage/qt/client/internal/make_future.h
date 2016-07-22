@@ -18,7 +18,11 @@
 
 #pragma once
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Wcast-align"
 #include <QFuture>
+#pragma GCC diagnostic pop
 #include <QFutureInterface>
 
 namespace unity

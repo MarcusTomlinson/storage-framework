@@ -24,6 +24,7 @@
 #include <unity/storage/qt/client/Uploader.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -70,7 +71,7 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
 
         if (This->deleted_)
         {
-            throw DeletedException();
+            throw This->deleted_ex("Folder::list()");
         }
 
         try
@@ -102,9 +103,9 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
             }
             return results;
         }
-        catch (std::exception const&)
+        catch (std::exception const& e)
         {
-            throw StorageException();  // TODO
+            throw ResourceException(QString("Folder::list(): ") + e.what());
         }
     };
     return QtConcurrent::run(list);
@@ -119,7 +120,7 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
 
         if (This->deleted_)
         {
-            throw DeletedException();
+            throw This->deleted_ex("Folder::lookup()");
         }
 
         try
@@ -127,10 +128,10 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
             using namespace boost::filesystem;
 
             path p = This->native_identity().toStdString();
-            auto sanitized_name = sanitize(name);
+            auto sanitized_name = sanitize(name, "Folder::lookup()");
             if (is_reserved_path(sanitized_name))
             {
-                throw NotExistException();
+                throw NotExistsException("Folder::lookup(): no such item: " + name, name);
             }
             p /= sanitized_name;
             file_status s = status(p);
@@ -146,11 +147,15 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
                 v.append(FileImpl::make_file(QString::fromStdString(p.native()), This->root_));
                 return v;
             }
-            throw NotExistException();  // TODO
+            throw NotExistsException("Folder::lookup(): no such item: " + name, name);
         }
-        catch (std::exception const&)
+        catch (StorageException const&)
         {
-            throw StorageException();  // TODO
+            throw;
+        }
+        catch (std::exception const& e)
+        {
+            throw ResourceException(QString("Folder::lookup(): ") + e.what());
         }
     };
     return QtConcurrent::run(lookup);
@@ -163,7 +168,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     QFutureInterface<Folder::SPtr> qf;
     if (deleted_)
     {
-        return make_exceptional_future<Folder::SPtr>(DeletedException());
+        return make_exceptional_future<Folder::SPtr>(deleted_ex("Folder::create_folder()"));
     }
 
     try
@@ -171,19 +176,19 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         using namespace boost::filesystem;
 
         path p = native_identity().toStdString();
-        auto sanitized_name = sanitize(name);
+        auto sanitized_name = sanitize(name, "Folder::create_folder()");
         if (is_reserved_path(sanitized_name))
         {
-            throw StorageException();  // TODO
+            QString msg = "Folder::create_folder(): names beginning with " + QString(TMPFILE_PREFIX) + " are reserved";
+            return make_exceptional_future<Folder::SPtr>(InvalidArgumentException(msg));
         }
         p /= sanitized_name;
         create_directory(p);
-        update_modified_time();
         return make_ready_future(make_folder(QString::fromStdString(p.native()), root_));
     }
-    catch (std::exception const&)
+    catch (std::exception const& e)
     {
-        return make_exceptional_future<Folder::SPtr>(StorageException());  // TODO
+        return make_exceptional_future<Folder::SPtr>(ResourceException(QString("Folder::create_folder: ") + e.what()));
     }
 }
 
@@ -193,7 +198,12 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
 
     if (deleted_)
     {
-        return make_exceptional_future<shared_ptr<Uploader>>(DeletedException());
+        return make_exceptional_future<Uploader::SPtr>(deleted_ex("Folder::create_file()"));
+    }
+    if (size < 0)
+    {
+        QString msg = "Folder::create_file(): size must be >= 0";
+        return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
     }
 
     try
@@ -201,27 +211,29 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
         using namespace boost::filesystem;
 
         path p = native_identity().toStdString();
-        auto sanitized_name = sanitize(name);
+        auto sanitized_name = sanitize(name, "Folder::create_file()");
         if (is_reserved_path(sanitized_name))
         {
-            throw StorageException();  // TODO
+            QString msg = "Folder::create_file(): names beginning with " + QString(TMPFILE_PREFIX) + " are reserved";
+            return make_exceptional_future<Uploader::SPtr>(InvalidArgumentException(msg));
         }
         p /= sanitized_name;
         if (exists(p))
         {
-            throw StorageException();
+            QString msg = "Folder::create_file(): item with name \"" + name + "\" exists already";
+            return make_exceptional_future<Uploader::SPtr>(ExistsException(msg, native_identity(), name));
         }
         auto impl = new UploaderImpl(shared_ptr<File>(),
                                      size,
                                      QString::fromStdString(p.native()),
                                      ConflictPolicy::error_if_conflict,
                                      root_);
-        shared_ptr<Uploader> uploader(new Uploader(impl));
+        Uploader::SPtr uploader(new Uploader(impl));
         return make_ready_future(uploader);
     }
-    catch (std::exception const&)
+    catch (std::exception const& e)
     {
-        return make_exceptional_future<shared_ptr<Uploader>>(StorageException());  // TODO
+        return make_exceptional_future<Uploader::SPtr>(ResourceException(QString("Folder::create_file: ") + e.what()));
     }
 }
 

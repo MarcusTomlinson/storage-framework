@@ -38,14 +38,9 @@ namespace client
 namespace internal
 {
 
-UploaderBase::UploaderBase(ConflictPolicy policy, int64_t size)
+UploaderBase::UploaderBase(ConflictPolicy policy)
     : policy_(policy)
-    , size_(size)
 {
-    if (size < 0)
-    {
-        throw InvalidArgumentException();  // TODO
-    }
 }
 
 }  // namespace internal

@@ -55,6 +55,7 @@ set_target_properties(storage-framework-qt-local-client PROPERTIES
     VERSION ${SF_CLIENT_LIBVERSION}
 )
 target_link_libraries(storage-framework-qt-local-client
+    storage-framework-common-internal
     Qt5::Concurrent
     Qt5::Core
     Qt5::DBus

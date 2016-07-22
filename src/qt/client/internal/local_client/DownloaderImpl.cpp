@@ -18,8 +18,10 @@
 
 #include <unity/storage/qt/client/internal/local_client/DownloaderImpl.h>
 
+#include <unity/storage/internal/safe_strerror.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 
 #include <QLocalSocket>
 
@@ -77,8 +79,7 @@ void DownloadWorker::start_downloading() noexcept
     input_file_.reset(new QFile(filename_));
     if (!input_file_->open(QIODevice::ReadOnly))
     {
-        // TODO, set details
-        handle_error();
+        handle_error("cannot open " + filename_ + ": " + input_file_->errorString());
         return;
     }
     bytes_to_write_ = input_file_->size();
@@ -108,14 +109,18 @@ void DownloadWorker::do_finish()
             if (bytes_to_write_ > 0)
             {
                 // Still unwrittten data left, caller abandoned download early without cancelling.
-                state_ = error;  // TODO, store details
-                qf_.reportException(StorageException());  // TODO: logic error
-                qf_.reportFinished();
+                auto file_size = input_file_->size();
+                auto written = file_size - bytes_to_write_;
+                QString msg = "Downloader::finish_download(): method called too early, file "
+                              + filename_ + " has size " + QString::number(file_size) + ", but only "
+                              + QString::number(written) + " byte";
+                msg += written == 1 ? " was" : "s were";
+                msg += " consumed.";
+                make_exceptional_future(qf_, LogicException(msg));
             }
             else
             {
                 state_ = finalized;
-                qf_.reportFinished();
             }
             break;
         }
@@ -125,14 +130,13 @@ void DownloadWorker::do_finish()
         }
         case cancelled:
         {
-            qf_.reportException(CancelledException());  // TODO: details
-            qf_.reportFinished();
+            QString msg = "Downloader::finish_download(): download of " + filename_ + " was cancelled";
+            make_exceptional_future(qf_, CancelledException(msg));
             break;
         }
         case error:
         {
-            qf_.reportException(StorageException());  // TODO, report details
-            qf_.reportFinished();
+            make_exceptional_future(qf_, ResourceException(error_msg_));
             break;
         }
         default:
@@ -140,7 +144,7 @@ void DownloadWorker::do_finish()
             abort();  // LCOV_EXCL_LINE  // Impossible
         }
     }
-    assert(qf_.future().isFinished());
+    make_ready_future(qf_);
     QThread::currentThread()->quit();
 }
 
@@ -185,7 +189,7 @@ void DownloadWorker::on_disconnected()
 
 void DownloadWorker::on_error()
 {
-    handle_error();
+    handle_error(write_socket_->errorString());
 }
 
 // Read the next chunk of data from the input file and write it to the socket.
@@ -199,28 +203,32 @@ void DownloadWorker::read_and_write_chunk()
     auto bytes_read = input_file_->read(buf.data(), buf.size());
     if (bytes_read == -1)
     {
-        // TODO: Store error details.
-        handle_error();
+        handle_error(filename_ + ": read error: " + input_file_->errorString());
         return;
     }
     buf.resize(bytes_read);
 
     auto bytes_written = write_socket_->write(buf);
-    if (bytes_written != bytes_read)
+    if (bytes_written == -1)
     {
-        // TODO: Store error details.
-        handle_error();
-        return;
+        handle_error(filename_ + ": socket error: " + write_socket_->errorString());
+    }
+    else if (bytes_written != bytes_read)
+    {
+        QString msg = filename_ + ": write error, requested " + bytes_read + " B, but wrote only "
+                      + bytes_written + " B.";
+        handle_error(msg);
     }
 }
 
-void DownloadWorker::handle_error()
+void DownloadWorker::handle_error(QString const& msg)
 {
     if (state_ == in_progress)
     {
         write_socket_->abort();
     }
     state_ = error;
+    error_msg_ = "Downloader: " + msg;
     do_finish();
 }
 
@@ -237,17 +245,22 @@ void DownloadThread::run()
 
 DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     : DownloaderBase(file)
+    , read_socket_(new QLocalSocket)
 {
     // Set up socket pair.
     int fds[2];
     int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
     if (rc == -1)
     {
-        throw StorageException();  // LCOV_EXCL_LINE  // TODO
+        // LCOV_EXCL_START
+        QString msg = "Downloader: cannot create socket pair: "
+                      + QString::fromStdString(storage::internal::safe_strerror(errno));
+        make_exceptional_future(qf_, ResourceException(msg));
+        return;
+        // LCOV_EXCL_STOP
     }
 
     // Read socket is for the client.
-    read_socket_.reset(new QLocalSocket);
     read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 
     // We should be able to close the write channel of the client-side read socket, but
@@ -272,8 +285,11 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
 
 DownloaderImpl::~DownloaderImpl()
 {
-    Q_EMIT do_cancel();
-    download_thread_->wait();
+    if (download_thread_->isRunning())
+    {
+        Q_EMIT do_cancel();
+        download_thread_->wait();
+    }
 }
 
 shared_ptr<File> DownloaderImpl::file() const
@@ -288,20 +304,14 @@ shared_ptr<QLocalSocket> DownloaderImpl::socket() const
 
 QFuture<void> DownloaderImpl::finish_download()
 {
-    if (!qf_.future().isFinished())
-    {
-        // Set state of the future if that hasn't happened yet.
-        Q_EMIT do_finish();
-    }
+    Q_EMIT do_finish();
     return qf_.future();
 }
 
 QFuture<void> DownloaderImpl::cancel() noexcept
 {
     Q_EMIT do_cancel();
-    QFutureInterface<void> qf;
-    qf.reportFinished();
-    return qf.future();
+    return qf_.future();
 }
 
 }  // namespace local_client

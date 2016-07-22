@@ -23,7 +23,6 @@
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
-#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
 
 using namespace std;
@@ -51,7 +50,7 @@ QString ItemImpl::name() const
 {
     if (deleted_)
     {
-        throw DeletedException();  // TODO
+        throw deleted_ex("Item::name()");
     }
     return md_.name;
 }
@@ -60,7 +59,7 @@ QString ItemImpl::etag() const
 {
     if (deleted_)
     {
-        throw DeletedException();  // TODO
+        throw deleted_ex("Item::etag()");
     }
     return md_.etag;
 }
@@ -69,7 +68,7 @@ QVariantMap ItemImpl::metadata() const
 {
     if (deleted_)
     {
-        throw DeletedException();  // TODO
+        throw deleted_ex("Item::metadata()");
     }
     // TODO: need to agree on metadata representation
     return QVariantMap();
@@ -79,7 +78,7 @@ QDateTime ItemImpl::last_modified_time() const
 {
     if (deleted_)
     {
-        throw DeletedException();  // TODO
+        throw deleted_ex("Item::last_modified_time()");
     }
     // TODO: need to agree on metadata representation
     return QDateTime();
@@ -89,19 +88,36 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
 {
     if (deleted_)
     {
-        return make_exceptional_future<shared_ptr<Item>>(DeletedException());
+        return make_exceptional_future<shared_ptr<Item>>(deleted_ex("Item::copy()"));
     }
 
-    auto reply = provider().Copy(md_.item_id, new_parent->native_identity(), new_name);
+    auto prov = provider();
+    if (!prov)
+    {
+        return make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::copy()"));
+    }
+    auto reply = prov->Copy(md_.item_id, new_parent->native_identity(), new_name);
+
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Item>>& qf)
     {
+        auto root = root_.lock();
+        if (!root)
+        {
+            make_exceptional_future(qf, RuntimeDestroyedException("Item::copy()"));
+            return;
+        }
+
         auto md = reply.value();
         if (md.type == ItemType::root)
         {
             // TODO: log server error here
-            return make_exceptional_future(qf, StorageException());  // TODO
+            QString msg = "File::create_folder(): impossible item type returned by server: "
+                          + QString::number(int(md.type));
+            make_exceptional_future(qf, LocalCommsException(msg));
+            return;
         }
-        return make_ready_future(qf, ItemImpl::make_item(md, root_));
+        make_ready_future(qf, ItemImpl::make_item(md, root));
+        return;
     };
 
     auto handler = new Handler<shared_ptr<Item>>(this, reply, process_reply);
@@ -112,19 +128,34 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
 {
     if (deleted_)
     {
-        return make_exceptional_future<shared_ptr<Item>>(DeletedException());
+        return make_exceptional_future<shared_ptr<Item>>(deleted_ex("Item::move()"));
     }
 
-    auto reply = provider().Move(md_.item_id, new_parent->native_identity(), new_name);
+    auto prov = provider();
+    if (!prov)
+    {
+        return make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::move()"));
+    }
+    auto reply = prov->Move(md_.item_id, new_parent->native_identity(), new_name);
+
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Item>>& qf)
     {
+        auto root = root_.lock();
+        if (!root)
+        {
+            make_exceptional_future(qf, RuntimeDestroyedException("Item::copy()"));
+            return;
+        }
+
         auto md = reply.value();
         if (md.type == ItemType::root)
         {
             // TODO: log server error here
-            return make_exceptional_future(qf, StorageException());  // TODO
+            QString msg = "Item::move(): impossible root item returned by server";
+            make_exceptional_future(qf, LocalCommsException(msg));
+            return;
         }
-        return make_ready_future(qf, ItemImpl::make_item(md, root_));
+        make_ready_future(qf, ItemImpl::make_item(md, root));
     };
 
     auto handler = new Handler<shared_ptr<Item>>(this, reply, process_reply);
@@ -135,7 +166,7 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
 {
     if (deleted_)
     {
-        return make_exceptional_future<QVector<shared_ptr<Folder>>>(DeletedException());
+        return make_exceptional_future<QVector<Folder::SPtr>>(deleted_ex("Item::parents()"));
     }
     // TODO, need different metadata representation, affects xml
     return QFuture<QVector<Folder::SPtr>>();
@@ -145,7 +176,7 @@ QVector<QString> ItemImpl::parent_ids() const
 {
     if (deleted_)
     {
-        throw DeletedException();  // TODO
+        throw deleted_ex("Item::parent_ids()");
     }
     // TODO, need different metadata representation, affects xml
     return QVector<QString>();
@@ -155,10 +186,16 @@ QFuture<void> ItemImpl::delete_item()
 {
     if (deleted_)
     {
-        return make_exceptional_future(DeletedException());
+        return make_exceptional_future(deleted_ex("Item::delete_item()"));
     }
 
-    auto reply = provider().Delete(md_.item_id);
+    auto prov = provider();
+    if (!prov)
+    {
+        return make_exceptional_future(RuntimeDestroyedException("Item::delete_item()"));
+    }
+    auto reply = prov->Delete(md_.item_id);
+
     auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>& qf)
     {
         deleted_ = true;
@@ -173,7 +210,7 @@ QDateTime ItemImpl::creation_time() const
 {
     if (deleted_)
     {
-        throw DeletedException();  // TODO
+        throw deleted_ex("Item::creation_time()");
     }
     // TODO: need to agree on metadata representation
     return QDateTime();
@@ -183,12 +220,11 @@ MetadataMap ItemImpl::native_metadata() const
 {
     if (deleted_)
     {
-        throw DeletedException();  // TODO
+        throw deleted_ex("Item::native_metadata()");
     }
     // TODO: need to agree on metadata representation
     return MetadataMap();
 }
-
 
 bool ItemImpl::equal_to(ItemBase const& other) const noexcept
 {
@@ -205,10 +241,22 @@ bool ItemImpl::equal_to(ItemBase const& other) const noexcept
     return identity_ == other_impl->identity_;
 }
 
-ProviderInterface& ItemImpl::provider() const noexcept
+shared_ptr<ProviderInterface> ItemImpl::provider() const noexcept
 {
-    auto root_impl = dynamic_pointer_cast<RootImpl>(root_.lock()->p_);
-    auto account_impl = dynamic_pointer_cast<AccountImpl>(root_impl->account_.lock()->p_);
+    auto root = dynamic_pointer_cast<Root>(root_.lock());
+    if (!root)
+    {
+        return nullptr;
+    }
+    auto root_impl = dynamic_pointer_cast<RootImpl>(root->p_);
+
+    auto account = root_impl->account_.lock();
+    if (!account)
+    {
+        return nullptr;
+    }
+
+    auto account_impl = dynamic_pointer_cast<AccountImpl>(account->p_);
     return account_impl->provider();
 }
 
@@ -236,6 +284,12 @@ shared_ptr<Item> ItemImpl::make_item(storage::internal::ItemMetadata const& md, 
     }
     assert(item);
     return item;
+}
+
+DeletedException ItemImpl::deleted_ex(QString const& method) const noexcept
+{
+    QString msg = method + ": " + identity_ + " was deleted previously";
+    return DeletedException(msg, identity_, md_.name);
 }
 
 }  // namespace remote_client

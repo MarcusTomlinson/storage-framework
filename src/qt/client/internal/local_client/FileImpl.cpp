@@ -54,10 +54,9 @@ QString FileImpl::name() const
 
     if (deleted_)
     {
-        throw DeletedException();
+        throw deleted_ex("File::name()");
     }
-    auto name = boost::filesystem::path(identity_.toStdString()).filename().native();
-    return QString::fromStdString(name);
+    return name_;
 }
 
 int64_t FileImpl::size() const
@@ -66,7 +65,7 @@ int64_t FileImpl::size() const
 
     if (deleted_)
     {
-        throw DeletedException();
+        throw deleted_ex("File::size()");
     }
 
     try
@@ -74,9 +73,9 @@ int64_t FileImpl::size() const
         boost::filesystem::path p = identity_.toStdString();
         return file_size(p);
     }
-    catch (std::exception const&)
+    catch (std::exception const& e)
     {
-        throw StorageException();  // TODO
+        throw ResourceException(e.what());
     }
 }
 
@@ -86,21 +85,19 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy, int64_t
 
     if (deleted_)
     {
-        return make_exceptional_future<Uploader::SPtr>(DeletedException());
+        return make_exceptional_future<Uploader::SPtr>(deleted_ex("File::create_uploader()"));
+    }
+    if (size < 0)
+    {
+        QString msg = "File::create_uploader(): size must be >= 0";
+        return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
     }
 
-    try
-    {
-        auto file = dynamic_pointer_cast<File>(public_instance_.lock());
-        assert(file);
-        auto impl(new UploaderImpl(file, size, identity_, policy, root_));
-        Uploader::SPtr ul(new Uploader(impl));
-        return make_ready_future(ul);
-    }
-    catch (std::exception const&)
-    {
-        return make_exceptional_future<Uploader::SPtr>(StorageException());  // TODO
-    }
+    auto file = dynamic_pointer_cast<File>(public_instance_.lock());
+    assert(file);
+    auto impl(new UploaderImpl(file, size, identity_, policy, root_));
+    Uploader::SPtr ul(new Uploader(impl));
+    return make_ready_future(ul);
 }
 
 QFuture<Downloader::SPtr> FileImpl::create_downloader()
@@ -109,22 +106,15 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
 
     if (deleted_)
     {
-        return make_exceptional_future<Downloader::SPtr>(DeletedException());
+        return make_exceptional_future<Downloader::SPtr>(deleted_ex("File::create_downloader()"));
     }
 
-    try
-    {
-        auto pi = public_instance_.lock();
-        assert(pi);
-        auto file_ptr = static_pointer_cast<File>(pi);
-        auto impl = new DownloaderImpl(file_ptr);
-        Downloader::SPtr dl(new Downloader(impl));
-        return make_ready_future(dl);
-    }
-    catch (std::exception const&)
-    {
-        return make_exceptional_future<Downloader::SPtr>(StorageException());  // TODO
-    }
+    auto pi = public_instance_.lock();
+    assert(pi);
+    auto file_ptr = static_pointer_cast<File>(pi);
+    auto impl = new DownloaderImpl(file_ptr);
+    Downloader::SPtr dl(new Downloader(impl));
+    return make_ready_future(dl);
 }
 
 File::SPtr FileImpl::make_file(QString const& identity, weak_ptr<Root> root)

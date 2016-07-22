@@ -21,6 +21,7 @@
 #include <unity/storage/visibility.h>
 
 #include <QException>
+#include <QString>
 
 namespace unity
 {
@@ -37,11 +38,17 @@ namespace client
 class UNITY_STORAGE_EXPORT StorageException : public QException
 {
 public:
-    StorageException();
+    StorageException(char const* exception_name, QString const& error_message);
     ~StorageException();
 
-    virtual StorageException* clone() const override;
-    virtual void raise() const override;
+    virtual StorageException* clone() const override = 0;
+    virtual void raise() const override = 0;
+
+    virtual char const* what() const noexcept override;
+
+private:
+    std::string what_string_;
+    QString error_message_;
 };
 
 /**
@@ -50,7 +57,7 @@ public:
 class UNITY_STORAGE_EXPORT LocalCommsException : public StorageException
 {
 public:
-    LocalCommsException();
+    LocalCommsException(QString const& error_message);
     ~LocalCommsException();
 
     virtual LocalCommsException* clone() const override;
@@ -63,7 +70,7 @@ public:
 class UNITY_STORAGE_EXPORT RemoteCommsException : public StorageException
 {
 public:
-    RemoteCommsException();
+    RemoteCommsException(QString const& error_message);
     ~RemoteCommsException();
 
     virtual RemoteCommsException* clone() const override;
@@ -76,11 +83,18 @@ public:
 class UNITY_STORAGE_EXPORT DeletedException : public StorageException
 {
 public:
-    DeletedException();
+    DeletedException(QString const& error_message, QString const& identity_, QString const& name_);
     ~DeletedException();
 
     virtual DeletedException* clone() const override;
     virtual void raise() const override;
+
+    QString native_identity() const;
+    QString name() const;
+
+private:
+    QString identity_;
+    QString name_;
 };
 
 /**
@@ -89,7 +103,7 @@ public:
 class UNITY_STORAGE_EXPORT RuntimeDestroyedException : public StorageException
 {
 public:
-    RuntimeDestroyedException();
+    RuntimeDestroyedException(QString const& method);
     ~RuntimeDestroyedException();
 
     virtual RuntimeDestroyedException* clone() const override;
@@ -97,16 +111,41 @@ public:
 };
 
 /**
-\brief Indicates that an item does not exist.
+\brief Indicates that an item does not exist or could not be found.
 */
-class UNITY_STORAGE_EXPORT NotExistException : public StorageException
+class UNITY_STORAGE_EXPORT NotExistsException : public StorageException
 {
 public:
-    NotExistException();
-    ~NotExistException();
+    NotExistsException(QString const& error_message, QString const& key);
+    ~NotExistsException();
 
-    virtual NotExistException* clone() const override;
+    virtual NotExistsException* clone() const override;
     virtual void raise() const override;
+
+    QString key() const;
+
+private:
+    QString key_;
+};
+
+/**
+\brief Indicates that an item cannot be created because it exists already.
+*/
+class UNITY_STORAGE_EXPORT ExistsException : public StorageException
+{
+public:
+    ExistsException(QString const& error_message, QString const& identity, QString const& name);
+    ~ExistsException();
+
+    virtual ExistsException* clone() const override;
+    virtual void raise() const override;
+
+    QString native_identity() const;
+    QString name() const;
+
+private:
+    QString identity_;
+    QString name_;
 };
 
 /**
@@ -115,10 +154,36 @@ public:
 class UNITY_STORAGE_EXPORT ConflictException : public StorageException
 {
 public:
-    ConflictException();
+    ConflictException(QString const& error_message);
     ~ConflictException();
 
     virtual ConflictException* clone() const override;
+    virtual void raise() const override;
+};
+
+/**
+\brief Indicates that an operation failed because of a permission problem.
+*/
+class UNITY_STORAGE_EXPORT PermissionException : public StorageException
+{
+public:
+    PermissionException(QString const& error_message);
+    ~PermissionException();
+
+    virtual PermissionException* clone() const override;
+    virtual void raise() const override;
+};
+
+/**
+\brief Indicates that an update failed because the provider ran out of space.
+*/
+class UNITY_STORAGE_EXPORT QuotaException : public StorageException
+{
+public:
+    QuotaException(QString const& error_message);
+    ~QuotaException();
+
+    virtual QuotaException* clone() const override;
     virtual void raise() const override;
 };
 
@@ -128,7 +193,7 @@ public:
 class UNITY_STORAGE_EXPORT CancelledException : public StorageException
 {
 public:
-    CancelledException();
+    CancelledException(QString const& error_message);
     ~CancelledException();
 
     virtual CancelledException* clone() const override;
@@ -141,7 +206,7 @@ public:
 class UNITY_STORAGE_EXPORT LogicException : public StorageException
 {
 public:
-    LogicException();
+    LogicException(QString const& error_message);
     ~LogicException();
 
     virtual LogicException* clone() const override;
@@ -155,10 +220,24 @@ expected, or a string that does not parse correctly or is empty when it should b
 class UNITY_STORAGE_EXPORT InvalidArgumentException : public StorageException
 {
 public:
-    InvalidArgumentException();
+    InvalidArgumentException(QString const& error_message);
     ~InvalidArgumentException();
 
     virtual InvalidArgumentException* clone() const override;
+    virtual void raise() const override;
+};
+
+/**
+\brief Indicates a system error, such as failure to to create a file or folder,
+or any other (usually non-recoverable) kind of error that should not arise during normal operation.
+*/
+class UNITY_STORAGE_EXPORT ResourceException : public StorageException
+{
+public:
+    ResourceException(QString const& error_message);
+    ~ResourceException();
+
+    virtual ResourceException* clone() const override;
     virtual void raise() const override;
 };
 

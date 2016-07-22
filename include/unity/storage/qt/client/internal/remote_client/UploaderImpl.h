@@ -50,7 +50,7 @@ public:
                  int64_t size,
                  QString const& old_etag,
                  std::weak_ptr<Root> root,
-                 ProviderInterface& provider);
+                 std::shared_ptr<ProviderInterface> const& provider);
     ~UploaderImpl();
 
     virtual std::shared_ptr<QLocalSocket> socket() const override;
@@ -62,7 +62,7 @@ public:
                                                    int64_t size,
                                                    QString const& old_etag,
                                                    std::weak_ptr<Root> root,
-                                                   ProviderInterface& provider);
+                                                   std::shared_ptr<ProviderInterface> const& provider);
 
 private:
     QString upload_id_;
@@ -70,7 +70,7 @@ private:
     int64_t size_;
     QString old_etag_;
     std::weak_ptr<Root> root_;
-    ProviderInterface& provider_;
+    std::shared_ptr<ProviderInterface> provider_;
     std::shared_ptr<QLocalSocket> write_socket_;
 };
 

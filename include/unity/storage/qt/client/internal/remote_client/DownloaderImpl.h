@@ -47,7 +47,7 @@ public:
     DownloaderImpl(QString const& download_id,
                    QDBusUnixFileDescriptor fd,
                    std::shared_ptr<File> const& file,
-                   ProviderInterface& provider);
+                   std::shared_ptr<ProviderInterface> const& provider);
     virtual ~DownloaderImpl();
 
     virtual std::shared_ptr<File> file() const override;
@@ -58,13 +58,13 @@ public:
     static std::shared_ptr<Downloader> make_downloader(QString const& upload_id,
                                                        QDBusUnixFileDescriptor fd,
                                                        std::shared_ptr<File> const& file,
-                                                       ProviderInterface& provider);
+                                                       std::shared_ptr<ProviderInterface> const& provider);
 
 private:
     QString download_id_;
     QDBusUnixFileDescriptor fd_;
     std::shared_ptr<File> file_;
-    ProviderInterface& provider_;
+    std::shared_ptr<ProviderInterface> provider_;
     std::shared_ptr<QLocalSocket> read_socket_;
 };
 

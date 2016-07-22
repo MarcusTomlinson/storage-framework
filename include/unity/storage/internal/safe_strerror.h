@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Canonical Ltd
+ * Copyright (C) 2014 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -13,45 +13,22 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authors: Michi Henning <michi.henning@canonical.com>
+ * Authored by: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/client/internal/RootBase.h>
+#pragma once
 
-#include <unity/storage/qt/client/Exceptions.h>
-
-using namespace std;
+#include <string>
 
 namespace unity
 {
 namespace storage
 {
-namespace qt
-{
-namespace client
-{
 namespace internal
 {
 
-RootBase::RootBase(QString const& identity, weak_ptr<Account> const& account)
-    : ItemBase(identity, ItemType::folder)
-    , FolderBase(identity, ItemType::folder)
-    , account_(account)
-{
-    assert(account.lock());
-}
-
-Account* RootBase::account() const
-{
-    if (auto acc = account_.lock())
-    {
-        return acc.get();
-    }
-    throw RuntimeDestroyedException("Root::account()");
-}
+std::string safe_strerror(int errnum);
 
 }  // namespace internal
-}  // namespace client
-}  // namespace qt
 }  // namespace storage
 }  // namespace unity

@@ -21,8 +21,8 @@
 #include <unity/storage/common.h>
 
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Wswitch-default"
 #include <QFuture>
 #pragma GCC diagnostic pop
 
@@ -47,7 +47,7 @@ namespace internal
 class UploaderBase : public QObject
 {
 public:
-    UploaderBase(ConflictPolicy policy, int64_t size);
+    UploaderBase(ConflictPolicy policy);
     UploaderBase(UploaderBase&) = delete;
     UploaderBase& operator=(UploaderBase const&) = delete;
 
@@ -57,7 +57,6 @@ public:
 
 protected:
     ConflictPolicy policy_;
-    int64_t size_;
 };
 
 }  // namespace internal

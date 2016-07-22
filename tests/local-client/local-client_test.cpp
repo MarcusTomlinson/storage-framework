@@ -400,7 +400,7 @@ TEST(File, create_uploader)
 
     // Need to sleep here, otherwise it is possible for the
     // upload to finish within the granularity of the file system time stamps.
-    sleep(2);
+    sleep(1);
     file_fut = uploader->finish_upload();
     {
         QFutureWatcher<File::SPtr> w;
@@ -447,12 +447,17 @@ TEST(File, cancel_upload)
         // Create an uploader for the file and write a bunch of bytes.
         auto uploader = file->create_uploader(ConflictPolicy::overwrite, original_contents.size()).result();
         QByteArray const contents(1024 * 1024, 'a');
-
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
 
         // No finish_upload() here, so the transfer is still in progress. Now cancel.
-        ASSERT_NO_THROW(uploader->cancel().waitForFinished());
+        auto cancel_fut = uploader->cancel();
+        {
+            QFutureWatcher<void> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(cancel_fut);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
 
         // finish_upload() must indicate that the upload was cancelled.
         EXPECT_THROW(uploader->finish_upload().result(), CancelledException);
@@ -481,8 +486,7 @@ TEST(File, upload_conflict)
     auto uploader = file->create_uploader(ConflictPolicy::error_if_conflict, contents.size()).result();
 
     // Touch the file on disk to give it a new time stamp.
-    // Need to sleep because time_t provides only 1-second resolution.
-    sleep(2);
+    sleep(1);
     ASSERT_EQ(0, system((string("touch ") + file->native_identity().toStdString()).c_str()));
 
     try
@@ -738,10 +742,24 @@ TEST(File, cancel_download)
         File::SPtr file = dynamic_pointer_cast<File>(item);
         ASSERT_FALSE(file == nullptr);
 
-        auto downloader = file->create_downloader().result();
-        // We haven't read anything and haven't pumped the event loop,
-        // so the cancel is guaranteed to catch the downloader in the in_progress state.
-        downloader->cancel();
+        auto download_fut = file->create_downloader();
+        {
+            QFutureWatcher<Downloader::SPtr> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(download_fut);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
+        auto downloader = download_fut.result();
+
+        // We haven't read anything, so the cancel is guaranteed to catch the
+        // downloader in the in_progress state.
+        auto cancel_fut = downloader->cancel();
+        {
+            QFutureWatcher<void> w;
+            QSignalSpy spy(&w, &decltype(w)::finished);
+            w.setFuture(cancel_fut);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
         ASSERT_THROW(downloader->finish_download().waitForFinished(), CancelledException);
     }
 
@@ -878,8 +896,7 @@ TEST(Item, modified_time)
     clear_folder(root);
 
     auto now = QDateTime::currentDateTimeUtc();
-    // Need to sleep because time_t provides only 1-second resolution.
-    sleep(2);
+    sleep(1);
     auto uploader = root->create_file("file", 0).result();
     auto file_fut = uploader->finish_upload();
     {

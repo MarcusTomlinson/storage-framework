@@ -71,8 +71,7 @@ private Q_SLOTS:
 private:
     void read_and_write_chunk();
     void finalize();
-    void handle_error();
-    void check_modified_time() const;
+    void handle_error(QString const& msg);
 
     enum State { in_progress, finalized, cancelled, error };
 
@@ -89,6 +88,7 @@ private:
     ConflictPolicy policy_;
     QFutureInterface<std::shared_ptr<File>>& qf_;
     QFutureInterface<void>& worker_initialized_;
+    QString error_msg_;
 };
 
 class UploadThread : public QThread

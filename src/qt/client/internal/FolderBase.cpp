@@ -31,14 +31,10 @@ namespace client
 namespace internal
 {
 
-FolderBase::FolderBase(QString const& identity)
-    : ItemBase(identity, ItemType::folder)
-{
-}
-
 FolderBase::FolderBase(QString const& identity, ItemType type)
     : ItemBase(identity, type)
 {
+    assert(type == ItemType::root || type == ItemType::folder);
 }
 
 }  // namespace internal

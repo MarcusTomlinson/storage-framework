@@ -12,8 +12,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(utils)
 
 set(unit_test_dirs
-#    local-client  -TODO: Temporarily disabled due to a "unknown file: Failure" error in CI.
-#    remote-client -TODO: Temporarily disabled due to a "Cannot find any online account" error in CI.
+    local-client  # -TODO: Temporarily disabled due to a "unknown file: Failure" error in CI.
+    remote-client # -TODO: Temporarily disabled due to a "Cannot find any online account" error in CI.
 )
 
 set(slow_test_dirs

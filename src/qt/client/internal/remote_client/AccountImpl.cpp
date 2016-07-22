@@ -19,9 +19,6 @@
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 
 #include "ProviderInterface.h"
-#include <unity/storage/internal/ItemMetadata.h>
-#include <unity/storage/qt/client/Account.h>
-#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
@@ -60,7 +57,7 @@ AccountImpl::AccountImpl(weak_ptr<Runtime> const& runtime,
     provider_.reset(new ProviderInterface(BUS_NAME, bus_path, rt_impl->connection()));
     if (!provider_->isValid())
     {
-        throw LocalCommsException();  // TODO, details
+        throw LocalCommsException("AccountImpl(): " + provider_->lastError().message());
     }
 }
 
@@ -97,6 +94,7 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
             auto root = RootImpl::make_root(md, public_instance_);
             roots.append(root);
         }
+        roots_ = roots;
         make_ready_future(qf, roots);
     };
 
@@ -104,9 +102,9 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
     return handler->future();
 }
 
-ProviderInterface& AccountImpl::provider()
+shared_ptr<ProviderInterface> AccountImpl::provider() const noexcept
 {
-    return *provider_;
+    return provider_;
 }
 
 }  // namespace local_client

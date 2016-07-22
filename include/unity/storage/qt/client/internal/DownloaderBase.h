@@ -19,8 +19,8 @@
 #pragma once
 
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Wswitch-default"
 #include <QFuture>
 #pragma GCC diagnostic pop
 

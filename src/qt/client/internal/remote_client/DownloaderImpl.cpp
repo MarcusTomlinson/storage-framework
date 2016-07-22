@@ -20,7 +20,6 @@
 
 #include "ProviderInterface.h"
 #include <unity/storage/qt/client/Downloader.h>
-#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 
 #include <cassert>
@@ -46,7 +45,7 @@ namespace remote_client
 DownloaderImpl::DownloaderImpl(QString const& download_id,
                                QDBusUnixFileDescriptor fd,
                                shared_ptr<File> const& file,
-                               ProviderInterface& provider)
+                               shared_ptr<ProviderInterface> const& provider)
     : DownloaderBase(file)
     , download_id_(download_id)
     , fd_(fd)
@@ -56,6 +55,7 @@ DownloaderImpl::DownloaderImpl(QString const& download_id,
 {
     assert(!download_id.isEmpty());
     assert(fd.isValid());
+    assert(provider);
     read_socket_->setSocketDescriptor(fd.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 }
 
@@ -76,7 +76,7 @@ shared_ptr<QLocalSocket> DownloaderImpl::socket() const
 
 QFuture<void> DownloaderImpl::finish_download()
 {
-    auto reply = provider_.FinishDownload(download_id_);
+    auto reply = provider_->FinishDownload(download_id_);
 
     auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>&)
     {
@@ -96,7 +96,7 @@ QFuture<void> DownloaderImpl::cancel() noexcept
 Downloader::SPtr DownloaderImpl::make_downloader(QString const& download_id,
                                                  QDBusUnixFileDescriptor fd,
                                                  shared_ptr<File> const& file,
-                                                 ProviderInterface& provider)
+                                                 shared_ptr<ProviderInterface> const& provider)
 {
     auto impl = new DownloaderImpl(download_id, fd, file, provider);
     Downloader::SPtr downloader(new Downloader(impl));
