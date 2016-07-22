@@ -20,6 +20,11 @@ set -eu
 [ -n "${SERIES:-}" ] || SERIES=$(lsb_release -c -s)
 
 case "$SERIES" in
+    trusty)
+        # TODO: the CI systems are running Trusty, so don't bomb out
+        # when they try to build the source package.
+        echo 0
+        ;;
     vivid)
         # Old C++11 ABI, Boost 1.55
         echo 0
