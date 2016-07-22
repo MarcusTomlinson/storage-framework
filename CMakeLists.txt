@@ -11,15 +11,22 @@ project(storage-framework VERSION "0.1" LANGUAGES C CXX)
 # source incompatible version of the the library where users of the
 # old API could will not compile against the new one.  It is not
 # necessary to increment this for ABI breaks that are source compatible.
-set(SF_PROVIDER_API_VERSION "1")
 set(SF_CLIENT_API_VERSION "1")
+set(SF_PROVIDER_API_VERSION "1")
 
 # These two should be incremented when the ABI changes.
-set(SF_PROVIDER_SOVERSION "0")
 set(SF_CLIENT_SOVERSION "0")
+execute_process(
+  COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/get-provider-soversion.sh
+  OUTPUT_VARIABLE SF_PROVIDER_SOVERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE result)
+if(NOT result EQUAL 0)
+  message(FATAL_ERROR "Error running get-provider-soversion.sh script")
+endif()
 
-set(SF_PROVIDER_LIBVERSION "${SF_PROVIDER_SOVERSION}.${PROJECT_VERSION}")
 set(SF_CLIENT_LIBVERSION "${SF_CLIENT_SOVERSION}.${PROJECT_VERSION}")
+set(SF_PROVIDER_LIBVERSION "${SF_PROVIDER_SOVERSION}.${PROJECT_VERSION}")
 
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower) # Build types should always be lower case
