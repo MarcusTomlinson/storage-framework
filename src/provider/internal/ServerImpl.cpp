@@ -51,10 +51,12 @@ void ServerImpl::init(int& argc, char **argv)
     auto bus = QDBusConnection::sessionBus();
     dbus_peer_ = make_shared<DBusPeerCache>(bus);
 
+#ifdef SF_SUPPORTS_EXECUTORS
     // Ensure the executor is instantiated in the main thread.
     MainLoopExecutor::instance();
+#endif
 
-    manager_.reset(new OnlineAccounts::Manager(""));
+    manager_.reset(new OnlineAccounts::Manager("", bus));
     connect(manager_.get(), &OnlineAccounts::Manager::ready,
                      this, &ServerImpl::account_manager_ready);
 }

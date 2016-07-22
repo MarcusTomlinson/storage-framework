@@ -195,11 +195,16 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
     return handler->future();
 }
 
-QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
+QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64_t size)
 {
     if (deleted_)
     {
         return make_exceptional_future<shared_ptr<Uploader>>(deleted_ex("Folder::create_file()"));
+    }
+    if (size < 0)
+    {
+        QString msg = "Folder::create_file(): size must be >= 0";
+        return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
     }
 
     auto prov = provider();
@@ -207,9 +212,9 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
     {
         return make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("Folder::create_file()"));
     }
-    auto reply = prov->CreateFile(md_.item_id, name, "application/octet-stream", false);
 
-    auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<Uploader>>& qf)
+    auto reply = provs->CreateFile(md_.item_id, name, size, "application/octet-stream", false);
+    auto process_reply = [this, size](decltype(reply) const& reply, QFutureInterface<shared_ptr<Uploader>>& qf)
     {
         auto root = root_.lock();
         if (!root)
@@ -220,7 +225,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name)
 
         auto upload_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();
-        auto uploader = UploaderImpl::make_uploader(upload_id, fd, "", root, provider());
+        auto uploader = UploaderImpl::make_uploader(upload_id, fd, size, "", root, provider());
         make_ready_future(qf, uploader);
     };
 

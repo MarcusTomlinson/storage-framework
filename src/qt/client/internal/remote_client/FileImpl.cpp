@@ -55,11 +55,16 @@ int64_t FileImpl::size() const
     return 0;  // TODO
 }
 
-QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
+QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, int64_t size)
 {
     if (deleted_)
     {
         return make_exceptional_future<shared_ptr<Uploader>>(deleted_ex("File::create_uploader()"));
+    }
+    if (size < 0)
+    {
+        QString msg = "File::create_uploader(): size must >= 0";
+        return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
     }
 
     QString old_etag = policy == ConflictPolicy::overwrite ? "" : md_.etag;
@@ -68,9 +73,9 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy)
     {
         return make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("File::create_uploader"));
     }
-    auto reply = prov->Update(md_.item_id, old_etag);
+    auto reply = prov->Update(md_.item_id, size, old_etag);
 
-    auto process_reply = [this, old_etag, prov](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Uploader>>& qf)
+    auto process_reply = [this, size, old_etag, prov](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Uploader>>& qf)
     {
         auto root = root_.lock();
         if (!root)
@@ -121,14 +126,12 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
             QString msg = "File::create_downloader(): impossible file descriptor returned by server: "
                           + QString::number(fd.fileDescriptor());
             make_exceptional_future(qf, LocalCommsException(msg));
+            return;
         }
-        else
-        {
-            auto file = dynamic_pointer_cast<File>(public_instance_.lock());
-            // TODO: provider may not be around anymore if the runtime was destroyed.
-            auto downloader = DownloaderImpl::make_downloader(download_id, fd, file, prov);
-            make_ready_future(qf, downloader);
-        }
+        auto file = dynamic_pointer_cast<File>(public_instance_.lock());
+        // TODO: provider may not be around anymore if the runtime was destroyed.
+        auto downloader = DownloaderImpl::make_downloader(download_id, fd, file, prov);
+        make_ready_future(qf, downloader);
     };
 
     auto handler = new Handler<shared_ptr<Downloader>>(this, reply, process_reply);

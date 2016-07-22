@@ -47,7 +47,7 @@ namespace internal
 class UploaderBase : public QObject
 {
 public:
-    UploaderBase(ConflictPolicy policy);
+    UploaderBase(ConflictPolicy policy, int64_t size);
     UploaderBase(UploaderBase&) = delete;
     UploaderBase& operator=(UploaderBase const&) = delete;
 
@@ -57,6 +57,7 @@ public:
 
 protected:
     ConflictPolicy policy_;
+    int64_t size_;
 };
 
 }  // namespace internal

@@ -64,9 +64,10 @@ void DownloadWorker::start_downloading() noexcept
     write_socket_.reset(new QLocalSocket);
     write_socket_->setSocketDescriptor(write_fd_, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 
-    // TODO: We should be able to close the read channel of the write socket,
-    //       but doing this causes the disconnected signal to go AWOL.
-    //shutdown(write_fd_, SHUT_RD);
+    // We should be able to close the read channel of the write socket,
+    // but doing this causes the disconnected signal to go AWOL.
+    // Possibly a problem wit QLocalSocket.
+    // shutdown(write_fd_, SHUT_RD);
 
     // Monitor write socket for ready-to-write, disconnected, and error events.
     connect(write_socket_.get(), &QLocalSocket::bytesWritten, this, &DownloadWorker::on_bytes_written);
@@ -262,9 +263,10 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     // Read socket is for the client.
     read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 
-    // TODO: We should be able to close the write channel of the client-side read socket, but
-    //       doing this causes the client to never see the readyRead signal.
-    //shutdown(fds[0], SHUT_WR);
+    // We should be able to close the write channel of the client-side read socket, but
+    // doing this causes the client to never see the readyRead signal.
+    // Possibly a problem with QLocalSocket.
+    // shutdown(fds[0], SHUT_WR);
 
     // Create worker and connect slots, so we can signal the worker when the client calls
     // finish_download() or cancel().
