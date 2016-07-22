@@ -20,7 +20,7 @@
 
 #include <boost/version.hpp>
 
-#if BOOST_VERSION < 105500
+#if BOOST_VERSION <= 105500
     #define BOOST_NO_CXX11_SCOPED_ENUMS
     #include <boost/filesystem.hpp>
     #undef BOOST_NO_CXX11_SCOPED_ENUMS

@@ -102,12 +102,16 @@ public:
     for the file to actually be created (whether data was written to the file or not).
     \param name The name of the new file. Note that the actual name may be changed
     by the provider; call Item::name() once the file is created to get its actual name.
+    \param size The size of the upload in bytes.
+    \note The provided file size must match the number of bytes that you write for the upload, otherwise
+    an attampt to retrive the File instance from the future returned by Uploader::finish_upload()
+    throws LogicException.
     \warn Do not rely on create_file() to fail if an attempt is made to create
     a file with the same name as an already existing file or folder. Depending on the cloud
     provider, it may be possible to have several files with the same name.
     // TODO: Explain issues with metacharacters.
     */
-    QFuture<std::shared_ptr<Uploader>> create_file(QString const& name);
+    QFuture<std::shared_ptr<Uploader>> create_file(QString const& name, int64_t size);
 
 protected:
     Folder(internal::FolderBase*) UNITY_STORAGE_HIDDEN;

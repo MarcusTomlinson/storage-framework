@@ -43,7 +43,7 @@ public:
     QFuture<QVector<std::shared_ptr<Item>>> list() const override;
     QFuture<QVector<std::shared_ptr<Item>>> lookup(QString const& name) const override;
     QFuture<std::shared_ptr<Folder>> create_folder(QString const& name) override;
-    QFuture<std::shared_ptr<Uploader>> create_file(QString const& name) override;
+    QFuture<std::shared_ptr<Uploader>> create_file(QString const& name, int64_t size) override;
 
     static std::shared_ptr<Folder> make_folder(storage::internal::ItemMetadata const& md, std::weak_ptr<Root> root);
 };

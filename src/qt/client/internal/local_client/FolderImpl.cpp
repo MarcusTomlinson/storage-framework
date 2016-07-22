@@ -192,7 +192,7 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     }
 }
 
-QFuture<Uploader::SPtr> FolderImpl::create_file(QString const& name)
+QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64_t size)
 {
     unique_lock<mutex> guard(mutex_);
 
@@ -218,7 +218,8 @@ QFuture<Uploader::SPtr> FolderImpl::create_file(QString const& name)
             QString msg = "Folder::create_file(): item with name \"" + name + "\" exists already";
             return make_exceptional_future<Uploader::SPtr>(ExistsException(msg, native_identity(), name));
         }
-        auto impl = new UploaderImpl(File::SPtr(),
+        auto impl = new UploaderImpl(shared_ptr<File>(),
+                                     size,
                                      QString::fromStdString(p.native()),
                                      ConflictPolicy::error_if_conflict,
                                      root_);

@@ -47,7 +47,7 @@ public:
     FileImpl(storage::internal::ItemMetadata const& md);
 
     virtual int64_t size() const override;
-    virtual QFuture<std::shared_ptr<Uploader>> create_uploader(ConflictPolicy policy) override;
+    virtual QFuture<std::shared_ptr<Uploader>> create_uploader(ConflictPolicy policy, int64_t size) override;
     virtual QFuture<std::shared_ptr<Downloader>> create_downloader() override;
 
     static std::shared_ptr<File> make_file(storage::internal::ItemMetadata const& md, std::weak_ptr<Root> root);

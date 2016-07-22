@@ -100,6 +100,16 @@ QFuture<void> Item::delete_item()
     return p_->delete_item();
 }
 
+QDateTime Item::creation_time() const
+{
+    return p_->creation_time();
+}
+
+MetadataMap Item::native_metadata() const
+{
+    return p_->native_metadata();
+}
+
 bool Item::equal_to(Item::SPtr const& other) const noexcept
 {
     return p_->equal_to(*other->p_);
