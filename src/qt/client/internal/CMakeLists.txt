@@ -1,0 +1,5 @@
+add_subdirectory(local_client)
+add_subdirectory(remote_client)
+
+SET(QT_CLIENT_LIB_REMOTE_SRC ${QT_CLIENT_LIB_REMOTE_SRC} PARENT_SCOPE)
+SET(QT_CLIENT_LIB_LOCAL_SRC ${QT_CLIENT_LIB_LOCAL_SRC} PARENT_SCOPE)

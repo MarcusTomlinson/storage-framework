@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
+  <!--
+      com.canonical.StorageFramework.Registry:
+      @short_description: Interface to query the backend registry
+
+      Inteface to query the repository of backends that are
+      available.
+  -->
+  <interface name="com.canonical.StorageFramework.Registry">
+
+    <!--
+        GetBackend:
+        @short_description: request access to a storage account
+        @service_id: if not empty, restrict results to accounts
+            matching this service ID.
+        @bus_name: the bus name of the storage provider
+        @path: the object path of the storage account at the provider
+
+        Interactively prompt the user to pick a storage account for
+        use by the application, and return the D-Bus endpoint that can
+        be used to communicate with the associated provider.
+
+        As this involves user interaction, the caller should use a
+        relatively long time out for this method call.
+        -->
+    <method name="GetProvider">
+      <arg type="s" name="service_id" direction="in" />
+
+      <arg type="s" name="bus_name" direction="out" />
+      <arg type="o" name="path" direction="out" />
+    </method>
+  </interface>
+</node>
