@@ -92,6 +92,11 @@ void UploadWorker::start_uploading() noexcept
 
     // Open tmp file for writing.
     auto parent_path = path(path_.toStdString()).parent_path();
+#if 0
+    // TODO: Commented out for now because O_TMPFILE does not work on Vivid/Arm.
+    //       The mkstemp fallback method works, but then linkat() fails if the temp file is unlinked.
+    //       Until we figure out what's happening here, this is commented out and we use named temp file.
+    //       Not nice because, if the client dies at the wrong moment, we leave the tmp file behind.
     tmp_fd_.reset(open(parent_path.native().c_str(), O_TMPFILE | O_WRONLY, 0600));
     if (tmp_fd_.get() == -1)
     {
@@ -99,6 +104,7 @@ void UploadWorker::start_uploading() noexcept
         // Some kernels on the phones don't support O_TMPFILE and return various errno values when this fails.
         // So, if anything at all goes wrong, we fall back on conventional temp file creation and
         // produce a hard error if that doesn't work either.
+#endif
         string tmpfile = parent_path.native() + "/" + TMPFILE_PREFIX + "XXXXXX";
         tmp_fd_.reset(mkstemp(const_cast<char*>(tmpfile.data())));
         if (tmp_fd_.get() == -1)
@@ -110,11 +116,16 @@ void UploadWorker::start_uploading() noexcept
             do_finish();
             return;
         }
+#if 0
         unlink(tmpfile.data());
         // LCOV_EXCL_STOP
     }
     output_file_.reset(new QFile);
     output_file_->open(tmp_fd_.get(), QIODevice::WriteOnly, QFileDevice::DontCloseHandle);
+#else
+    output_file_.reset(new QFile(QString::fromStdString(tmpfile)));
+    output_file_->open(QIODevice::WriteOnly);
+#endif
 
     worker_initialized_.reportFinished();
 }
@@ -254,6 +265,9 @@ void UploadWorker::finalize()
         return;
     }
 
+#if 0
+    // TODO: We use rename() on the name temp file because on Vivid/Arm, linkat() fails for an unlinked
+    //       file that was not created with O_TMPFILE (see above).
     // Link the anonymous tmp file into the file system.
     string oldpath = string("/proc/self/fd/") + std::to_string(tmp_fd_.get());
     string newpath = file->native_identity().toStdString();
@@ -266,6 +280,19 @@ void UploadWorker::finalize()
         make_exceptional_future(qf_, ResourceException(msg));
         return;
     }
+#else
+    auto old_path = output_file_->fileName().toStdString();
+    auto new_path = file->native_identity().toStdString();
+    if (rename(old_path.c_str(), new_path.c_str()) == -1)
+    {
+        state_ = error;
+        QString msg = "Uploader::finish_upload(): rename \"" + QString::fromStdString(old_path)
+                      + " to " + file->native_identity() + "\" failed: "
+                      + QString::fromStdString(storage::internal::safe_strerror(errno));
+        make_exceptional_future(qf_, ResourceException(msg));
+        return;
+    }
+#endif
 
     state_ = finalized;
     output_file_->close();
