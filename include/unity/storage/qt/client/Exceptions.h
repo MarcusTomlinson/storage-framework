@@ -21,6 +21,7 @@
 #include <unity/storage/visibility.h>
 
 #include <QException>
+#include <QString>
 
 namespace unity
 {
