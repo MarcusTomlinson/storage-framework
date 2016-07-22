@@ -21,10 +21,10 @@
 #include <unity/storage/common.h>
 #include <unity/storage/visibility.h>
 
-#include <QDateTime>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#include <QDateTime>
 #include <QFuture>
 #pragma GCC diagnostic pop
 
