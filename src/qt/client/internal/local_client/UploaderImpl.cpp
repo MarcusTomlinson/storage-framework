@@ -255,6 +255,8 @@ void UploadWorker::finalize()
     }
 
     // Link the anonymous tmp file into the file system.
+    int rc = system("ls -l /proc/self/fd");
+    qDebug() << "sytem returned" << rc;
     string oldpath = string("/proc/self/fd/") + std::to_string(tmp_fd_.get());
     string newpath = file->native_identity().toStdString();
     ::unlink(newpath.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
