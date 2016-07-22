@@ -46,7 +46,7 @@ UploaderImpl::UploaderImpl(QString const& upload_id,
                            QString const& old_etag,
                            weak_ptr<Root> root,
                            shared_ptr<ProviderInterface> const& provider)
-    : UploaderBase(old_etag == "" ? ConflictPolicy::overwrite : ConflictPolicy::error_if_conflict, size)
+    : UploaderBase(old_etag == "" ? ConflictPolicy::overwrite : ConflictPolicy::error_if_conflict)
     , upload_id_(upload_id)
     , fd_(fd)
     , size_(size)

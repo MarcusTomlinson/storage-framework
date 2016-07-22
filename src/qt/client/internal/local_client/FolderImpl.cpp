@@ -200,6 +200,11 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
     {
         return make_exceptional_future<Uploader::SPtr>(deleted_ex("Folder::create_file()"));
     }
+    if (size < 0)
+    {
+        QString msg = "Folder::create_file(): size must be >= 0";
+        return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
+    }
 
     try
     {

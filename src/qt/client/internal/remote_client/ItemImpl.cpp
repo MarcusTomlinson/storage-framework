@@ -210,7 +210,7 @@ QDateTime ItemImpl::creation_time() const
 {
     if (deleted_)
     {
-        throw DeletedException();  // TODO
+        throw deleted_ex("Item::creation_time()");
     }
     // TODO: need to agree on metadata representation
     return QDateTime();
@@ -220,12 +220,11 @@ MetadataMap ItemImpl::native_metadata() const
 {
     if (deleted_)
     {
-        throw DeletedException();  // TODO
+        throw deleted_ex("Item::native_metadata()");
     }
     // TODO: need to agree on metadata representation
     return MetadataMap();
 }
-
 
 bool ItemImpl::equal_to(ItemBase const& other) const noexcept
 {

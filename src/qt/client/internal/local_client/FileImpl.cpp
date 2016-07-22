@@ -87,19 +87,17 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy, int64_t
     {
         return make_exceptional_future<Uploader::SPtr>(deleted_ex("File::create_uploader()"));
     }
+    if (size < 0)
+    {
+        QString msg = "File::create_uploader(): size must be >= 0";
+        return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
+    }
 
-    try
-    {
-        auto file = dynamic_pointer_cast<File>(public_instance_.lock());
-        assert(file);
-        auto impl(new UploaderImpl(file, size, identity_, policy, root_));
-        Uploader::SPtr ul(new Uploader(impl));
-        return make_ready_future(ul);
-    }
-    catch (std::exception const&)
-    {
-        return make_exceptional_future<Uploader::SPtr>(StorageException());  // TODO
-    }
+    auto file = dynamic_pointer_cast<File>(public_instance_.lock());
+    assert(file);
+    auto impl(new UploaderImpl(file, size, identity_, policy, root_));
+    Uploader::SPtr ul(new Uploader(impl));
+    return make_ready_future(ul);
 }
 
 QFuture<Downloader::SPtr> FileImpl::create_downloader()

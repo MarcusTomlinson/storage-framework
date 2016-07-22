@@ -63,7 +63,7 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, i
     }
     if (size < 0)
     {
-        QString msg = "File::create_uploader(): size must >= 0";
+        QString msg = "File::create_uploader(): size must be >= 0";
         return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
     }
 
@@ -94,7 +94,7 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, i
             make_exceptional_future<shared_ptr<Uploader>>(qf, LocalCommsException(msg));
             return;
         }
-        auto uploader = UploaderImpl::make_uploader(upload_id, fd, old_etag, root, prov);
+        auto uploader = UploaderImpl::make_uploader(upload_id, fd, size, old_etag, root, prov);
         make_ready_future(qf, uploader);
     };
     auto handler = new Handler<shared_ptr<Uploader>>(this, reply, process_reply);
