@@ -96,6 +96,7 @@ void UploadWorker::start_uploading() noexcept
     if (tmp_fd_.get() == -1)
     {
         qDebug() << "NOTICE: falling back to mkstemp() because O_TMPFILE didn't work";
+        system("uname -a");
         // LCOV_EXCL_START
         // Some kernels on the phones don't support O_TMPFILE and return various errno values when this fails.
         // So, if anything at all goes wrong, we fall back on conventional temp file creation and
