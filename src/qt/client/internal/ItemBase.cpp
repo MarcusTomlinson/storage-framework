@@ -56,21 +56,14 @@ ItemType ItemBase::type() const
     return type_;
 }
 
-Root* ItemBase::root() const
+shared_ptr<Root> ItemBase::root() const
 {
-    if (auto r = root_.lock())
+    auto root = get_root();
+    if (!root)
     {
-        try
-        {
-            r->account();
-        }
-        catch (RuntimeDestroyedException const&)
-        {
-            throw RuntimeDestroyedException("Item::root()");
-        }
-        return r.get();
+        throw RuntimeDestroyedException("Item::root()");
     }
-    throw RuntimeDestroyedException("Item::root()");
+    return root;
 }
 
 void ItemBase::set_root(std::weak_ptr<Root> root)

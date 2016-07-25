@@ -21,10 +21,10 @@
 #include <unity/storage/visibility.h>
 
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
 #pragma GCC diagnostic pop
-#include <QString>
 #include <QVector>
 
 #include <memory>

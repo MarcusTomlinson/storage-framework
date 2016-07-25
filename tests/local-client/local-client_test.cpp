@@ -169,7 +169,7 @@ TEST(Folder, basic)
     EXPECT_TRUE(items.isEmpty());
 
     // Create a file and check that it was created with correct type, name, and size 0.
-    auto uploader = root->create_file("file1").result();
+    auto uploader = root->create_file("file1", 0).result();
     auto file = uploader->finish_upload().result();
     EXPECT_EQ(ItemType::file, file->type());
     EXPECT_EQ("file1", file->name());
@@ -299,8 +299,8 @@ TEST(File, upload)
 
     {
         // Upload a few bytes.
-        auto uploader = root->create_file("new_file").result();
         QByteArray const contents = "Hello\n";
+        auto uploader = root->create_file("new_file", contents.size()).result();
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
 
@@ -324,8 +324,8 @@ TEST(File, upload)
 
     {
         // Upload exactly 64 KB.
-        auto uploader = root->create_file("new_file").result();
         QByteArray const contents(64 * 1024, 'a');
+        auto uploader = root->create_file("new_file", contents.size()).result();
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
 
@@ -339,9 +339,9 @@ TEST(File, upload)
     }
 
     {
-        // Upload 1000 KB.
-        auto uploader = root->create_file("new_file").result();
+        // Upload 1000 KBj
         QByteArray const contents(1000 * 1024, 'a');
+        auto uploader = root->create_file("new_file", contents.size()).result();
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
 
@@ -356,14 +356,14 @@ TEST(File, upload)
 
     {
         // Upload empty file.
-        auto uploader = root->create_file("new_file").result();
+        auto uploader = root->create_file("new_file", 0).result();
         auto file = uploader->finish_upload().result();
         ASSERT_EQ(0, file->size());
 
         // Again, and check that the ETag is different.
         auto old_etag = file->etag();
         sleep(1);
-        uploader = file->create_uploader(ConflictPolicy::overwrite).result();
+        uploader = file->create_uploader(ConflictPolicy::overwrite, 0).result();
         file = uploader->finish_upload().result();
         EXPECT_NE(old_etag, file->etag());
 
@@ -372,7 +372,7 @@ TEST(File, upload)
 
     {
         // Let the uploader go out of scope and check that the file was not created.
-        root->create_file("new_file").result();
+        root->create_file("new_file", 0).result();
         boost::filesystem::path path(TEST_DIR "/storage-framework/new_file");
         auto status = boost::filesystem::status(path);
         ASSERT_FALSE(boost::filesystem::exists(status));
@@ -388,7 +388,7 @@ TEST(File, create_uploader)
     clear_folder(root);
 
     // Make a new file first.
-    auto uploader = root->create_file("new_file").result();
+    auto uploader = root->create_file("new_file", 0).result();
     auto file_fut = uploader->finish_upload();
     ASSERT_TRUE(wait(file_fut));
     auto file = file_fut.result();
@@ -396,16 +396,15 @@ TEST(File, create_uploader)
     auto old_etag = file->etag();
 
     // Create uploader for the file and write nothing.
-    uploader = file->create_uploader(ConflictPolicy::overwrite).result();
+    uploader = file->create_uploader(ConflictPolicy::overwrite, 0).result();
     file_fut = uploader->finish_upload();
     ASSERT_TRUE(wait(file_fut));
     file = file_fut.result();
     EXPECT_EQ(0, file->size());
 
     // Same test again, but this time, we write a bunch of data.
-    uploader = file->create_uploader(ConflictPolicy::overwrite).result();
-
     std::string s(1000000, 'a');
+    uploader = file->create_uploader(ConflictPolicy::overwrite, s.size()).result();
     uploader->socket()->write(&s[0], s.size());
 
     // Need to sleep here, otherwise it is possible for the
@@ -429,7 +428,7 @@ TEST(File, cancel_upload)
     clear_folder(root);
 
     {
-        auto uploader = root->create_file("new_file").result();
+        auto uploader = root->create_file("new_file", 20).result();
 
         // We haven't called finish_upload(), so the cancel is guaranteed
         // to catch the uploader in the in_progress state.
@@ -449,7 +448,7 @@ TEST(File, cancel_upload)
         ASSERT_NE(nullptr, file);
 
         // Create an uploader for the file and write a bunch of bytes.
-        auto uploader = file->create_uploader(ConflictPolicy::overwrite).result();
+        auto uploader = file->create_uploader(ConflictPolicy::overwrite, original_contents.size()).result();
         QByteArray const contents(1024 * 1024, 'a');
         auto written = uploader->socket()->write(contents);
         ASSERT_EQ(contents.size(), written);
@@ -478,11 +477,11 @@ TEST(File, upload_conflict)
     clear_folder(root);
 
     // Make a new file on disk.
-    QByteArray const contents = "Hello\n";
+    QByteArray const contents = "";
     write_file(root, "new_file", contents);
     auto file = dynamic_pointer_cast<File>(root->lookup("new_file").result()[0]);
     ASSERT_NE(nullptr, file);
-    auto uploader = file->create_uploader(ConflictPolicy::error_if_conflict).result();
+    auto uploader = file->create_uploader(ConflictPolicy::error_if_conflict, contents.size()).result();
 
     // Touch the file on disk to give it a new time stamp.
     sleep(1);
@@ -886,7 +885,7 @@ TEST(Item, modified_time)
 
     auto now = QDateTime::currentDateTimeUtc();
     sleep(1);
-    auto uploader = root->create_file("file").result();
+    auto uploader = root->create_file("file", 0).result();
     auto file_fut = uploader->finish_upload();
     ASSERT_TRUE(wait(file_fut));
     auto file = file_fut.result();
@@ -905,12 +904,12 @@ TEST(Item, comparison)
     clear_folder(root);
 
     // Create two files.
-    auto uploader = root->create_file("file1").result();
+    auto uploader = root->create_file("file1", 0).result();
     auto file_fut = uploader->finish_upload();
     ASSERT_TRUE(wait(file_fut));
     auto file1 = file_fut.result();
 
-    uploader = root->create_file("file2").result();
+    uploader = root->create_file("file2", 0).result();
     file_fut = uploader->finish_upload();
     ASSERT_TRUE(wait(file_fut));
     auto file2 = file_fut.result();
@@ -1162,7 +1161,7 @@ TEST(Item, deleted_exceptions)
         auto folder = fut.result();
 
         // Make a file in the root.
-        auto uploader_fut = root->create_file("file");
+        auto uploader_fut = root->create_file("file", 0);
         ASSERT_TRUE(wait(uploader_fut));
         auto uploader = uploader_fut.result();
         auto finish_fut = uploader->finish_upload();
@@ -1210,7 +1209,7 @@ TEST(Item, deleted_exceptions)
         auto folder = fut.result();
 
         // Make a file in the root.
-        auto uploader_fut = root->create_file("file");
+        auto uploader_fut = root->create_file("file", 0);
         ASSERT_TRUE(wait(uploader_fut));
         auto uploader = uploader_fut.result();
         auto finish_fut = uploader->finish_upload();
@@ -1338,7 +1337,7 @@ TEST(Folder, deleted_exceptions)
     try
     {
         auto folder = make_deleted_folder(root, "folder");
-        auto fut = folder->create_file("nested_file");
+        auto fut = folder->create_file("nested_file", 0);
         ASSERT_TRUE(wait(fut));
         fut.result();
         FAIL();
@@ -1426,7 +1425,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         auto root = get_root(runtime);
         clear_folder(root);
 
-        auto create_fut = root->create_file("file1");
+        auto create_fut = root->create_file("file1", 0);
         ASSERT_TRUE(wait(create_fut));
         auto uploader = create_fut.result();
         auto finish_fut = uploader->finish_upload();
@@ -1445,14 +1444,14 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
     }
 
-    // Getting the root from an item with a destroyed account must fail.
+    // Getting the root from an item with a destroyed root must fail.
     {
         auto runtime = Runtime::create();
         auto acc = get_account(runtime);
         auto root = get_root(runtime);
         clear_folder(root);
 
-        auto create_fut = root->create_file("file1");
+        auto create_fut = root->create_file("file1", 0);
         ASSERT_TRUE(wait(create_fut));
         auto uploader = create_fut.result();
         auto finish_fut = uploader->finish_upload();
@@ -1460,7 +1459,9 @@ TEST(Runtime, runtime_destroyed_exceptions)
         auto file = finish_fut.result();
 
         runtime.reset();
+        qDebug() << "shared count:" << acc.use_count();
         acc.reset();
+        qDebug() << "shared count:" << acc.use_count();
         root.reset();
         try
         {

@@ -20,10 +20,8 @@
 
 #include <unity/storage/visibility.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#include <QtConcurrent/QtConcurrent>
-#pragma GCC diagnostic pop
+#include <QException>
+#include <QString>
 
 namespace unity
 {
@@ -37,18 +35,21 @@ namespace client
 /**
 \brief Base exception class for all exceptions returned by the API.
 */
-class UNITY_STORAGE_EXPORT StorageException : public QtConcurrent::Exception
+class UNITY_STORAGE_EXPORT StorageException : public QException
 {
 public:
-    StorageException(QString const& error_message);
+    StorageException(char const* exception_name, QString const& error_message);
     ~StorageException();
 
-    virtual StorageException* clone() const = 0;
-    virtual void raise() const = 0;
+    virtual StorageException* clone() const override = 0;
+    virtual void raise() const override = 0;
+
+    virtual char const* what() const noexcept override;
 
     QString error_message() const;
 
 private:
+    std::string what_string_;
     QString error_message_;
 };
 

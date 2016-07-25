@@ -21,11 +21,14 @@
 #include <unity/storage/visibility.h>
 
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
 #pragma GCC diagnostic pop
 
 #include <memory>
+
+class QDBusConnection;
 
 namespace unity
 {
@@ -78,6 +81,7 @@ public:
     \brief Initializes the runtime.
     */
     static SPtr create();
+    static SPtr create(QDBusConnection const& bus);
 
     /**
     \brief Shuts down the runtime.

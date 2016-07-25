@@ -13,37 +13,36 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authors: Michi Henning <michi.henning@canonical.com>
+ * Authors: James Henstridge <james.henstridge@canonical.com>
  */
 
-#include <unity/storage/qt/client/Runtime.h>
-
-#include <unity/storage/qt/client/internal/local_client/RuntimeImpl.h>
+#pragma once
 
 #include <QDBusConnection>
+#include <QProcess>
+#include <QSharedPointer>
+#include <memory>
 
-#include <cassert>
-
-using namespace std;
-
-namespace unity
+namespace QtDBusTest
 {
-namespace storage
-{
-namespace qt
-{
-namespace client
-{
-
-Runtime::SPtr Runtime::create(QDBusConnection const&)
-{
-    auto impl = new internal::local_client::RuntimeImpl;
-    Runtime::SPtr runtime(new Runtime(impl));
-    impl->set_public_instance(weak_ptr<Runtime>(runtime));
-    return runtime;
+class DBusTestRunner;
+class QProcessDBusService;
 }
 
-}  // namespace client
-}  // namespace qt
-}  // namespace storage
-}  // namespace unity
+class DBusEnvironment final {
+public:
+    DBusEnvironment();
+    ~DBusEnvironment();
+
+    QDBusConnection const& connection() const;
+
+    void add_demo_provider(char const* service_id);
+    void start_services();
+
+    QProcess& accounts_service_process();
+
+private:
+    std::unique_ptr<QtDBusTest::DBusTestRunner> runner_;
+    QSharedPointer<QtDBusTest::QProcessDBusService> accounts_service_;
+    QSharedPointer<QtDBusTest::QProcessDBusService> demo_provider_;
+};

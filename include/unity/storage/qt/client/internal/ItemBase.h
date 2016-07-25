@@ -23,10 +23,10 @@
 
 #include <QDateTime>
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QFuture>
 #pragma GCC diagnostic pop
-#include <QString>
 #include <QVariantMap>
 
 #include <memory>
@@ -44,6 +44,8 @@ class Folder;
 class Item;
 class Root;
 
+typedef QMap<QString, QVariant> MetadataMap;
+
 namespace internal
 {
 
@@ -59,7 +61,7 @@ public:
 
     QString native_identity() const;
     ItemType type() const;
-    Root* root() const;
+    std::shared_ptr<Root> root() const;
 
     virtual QString name() const = 0;
     virtual QString etag() const = 0;
@@ -71,6 +73,10 @@ public:
     virtual QFuture<QVector<std::shared_ptr<Folder>>> parents() const = 0;
     virtual QVector<QString> parent_ids() const = 0;
     virtual QFuture<void> delete_item() = 0;
+
+    virtual QDateTime creation_time() const = 0;
+    virtual MetadataMap native_metadata() const = 0;
+
     virtual bool equal_to(ItemBase const& other) const noexcept = 0;
 
     void set_root(std::weak_ptr<Root> p);

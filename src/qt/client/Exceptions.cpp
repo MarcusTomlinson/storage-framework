@@ -18,6 +18,8 @@
 
 #include <unity/storage/qt/client/Exceptions.h>
 
+using namespace std;
+
 namespace unity
 {
 namespace storage
@@ -27,12 +29,18 @@ namespace qt
 namespace client
 {
 
-StorageException::StorageException(QString const& error_message)
-    : error_message_(error_message)
+StorageException::StorageException(char const* exception_name, QString const& error_message)
+    : what_string_(string(exception_name) + ": " + error_message.toStdString())
+    , error_message_(error_message)
 {
 }
 
 StorageException::~StorageException() = default;
+
+char const* StorageException::what() const noexcept
+{
+    return what_string_.c_str();
+}
 
 QString StorageException::error_message() const
 {
@@ -40,7 +48,7 @@ QString StorageException::error_message() const
 }
 
 LocalCommsException::LocalCommsException(QString const& error_message)
-    : StorageException(error_message)
+    : StorageException("LocalCommsException", error_message)
 {
 }
 
@@ -57,7 +65,7 @@ void LocalCommsException::raise() const
 }
 
 RemoteCommsException::RemoteCommsException(QString const& error_message)
-    : StorageException(error_message)
+    : StorageException("RemoteCommsException", error_message)
 {
 }
 
@@ -74,7 +82,7 @@ void RemoteCommsException::raise() const
 }
 
 DeletedException::DeletedException(QString const& error_message, QString const& identity, QString const& name)
-    : StorageException(error_message)
+    : StorageException("DeletedException", error_message)
     , identity_(identity)
     , name_(name)
 {
@@ -103,7 +111,7 @@ QString DeletedException::name() const
 }
 
 RuntimeDestroyedException::RuntimeDestroyedException(QString const& method)
-    : StorageException(method + ": Runtime was destroyed previously")
+    : StorageException("RuntimeDestroyedException", method + ": Runtime was destroyed previously")
 {
 }
 
@@ -120,7 +128,7 @@ void RuntimeDestroyedException::raise() const
 }
 
 NotExistsException::NotExistsException(QString const& error_message, QString const& key)
-    : StorageException(error_message)
+    : StorageException("NotExistsException", error_message)
     , key_(key)
 {
 }
@@ -143,7 +151,7 @@ QString NotExistsException::key() const
 }
 
 ExistsException::ExistsException(QString const& error_message, QString const& identity, QString const& name)
-    : StorageException(error_message)
+    : StorageException("ExistsException", error_message)
     , identity_(identity)
     , name_(name)
 {
@@ -172,7 +180,7 @@ QString ExistsException::name() const
 }
 
 ConflictException::ConflictException(QString const& error_message)
-    : StorageException(error_message)
+    : StorageException("ConflictException", error_message)
 {
 }
 
@@ -189,7 +197,7 @@ void ConflictException::raise() const
 }
 
 PermissionException::PermissionException(QString const& error_message)
-    : StorageException(error_message)
+    : StorageException("PermissionException", error_message)
 {
 }
 
@@ -206,7 +214,7 @@ void PermissionException::raise() const
 }
 
 QuotaException::QuotaException(QString const& error_message)
-    : StorageException(error_message)
+    : StorageException("QuotaException", error_message)
 {
 }
 
@@ -223,7 +231,7 @@ void QuotaException::raise() const
 }
 
 CancelledException::CancelledException(QString const& error_message)
-    : StorageException(error_message)
+    : StorageException("CancelledException", error_message)
 {
 }
 
@@ -240,7 +248,7 @@ void CancelledException::raise() const
 }
 
 LogicException::LogicException(QString const& error_message)
-    : StorageException(error_message)
+    : StorageException("LogicException", error_message)
 {
 }
 
@@ -257,7 +265,7 @@ void LogicException::raise() const
 }
 
 InvalidArgumentException::InvalidArgumentException(QString const& error_message)
-    : StorageException(error_message)
+    : StorageException("InvalidArgumentException", error_message)
 {
 }
 
@@ -274,7 +282,7 @@ void InvalidArgumentException::raise() const
 }
 
 ResourceException::ResourceException(QString const& error_message, int error_code)
-    : StorageException(error_message)
+    : StorageException("ResourceException", error_message)
     , error_code_(error_code)
 {
 }

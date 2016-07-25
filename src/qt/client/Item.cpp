@@ -51,7 +51,7 @@ QString Item::name() const
     return p_->name();
 }
 
-Root* Item::root() const
+shared_ptr<Root> Item::root() const
 {
     return p_->root();
 }
@@ -98,6 +98,16 @@ QFuture<Item::SPtr> Item::move(std::shared_ptr<Folder> const& new_parent, QStrin
 QFuture<void> Item::delete_item()
 {
     return p_->delete_item();
+}
+
+QDateTime Item::creation_time() const
+{
+    return p_->creation_time();
+}
+
+MetadataMap Item::native_metadata() const
+{
+    return p_->native_metadata();
 }
 
 bool Item::equal_to(Item::SPtr const& other) const noexcept

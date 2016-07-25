@@ -151,6 +151,7 @@ void PendingJobs::service_disconnected(QString const& service_name)
             // This continuation also ensures that the job remains
             // alive until the cancel method has completed.
             f.then(
+                EXEC_IN_MAIN
                 [job](decltype(f) f) {
                     try
                     {
@@ -179,6 +180,7 @@ void PendingJobs::service_disconnected(QString const& service_name)
             // This continuation also ensures that the job remains
             // alive until the cancel method has completed.
             f.then(
+                EXEC_IN_MAIN
                 [job](decltype(f) f) {
                     try
                     {

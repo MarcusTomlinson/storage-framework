@@ -49,6 +49,7 @@ namespace local_client
 
 UploadWorker::UploadWorker(int read_fd,
                            weak_ptr<File> file,
+                           int64_t size,
                            QString const& path,
                            ConflictPolicy policy,
                            weak_ptr<Root> root,
@@ -56,6 +57,8 @@ UploadWorker::UploadWorker(int read_fd,
                            QFutureInterface<void>& worker_initialized)
     : read_fd_(read_fd)
     , file_(file)
+    , size_(size)
+    , bytes_read_(0)
     , path_(path)
     , root_(root)
     , tmp_fd_([](int fd){ if (fd != -1) ::close(fd); })
@@ -64,6 +67,7 @@ UploadWorker::UploadWorker(int read_fd,
     , worker_initialized_(worker_initialized)
 {
     assert(read_fd > 0);
+    assert(size >= 0);
     qf_.reportStarted();
     worker_initialized_.reportStarted();
 }
@@ -72,7 +76,11 @@ void UploadWorker::start_uploading() noexcept
 {
     read_socket_.reset(new QLocalSocket);
     read_socket_->setSocketDescriptor(read_fd_, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
-    shutdown(read_fd_, SHUT_WR);
+
+    // We should be able to close the write channel of the client-side read socket, but
+    // doing this causes the client to never see the readyRead signal.
+    // Possibly a problem with QLocalSocket.
+    // shutdown(read_fd_, SHUT_WR);
 
     // Monitor read socket for ready-to-read, disconnected, and error events.
     connect(read_socket_.get(), &QLocalSocket::readyRead, this, &UploadWorker::on_bytes_ready);
@@ -175,6 +183,7 @@ void UploadWorker::on_bytes_ready()
     auto buf = read_socket_->read(read_socket_->bytesAvailable());
     if (buf.size() != 0)
     {
+        bytes_read_ += buf.size();
         auto bytes_written = output_file_->write(buf);
         if (bytes_written == -1)
         {
@@ -288,7 +297,11 @@ void UploadThread::run()
     exec();
 }
 
-UploaderImpl::UploaderImpl(weak_ptr<File> file, QString const& path, ConflictPolicy policy, weak_ptr<Root> root)
+UploaderImpl::UploaderImpl(weak_ptr<File> file,
+                           int64_t size,
+                           QString const& path,
+                           ConflictPolicy policy,
+                           weak_ptr<Root> root)
     : UploaderBase(policy)
     , write_socket_(new QLocalSocket)
 {
@@ -307,12 +320,16 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file, QString const& path, ConflictPol
 
     // Write socket is for the client.
     write_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
-    shutdown(fds[1], SHUT_RD);
+
+    // We should be able to close the read channel of the write socket,
+    // but doing this causes the disconnected signal to go AWOL.
+    // Possibly a problem wit QLocalSocket.
+    // shutdown(fds[1], SHUT_RD);
 
     // Create worker and connect slots, so we can signal the worker when the client calls
     // finish_download() or cancel();
     QFutureInterface<void> worker_initialized;
-    worker_.reset(new UploadWorker(fds[0], file, path, policy, root, qf_, worker_initialized));
+    worker_.reset(new UploadWorker(fds[0], file, size, path, policy, root, qf_, worker_initialized));
     connect(this, &UploaderImpl::do_finish, worker_.get(), &UploadWorker::do_finish);
     connect(this, &UploaderImpl::do_cancel, worker_.get(), &UploadWorker::do_cancel);
 

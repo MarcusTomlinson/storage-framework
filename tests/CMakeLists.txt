@@ -6,11 +6,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wno-old-style-cast -Wno-missing-fiel
 find_package(GMock)
 set(CMAKE_CXX_FLAGS ${old_cxx_flags})
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+configure_file(testsetup.h.in testsetup.h @ONLY)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+
+add_subdirectory(utils)
 
 set(unit_test_dirs
-    local-client
-    remote-client
+    local-client  # -TODO: Temporarily disabled due to a "unknown file: Failure" error in CI.
+    remote-client # -TODO: Temporarily disabled due to a "Cannot find any online account" error in CI.
 )
 
 set(slow_test_dirs
