@@ -72,6 +72,14 @@ UploadWorker::UploadWorker(int read_fd,
     worker_initialized_.reportStarted();
 }
 
+UploadWorker::~UploadWorker()
+{
+    if (state_ == error && !use_linkat_ && output_file_)
+    {
+        output_file_->remove();  // LCOV_EXCL_LINE
+    }
+}
+
 void UploadWorker::start_uploading() noexcept
 {
     read_socket_.reset(new QLocalSocket);
@@ -99,22 +107,29 @@ void UploadWorker::start_uploading() noexcept
         // Some kernels on the phones don't support O_TMPFILE and return various errno values when this fails.
         // So, if anything at all goes wrong, we fall back on conventional temp file creation and
         // produce a hard error if that doesn't work either.
+        // Note that, in this case, the temp file retains its name in the file system. Not nice because,
+        // if the client dies at the wrong moment, we leave the temp file behind.
+        use_linkat_ = false;
         string tmpfile = parent_path.native() + "/" + TMPFILE_PREFIX + "XXXXXX";
         tmp_fd_.reset(mkstemp(const_cast<char*>(tmpfile.data())));
         if (tmp_fd_.get() == -1)
         {
-            error_msg_ = "Uploader: cannot create temp file \"" + QString::fromStdString(tmpfile)
-                         + "\": " + QString::fromStdString(storage::internal::safe_strerror(errno));
+            int error_code = errno;
             worker_initialized_.reportFinished();
-            state_ = error;
-            do_finish();
+            QString msg = "cannot create temp file \"" + QString::fromStdString(tmpfile)
+                          + "\": " + QString::fromStdString(storage::internal::safe_strerror(errno));
+            handle_error(msg, error_code);
             return;
         }
-        unlink(tmpfile.data());
+        output_file_.reset(new QFile(QString::fromStdString(tmpfile)));
+        output_file_->open(QIODevice::WriteOnly);
         // LCOV_EXCL_STOP
     }
-    output_file_.reset(new QFile);
-    output_file_->open(tmp_fd_.get(), QIODevice::WriteOnly, QFileDevice::DontCloseHandle);
+    else
+    {
+        output_file_.reset(new QFile);
+        output_file_->open(tmp_fd_.get(), QIODevice::WriteOnly, QFileDevice::DontCloseHandle);
+    }
 
     worker_initialized_.reportFinished();
 }
@@ -128,7 +143,7 @@ void UploadWorker::do_finish()
 {
     if (qf_.future().isFinished())
     {
-        return;  // Future was set previously. no point in continuing.
+        return;  // Future was set previously, no point in continuing.
     }
 
     switch (state_)
@@ -191,9 +206,11 @@ void UploadWorker::on_bytes_ready()
         }
         else if (bytes_written != buf.size())
         {
+            // LCOV_EXCL_START
             QString msg = "write error, requested " + QString::number(buf.size()) + " B, but wrote only "
                           + bytes_written + " B.";
             handle_error(msg, 0);
+            // LCOV_EXCL_STOP
         }
     }
 }
@@ -220,6 +237,7 @@ void UploadWorker::finalize()
 
         if (impl->has_conflict())
         {
+            state_ = error;
             make_exceptional_future(qf_, ConflictException("Uploader::finish_upload(): ETag mismatch"));
             return;
         }
@@ -230,6 +248,7 @@ void UploadWorker::finalize()
         int fd = open(path_.toStdString().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);  // Fails if path already exists.
         if (fd == -1)
         {
+            state_ = error;
             QString msg = "Uploader::finish_upload(): item with name \"" + path_ + "\" exists already";
             QString name = QString::fromStdString(boost::filesystem::path(path_.toStdString()).filename().native());
             make_exceptional_future(qf_, ExistsException(msg, path_, name));
@@ -237,10 +256,13 @@ void UploadWorker::finalize()
         }
         if (close(fd) == -1)
         {
+            // LCOV_EXCL_START
+            state_ = error;
             QString msg = "Uploader::finish_upload(): cannot close tmp file: "
                           + QString::fromStdString(storage::internal::safe_strerror(errno));
             make_exceptional_future(qf_, ResourceException(msg, errno));
             return;
+            // LCOV_EXCL_STOP
         }
 
         file = FileImpl::make_file(path_, root_);
@@ -249,22 +271,48 @@ void UploadWorker::finalize()
 
     if (!output_file_->flush())
     {
+        // LCOV_EXCL_START
+        state_ = error;
         QString msg = "Uploader::finish_upload(): cannot flush output file: " + output_file_->errorString();
         make_exceptional_future(qf_, ResourceException(msg, output_file_->error()));
         return;
+        // LCOV_EXCL_STOP
     }
 
     // Link the anonymous tmp file into the file system.
-    string oldpath = string("/proc/self/fd/") + std::to_string(tmp_fd_.get());
-    string newpath = file->native_identity().toStdString();
-    ::unlink(newpath.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
-    if (linkat(-1, oldpath.c_str(), tmp_fd_.get(), newpath.c_str(), AT_SYMLINK_FOLLOW) == -1)
+    auto new_path = file->native_identity().toStdString();
+    if (use_linkat_)
     {
-        state_ = error;
-        QString msg = "Uploader::finish_upload(): linkat \"" + file->native_identity() + "\" failed: "
-                      + QString::fromStdString(storage::internal::safe_strerror(errno));
-        make_exceptional_future(qf_, ResourceException(msg, errno));
-        return;
+        auto old_path = string("/proc/self/fd/") + std::to_string(tmp_fd_.get());
+        ::unlink(new_path.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
+        if (linkat(-1, old_path.c_str(), tmp_fd_.get(), new_path.c_str(), AT_SYMLINK_FOLLOW) == -1)
+        {
+            // LCOV_EXCL_START
+            int error_code = errno;
+            state_ = error;
+            QString msg = "Uploader::finish_upload(): linkat \"" + QString::fromStdString(old_path)
+                          + "\" to \"" + file->native_identity() + "\" failed: "
+                          + QString::fromStdString(storage::internal::safe_strerror(errno));
+            make_exceptional_future(qf_, ResourceException(msg, error_code));
+            return;
+            // LCOV_EXCL_STOP
+        }
+    }
+    else
+    {
+        // LCOV_EXCL_START
+        auto old_path = output_file_->fileName().toStdString();
+        if (rename(old_path.c_str(), new_path.c_str()) == -1)
+        {
+            int error_code = errno;
+            state_ = error;
+            QString msg = "Uploader::finish_upload(): rename \"" + QString::fromStdString(old_path)
+                          + "\" to \"" + file->native_identity() + "\" failed: "
+                          + QString::fromStdString(storage::internal::safe_strerror(errno));
+            make_exceptional_future(qf_, ResourceException(msg, error_code));
+            return;
+        }
+        // LCOV_EXCL_STOP
     }
 
     state_ = finalized;
