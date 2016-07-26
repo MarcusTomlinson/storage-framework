@@ -57,6 +57,8 @@ public:
                  std::weak_ptr<Root> root,
                  QFutureInterface<std::shared_ptr<File>>& qf,
                  QFutureInterface<void>& worker_initialized);
+    virtual ~UploadWorker();
+
     void start_uploading() noexcept;
 
 public Q_SLOTS:
@@ -89,6 +91,7 @@ private:
     QFutureInterface<std::shared_ptr<File>>& qf_;
     QFutureInterface<void>& worker_initialized_;
     QString error_msg_;
+    bool use_linkat_ = true;
 };
 
 class UploadThread : public QThread

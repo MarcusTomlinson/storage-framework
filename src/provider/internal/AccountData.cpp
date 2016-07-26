@@ -113,6 +113,7 @@ void AccountData::on_authenticated()
                 reply.tokenSecret().toStdString(),
             };
         }
+        break;
     }
     case OnlineAccounts::AuthenticationMethodOAuth2:
     {
@@ -127,6 +128,7 @@ void AccountData::on_authenticated()
                 reply.accessToken().toStdString(),
             };
         }
+        break;
     }
     case OnlineAccounts::AuthenticationMethodPassword:
     {
@@ -142,6 +144,7 @@ void AccountData::on_authenticated()
                 reply.password().toStdString(),
             };
         }
+        break;
     }
     default:
         qDebug() << "Unhandled authentication method:"
