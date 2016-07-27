@@ -113,7 +113,6 @@ target_link_libraries(storage-framework-qt-client
     Qt5::Core
     Qt5::DBus
     Qt5::Network
-    ${Boost_LIBRARIES}
     ${ONLINEACCOUNTS_DEPS_LDFLAGS}
 )
 install(

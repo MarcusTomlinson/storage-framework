@@ -18,6 +18,8 @@
 
 #include <unity/storage/qt/client/internal/FolderBase.h>
 
+#include <cassert>
+
 using namespace std;
 
 namespace unity
