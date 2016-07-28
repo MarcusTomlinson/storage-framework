@@ -108,7 +108,7 @@ T wait_on_future(boost::future<T> &f) {
     return r->result;
 }
 
-TEST_F(DBusPeerCacheTest, oauth1_credentials)
+TEST_F(DBusPeerCacheTest, get_credentials)
 {
     // Get the unique name of the Online Accounts manager interface
     QDBusReply<QString> reply = connection().interface()->serviceOwner(
