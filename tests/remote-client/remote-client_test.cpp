@@ -262,7 +262,7 @@ TEST_F(FolderTest, basic)
         QFutureWatcher<QVector<Item::SPtr>> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(list_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto items = list_fut.result();
     ASSERT_EQ(1, items.size());
@@ -273,7 +273,7 @@ TEST_F(FolderTest, basic)
         QFutureWatcher<Uploader::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(create_file_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto uploader = create_file_fut.result();
     auto finish_upload_fut = uploader->finish_upload();
@@ -281,7 +281,7 @@ TEST_F(FolderTest, basic)
         QFutureWatcher<File::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(finish_upload_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto file = finish_upload_fut.result();
     EXPECT_EQ(ItemType::file, file->type());
@@ -295,7 +295,7 @@ TEST_F(FolderTest, basic)
         QFutureWatcher<Item::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(get_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     file = dynamic_pointer_cast<File>(get_fut.result());
     EXPECT_EQ("child_id", file->native_identity());
@@ -308,7 +308,7 @@ TEST_F(FolderTest, basic)
         QFutureWatcher<Folder::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(create_folder_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     EXPECT_EQ(ItemType::folder, folder->type());
     EXPECT_EQ("folder1", folder->name());
@@ -408,7 +408,7 @@ TEST_F(FileTest, upload)
         QFutureWatcher<QVector<Item::SPtr>> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(lookup_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto children = lookup_fut.result();
     ASSERT_EQ(1, children.size());
@@ -421,7 +421,7 @@ TEST_F(FileTest, upload)
         QFutureWatcher<Uploader::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(create_uploader_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto uploader = create_uploader_fut.result();
 
@@ -430,7 +430,7 @@ TEST_F(FileTest, upload)
         QFutureWatcher<File::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(finish_upload_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto uploaded_file = finish_upload_fut.result();
     EXPECT_EQ("some_id", uploaded_file->native_identity());
@@ -446,7 +446,7 @@ TEST_F(FileTest, upload)
             QFutureWatcher<File::SPtr> w;
             QSignalSpy spy(&w, &decltype(w)::finished);
             w.setFuture(finish_upload_fut);
-            assert(spy.wait(SIGNAL_WAIT_TIME));
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
         }
         auto file = finish_upload_fut.result();
     }

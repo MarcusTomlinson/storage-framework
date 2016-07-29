@@ -64,30 +64,43 @@ FolderImpl::FolderImpl(QString const& identity, ItemType type)
 
 QString FolderImpl::name() const
 {
-    lock_guard<mutex> guard(mutex_);
+    lock_guard<decltype(mutex_)> guard(mutex_);
 
     if (deleted_)
     {
         throw deleted_ex("Folder::name()");
+    }
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException("Folder::name()");
     }
     return name_;
 }
 
 QFuture<QVector<Item::SPtr>> FolderImpl::list() const
 {
+    if (deleted_)
+    {
+        return make_exceptional_future<QVector<Item::SPtr>>(deleted_ex("Folder::list()"));
+    }
+    if (!get_root())
+    {
+        return make_exceptional_future<QVector<Item::SPtr>>(RuntimeDestroyedException("Folder::list()"));
+    }
+
     auto This = dynamic_pointer_cast<FolderImpl const>(shared_from_this());  // Keep this folder alive while the lambda is alive.
     auto list = [This]()
     {
-        lock_guard<mutex> guard(This->mutex_);
+        lock_guard<decltype(mutex_)> guard(This->mutex_);
 
         if (This->deleted_)
         {
-            throw This->deleted_ex("Folder::list()");
+            throw This->deleted_ex("Folder::list()");  // LCOV_EXCL_LINE
         }
         auto root = This->get_root();
         if (!root)
         {
-            throw RuntimeDestroyedException("Folder::list()");
+            throw RuntimeDestroyedException("Folder::list()");  // LCOV_EXCL_LINE
         }
 
         try
@@ -119,6 +132,11 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
             }
             return results;
         }
+        // LCOV_EXCL_START
+        catch (StorageException const&)
+        {
+            throw;
+        }
         catch (boost::filesystem::filesystem_error const& e)
         {
             throw ResourceException(QString("Folder::list(): ") + e.what(), e.code().value());
@@ -127,25 +145,35 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
         {
             throw ResourceException(QString("Folder::list(): ") + e.what(), errno);
         }
+        // LCOV_EXCL_STOP
     };
     return QtConcurrent::run(list);
 }
 
 QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
 {
+    if (deleted_)
+    {
+        return make_exceptional_future<QVector<Item::SPtr>>(deleted_ex("Folder::lookup()"));
+    }
+    if (!get_root())
+    {
+        return make_exceptional_future<QVector<Item::SPtr>>(RuntimeDestroyedException("Folder::lookup()"));
+    }
+
     auto This = dynamic_pointer_cast<FolderImpl const>(shared_from_this());  // Keep this folder alive while the lambda is alive.
     auto lookup = [This, name]() -> QVector<Item::SPtr>
     {
-        lock_guard<mutex> guard(This->mutex_);
+        lock_guard<decltype(mutex_)> guard(This->mutex_);
 
         if (This->deleted_)
         {
-            throw This->deleted_ex("Folder::lookup()");
+            throw This->deleted_ex("Folder::lookup()");  // LCOV_EXCL_LINE
         }
         auto root = This->get_root();
         if (!root)
         {
-            throw RuntimeDestroyedException("Folder::lookup()");
+            throw RuntimeDestroyedException("Folder::lookup()");  // LCOV_EXCL_LINE
         }
 
         try
@@ -156,7 +184,7 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
             auto sanitized_name = sanitize(name, "Folder::lookup()");
             if (is_reserved_path(sanitized_name))
             {
-                throw NotExistsException("Folder::lookup(): no such item: " + name, name);
+                throw NotExistsException("Folder::lookup(): no such item: \"" + name + "\"", name);
             }
             p /= sanitized_name;
             file_status s = status(p);
@@ -172,31 +200,29 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
                 v.append(FileImpl::make_file(QString::fromStdString(p.native()), root));
                 return v;
             }
-            throw NotExistsException("Folder::lookup(): no such item: " + name, name);
+            throw NotExistsException("Folder::lookup(): no such item: \"" + name + "\"", name);
         }
-        catch (StorageException const&)
+        catch (StorageException const& e)
         {
             throw;
         }
+        // LCOV_EXCL_START
         catch (boost::filesystem::filesystem_error const& e)
         {
-            if (e.code().value() == ENOENT)
-            {
-                throw NotExistsException("Folder::lookup(): no such item: " + name, name);
-            }
             throw ResourceException(QString("Folder::lookup(): ") + e.what(), e.code().value());
         }
         catch (std::exception const& e)
         {
             throw ResourceException(QString("Folder::lookup(): ") + e.what(), errno);
         }
+        // LCOV_EXCL_STOP
     };
     return QtConcurrent::run(lookup);
 }
 
 QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
 {
-    lock_guard<mutex> guard(mutex_);
+    lock_guard<decltype(mutex_)> guard(mutex_);
 
     QFutureInterface<Folder::SPtr> qf;
     if (deleted_)
@@ -217,10 +243,15 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         auto sanitized_name = sanitize(name, "Folder::create_folder()");
         if (is_reserved_path(sanitized_name))
         {
-            QString msg = "Folder::create_folder(): names beginning with " + QString(TMPFILE_PREFIX) + " are reserved";
-            return make_exceptional_future<Folder::SPtr>(InvalidArgumentException(msg));
+            QString msg = "Folder::create_folder(): names beginning with \"" + QString(TMPFILE_PREFIX) + "\" are reserved";
+            throw InvalidArgumentException(msg);
         }
         p /= sanitized_name;
+        if (exists(p))
+        {
+            QString msg = "Folder::create_folder(): item with name \"" + name + "\" exists already";
+            throw ExistsException(msg, native_identity() + "/" + name, name);
+        }
         create_directory(p);
         return make_ready_future(make_folder(QString::fromStdString(p.native()), root));
     }
@@ -230,19 +261,21 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     }
     catch (boost::filesystem::filesystem_error const& e)
     {
-        return make_exceptional_future<Folder::SPtr>(ResourceException(QString("Folder::create_folder: ") + e.what(),
+        return make_exceptional_future<Folder::SPtr>(ResourceException(QString("Folder::create_folder(): ") + e.what(),
                                                                        e.code().value()));
     }
+    // LCOV_EXCL_START
     catch (std::exception const& e)
     {
-        return make_exceptional_future<Folder::SPtr>(ResourceException(QString("Folder::create_folder: ") + e.what(),
+        return make_exceptional_future<Folder::SPtr>(ResourceException(QString("Folder::create_folder(): ") + e.what(),
                                                                        errno));
     }
+    // LCOV_EXCL_STOP
 }
 
 QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64_t size)
 {
-    unique_lock<mutex> guard(mutex_);
+    lock_guard<decltype(mutex_)> guard(mutex_);
 
     if (deleted_)
     {
@@ -267,14 +300,14 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
         auto sanitized_name = sanitize(name, "Folder::create_file()");
         if (is_reserved_path(sanitized_name))
         {
-            QString msg = "Folder::create_file(): names beginning with " + QString(TMPFILE_PREFIX) + " are reserved";
-            return make_exceptional_future<Uploader::SPtr>(InvalidArgumentException(msg));
+            QString msg = "Folder::create_file(): names beginning with \"" + QString(TMPFILE_PREFIX) + "\" are reserved";
+            throw InvalidArgumentException(msg);
         }
         p /= sanitized_name;
         if (exists(p))
         {
             QString msg = "Folder::create_file(): item with name \"" + name + "\" exists already";
-            return make_exceptional_future<Uploader::SPtr>(ExistsException(msg, native_identity(), name));
+            throw ExistsException(msg, native_identity() + "/" + name, name);
         }
         auto impl = new UploaderImpl(shared_ptr<File>(),
                                      size,
@@ -290,14 +323,16 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
     }
     catch (boost::filesystem::filesystem_error const& e)
     {
-        return make_exceptional_future<Uploader::SPtr>(ResourceException(QString("Folder::create_file: ") + e.what(),
+        return make_exceptional_future<Uploader::SPtr>(ResourceException(QString("Folder::create_file(): ") + e.what(),
                                                                          e.code().value()));
     }
+    // LCOV_EXCL_START
     catch (std::exception const& e)
     {
-        return make_exceptional_future<Uploader::SPtr>(ResourceException(QString("Folder::create_file: ") + e.what(),
+        return make_exceptional_future<Uploader::SPtr>(ResourceException(QString("Folder::create_file(): ") + e.what(),
                                                                          errno));
     }
+    // LCOV_EXCL_STOP
 }
 
 Folder::SPtr FolderImpl::make_folder(QString const& identity, weak_ptr<Root> root)

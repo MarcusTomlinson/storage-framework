@@ -50,7 +50,7 @@ FileImpl::FileImpl(QString const& identity)
 
 QString FileImpl::name() const
 {
-    lock_guard<mutex> guard(mutex_);
+    lock_guard<decltype(mutex_)> guard(mutex_);
 
     if (deleted_)
     {
@@ -65,7 +65,7 @@ QString FileImpl::name() const
 
 int64_t FileImpl::size() const
 {
-    lock_guard<mutex> guard(mutex_);
+    lock_guard<decltype(mutex_)> guard(mutex_);
 
     if (deleted_)
     {
@@ -85,15 +85,17 @@ int64_t FileImpl::size() const
     {
         throw ResourceException(e.what(), e.code().value());
     }
+    // LCOV_EXCL_START
     catch (std::exception const& e)
     {
         throw ResourceException(e.what(), 0);
     }
+    // LCOV_EXCL_STOP
 }
 
 QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy, int64_t size)
 {
-    lock_guard<mutex> guard(mutex_);
+    lock_guard<decltype(mutex_)> guard(mutex_);
 
     if (deleted_)
     {
@@ -104,7 +106,6 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy, int64_t
         QString msg = "File::create_uploader(): size must be >= 0";
         return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
     }
-
     auto root = get_root();
     if (!root)
     {
@@ -120,7 +121,7 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy, int64_t
 
 QFuture<Downloader::SPtr> FileImpl::create_downloader()
 {
-    lock_guard<mutex> guard(mutex_);
+    lock_guard<decltype(mutex_)> guard(mutex_);
 
     if (deleted_)
     {

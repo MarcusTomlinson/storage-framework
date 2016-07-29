@@ -68,6 +68,8 @@ RootImpl::RootImpl(QString const& identity, weak_ptr<Account> const& account)
 
 QString RootImpl::name() const
 {
+    lock_guard<decltype(mutex_)> guard(mutex_);
+
     if (!get_root())
     {
         throw RuntimeDestroyedException("Root::name()");
@@ -77,6 +79,8 @@ QString RootImpl::name() const
 
 QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 {
+    lock_guard<decltype(mutex_)> guard(mutex_);
+
     if (!get_root())
     {
         throw RuntimeDestroyedException("Root::parents()");
@@ -86,6 +90,8 @@ QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 
 QVector<QString> RootImpl::parent_ids() const
 {
+    lock_guard<decltype(mutex_)> guard(mutex_);
+
     if (!get_root())
     {
         throw RuntimeDestroyedException("Root::parent_ids()");
@@ -95,6 +101,8 @@ QVector<QString> RootImpl::parent_ids() const
 
 QFuture<void> RootImpl::delete_item()
 {
+    lock_guard<decltype(mutex_)> guard(mutex_);
+
     if (!get_root())
     {
         throw RuntimeDestroyedException("Root::delete_item()");
@@ -105,6 +113,8 @@ QFuture<void> RootImpl::delete_item()
 
 QFuture<int64_t> RootImpl::free_space_bytes() const
 {
+    lock_guard<decltype(mutex_)> guard(mutex_);
+
     if (!get_root())
     {
         throw RuntimeDestroyedException("Root::free_space_bytes()");
@@ -133,6 +143,8 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
 
 QFuture<int64_t> RootImpl::used_space_bytes() const
 {
+    lock_guard<decltype(mutex_)> guard(mutex_);
+
     if (!get_root())
     {
         throw RuntimeDestroyedException("Root::used_space_bytes()");
@@ -161,10 +173,12 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 {
+    lock_guard<decltype(mutex_)> guard(mutex_);
+
     auto root = get_root();
     if (!root)
     {
-        throw RuntimeDestroyedException("Root::native_identity()");
+        return make_exceptional_future<Item::SPtr>(RuntimeDestroyedException("Root::get()"));
     }
 
     using namespace boost::filesystem;
@@ -176,7 +190,7 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         if (!id_path.is_absolute())
         {
             QString msg = "Root::get(): identity \"" + native_identity + "\" must be an absolute path";
-            return make_exceptional_future<Item::SPtr>(InvalidArgumentException(msg));
+            throw InvalidArgumentException(msg);
         }
 
         // Make sure that native_identity is contained in or equal to the root path.
@@ -189,14 +203,14 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
             // Too few components, or wrong path prefix. Therefore, native_identity can't
             // possibly point at something below the root.
             QString msg = QString("Root::get(): identity \"") + native_identity + "\" points outside the root folder";
-            return make_exceptional_future<Item::SPtr>(InvalidArgumentException(msg));
+            throw InvalidArgumentException(msg);
         }
 
         // Don't allow reserved files to be found.
         if (is_reserved_path(id_path))
         {
-            QString msg = "Root::get(): no such item: " + native_identity;
-            return make_exceptional_future<Item::SPtr>(NotExistsException(msg, native_identity));
+            QString msg = "Root::get(): no such item: \"" + native_identity + "\"";
+            throw NotExistsException(msg, native_identity);
         }
 
         file_status s = status(id_path);
@@ -213,8 +227,8 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         {
             return make_ready_future<Item::SPtr>(FileImpl::make_file(path, root));
         }
-        QString msg = "Root::get(): no such item: " + native_identity;
-        return make_exceptional_future<Item::SPtr>(NotExistsException(msg, native_identity));
+        QString msg = "Root::get(): no such item: \"" + native_identity + "\"";
+        throw NotExistsException(msg, native_identity);
     }
     catch (StorageException const& e)
     {

@@ -79,8 +79,10 @@ void DownloadWorker::start_downloading() noexcept
     input_file_.reset(new QFile(filename_));
     if (!input_file_->open(QIODevice::ReadOnly))
     {
+        // LCOV_EXCL_START
         handle_error("cannot open " + filename_ + ": " + input_file_->errorString(), input_file_->error());
         return;
+        // LCOV_EXCL_STOP
     }
     bytes_to_write_ = input_file_->size();
 
@@ -189,6 +191,7 @@ void DownloadWorker::on_disconnected()
 
 void DownloadWorker::on_error()
 {
+    disconnect(write_socket_.get(), nullptr, this, nullptr);
     handle_error(write_socket_->errorString(), write_socket_->error());
 }
 
@@ -203,21 +206,27 @@ void DownloadWorker::read_and_write_chunk()
     auto bytes_read = input_file_->read(buf.data(), buf.size());
     if (bytes_read == -1)
     {
+        // LCOV_EXCL_START
         handle_error(filename_ + ": read error: " + input_file_->errorString(), input_file_->error());
         return;
+        // LCOV_EXCL_STOP
     }
     buf.resize(bytes_read);
 
     auto bytes_written = write_socket_->write(buf);
     if (bytes_written == -1)
     {
+        // LCOV_EXCL_START
         handle_error(filename_ + ": socket error: " + write_socket_->errorString(), write_socket_->error());
+        // LCOV_EXCL_STOP
     }
     else if (bytes_written != bytes_read)
     {
+        // LCOV_EXCL_START
         QString msg = filename_ + ": write error, requested " + bytes_read + " B, but wrote only "
                       + bytes_written + " B.";
         handle_error(msg, 0);
+        // LCOV_EXCL_STOP
     }
 }
 

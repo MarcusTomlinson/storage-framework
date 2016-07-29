@@ -75,7 +75,10 @@ protected:
     QString etag_;
     QDateTime modified_time_;
     QVariantMap metadata_;
-    std::mutex mutable mutex_;
+    std::recursive_mutex mutable mutex_;
+
+private:
+    static void copy_recursively(boost::filesystem::path const& source, boost::filesystem::path const& target);
 };
 
 }  // namespace local_client
