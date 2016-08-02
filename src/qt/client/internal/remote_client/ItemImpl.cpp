@@ -25,6 +25,8 @@
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
 
+#include <cassert>
+
 using namespace std;
 
 namespace unity

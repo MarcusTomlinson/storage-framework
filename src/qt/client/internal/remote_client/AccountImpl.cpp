@@ -24,6 +24,8 @@
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
 #include <unity/storage/qt/client/Runtime.h>
 
+#include <cassert>
+
 using namespace std;
 
 namespace unity

@@ -18,7 +18,7 @@
 
 #include <unity/storage/qt/client/client-api.h>
 
-#include <unity/storage/qt/client/internal/boost_filesystem.h>
+#include <unity/storage/qt/client/internal/local_client/boost_filesystem.h>
 #include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
 
 #include <gtest/gtest.h>
@@ -1109,10 +1109,9 @@ TEST(Item, exceptions)
         ASSERT_EQ(0, system("chmod -x " TEST_DIR "/storage-framework"));
 
         call(file->delete_item());
-        ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
         FAIL();
     }
-    catch (ResourceException const& e)
+    catch (PermissionException const& e)
     {
         ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
         EXPECT_TRUE(e.error_message().startsWith("Item::delete_item(): "));
@@ -1122,6 +1121,7 @@ TEST(Item, exceptions)
         ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
         FAIL();
     }
+    ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
 
     try
     {
@@ -1300,13 +1300,11 @@ TEST(Folder, exceptions)
     try
     {
         call(root->create_file("new_file", 0));
-        ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
         FAIL();
     }
-    catch (ResourceException const& e)
+    catch (PermissionException const& e)
     {
         EXPECT_TRUE(e.error_message().startsWith("Folder::create_file(): "));
-        EXPECT_EQ(EACCES, e.error_code());
         ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
     }
     catch (std::exception const& e)
@@ -1314,18 +1312,17 @@ TEST(Folder, exceptions)
         ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
         FAIL();
     }
+    ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
 
     ASSERT_EQ(0, system("chmod -x " TEST_DIR "/storage-framework"));
     try
     {
         call(root->create_folder("new_folder"));
-        ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
         FAIL();
     }
-    catch (ResourceException const& e)
+    catch (PermissionException const& e)
     {
         EXPECT_TRUE(e.error_message().startsWith("Folder::create_folder(): "));
-        EXPECT_EQ(EACCES, e.error_code());
         ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
     }
     catch (std::exception const& e)
@@ -1333,6 +1330,7 @@ TEST(Folder, exceptions)
         ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
         FAIL();
     }
+    ASSERT_EQ(0, system("chmod +x " TEST_DIR "/storage-framework"));
 
     try
     {
@@ -1399,6 +1397,11 @@ TEST(Root, root_exceptions)
         {
             EXPECT_TRUE(e.error_message().startsWith("Root::get(): "));
             EXPECT_TRUE(e.error_message().contains("Permission denied"));
+        }
+        catch (...)
+        {
+            cmd = "chmod +x " + folder->native_identity().toStdString();
+            ASSERT_EQ(0, system(cmd.c_str()));
         }
 
         cmd = "chmod +x " + folder->native_identity().toStdString();

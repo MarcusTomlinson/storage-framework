@@ -21,11 +21,12 @@
 #include <unity/storage/internal/safe_strerror.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
-#include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/local_client/filesystem_exception.h>
 #include <unity/storage/qt/client/internal/local_client/RootImpl.h>
 #include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
+#include <unity/storage/qt/client/internal/make_future.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #pragma GCC diagnostic push
@@ -114,11 +115,11 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
     if (!new_parent)
     {
         QString msg = "Item::copy(): new_parent cannot be nullptr";
-        return make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
+        return internal::make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
     }
     if (!get_root())
     {
-        return make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::copy()"));
+        return internal::make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::copy()"));
     }
 
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
@@ -205,7 +206,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         }
         catch (boost::filesystem::filesystem_error const& e)
         {
-            throw ResourceException(QString("Item::copy(): ") + e.what(), e.code().value());
+            throw_filesystem_exception("Item::copy()", e);
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)
@@ -222,11 +223,11 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
     if (!new_parent)
     {
         QString msg = "Item::move(): new_parent cannot be nullptr";
-        return make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
+        return internal::make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
     }
     if (!get_root())
     {
-        return make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::move()"));
+        return internal::make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::move()"));
     }
 
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
@@ -291,7 +292,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         }
         catch (boost::filesystem::filesystem_error const& e)
         {
-            throw ResourceException(QString("Item::move(): ") + e.what(), e.code().value());
+            throw_filesystem_exception(QString("Item::move(): "), e);
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)
@@ -310,12 +311,12 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
     QFutureInterface<QVector<Folder::SPtr>> qf;
     if (deleted_)
     {
-        return make_exceptional_future<QVector<Folder::SPtr>>(deleted_ex("Item::parents()"));
+        return internal::make_exceptional_future<QVector<Folder::SPtr>>(deleted_ex("Item::parents()"));
     }
     auto root = get_root();
     if (!root)
     {
-        return make_exceptional_future<QVector<Folder::SPtr>>(RuntimeDestroyedException("Item::parents()"));
+        return internal::make_exceptional_future<QVector<Folder::SPtr>>(RuntimeDestroyedException("Item::parents()"));
     }
 
     using namespace boost::filesystem;
@@ -383,7 +384,7 @@ QFuture<void> ItemImpl::delete_item()
         }
         catch (boost::filesystem::filesystem_error const& e)
         {
-            throw ResourceException(QString("Item::delete_item(): ") + e.what(), e.code().value());
+            throw_filesystem_exception(QString("Item::delete_item()"), e);
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)

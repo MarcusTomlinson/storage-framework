@@ -21,6 +21,7 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/local_client/filesystem_exception.h>
 #include <unity/storage/qt/client/Root.h>
 
 using namespace std;
@@ -108,7 +109,7 @@ QFuture<void> RootImpl::delete_item()
         throw RuntimeDestroyedException("Root::delete_item()");
     }
     // Cannot delete root.
-    return make_exceptional_future(LogicException("Root::delete_item(): Cannot delete root folder"));
+    return internal::make_exceptional_future(LogicException("Root::delete_item(): Cannot delete root folder"));
 }
 
 QFuture<int64_t> RootImpl::free_space_bytes() const
@@ -130,13 +131,12 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
     // LCOV_EXCL_START
     catch (boost::filesystem::filesystem_error const& e)
     {
-        return make_exceptional_future<int64_t>(ResourceException(QString("Root::free_space_bytes(): ") + e.what(),
-                                                                  e.code().value()));
+        return make_exceptional_future<int64_t>(QString("Root::free_space_bytes()"), e);
     }
     catch (std::exception const& e)
     {
-        return make_exceptional_future<int64_t>(ResourceException(QString("Root::free_space_bytes(): ") + e.what(),
-                                                                  errno));
+        return internal::make_exceptional_future<int64_t>(
+                    ResourceException(QString("Root::free_space_bytes(): ") + e.what(), errno));
     }
     // LCOV_EXCL_STOP
 }
@@ -160,13 +160,12 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
     // LCOV_EXCL_START
     catch (boost::filesystem::filesystem_error const& e)
     {
-        return make_exceptional_future<int64_t>(ResourceException(QString("Root::used_space_bytes(): ") + e.what(),
-                                                                  e.code().value()));
+        return make_exceptional_future<int64_t>(QString("Root::used_space_bytes()"), e);
     }
     catch (std::exception const& e)
     {
-        return make_exceptional_future<int64_t>(ResourceException(QString("Root::used_space_bytes(): ") + e.what(),
-                                                                  errno));
+        return internal::make_exceptional_future<int64_t>(
+                    ResourceException(QString("Root::used_space_bytes(): ") + e.what(), errno));
     }
     // LCOV_EXCL_STOP
 }
@@ -178,7 +177,7 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
     auto root = get_root();
     if (!root)
     {
-        return make_exceptional_future<Item::SPtr>(RuntimeDestroyedException("Root::get()"));
+        return internal::make_exceptional_future<Item::SPtr>(RuntimeDestroyedException("Root::get()"));
     }
 
     using namespace boost::filesystem;
@@ -232,16 +231,17 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
     }
     catch (StorageException const& e)
     {
-        return make_exceptional_future<Item::SPtr>(e);
+        return internal::make_exceptional_future<Item::SPtr>(e);
     }
     catch (boost::filesystem::filesystem_error const& e)
     {
-        return make_exceptional_future<Item::SPtr>(QString("Root::get(): ") + e.what(), e, native_identity);
+        return make_exceptional_future<Item::SPtr>(QString("Root::get()"), e, native_identity);
     }
     // LCOV_EXCL_START
     catch (std::exception const& e)
     {
-        return make_exceptional_future<Item::SPtr>(ResourceException(QString("Root::get(): ") + e.what(), errno));
+        return internal::make_exceptional_future<Item::SPtr>(
+                    ResourceException(QString("Root::get(): ") + e.what(), errno));
     }
     // LCOV_EXCL_STOP
 }

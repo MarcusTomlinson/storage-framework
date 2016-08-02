@@ -19,6 +19,7 @@
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
 
 #include <unity/storage/qt/client/Account.h>
+#include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/dbusmarshal.h>

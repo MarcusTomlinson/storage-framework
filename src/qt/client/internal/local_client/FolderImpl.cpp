@@ -24,6 +24,7 @@
 #include <unity/storage/qt/client/Uploader.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
+#include <unity/storage/qt/client/internal/local_client/filesystem_exception.h>
 #include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 
@@ -81,11 +82,11 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
 {
     if (deleted_)
     {
-        return make_exceptional_future<QVector<Item::SPtr>>(deleted_ex("Folder::list()"));
+        return internal::make_exceptional_future<QVector<Item::SPtr>>(deleted_ex("Folder::list()"));
     }
     if (!get_root())
     {
-        return make_exceptional_future<QVector<Item::SPtr>>(RuntimeDestroyedException("Folder::list()"));
+        return internal::make_exceptional_future<QVector<Item::SPtr>>(RuntimeDestroyedException("Folder::list()"));
     }
 
     auto This = dynamic_pointer_cast<FolderImpl const>(shared_from_this());  // Keep this folder alive while the lambda is alive.
@@ -139,7 +140,7 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
         }
         catch (boost::filesystem::filesystem_error const& e)
         {
-            throw ResourceException(QString("Folder::list(): ") + e.what(), e.code().value());
+            throw_filesystem_exception(QString("Folder::list()"), e);
         }
         catch (std::exception const& e)
         {
@@ -154,11 +155,11 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
 {
     if (deleted_)
     {
-        return make_exceptional_future<QVector<Item::SPtr>>(deleted_ex("Folder::lookup()"));
+        return internal::make_exceptional_future<QVector<Item::SPtr>>(deleted_ex("Folder::lookup()"));
     }
     if (!get_root())
     {
-        return make_exceptional_future<QVector<Item::SPtr>>(RuntimeDestroyedException("Folder::lookup()"));
+        return internal::make_exceptional_future<QVector<Item::SPtr>>(RuntimeDestroyedException("Folder::lookup()"));
     }
 
     auto This = dynamic_pointer_cast<FolderImpl const>(shared_from_this());  // Keep this folder alive while the lambda is alive.
@@ -209,7 +210,7 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
         // LCOV_EXCL_START
         catch (boost::filesystem::filesystem_error const& e)
         {
-            throw ResourceException(QString("Folder::lookup(): ") + e.what(), e.code().value());
+            throw_filesystem_exception(QString("Folder::lookup()"), e, name);
         }
         catch (std::exception const& e)
         {
@@ -227,12 +228,12 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     QFutureInterface<Folder::SPtr> qf;
     if (deleted_)
     {
-        return make_exceptional_future<Folder::SPtr>(deleted_ex("Folder::create_folder()"));
+        return internal::make_exceptional_future<Folder::SPtr>(deleted_ex("Folder::create_folder()"));
     }
     auto root = get_root();
     if (!root)
     {
-        return make_exceptional_future<Folder::SPtr>(RuntimeDestroyedException("Folder::create_folder()"));
+        return internal::make_exceptional_future<Folder::SPtr>(RuntimeDestroyedException("Folder::create_folder()"));
     }
 
     try
@@ -257,18 +258,17 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
     }
     catch (StorageException const& e)
     {
-        return make_exceptional_future<Folder::SPtr>(e);
+        return internal::make_exceptional_future<Folder::SPtr>(e);
     }
     catch (boost::filesystem::filesystem_error const& e)
     {
-        return make_exceptional_future<Folder::SPtr>(ResourceException(QString("Folder::create_folder(): ") + e.what(),
-                                                                       e.code().value()));
+        return make_exceptional_future<Folder::SPtr>(QString("Folder::create_folder()"), e);
     }
     // LCOV_EXCL_START
     catch (std::exception const& e)
     {
-        return make_exceptional_future<Folder::SPtr>(ResourceException(QString("Folder::create_folder(): ") + e.what(),
-                                                                       errno));
+        return internal::make_exceptional_future<Folder::SPtr>(
+                    ResourceException(QString("Folder::create_folder(): ") + e.what(), errno));
     }
     // LCOV_EXCL_STOP
 }
@@ -279,17 +279,17 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
 
     if (deleted_)
     {
-        return make_exceptional_future<Uploader::SPtr>(deleted_ex("Folder::create_file()"));
+        return internal::make_exceptional_future<Uploader::SPtr>(deleted_ex("Folder::create_file()"));
     }
     if (size < 0)
     {
         QString msg = "Folder::create_file(): size must be >= 0";
-        return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
+        return internal::make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
     }
     auto root = get_root();
     if (!root)
     {
-        return make_exceptional_future<Uploader::SPtr>(RuntimeDestroyedException("Folder::create_file()"));
+        return internal::make_exceptional_future<Uploader::SPtr>(RuntimeDestroyedException("Folder::create_file()"));
     }
 
     try
@@ -319,18 +319,17 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
     }
     catch (StorageException const& e)
     {
-        return make_exceptional_future<Uploader::SPtr>(e);
+        return internal::make_exceptional_future<Uploader::SPtr>(e);
     }
     catch (boost::filesystem::filesystem_error const& e)
     {
-        return make_exceptional_future<Uploader::SPtr>(ResourceException(QString("Folder::create_file(): ") + e.what(),
-                                                                         e.code().value()));
+        return make_exceptional_future<Uploader::SPtr>(QString("Folder::create_file()"), e);
     }
     // LCOV_EXCL_START
     catch (std::exception const& e)
     {
-        return make_exceptional_future<Uploader::SPtr>(ResourceException(QString("Folder::create_file(): ") + e.what(),
-                                                                         errno));
+        return internal::make_exceptional_future<Uploader::SPtr>(
+                    ResourceException(QString("Folder::create_file(): ") + e.what(), errno));
     }
     // LCOV_EXCL_STOP
 }

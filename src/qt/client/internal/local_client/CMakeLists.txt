@@ -2,6 +2,7 @@ set(QT_CLIENT_LIB_LOCAL_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/AccountImpl.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/DownloaderImpl.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/FileImpl.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/filesystem_exception.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/FolderImpl.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ItemImpl.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/RootImpl.cpp

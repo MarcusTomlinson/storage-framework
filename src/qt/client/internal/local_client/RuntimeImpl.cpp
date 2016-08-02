@@ -19,6 +19,7 @@
 #include <unity/storage/qt/client/internal/local_client/RuntimeImpl.h>
 
 #include <unity/storage/qt/client/Account.h>
+#include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/AccountImpl.h>
 

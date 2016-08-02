@@ -22,6 +22,7 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/local_client/DownloaderImpl.h>
+#include <unity/storage/qt/client/internal/local_client/filesystem_exception.h>
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/Uploader.h>
@@ -83,7 +84,7 @@ int64_t FileImpl::size() const
     }
     catch (boost::filesystem::filesystem_error const& e)
     {
-        throw ResourceException(e.what(), e.code().value());
+        throw_filesystem_exception(QString("File::size()"), e);
     }
     // LCOV_EXCL_START
     catch (std::exception const& e)
@@ -99,17 +100,17 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy, int64_t
 
     if (deleted_)
     {
-        return make_exceptional_future<Uploader::SPtr>(deleted_ex("File::create_uploader()"));
+        return internal::make_exceptional_future<Uploader::SPtr>(deleted_ex("File::create_uploader()"));
     }
     if (size < 0)
     {
         QString msg = "File::create_uploader(): size must be >= 0";
-        return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
+        return internal::make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
     }
     auto root = get_root();
     if (!root)
     {
-        return make_exceptional_future<Uploader::SPtr>(RuntimeDestroyedException("File::create_uploader()"));
+        return internal::make_exceptional_future<Uploader::SPtr>(RuntimeDestroyedException("File::create_uploader()"));
     }
 
     auto file = dynamic_pointer_cast<File>(public_instance_.lock());
@@ -125,7 +126,7 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
 
     if (deleted_)
     {
-        return make_exceptional_future<Downloader::SPtr>(deleted_ex("File::create_downloader()"));
+        return internal::make_exceptional_future<Downloader::SPtr>(deleted_ex("File::create_downloader()"));
     }
     if (!get_root())
     {
