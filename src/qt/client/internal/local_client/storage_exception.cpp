@@ -66,11 +66,13 @@ void throw_storage_exception(QString const& method, std::exception_ptr ep)
             }
         }
     }
+    // LCOV_EXCL_START
     catch (std::exception const& e)
     {
         QString msg = method + ": " + e.what();
         throw ResourceException(msg, error_code);
     }
+    // LCOV_EXCL_STOP
 }
 
 void throw_storage_exception(QString const& method, std::exception_ptr ep, QString const& key)
