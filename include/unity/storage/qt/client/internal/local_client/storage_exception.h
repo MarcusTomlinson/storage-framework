@@ -43,19 +43,19 @@ namespace internal
 namespace local_client
 {
 
-void throw_filesystem_exception(QString const& method,
-                                boost::filesystem::filesystem_error const& e) __attribute__ ((noreturn));
+void throw_storage_exception(QString const& method,
+                             std::exception_ptr ep) __attribute__ ((noreturn));
 
-void throw_filesystem_exception(QString const& method,
-                                boost::filesystem::filesystem_error const& e,
-                                QString const& key) __attribute__ ((noreturn));
+void throw_storage_exception(QString const& method,
+                             std::exception_ptr ep,
+                             QString const& key) __attribute__ ((noreturn));
 
 template<typename T>
-QFuture<T> make_exceptional_future(QString const& method, boost::filesystem::filesystem_error const& e)
+QFuture<T> make_exceptional_future(QString const& method, std::exception_ptr ep)
 {
     try
     {
-        throw_filesystem_exception(method, e);
+        throw_storage_exception(method, ep);
     }
     catch (StorageException const& e)
     {
@@ -69,12 +69,12 @@ QFuture<T> make_exceptional_future(QString const& method, boost::filesystem::fil
 
 template<typename T>
 QFuture<T> make_exceptional_future(QString const& method,
-                                   boost::filesystem::filesystem_error const& e,
+                                   std::exception_ptr ep,
                                    QString const& key)
 {
     try
     {
-        throw_filesystem_exception(method, e, key);
+        throw_storage_exception(method, ep, key);
     }
     catch (StorageException const& e)
     {

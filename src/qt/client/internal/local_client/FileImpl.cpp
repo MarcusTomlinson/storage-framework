@@ -22,7 +22,7 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/local_client/DownloaderImpl.h>
-#include <unity/storage/qt/client/internal/local_client/filesystem_exception.h>
+#include <unity/storage/qt/client/internal/local_client/storage_exception.h>
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/Uploader.h>
@@ -67,16 +67,10 @@ int64_t FileImpl::size() const
         boost::filesystem::path p = identity_.toStdString();
         return file_size(p);
     }
-    catch (boost::filesystem::filesystem_error const& e)
+    catch (std::exception const&)
     {
-        throw_filesystem_exception(QString("File::size()"), e);
+        throw_storage_exception(QString("File::size()"), current_exception());
     }
-    // LCOV_EXCL_START
-    catch (std::exception const& e)
-    {
-        throw ResourceException(e.what(), 0);
-    }
-    // LCOV_EXCL_STOP
 }
 
 QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy, int64_t size)

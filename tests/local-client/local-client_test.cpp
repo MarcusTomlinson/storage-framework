@@ -19,7 +19,7 @@
 #include <unity/storage/qt/client/client-api.h>
 
 #include <unity/storage/qt/client/internal/local_client/boost_filesystem.h>
-#include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
+#include <unity/storage/qt/client/internal/local_client/tmpfile_prefix.h>
 
 #include <gtest/gtest.h>
 #include <QCoreApplication>

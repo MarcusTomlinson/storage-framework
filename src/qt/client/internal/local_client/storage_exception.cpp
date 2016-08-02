@@ -17,7 +17,7 @@
  */
 
 #include <unity/storage/qt/client/Exceptions.h>
-#include <unity/storage/qt/client/internal/local_client/filesystem_exception.h>
+#include <unity/storage/qt/client/internal/local_client/storage_exception.h>
 
 namespace unity
 {
@@ -63,6 +63,61 @@ void throw_filesystem_exception(QString const& method, filesystem_error const& e
         throw NotExistsException(method + ": " + e.what(), key);
     }
     throw_filesystem_exception(method, e);
+}
+
+void throw_storage_exception(QString const& method, std::exception_ptr ep)
+{
+    int error_code = errno;
+    try
+    {
+        std::rethrow_exception(ep);
+    }
+    catch (StorageException const&)
+    {
+        throw;
+    }
+    catch (filesystem_error const& e)
+    {
+        QString msg = method + ": " + e.what();
+        switch (e.code().value())
+        {
+            case EACCES:
+            case EPERM:
+            {
+                throw PermissionException(msg);
+            }
+            case EDQUOT:
+            case ENOSPC:
+            {
+                throw QuotaException(msg);  // Too messy to cover with a test case.  // LCOV_EXCL_LINE
+            }
+            default:
+            {
+                throw ResourceException(msg, e.code().value());
+            }
+        }
+    }
+    catch (std::exception const& e)
+    {
+        QString msg = method + ": " + e.what();
+        throw ResourceException(msg, error_code);
+    }
+}
+
+void throw_storage_exception(QString const& method, std::exception_ptr ep, QString const& key)
+{
+    try
+    {
+        std::rethrow_exception(ep);
+    }
+    catch (filesystem_error const& e)
+    {
+        if (e.code().value() == ENOENT)
+        {
+            throw NotExistsException(method + ": " + e.what(), key);
+        }
+    }
+    throw_storage_exception(method, ep);
 }
 
 }  // namespace local_client

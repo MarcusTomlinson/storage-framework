@@ -24,8 +24,8 @@
 #include <unity/storage/qt/client/Uploader.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
-#include <unity/storage/qt/client/internal/local_client/filesystem_exception.h>
-#include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
+#include <unity/storage/qt/client/internal/local_client/storage_exception.h>
+#include <unity/storage/qt/client/internal/local_client/tmpfile_prefix.h>
 #include <unity/storage/qt/client/internal/local_client/UploaderImpl.h>
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -118,20 +118,10 @@ QFuture<QVector<Item::SPtr>> FolderImpl::list() const
             }
             return results;
         }
-        // LCOV_EXCL_START
-        catch (StorageException const&)
+        catch (std::exception const&)
         {
-            throw;
+            throw_storage_exception("Folder::list()", current_exception());
         }
-        catch (boost::filesystem::filesystem_error const& e)
-        {
-            throw_filesystem_exception(QString("Folder::list()"), e);
-        }
-        catch (std::exception const& e)
-        {
-            throw ResourceException(QString("Folder::list(): ") + e.what(), errno);
-        }
-        // LCOV_EXCL_STOP
     };
     return QtConcurrent::run(list);
 }
@@ -180,20 +170,10 @@ QFuture<QVector<Item::SPtr>> FolderImpl::lookup(QString const& name) const
             }
             throw NotExistsException("Folder::lookup(): no such item: \"" + name + "\"", name);
         }
-        catch (StorageException const& e)
+        catch (std::exception const&)
         {
-            throw;
+            throw_storage_exception("Folder::lookup()", current_exception());
         }
-        // LCOV_EXCL_START
-        catch (boost::filesystem::filesystem_error const& e)
-        {
-            throw_filesystem_exception(QString("Folder::lookup()"), e, name);
-        }
-        catch (std::exception const& e)
-        {
-            throw ResourceException(QString("Folder::lookup(): ") + e.what(), errno);
-        }
-        // LCOV_EXCL_STOP
     };
     return QtConcurrent::run(lookup);
 }
@@ -231,21 +211,10 @@ QFuture<Folder::SPtr> FolderImpl::create_folder(QString const& name)
         create_directory(p);
         return make_ready_future(make_folder(QString::fromStdString(p.native()), root_));
     }
-    catch (StorageException const& e)
+    catch (std::exception const&)
     {
-        return internal::make_exceptional_future<Folder::SPtr>(e);
+        return make_exceptional_future<Folder::SPtr>("Folder::create_folder()", current_exception());
     }
-    catch (boost::filesystem::filesystem_error const& e)
-    {
-        return make_exceptional_future<Folder::SPtr>(QString("Folder::create_folder()"), e);
-    }
-    // LCOV_EXCL_START
-    catch (std::exception const& e)
-    {
-        return internal::make_exceptional_future<Folder::SPtr>(
-                    ResourceException(QString("Folder::create_folder(): ") + e.what(), errno));
-    }
-    // LCOV_EXCL_STOP
 }
 
 QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64_t size)
@@ -291,21 +260,10 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
         Uploader::SPtr uploader(new Uploader(impl));
         return make_ready_future(uploader);
     }
-    catch (StorageException const& e)
+    catch (std::exception const&)
     {
-        return internal::make_exceptional_future<Uploader::SPtr>(e);
+        return make_exceptional_future<Uploader::SPtr>("Folder::create_file()", current_exception());
     }
-    catch (boost::filesystem::filesystem_error const& e)
-    {
-        return make_exceptional_future<Uploader::SPtr>(QString("Folder::create_file()"), e);
-    }
-    // LCOV_EXCL_START
-    catch (std::exception const& e)
-    {
-        return internal::make_exceptional_future<Uploader::SPtr>(
-                    ResourceException(QString("Folder::create_file(): ") + e.what(), errno));
-    }
-    // LCOV_EXCL_STOP
 }
 
 Folder::SPtr FolderImpl::make_folder(QString const& identity, weak_ptr<Root> root)

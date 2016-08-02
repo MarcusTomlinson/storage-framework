@@ -21,7 +21,7 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
-#include <unity/storage/qt/client/internal/local_client/filesystem_exception.h>
+#include <unity/storage/qt/client/internal/local_client/storage_exception.h>
 #include <unity/storage/qt/client/Root.h>
 
 using namespace std;
@@ -113,17 +113,10 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
         space_info si = space(identity_.toStdString());
         return make_ready_future<int64_t>(si.available);
     }
-    // LCOV_EXCL_START
-    catch (boost::filesystem::filesystem_error const& e)
+    catch (std::exception const&)
     {
-        return make_exceptional_future<int64_t>(QString("Root::free_space_bytes()"), e);
+        return make_exceptional_future<int64_t>(QString("Root::free_space_bytes()"), current_exception());
     }
-    catch (std::exception const& e)
-    {
-        return internal::make_exceptional_future<int64_t>(
-                    ResourceException(QString("Root::free_space_bytes(): ") + e.what(), errno));
-    }
-    // LCOV_EXCL_STOP
 }
 
 QFuture<int64_t> RootImpl::used_space_bytes() const
@@ -139,17 +132,10 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
         space_info si = space(identity_.toStdString());
         return make_ready_future<int64_t>(si.capacity - si.available);
     }
-    // LCOV_EXCL_START
-    catch (boost::filesystem::filesystem_error const& e)
+    catch (std::exception const&)
     {
-        return make_exceptional_future<int64_t>(QString("Root::used_space_bytes()"), e);
+        return make_exceptional_future<int64_t>(QString("Root::used_space_bytes()"), current_exception());
     }
-    catch (std::exception const& e)
-    {
-        return internal::make_exceptional_future<int64_t>(
-                    ResourceException(QString("Root::used_space_bytes(): ") + e.what(), errno));
-    }
-    // LCOV_EXCL_STOP
 }
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
@@ -211,21 +197,10 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         QString msg = "Root::get(): no such item: \"" + native_identity + "\"";
         throw NotExistsException(msg, native_identity);
     }
-    catch (StorageException const& e)
+    catch (std::exception const&)
     {
-        return internal::make_exceptional_future<Item::SPtr>(e);
+        return make_exceptional_future<Item::SPtr>(QString("Root::get()"), current_exception(), native_identity);
     }
-    catch (boost::filesystem::filesystem_error const& e)
-    {
-        return make_exceptional_future<Item::SPtr>(QString("Root::get()"), e, native_identity);
-    }
-    // LCOV_EXCL_START
-    catch (std::exception const& e)
-    {
-        return internal::make_exceptional_future<Item::SPtr>(
-                    ResourceException(QString("Root::get(): ") + e.what(), errno));
-    }
-    // LCOV_EXCL_STOP
 }
 
 Root::SPtr RootImpl::make_root(QString const& identity, std::weak_ptr<Account> const& account)

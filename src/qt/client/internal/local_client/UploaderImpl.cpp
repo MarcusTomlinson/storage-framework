@@ -22,7 +22,7 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
-#include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
+#include <unity/storage/qt/client/internal/local_client/tmpfile_prefix.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 
 #include <QLocalSocket>

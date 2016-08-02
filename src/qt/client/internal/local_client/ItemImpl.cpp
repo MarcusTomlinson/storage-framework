@@ -23,9 +23,9 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/local_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
-#include <unity/storage/qt/client/internal/local_client/filesystem_exception.h>
 #include <unity/storage/qt/client/internal/local_client/RootImpl.h>
-#include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
+#include <unity/storage/qt/client/internal/local_client/storage_exception.h>
+#include <unity/storage/qt/client/internal/local_client/tmpfile_prefix.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -183,20 +183,10 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
             rename(tmp_path, target_path);
             return FolderImpl::make_folder(QString::fromStdString(target_path.native()), new_parent_impl->root_);
         }
-        catch (StorageException const&)
+        catch (std::exception const&)
         {
-            throw;
+            throw_storage_exception("Item::copy()", current_exception());
         }
-        catch (boost::filesystem::filesystem_error const& e)
-        {
-            throw_filesystem_exception("Item::copy()", e);
-        }
-        // LCOV_EXCL_START
-        catch (std::exception const& e)
-        {
-            throw ResourceException(QString("Item::copy(): ") + e.what(), errno);
-        }
-        // LCOV_EXCL_STOP
     };
     return QtConcurrent::run(copy);
 }
@@ -274,20 +264,10 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
             }
             return FileImpl::make_file(QString::fromStdString(target_path.native()), new_parent_impl->root_);
         }
-        catch (StorageException const&)
+        catch (std::exception const&)
         {
-            throw;
+            throw_storage_exception(QString("Item::move(): "), current_exception());
         }
-        catch (boost::filesystem::filesystem_error const& e)
-        {
-            throw_filesystem_exception(QString("Item::move(): "), e);
-        }
-        // LCOV_EXCL_START
-        catch (std::exception const& e)
-        {
-            throw ResourceException(QString("Item::move(): ") + e.what(), errno);
-        }
-        // LCOV_EXCL_STOP
     };
     return QtConcurrent::run(move);
 }
@@ -358,16 +338,10 @@ QFuture<void> ItemImpl::delete_item()
             boost::filesystem::remove_all(This->native_identity().toStdString());
             This->deleted_ = true;
         }
-        catch (boost::filesystem::filesystem_error const& e)
+        catch (std::exception const&)
         {
-            throw_filesystem_exception(QString("Item::delete_item()"), e);
+            throw_storage_exception(QString("Item::delete_item()"), current_exception());
         }
-        // LCOV_EXCL_START
-        catch (std::exception const& e)
-        {
-            throw ResourceException(QString("Item::delete_item(): ") + e.what(), errno);
-        }
-        // LCOV_EXCL_STOP
     };
     return QtConcurrent::run(destroy);
 }
