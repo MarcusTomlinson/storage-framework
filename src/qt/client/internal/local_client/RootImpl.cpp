@@ -71,10 +71,7 @@ QString RootImpl::name() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Root::name()");
-    }
+    throw_if_destroyed("Root::name()");
     return "";
 }
 
@@ -82,10 +79,7 @@ QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Root::parents()");
-    }
+    throw_if_destroyed("Root::parents()");
     return make_ready_future(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
 }
 
@@ -93,10 +87,7 @@ QVector<QString> RootImpl::parent_ids() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Root::parent_ids()");
-    }
+    throw_if_destroyed("Root::parent_ids()");
     return QVector<QString>();  // For the root, we return an empty vector.
 }
 
@@ -104,10 +95,7 @@ QFuture<void> RootImpl::delete_item()
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Root::delete_item()");
-    }
+    throw_if_destroyed("Root::delete_item()");
     // Cannot delete root.
     return internal::make_exceptional_future(LogicException("Root::delete_item(): Cannot delete root folder"));
 }
@@ -116,10 +104,7 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Root::free_space_bytes()");
-    }
+    throw_if_destroyed("Root::free_space_bytes()");
 
     using namespace boost::filesystem;
 
@@ -145,10 +130,7 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Root::used_space_bytes()");
-    }
+    throw_if_destroyed("Root::used_space_bytes()");
 
     using namespace boost::filesystem;
 

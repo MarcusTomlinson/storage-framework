@@ -1486,7 +1486,6 @@ TEST(Item, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::etag(): "));
         EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
         EXPECT_EQ(TEST_DIR "/storage-framework/file", e.native_identity());
@@ -1500,7 +1499,6 @@ TEST(Item, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::metadata(): "));
     }
 
@@ -1512,7 +1510,6 @@ TEST(Item, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::last_modified_time(): "));
     }
 
@@ -1525,7 +1522,6 @@ TEST(Item, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::copy(): "));
     }
 
@@ -1548,7 +1544,6 @@ TEST(Item, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::copy(): "));
     }
     clear_folder(root);
@@ -1562,7 +1557,6 @@ TEST(Item, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::move(): "));
     }
 
@@ -1585,7 +1579,6 @@ TEST(Item, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::move(): "));
     }
     clear_folder(root);
@@ -1598,7 +1591,6 @@ TEST(Item, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::parents(): "));
     }
 
@@ -1610,7 +1602,6 @@ TEST(Item, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::parent_ids(): "));
     }
 
@@ -1623,7 +1614,6 @@ TEST(Item, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::delete_item(): "));
     }
 }
@@ -1644,7 +1634,6 @@ TEST(Folder, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Folder::name(): "));
     }
 
@@ -1656,7 +1645,6 @@ TEST(Folder, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Folder::list(): "));
     }
 
@@ -1668,7 +1656,6 @@ TEST(Folder, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Folder::lookup(): "));
     }
 
@@ -1680,7 +1667,6 @@ TEST(Folder, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Folder::list(): "));
     }
 
@@ -1692,7 +1678,6 @@ TEST(Folder, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Folder::create_folder(): "));
     }
 
@@ -1704,7 +1689,6 @@ TEST(Folder, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Folder::create_file(): "));
     }
 
@@ -1716,7 +1700,6 @@ TEST(Folder, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::creation_time(): ")) << e.what();
     }
 
@@ -1728,7 +1711,6 @@ TEST(Folder, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("folder", e.name());
         EXPECT_TRUE(e.error_message().startsWith("Item::native_metadata(): ")) << e.what();
     }
 }
@@ -1749,7 +1731,6 @@ TEST(File, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("File::name(): "));
         EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
         EXPECT_EQ(TEST_DIR "/storage-framework/file", e.native_identity());
@@ -1763,7 +1744,6 @@ TEST(File, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("File::size(): "));
         EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
         EXPECT_EQ(TEST_DIR "/storage-framework/file", e.native_identity());
@@ -1777,7 +1757,6 @@ TEST(File, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("File::create_uploader(): "));
         EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
         EXPECT_EQ(TEST_DIR "/storage-framework/file", e.native_identity());
@@ -1791,7 +1770,6 @@ TEST(File, deleted_exceptions)
     }
     catch (DeletedException const& e)
     {
-        EXPECT_EQ("file", e.name());
         EXPECT_TRUE(e.error_message().startsWith("File::create_downloader(): "));
         EXPECT_TRUE(e.error_message().endsWith(" was deleted previously"));
         EXPECT_EQ(TEST_DIR "/storage-framework/file", e.native_identity());

@@ -53,14 +53,7 @@ QString FileImpl::name() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (deleted_)
-    {
-        throw deleted_ex("File::name()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("File::name()");
-    }
+    throw_if_destroyed("File::name()");
     return name_;
 }
 
@@ -68,15 +61,7 @@ int64_t FileImpl::size() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (deleted_)
-    {
-        throw deleted_ex("File::size()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("File::size()");
-    }
-
+    throw_if_destroyed("File::size()");
     try
     {
         boost::filesystem::path p = identity_.toStdString();
@@ -98,19 +83,18 @@ QFuture<Uploader::SPtr> FileImpl::create_uploader(ConflictPolicy policy, int64_t
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (deleted_)
+    try
     {
-        return internal::make_exceptional_future<Uploader::SPtr>(deleted_ex("File::create_uploader()"));
+        throw_if_destroyed("File::create_uploader()");
+    }
+    catch (StorageException const& e)
+    {
+        return internal::make_exceptional_future<Uploader::SPtr>(e);
     }
     if (size < 0)
     {
         QString msg = "File::create_uploader(): size must be >= 0";
         return internal::make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
-    }
-    auto root = get_root();
-    if (!root)
-    {
-        return internal::make_exceptional_future<Uploader::SPtr>(RuntimeDestroyedException("File::create_uploader()"));
     }
 
     auto file = dynamic_pointer_cast<File>(public_instance_.lock());
@@ -124,13 +108,13 @@ QFuture<Downloader::SPtr> FileImpl::create_downloader()
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (deleted_)
+    try
     {
-        return internal::make_exceptional_future<Downloader::SPtr>(deleted_ex("File::create_downloader()"));
+        throw_if_destroyed("File::create_downloader()");
     }
-    if (!get_root())
+    catch (StorageException const& e)
     {
-        throw RuntimeDestroyedException("File::create_downloader()");
+        return internal::make_exceptional_future<Downloader::SPtr>(e);
     }
 
     auto pi = public_instance_.lock();

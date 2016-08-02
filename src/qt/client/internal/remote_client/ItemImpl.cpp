@@ -50,68 +50,48 @@ ItemImpl::ItemImpl(storage::internal::ItemMetadata const& md, ItemType type)
 
 QString ItemImpl::name() const
 {
-    if (deleted_)
-    {
-        throw deleted_ex("Item::name()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Item::name()");
-    }
+    throw_if_destroyed("Item::name()");
     return md_.name;
 }
 
 QString ItemImpl::etag() const
 {
-    if (deleted_)
-    {
-        throw deleted_ex("Item::etag()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Item::etag()");
-    }
+    throw_if_destroyed("Item::etag()");
     return md_.etag;
 }
 
 QVariantMap ItemImpl::metadata() const
 {
-    if (deleted_)
-    {
-        throw deleted_ex("Item::metadata()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Item::metadata()");
-    }
+    throw_if_destroyed("Item::metadata()");
     // TODO: need to agree on metadata representation
     return QVariantMap();
 }
 
 QDateTime ItemImpl::last_modified_time() const
 {
-    if (deleted_)
-    {
-        throw deleted_ex("Item::last_modified_time()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Item::last_modified_time()");
-    }
+    throw_if_destroyed("Item::last_modified_time()");
     // TODO: need to agree on metadata representation
     return QDateTime();
 }
 
 QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, QString const& new_name)
 {
-    if (deleted_)
+    if (!new_parent)
     {
-        return make_exceptional_future<shared_ptr<Item>>(deleted_ex("Item::copy()"));
+        QString msg = "Item::copy(): new_parent cannot be nullptr";
+        return internal::make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
     }
-    if (!get_root())
+
+    try
     {
-        return make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::copy()"));
+        throw_if_destroyed("Item::copy()");
     }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<shared_ptr<Item>>(e);
+    }
+    auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
+    new_parent_impl->throw_if_destroyed("Item::copy()");
 
     auto prov = provider();
     auto reply = prov->Copy(md_.item_id, new_parent->native_identity(), new_name);
@@ -144,14 +124,22 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
 
 QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, QString const& new_name)
 {
-    if (deleted_)
+    if (!new_parent)
     {
-        return make_exceptional_future<shared_ptr<Item>>(deleted_ex("Item::move()"));
+        QString msg = "Item::move(): new_parent cannot be nullptr";
+        return internal::make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
     }
-    if (!get_root())
+
+    try
     {
-        return make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::copy()"));
+        throw_if_destroyed("Item::move()");
     }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<shared_ptr<Item>>(e);
+    }
+    auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
+    new_parent_impl->throw_if_destroyed("Item::move()");
 
     auto prov = provider();
     if (!prov)
@@ -186,13 +174,13 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
 
 QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
 {
-    if (deleted_)
+    try
     {
-        return make_exceptional_future<QVector<Folder::SPtr>>(deleted_ex("Item::parents()"));
+        throw_if_destroyed("Item::parents()");
     }
-    if (!get_root())
+    catch (StorageException const& e)
     {
-        return make_exceptional_future<QVector<Folder::SPtr>>(RuntimeDestroyedException("Item::parents()"));
+        return make_exceptional_future<QVector<Folder::SPtr>>(e);
     }
     // TODO, need different metadata representation, affects xml
     return QFuture<QVector<Folder::SPtr>>();
@@ -200,28 +188,14 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
 
 QVector<QString> ItemImpl::parent_ids() const
 {
-    if (deleted_)
-    {
-        throw deleted_ex("Item::parent_ids()");
-    }
-    if (!get_root())
-    {
-        RuntimeDestroyedException("Item::parent_ids()");
-    }
+    throw_if_destroyed("Item::parent_ids()");
     // TODO, need different metadata representation, affects xml
     return QVector<QString>();
 }
 
 QFuture<void> ItemImpl::delete_item()
 {
-    if (deleted_)
-    {
-        return make_exceptional_future(deleted_ex("Item::delete_item()"));
-    }
-    if (!get_root())
-    {
-        return make_exceptional_future(RuntimeDestroyedException("Item::parents()"));
-    }
+    throw_if_destroyed("Item::delete_item()");
 
     auto prov = provider();
     auto reply = prov->Delete(md_.item_id);
@@ -238,20 +212,14 @@ QFuture<void> ItemImpl::delete_item()
 
 QDateTime ItemImpl::creation_time() const
 {
-    if (deleted_)
-    {
-        throw deleted_ex("Item::creation_time()");
-    }
+    throw_if_destroyed("Item::creation_time()");
     // TODO: need to agree on metadata representation
     return QDateTime();
 }
 
 MetadataMap ItemImpl::native_metadata() const
 {
-    if (deleted_)
-    {
-        throw deleted_ex("Item::native_metadata()");
-    }
+    throw_if_destroyed("Item::native_metadata()");
     // TODO: need to agree on metadata representation
     return MetadataMap();
 }
@@ -314,12 +282,6 @@ shared_ptr<Item> ItemImpl::make_item(storage::internal::ItemMetadata const& md, 
     }
     assert(item);
     return item;
-}
-
-DeletedException ItemImpl::deleted_ex(QString const& method) const noexcept
-{
-    QString msg = method + ": " + identity_ + " was deleted previously";
-    return DeletedException(msg, identity_, md_.name);
 }
 
 }  // namespace remote_client

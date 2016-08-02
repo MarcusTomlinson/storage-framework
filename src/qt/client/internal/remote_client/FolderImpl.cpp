@@ -57,13 +57,13 @@ FolderImpl::FolderImpl(storage::internal::ItemMetadata const& md, ItemType type)
 
 QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
 {
-    if (deleted_)
+    try
     {
-        return make_exceptional_future<QVector<shared_ptr<Item>>>(deleted_ex("Folder::list()"));
+        throw_if_destroyed("Folder::list()");
     }
-    if (!get_root())
+    catch (StorageException const& e)
     {
-        return make_exceptional_future<QVector<shared_ptr<Item>>>(RuntimeDestroyedException("Folder::list()"));
+        return make_exceptional_future<QVector<shared_ptr<Item>>>(e);
     }
 
     auto prov = provider();
@@ -117,13 +117,13 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
 
 QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
 {
-    if (deleted_)
+    try
     {
-        return make_exceptional_future<QVector<shared_ptr<Item>>>(deleted_ex("Folder::lookup()"));
+        throw_if_destroyed("Folder::lookup()");
     }
-    if (!get_root())
+    catch (StorageException const& e)
     {
-        return make_exceptional_future<QVector<shared_ptr<Item>>>(RuntimeDestroyedException("Folder::lookup()"));
+        return make_exceptional_future<QVector<shared_ptr<Item>>>(e);
     }
 
     auto prov = provider();
@@ -163,13 +163,13 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
 
 QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
 {
-    if (deleted_)
+    try
     {
-        return make_exceptional_future<shared_ptr<Folder>>(deleted_ex("Folder::create_folder()"));
+        throw_if_destroyed("Folder::create_folder()");
     }
-    if (!get_root())
+    catch (StorageException const& e)
     {
-        return make_exceptional_future<shared_ptr<Folder>>(RuntimeDestroyedException("Folder::create_folder()"));
+        return make_exceptional_future<shared_ptr<Folder>>(e);
     }
 
     auto prov = provider();
@@ -203,18 +203,18 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
 
 QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64_t size)
 {
-    if (deleted_)
+    try
     {
-        return make_exceptional_future<shared_ptr<Uploader>>(deleted_ex("Folder::create_file()"));
+        throw_if_destroyed("Folder::create_file()");
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<shared_ptr<Uploader>>(e);
     }
     if (size < 0)
     {
         QString msg = "Folder::create_file(): size must be >= 0";
         return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
-    }
-    if (!get_root())
-    {
-        return make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("Folder::create_file()"));
     }
 
     auto prov = provider();

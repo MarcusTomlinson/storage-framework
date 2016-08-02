@@ -83,11 +83,13 @@ public:
 
 protected:
     std::shared_ptr<Root> get_root() const noexcept;
+    void throw_if_destroyed(QString const& method) const;
 
     const QString identity_;
     const ItemType type_;
     std::weak_ptr<Root> root_;
     std::weak_ptr<Item> public_instance_;
+    bool deleted_ = false;
 
     friend class ItemImpl;
 };

@@ -68,9 +68,6 @@ protected:
     static boost::filesystem::path sanitize(QString const& name, QString const& method);
     static bool is_reserved_path(boost::filesystem::path const& path) noexcept;
 
-    DeletedException deleted_ex(QString const& method) const noexcept;
-
-    bool deleted_;
     QString name_;
     QString etag_;
     QDateTime modified_time_;

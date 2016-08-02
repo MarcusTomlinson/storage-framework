@@ -48,31 +48,24 @@ FileImpl::FileImpl(storage::internal::ItemMetadata const& md)
 
 int64_t FileImpl::size() const
 {
-    if (deleted_)
-    {
-        throw deleted_ex("File::size()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("File::size()");
-    }
+    throw_if_destroyed("File::size()");
     return 0;  // TODO
 }
 
 QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, int64_t size)
 {
-    if (deleted_)
+    try
     {
-        return make_exceptional_future<shared_ptr<Uploader>>(deleted_ex("File::create_uploader()"));
+        throw_if_destroyed("File::create_uploader()()");
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<shared_ptr<Uploader>>(e);
     }
     if (size < 0)
     {
         QString msg = "File::create_uploader(): size must be >= 0";
         return make_exceptional_future<shared_ptr<Uploader>>(InvalidArgumentException(msg));
-    }
-    if (!get_root())
-    {
-        return make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("File::create_uploader()"));
     }
 
     QString old_etag = policy == ConflictPolicy::overwrite ? "" : md_.etag;
@@ -108,13 +101,13 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, i
 
 QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
 {
-    if (deleted_)
+    try
     {
-        return make_exceptional_future<shared_ptr<Downloader>>(deleted_ex("File::create_downloader()"));
+        throw_if_destroyed("File::create_downloader()()");
     }
-    if (!get_root())
+    catch (StorageException const& e)
     {
-        return make_exceptional_future<shared_ptr<Downloader>>(RuntimeDestroyedException("File::create_downloader()"));
+        return make_exceptional_future<shared_ptr<Downloader>>(e);
     }
 
     auto prov = provider();

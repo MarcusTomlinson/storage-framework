@@ -55,7 +55,6 @@ namespace local_client
 
 ItemImpl::ItemImpl(QString const& identity, ItemType type)
     : ItemBase(identity, type)
-    , deleted_(false)
 {
     assert(!identity.isEmpty());
     auto path = boost::filesystem::canonical(identity.toStdString());
@@ -69,14 +68,7 @@ QString ItemImpl::etag() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (deleted_)
-    {
-        throw deleted_ex("Item::etag()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Item::etag()");
-    }
+    throw_if_destroyed("Item::etag()");
     return etag_;
 }
 
@@ -84,14 +76,7 @@ QVariantMap ItemImpl::metadata() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (deleted_)
-    {
-        throw deleted_ex("Item::metadata()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Item::metadata()");
-    }
+    throw_if_destroyed("Item::metadata()");
     return metadata_;
 }
 
@@ -99,14 +84,7 @@ QDateTime ItemImpl::last_modified_time() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (deleted_)
-    {
-        throw deleted_ex("Item::last_modified_time()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Item::last_modified_time()");
-    }
+    throw_if_destroyed("Item::last_modified_time()");
     return modified_time_;
 }
 
@@ -117,10 +95,21 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         QString msg = "Item::copy(): new_parent cannot be nullptr";
         return internal::make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
     }
-    if (!get_root())
+    auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
+
+    lock(mutex_, new_parent_impl->mutex_);
+    lock_guard<decltype(mutex_)> this_guard(mutex_, std::adopt_lock);
+    lock_guard<decltype(mutex_)> other_guard(new_parent_impl->mutex_, adopt_lock);
+
+    try
     {
-        return internal::make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::copy()"));
+        throw_if_destroyed("Item::copy()");
     }
+    catch (StorageException const& e)
+    {
+        return internal::make_exceptional_future<shared_ptr<Item>>(e);
+    }
+    new_parent_impl->throw_if_destroyed("Item::copy()");
 
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
     auto copy = [This, new_parent, new_name]() -> Item::SPtr
@@ -131,14 +120,8 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         lock_guard<decltype(mutex_)> this_guard(This->mutex_, std::adopt_lock);
         lock_guard<decltype(mutex_)> other_guard(new_parent_impl->mutex_, adopt_lock);
 
-        if (This->deleted_)
-        {
-            throw This->deleted_ex("Item::copy()");
-        }
-        if (new_parent_impl->deleted_)
-        {
-            throw new_parent_impl->deleted_ex("Item::copy()");
-        }
+        This->throw_if_destroyed("Item::copy()");
+        new_parent_impl->throw_if_destroyed("Item::copy()");
 
         // TODO: This needs to deeply compare account identity because the client may have refreshed the accounts list.
         if (This->root()->account() != new_parent->root()->account())  // Throws if account or runtime were destroyed.
@@ -225,10 +208,21 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         QString msg = "Item::move(): new_parent cannot be nullptr";
         return internal::make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
     }
-    if (!get_root())
+    auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
+
+    lock(mutex_, new_parent_impl->mutex_);
+    lock_guard<decltype(mutex_)> this_guard(mutex_, std::adopt_lock);
+    lock_guard<decltype(mutex_)> other_guard(new_parent_impl->mutex_, adopt_lock);
+
+    try
     {
-        return internal::make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::move()"));
+        throw_if_destroyed("Item::move()");
     }
+    catch (StorageException const& e)
+    {
+        return internal::make_exceptional_future<shared_ptr<Item>>(e);
+    }
+    new_parent_impl->throw_if_destroyed("Item::move()");
 
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
     auto move = [This, new_parent, new_name]() -> Item::SPtr
@@ -239,14 +233,8 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         lock_guard<decltype(mutex_)> this_guard(This->mutex_, std::adopt_lock);
         lock_guard<decltype(mutex_)> other_guard(new_parent_impl->mutex_, adopt_lock);
 
-        if (This->deleted_)
-        {
-            throw This->deleted_ex("Item::move()");
-        }
-        if (new_parent_impl->deleted_)
-        {
-            throw new_parent_impl->deleted_ex("Item::move()");
-        }
+        This->throw_if_destroyed("Item::move()");
+        new_parent_impl->throw_if_destroyed("Item::move()");
 
         // TODO: This needs to deeply compare account identity because the client may have refreshed the accounts list.
         if (This->root()->account() != new_parent->root()->account())  // Throws if account or runtime were destroyed.
@@ -308,15 +296,13 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    QFutureInterface<QVector<Folder::SPtr>> qf;
-    if (deleted_)
+    try
     {
-        return internal::make_exceptional_future<QVector<Folder::SPtr>>(deleted_ex("Item::parents()"));
+        throw_if_destroyed("Item::parents()");
     }
-    auto root = get_root();
-    if (!root)
+    catch (StorageException const& e)
     {
-        return internal::make_exceptional_future<QVector<Folder::SPtr>>(RuntimeDestroyedException("Item::parents()"));
+        return internal::make_exceptional_future<QVector<Folder::SPtr>>(e);
     }
 
     using namespace boost::filesystem;
@@ -325,6 +311,7 @@ QFuture<QVector<Folder::SPtr>> ItemImpl::parents() const
     path p = native_identity().toStdString();
     QString parent_path = QString::fromStdString(p.parent_path().native());
 
+    auto root = root_.lock();
     QVector<Folder::SPtr> results;
     if (parent_path != root->native_identity())
     {
@@ -341,14 +328,7 @@ QVector<QString> ItemImpl::parent_ids() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (deleted_)
-    {
-        throw deleted_ex("Item::parent_ids()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Item::parent_ids()");
-    }
+    throw_if_destroyed("Item::parent_ids()");
 
     using namespace boost::filesystem;
 
@@ -363,20 +343,16 @@ QVector<QString> ItemImpl::parent_ids() const
 
 QFuture<void> ItemImpl::delete_item()
 {
+    lock_guard<decltype(mutex_)> guard(mutex_);
+
+    throw_if_destroyed("Item::delete_item()");
+
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
     auto destroy = [This]()
     {
         lock_guard<decltype(mutex_)> guard(This->mutex_);
 
-        if (This->deleted_)
-        {
-            throw This->deleted_ex("Item::delete_item()");
-        }
-        if (!This->get_root())
-        {
-            throw RuntimeDestroyedException("Item::delete_item()");
-        }
-
+        This->throw_if_destroyed("Item::delete_item()");
         try
         {
             boost::filesystem::remove_all(This->native_identity().toStdString());
@@ -400,14 +376,7 @@ QDateTime ItemImpl::creation_time() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (deleted_)
-    {
-        throw deleted_ex("Item::creation_time()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Item::creation_time()");
-    }
+    throw_if_destroyed("Item::creation_time()");
     return QDateTime();
 }
 
@@ -415,14 +384,7 @@ MetadataMap ItemImpl::native_metadata() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    if (deleted_)
-    {
-        throw deleted_ex("Item::native_metadata()");
-    }
-    if (!get_root())
-    {
-        throw RuntimeDestroyedException("Item::native_metadata()");
-    }
+    throw_if_destroyed("Item::native_metadata()");
     return MetadataMap();
 }
 
@@ -511,12 +473,6 @@ bool ItemImpl::is_reserved_path(boost::filesystem::path const& path) noexcept
 {
     string filename = path.filename().native();
     return boost::starts_with(filename, TMPFILE_PREFIX);
-}
-
-DeletedException ItemImpl::deleted_ex(QString const& method) const noexcept
-{
-    QString msg = method + ": \"" + identity_ + "\" was deleted previously";
-    return DeletedException(msg, identity_, name_);
 }
 
 void ItemImpl::copy_recursively(boost::filesystem::path const& source, boost::filesystem::path const& target)

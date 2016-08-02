@@ -95,6 +95,19 @@ shared_ptr<Root> ItemBase::get_root() const noexcept
     return nullptr;
 }
 
+void ItemBase::throw_if_destroyed(QString const& method) const
+{
+    if (deleted_)
+    {
+        QString msg = method + ": \"" + identity_ + "\" was deleted previously";
+        throw DeletedException(msg, identity_);
+    }
+    if (!get_root())
+    {
+        throw RuntimeDestroyedException(method);
+    }
+}
+
 }  // namespace internal
 }  // namespace client
 }  // namespace qt

@@ -85,18 +85,16 @@ public:
 class UNITY_STORAGE_EXPORT DeletedException : public StorageException
 {
 public:
-    DeletedException(QString const& error_message, QString const& identity_, QString const& name_);
+    DeletedException(QString const& error_message, QString const& identity_);
     ~DeletedException();
 
     virtual DeletedException* clone() const override;
     virtual void raise() const override;
 
     QString native_identity() const;
-    QString name() const;
 
 private:
     QString identity_;
-    QString name_;
 };
 
 /**
