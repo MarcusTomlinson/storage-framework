@@ -34,37 +34,6 @@ namespace local_client
 
 using namespace boost::filesystem;
 
-void throw_filesystem_exception(QString const& method, filesystem_error const& e)
-{
-    QString msg = method + ": " + e.what();
-    switch (e.code().value())
-    {
-        case EACCES:
-        case EPERM:
-        {
-            throw PermissionException(msg);
-        }
-        case EDQUOT:
-        case ENOSPC:
-        {
-            throw QuotaException(msg);  // Too messy to cover with a test case.  // LCOV_EXCL_LINE
-        }
-        default:
-        {
-            throw ResourceException(msg, e.code().value());
-        }
-    }
-}
-
-void throw_filesystem_exception(QString const& method, filesystem_error const& e, QString const& key)
-{
-    if (e.code().value() == ENOENT)
-    {
-        throw NotExistsException(method + ": " + e.what(), key);
-    }
-    throw_filesystem_exception(method, e);
-}
-
 void throw_storage_exception(QString const& method, std::exception_ptr ep)
 {
     int error_code = errno;
