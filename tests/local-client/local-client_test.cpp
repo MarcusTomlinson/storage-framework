@@ -599,6 +599,18 @@ TEST(File, upload_bad_size)
             EXPECT_TRUE(e.error_message().startsWith("Uploader::finish_upload(): "));
             EXPECT_TRUE(e.error_message().endsWith(": upload size of 100 does not match actual number of bytes read: 101"));
         }
+
+        // Calling finish_upload() again must return the same future as the first time.
+        try
+        {
+            call(uploader->finish_upload());
+            FAIL();
+        }
+        catch (LogicException const& e)
+        {
+            EXPECT_TRUE(e.error_message().startsWith("Uploader::finish_upload(): "));
+            EXPECT_TRUE(e.error_message().endsWith(": upload size of 100 does not match actual number of bytes read: 101"));
+        }
     }
 }
 

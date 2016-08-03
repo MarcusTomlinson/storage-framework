@@ -148,7 +148,6 @@ void UploadWorker::do_finish()
                 QString msg = "Uploader::finish_upload(): " + path_ + ": upload size of " + QString::number(size_)
                               + " does not match actual number of bytes read: " + QString::number(bytes_read_);
                 make_exceptional_future(qf_, LogicException(msg));
-                state_ = error;
             }
             else
             {
@@ -419,7 +418,6 @@ QFuture<File::SPtr> UploaderImpl::finish_upload()
 QFuture<void> UploaderImpl::cancel() noexcept
 {
     Q_EMIT do_cancel();
-    upload_thread_->wait();
     write_socket_->abort();
     return qf_.future();
 }
