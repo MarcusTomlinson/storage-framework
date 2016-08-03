@@ -143,8 +143,18 @@ void UploadWorker::do_finish()
     {
         case in_progress:
         {
-            state_ = finalized;
-            finalize();
+            if (bytes_read_ != size_)
+            {
+                QString msg = "Uploader::finish_upload(): " + path_ + ": upload size of " + QString::number(size_)
+                              + " does not match actual number of bytes read: " + QString::number(bytes_read_);
+                make_exceptional_future(qf_, LogicException(msg));
+                state_ = error;
+            }
+            else
+            {
+                state_ = finalized;
+                finalize();
+            }
             break;
         }
         case finalized:
@@ -342,7 +352,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file,
                            QString const& path,
                            ConflictPolicy policy,
                            weak_ptr<Root> root)
-    : UploaderBase(policy)
+    : UploaderBase(policy, size)
     , write_socket_(new QLocalSocket)
 {
     // Set up socket pair.
