@@ -48,11 +48,13 @@ ItemBase::~ItemBase() = default;
 
 QString ItemBase::native_identity() const
 {
+    throw_if_destroyed("Item::native_identity()");
     return identity_;
 }
 
 ItemType ItemBase::type() const
 {
+    throw_if_destroyed("Item::type()");
     return type_;
 }
 

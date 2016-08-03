@@ -104,12 +104,12 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
     try
     {
         throw_if_destroyed("Item::copy()");
+        new_parent_impl->throw_if_destroyed("Item::copy()");
     }
     catch (StorageException const& e)
     {
         return internal::make_exceptional_future<shared_ptr<Item>>(e);
     }
-    new_parent_impl->throw_if_destroyed("Item::copy()");
 
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
     auto copy = [This, new_parent, new_name]() -> Item::SPtr
@@ -207,12 +207,12 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
     try
     {
         throw_if_destroyed("Item::move()");
+        new_parent_impl->throw_if_destroyed("Item::move()");
     }
     catch (StorageException const& e)
     {
         return internal::make_exceptional_future<shared_ptr<Item>>(e);
     }
-    new_parent_impl->throw_if_destroyed("Item::move()");
 
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
     auto move = [This, new_parent, new_name]() -> Item::SPtr
@@ -325,7 +325,14 @@ QFuture<void> ItemImpl::delete_item()
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Item::delete_item()");
+    try
+    {
+        throw_if_destroyed("Item::delete_item()");
+    }
+    catch (StorageException const& e)
+    {
+        return internal::make_exceptional_future(e);
+    }
 
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
     auto destroy = [This]()
