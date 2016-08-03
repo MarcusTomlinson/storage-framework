@@ -409,6 +409,8 @@ QFuture<File::SPtr> UploaderImpl::finish_upload()
 QFuture<void> UploaderImpl::cancel() noexcept
 {
     Q_EMIT do_cancel();
+    upload_thread_->wait();
+    write_socket_->abort();
     return qf_.future();
 }
 

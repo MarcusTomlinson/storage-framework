@@ -588,12 +588,18 @@ TEST(File, download)
         QByteArray buf;
         do
         {
+            // Need to pump the event loop while the socket does its thing.
+            QSignalSpy spy(socket.get(), &QIODevice::readyRead);
             auto bytes_to_read = socket->bytesAvailable();
+            if (bytes_to_read == 0)
+            {
+                ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+            }
             buf.append(socket->read(bytes_to_read));
         } while (buf.size() < contents.size());
 
         // Wait for disconnected signal.
-        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
+        QSignalSpy spy(socket.get(), &QLocalSocket::disconnected);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
         ASSERT_NO_THROW(call(downloader->finish_download()));
@@ -615,7 +621,7 @@ TEST(File, download)
         do
         {
             // Need to pump the event loop while the socket does its thing.
-            QSignalSpy spy(downloader->socket().get(), &QIODevice::readyRead);
+            QSignalSpy spy(socket.get(), &QIODevice::readyRead);
             auto bytes_to_read = socket->bytesAvailable();
             if (bytes_to_read == 0)
             {
@@ -625,7 +631,7 @@ TEST(File, download)
         } while (buf.size() < contents.size());
 
         // Wait for disconnected signal.
-        QSignalSpy spy(downloader->socket().get(), &QLocalSocket::disconnected);
+        QSignalSpy spy(socket.get(), &QLocalSocket::disconnected);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
         ASSERT_NO_THROW(call(downloader->finish_download()));
@@ -647,7 +653,7 @@ TEST(File, download)
         do
         {
             // Need to pump the event loop while the socket does its thing.
-            QSignalSpy spy(downloader->socket().get(), &QIODevice::readyRead);
+            QSignalSpy spy(socket.get(), &QIODevice::readyRead);
             auto bytes_to_read = socket->bytesAvailable();
             if (bytes_to_read == 0)
             {
@@ -805,7 +811,7 @@ TEST(File, cancel_download)
         do
         {
             // Need to pump the event loop while the socket does its thing.
-            QSignalSpy spy(downloader->socket().get(), &QIODevice::readyRead);
+            QSignalSpy spy(socket.get(), &QIODevice::readyRead);
             auto bytes_to_read = socket->bytesAvailable();
             if (bytes_to_read == 0)
             {
