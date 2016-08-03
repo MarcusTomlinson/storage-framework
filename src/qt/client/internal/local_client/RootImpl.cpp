@@ -95,7 +95,14 @@ QFuture<void> RootImpl::delete_item()
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Root::delete_item()");
+    try
+    {
+        throw_if_destroyed("Root::delete_item()");
+    }
+    catch (StorageException const& e)
+    {
+        return internal::make_exceptional_future(e);
+    }
     // Cannot delete root.
     return internal::make_exceptional_future(LogicException("Root::delete_item(): Cannot delete root folder"));
 }
@@ -104,7 +111,14 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Root::free_space_bytes()");
+    try
+    {
+        throw_if_destroyed("Root::free_space_bytes()");
+    }
+    catch (StorageException const& e)
+    {
+        return internal::make_exceptional_future(e);
+    }
 
     using namespace boost::filesystem;
 
@@ -125,7 +139,14 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Root::used_space_bytes()");
+    try
+    {
+        throw_if_destroyed("Root::used_space_bytes()");
+    }
+    catch (StorageException const& e)
+    {
+        return internal::make_exceptional_future(e);
+    }
 
     using namespace boost::filesystem;
 
@@ -145,6 +166,15 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
+
+    try
+    {
+        throw_if_destroyed("Root::get()");
+    }
+    catch (StorageException const& e)
+    {
+        return internal::make_exceptional_future(e);
+    }
 
     auto root = get_root();
     if (!root)
