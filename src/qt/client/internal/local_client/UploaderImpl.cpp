@@ -410,7 +410,6 @@ QFuture<File::SPtr> UploaderImpl::finish_upload()
     if (write_socket_->state() == QLocalSocket::ConnectedState)
     {
         write_socket_->disconnectFromServer();
-        write_socket_->close();
     }
     return qf_.future();
 }

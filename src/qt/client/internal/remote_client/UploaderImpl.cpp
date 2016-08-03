@@ -65,7 +65,7 @@ UploaderImpl::UploaderImpl(QString const& upload_id,
 
 UploaderImpl::~UploaderImpl()
 {
-    cancel();
+    write_socket_->abort();
 }
 
 shared_ptr<QLocalSocket> UploaderImpl::socket() const
@@ -90,6 +90,7 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
         make_ready_future(qf, FileImpl::make_file(md, root_));
     };
 
+    write_socket_->disconnectFromServer();
     auto handler = new Handler<shared_ptr<File>>(this, reply, process_reply);
     return handler->future();
 }
@@ -102,6 +103,7 @@ QFuture<void> UploaderImpl::cancel() noexcept
         make_ready_future();
     };
 
+    write_socket_->abort();
     auto handler = new Handler<void>(this, reply, process_reply);
     return handler->future();
 }
