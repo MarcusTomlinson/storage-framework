@@ -117,7 +117,7 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
     }
     catch (StorageException const& e)
     {
-        return internal::make_exceptional_future(e);
+        return internal::make_exceptional_future<int64_t>(e);
     }
 
     using namespace boost::filesystem;
@@ -145,7 +145,7 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
     }
     catch (StorageException const& e)
     {
-        return internal::make_exceptional_future(e);
+        return internal::make_exceptional_future<int64_t>(e);
     }
 
     using namespace boost::filesystem;
@@ -173,7 +173,7 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
     }
     catch (StorageException const& e)
     {
-        return internal::make_exceptional_future(e);
+        return internal::make_exceptional_future<Item::SPtr>(e);
     }
 
     auto root = get_root();

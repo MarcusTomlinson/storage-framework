@@ -331,7 +331,7 @@ QFuture<void> ItemImpl::delete_item()
     }
     catch (StorageException const& e)
     {
-        return make_exceptional_future(e);
+        return internal::make_exceptional_future(e);
     }
 
     auto This = dynamic_pointer_cast<ItemImpl>(shared_from_this());  // Keep this item alive while the lambda is alive.
