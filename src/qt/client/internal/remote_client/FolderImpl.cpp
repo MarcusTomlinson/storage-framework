@@ -67,10 +67,6 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
     }
 
     auto prov = provider();
-    if (!prov)
-    {
-        return make_exceptional_future<QVector<shared_ptr<Item>>>(RuntimeDestroyedException("Folder::list()"));
-    }
     auto reply = prov->List(md_.item_id, "");
 
     // Sorry for the mess, but we can't use auto for the lambda because it calls itself,

@@ -78,7 +78,7 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, i
         auto root = get_root();
         if (!root)
         {
-            make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("File::create_uploader()"));
+            make_exceptional_future(qf, RuntimeDestroyedException("File::create_uploader()"));
             return;
         }
 
@@ -89,7 +89,7 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, i
             // TODO: log server error here
             QString msg = "File::create_uploader(): impossible file descriptor returned by server: "
                           + QString::number(fd.fileDescriptor());
-            make_exceptional_future<shared_ptr<Uploader>>(qf, LocalCommsException(msg));
+            make_exceptional_future(qf, LocalCommsException(msg));
             return;
         }
         auto uploader = UploaderImpl::make_uploader(upload_id, fd, size, old_etag, root, prov);
@@ -116,11 +116,13 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
     auto process_reply = [this, prov](QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                                       QFutureInterface<std::shared_ptr<Downloader>>& qf)
     {
-        auto root = get_root();
-        if (!root)
+        try
         {
-            make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("File::create_downloader()"));
-            return;
+            throw_if_destroyed("File::create_downloader()");
+        }
+        catch (StorageException const& e)
+        {
+            make_exceptional_future(qf, RuntimeDestroyedException("File::create_uploader()"));
         }
 
         auto download_id = reply.argumentAt<0>();

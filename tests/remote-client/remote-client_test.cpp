@@ -174,9 +174,9 @@ TEST_F(RuntimeTest, basic)
 
     auto acc = get_account(runtime);
     EXPECT_EQ(runtime, acc->runtime());
-    qDebug() << "owner:      " << acc->owner();
-    qDebug() << "owner ID:   " << acc->owner_id();
-    qDebug() << "description:" << acc->description();
+    EXPECT_EQ("", acc->owner());
+    EXPECT_EQ("google-drive-scope", acc->owner_id()) << acc->owner_id().toStdString();
+    EXPECT_EQ("Fake google account", acc->description()) << acc->description().toStdString();
 }
 
 TEST_F(RuntimeTest, roots)

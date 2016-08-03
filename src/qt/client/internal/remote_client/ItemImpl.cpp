@@ -82,16 +82,16 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         return internal::make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
     }
 
+    auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
     try
     {
         throw_if_destroyed("Item::copy()");
+        new_parent_impl->throw_if_destroyed("Item::copy()");
     }
     catch (StorageException const& e)
     {
         return make_exceptional_future<shared_ptr<Item>>(e);
     }
-    auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
-    new_parent_impl->throw_if_destroyed("Item::copy()");
 
     auto prov = provider();
     auto reply = prov->Copy(md_.item_id, new_parent->native_identity(), new_name);
@@ -130,16 +130,16 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         return internal::make_exceptional_future<shared_ptr<Item>>(InvalidArgumentException(msg));
     }
 
+    auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
     try
     {
         throw_if_destroyed("Item::move()");
+        new_parent_impl->throw_if_destroyed("Item::move()");
     }
     catch (StorageException const& e)
     {
         return make_exceptional_future<shared_ptr<Item>>(e);
     }
-    auto new_parent_impl = dynamic_pointer_cast<FolderImpl>(new_parent->p_);
-    new_parent_impl->throw_if_destroyed("Item::move()");
 
     auto prov = provider();
     if (!prov)
@@ -195,7 +195,14 @@ QVector<QString> ItemImpl::parent_ids() const
 
 QFuture<void> ItemImpl::delete_item()
 {
-    throw_if_destroyed("Item::delete_item()");
+    try
+    {
+        throw_if_destroyed("Item::delete_item()");
+    }
+    catch (StorageException const& e)
+    {
+        return internal::make_exceptional_future(e);
+    }
 
     auto prov = provider();
     auto reply = prov->Delete(md_.item_id);
