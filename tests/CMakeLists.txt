@@ -16,6 +16,7 @@ set(unit_test_dirs
     remote-client # -TODO: Temporarily disabled due to a "Cannot find any online account" error in CI.
     provider-AccountData
     provider-DBusPeerCache
+    provider-ProviderInterface
 )
 
 set(slow_test_dirs
