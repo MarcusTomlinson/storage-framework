@@ -20,6 +20,8 @@
 
 #include <unity/storage/qt/client/Exceptions.h>
 
+#include <cassert>
+
 using namespace std;
 
 namespace unity
