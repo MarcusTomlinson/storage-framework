@@ -40,8 +40,6 @@ using namespace std;
 
 static constexpr int SIGNAL_WAIT_TIME = 1000;
 
-// Bunch of helper function to reduce the amount of noise in the tests.
-
 class RemoteClientTest : public ::testing::Test
 {
 public:
@@ -72,6 +70,40 @@ class RootTest : public RemoteClientTest {};
 class FolderTest : public RemoteClientTest {};
 class FileTest : public RemoteClientTest {};
 class ItemTest : public RemoteClientTest {};
+
+// Bunch of helper functions to reduce the amount of noise in the tests.
+
+template<typename T>
+void wait(T fut)
+{
+    QFutureWatcher<decltype(fut.result())> w;
+    QSignalSpy spy(&w, &decltype(w)::finished);
+    w.setFuture(fut);
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+}
+
+template<>
+void wait(QFuture<void> fut)
+{
+    QFutureWatcher<void> w;
+    QSignalSpy spy(&w, &decltype(w)::finished);
+    w.setFuture(fut);
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+}
+
+template <typename T>
+T call(QFuture<T> fut)
+{
+    wait(fut);
+    return fut.result();
+}
+
+template <>
+void call(QFuture<void> fut)
+{
+    wait(fut);
+    fut.waitForFinished();
+}
 
 Account::SPtr get_account(Runtime::SPtr const& runtime)
 {
@@ -253,7 +285,6 @@ TEST_F(FolderTest, basic)
 {
     auto runtime = Runtime::create(connection());
 
-    auto acc = get_account(runtime);
     auto root = get_root(runtime);
     clear_folder(root);
 
@@ -377,7 +408,6 @@ TEST_F(FolderTest, nested)
 {
     auto runtime = Runtime::create(connection());
 
-    auto acc = get_account(runtime);
     auto root = get_root(runtime);
     clear_folder(root);
 
@@ -399,7 +429,6 @@ TEST_F(FileTest, upload)
 {
     auto runtime = Runtime::create(connection());
 
-    auto acc = get_account(runtime);
     auto root = get_root(runtime);
     clear_folder(root);
 
@@ -1044,6 +1073,614 @@ Test_F(ItemTest, comparison)
     EXPECT_TRUE(file1->equal_to(other_file1));  // Deep comparison
 }
 #endif
+
+TEST_F(RuntimeTest, runtime_destroyed_exceptions)
+{
+    // Gettting an account after shutting down the runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto acc = get_account(runtime);
+        runtime->shutdown();
+        try
+        {
+            acc->runtime();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Account::runtime(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting an account after destroying the runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto acc = get_account(runtime);
+        runtime.reset();
+        try
+        {
+            acc->runtime();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Account::runtime(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting accounts after shutting down the runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        runtime->shutdown();
+        try
+        {
+            call(runtime->accounts());
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Runtime::accounts(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting the account from a root with a destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        runtime.reset();
+        try
+        {
+            root->account();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Root::account(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting the account from a root with a destroyed account must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto acc = get_account(runtime);
+        auto root = get_root(runtime);
+        runtime.reset();
+        acc.reset();
+        try
+        {
+            root->account();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Root::account(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting the root from an item with a destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime.reset();
+        try
+        {
+            file->root();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::root(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting the root from an item with a destroyed root must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto acc = get_account(runtime);
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime.reset();
+        acc.reset();
+        root.reset();
+        try
+        {
+            file->root();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::root(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // etag() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            file->etag();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::etag(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // metadata() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            file->metadata();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::metadata(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // last_modified_time() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            file->last_modified_time();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::last_modified_time(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // copy() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            call(file->copy(root, "file2"));
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::copy(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // move() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            call(file->move(root, "file2"));
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::move(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // parents() on root with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        runtime->shutdown();
+        try
+        {
+            call(root->parents());
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Root::parents(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // parents() on file with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            call(file->parents());
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::parents(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // parent_ids() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            file->parent_ids();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::parent_ids(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // parent_ids() on root with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        runtime->shutdown();
+        try
+        {
+            root->parent_ids();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Root::parent_ids(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // delete_item() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            call(file->delete_item());
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::delete_item(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // delete_item() on root with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        runtime->shutdown();
+        try
+        {
+            call(root->delete_item());
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Root::delete_item(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // creation_time() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            file->creation_time();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::creation_time(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // native_metadata() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            file->native_metadata();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::native_metadata(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // name() on root with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        runtime->shutdown();
+        try
+        {
+            root->name();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::name(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // name() on folder with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto folder = dynamic_pointer_cast<Folder>(call(root->get("child_folder_id")));
+        runtime->shutdown();
+        try
+        {
+            folder->name();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::name(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // name() on file with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            file->name();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Item::name(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // list() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        runtime->shutdown();
+        try
+        {
+            call(root->list());
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Folder::list(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // lookup() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        runtime->shutdown();
+        try
+        {
+            call(root->lookup("file"));
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Folder::lookup(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // create_folder() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        runtime->shutdown();
+        try
+        {
+            call(root->create_folder("folder"));
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Folder::create_folder(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // create_file() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        runtime->shutdown();
+        try
+        {
+            call(root->create_file("file", 0));
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Folder::create_file(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // size() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            file->size();
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("File::size(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // create_uploader() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            call(file->create_uploader(ConflictPolicy::overwrite, 0));
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("File::create_uploader(): Runtime was destroyed previously", e.error_message()) << e.what();
+        }
+    }
+
+    // create_downloader() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+        runtime->shutdown();
+        try
+        {
+            call(file->create_downloader());
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("File::create_downloader(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // free_space_bytes() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        runtime->shutdown();
+        try
+        {
+            call(root->free_space_bytes());
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Root::free_space_bytes(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // used_space_bytes() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        runtime->shutdown();
+        try
+        {
+            call(root->used_space_bytes());
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Root::used_space_bytes(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // get() with destroyed runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto root = get_root(runtime);
+        clear_folder(root);
+
+        runtime->shutdown();
+        try
+        {
+            call(root->get("some_id"));
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Root::get(): Runtime was destroyed previously", e.error_message());
+        }
+    }
+}
 
 int main(int argc, char** argv)
 {

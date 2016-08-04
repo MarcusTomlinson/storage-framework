@@ -67,7 +67,7 @@ QString FolderImpl::name() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Folder::name()");
+    throw_if_destroyed("Item::name()");
     return name_;
 }
 

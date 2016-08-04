@@ -80,7 +80,7 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 {
     if (destroyed_)
     {
-        throw RuntimeDestroyedException("Runtime::accounts()");
+        return internal::make_exceptional_future<QVector<Account::SPtr>>(RuntimeDestroyedException("Runtime::accounts()"));
     }
 
     char const* user = g_get_user_name();

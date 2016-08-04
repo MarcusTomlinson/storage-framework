@@ -193,6 +193,11 @@ boost::future<Item> MyProvider::metadata(string const& item_id,
         Item metadata{"child_id", "root_id", "Child", "etag", ItemType::file, {}};
         return make_ready_future<Item>(metadata);
     }
+    else if (item_id == "child_folder_id")
+    {
+        Item metadata{"child_folder_id", "root_id", "Child_Folder", "etag", ItemType::folder, {}};
+        return make_ready_future<Item>(metadata);
+    }
     return make_exceptional_future<Item>(runtime_error("no such file"));
 }
 

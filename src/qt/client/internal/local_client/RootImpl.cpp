@@ -71,7 +71,7 @@ QString RootImpl::name() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Root::name()");
+    throw_if_destroyed("Item::name()");
     return "";
 }
 
@@ -79,7 +79,7 @@ QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Root::parents()");
+    throw_if_destroyed("Item::parents()");
     return make_ready_future(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
 }
 
@@ -87,7 +87,7 @@ QVector<QString> RootImpl::parent_ids() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Root::parent_ids()");
+    throw_if_destroyed("Item::parent_ids()");
     return QVector<QString>();  // For the root, we return an empty vector.
 }
 
@@ -97,7 +97,7 @@ QFuture<void> RootImpl::delete_item()
 
     try
     {
-        throw_if_destroyed("Root::delete_item()");
+        throw_if_destroyed("Item::delete_item()");
     }
     catch (StorageException const& e)
     {

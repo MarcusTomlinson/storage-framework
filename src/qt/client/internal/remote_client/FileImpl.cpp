@@ -56,7 +56,7 @@ QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, i
 {
     try
     {
-        throw_if_destroyed("File::create_uploader()()");
+        throw_if_destroyed("File::create_uploader()");
     }
     catch (StorageException const& e)
     {
@@ -103,7 +103,7 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
 {
     try
     {
-        throw_if_destroyed("File::create_downloader()()");
+        throw_if_destroyed("File::create_downloader()");
     }
     catch (StorageException const& e)
     {
