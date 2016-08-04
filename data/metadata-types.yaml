@@ -1,0 +1,31 @@
+# Name that should be shown to the user
+display-name: string
+
+# Whether there is data associated with this node
+has-document: boolean
+
+# If there is data, how much? In bytes
+document-size: uint64
+
+# When was it last modified?
+modification-time: date
+
+# If there's a thumbnail, what is its document id
+thumbnail: document-id
+
+# What are the MIME types of the data
+mimetype: string-list
+
+# Is there a copy of the document local?
+document-local: boolean
+
+# Whether there is a copy on the service we're exporting
+# to. Mostly useful for content originating locally to
+# ensure it has been uploaded.
+copy-on-service: boolean
+
+######
+# NOTE: These are the default entries that are defined, various
+# backends can provide their own metadata keys in the x- namespace.
+# That can then be supported by their libraries or developer docs.
+######

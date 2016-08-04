@@ -1,0 +1,3 @@
+usr/include/storage-framework-provider-*
+usr/lib/*/libstorage-framework-provider*.so
+usr/lib/*/pkgconfig/storage-framework-provider*.pc
