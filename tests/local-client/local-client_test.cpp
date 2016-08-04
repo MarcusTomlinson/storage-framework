@@ -369,7 +369,15 @@ TEST(File, create_uploader)
     clear_folder(root);
 
     // Make a new file first.
-    auto uploader = root->create_file("new_file", 0).result();
+    qDebug() << "Creating new file";
+    auto uploader_fut = root->create_file("new_file", 0);
+    {
+        QFutureWatcher<Uploader::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(uploader_fut);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    auto uploader = uploader_fut.result();
     auto file_fut = uploader->finish_upload();
     {
         QFutureWatcher<File::SPtr> w;
@@ -381,8 +389,17 @@ TEST(File, create_uploader)
     EXPECT_EQ(0, file->size());
     auto old_etag = file->etag();
 
+    qDebug() << "Uploading 0 bytes";
     // Create uploader for the file and write nothing.
-    uploader = file->create_uploader(ConflictPolicy::overwrite, 0).result();
+    uploader_fut = file->create_uploader(ConflictPolicy::overwrite, 0);
+    {
+        QFutureWatcher<Uploader::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(uploader_fut);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    uploader = uploader_fut.result();
+    qDebug() << "calling finish_upload()";
     file_fut = uploader->finish_upload();
     {
         QFutureWatcher<File::SPtr> w;
@@ -395,12 +412,23 @@ TEST(File, create_uploader)
 
     // Same test again, but this time, we write a bunch of data.
     std::string s(1000000, 'a');
-    uploader = file->create_uploader(ConflictPolicy::overwrite, s.size()).result();
+    qDebug() << "Uploading 1000000 bytes";
+    uploader_fut = file->create_uploader(ConflictPolicy::overwrite, s.size());
+    {
+        QFutureWatcher<Uploader::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(uploader_fut);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    uploader = uploader_fut.result();
     uploader->socket()->write(&s[0], s.size());
+    qDebug() << "Waiting for write to complete";
+    uploader->socket()->waitForBytesWritten(SIGNAL_WAIT_TIME);
 
     // Need to sleep here, otherwise it is possible for the
     // upload to finish within the granularity of the file system time stamps.
     sleep(1);
+    qDebug() << "calling finish_upload()";
     file_fut = uploader->finish_upload();
     {
         QFutureWatcher<File::SPtr> w;
