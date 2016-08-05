@@ -1407,7 +1407,7 @@ TEST(Root, root_exceptions)
     }
     catch (LogicException const& e)
     {
-        EXPECT_EQ("Root::delete_item(): Cannot delete root folder", e.error_message());
+        EXPECT_EQ("Item::delete_item(): cannot delete root folder", e.error_message());
     }
 
     try
@@ -1837,7 +1837,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Account::runtime(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Account::runtime(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -1853,7 +1853,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Account::runtime(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Account::runtime(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -1868,7 +1868,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Runtime::accounts(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Runtime::accounts(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -1884,7 +1884,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Root::account(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Root::account(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -1902,7 +1902,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Root::account(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Root::account(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -1921,7 +1921,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::root(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::root(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -1941,7 +1941,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::root(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::root(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -1960,7 +1960,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::etag(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::etag(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -1979,7 +1979,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::metadata(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::metadata(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -1998,7 +1998,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::last_modified_time(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::last_modified_time(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2017,7 +2017,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::copy(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::copy(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2036,7 +2036,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::move(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::move(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2054,7 +2054,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::parents(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::parents(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2073,7 +2073,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::parents(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::parents(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2092,7 +2092,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::parent_ids(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::parent_ids(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2110,7 +2110,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::parent_ids(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::parent_ids(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2129,7 +2129,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::delete_item(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::delete_item(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2147,7 +2147,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::delete_item(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::delete_item(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2166,7 +2166,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::creation_time(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::creation_time(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2185,7 +2185,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::native_metadata(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::native_metadata(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2203,7 +2203,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::name(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::name(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2222,7 +2222,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Item::name(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Item::name(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2241,7 +2241,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("File::name(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("File::name(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2259,7 +2259,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Folder::list(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Folder::list(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2277,7 +2277,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Folder::lookup(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Folder::lookup(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2295,7 +2295,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Folder::create_folder(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Folder::create_folder(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2313,7 +2313,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Folder::create_file(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Folder::create_file(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2332,7 +2332,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("File::size(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("File::size(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2351,7 +2351,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("File::create_uploader(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("File::create_uploader(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2370,7 +2370,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("File::create_downloader(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("File::create_downloader(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2388,7 +2388,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Root::free_space_bytes(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Root::free_space_bytes(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2406,7 +2406,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Root::used_space_bytes(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Root::used_space_bytes(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -2424,7 +2424,7 @@ TEST(Runtime, runtime_destroyed_exceptions)
         }
         catch (RuntimeDestroyedException const& e)
         {
-            EXPECT_EQ("Root::get(): Runtime was destroyed previously", e.error_message());
+            EXPECT_EQ("Root::get(): runtime was destroyed previously", e.error_message());
         }
     }
 }

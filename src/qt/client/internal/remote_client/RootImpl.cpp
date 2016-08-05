@@ -71,14 +71,14 @@ QFuture<void> RootImpl::delete_item()
 {
     try
     {
-        throw_if_destroyed("Root::delete_item()");
+        throw_if_destroyed("Item::delete_item()");
     }
     catch (StorageException const& e)
     {
         return make_exceptional_future<QVector<Folder::SPtr>>(e);
     }
     // Cannot delete root.
-    return make_exceptional_future(LogicException("Root::delete_item(): root item cannot be deleted"));
+    return make_exceptional_future(LogicException("Item::delete_item(): cannot delete root folder"));
 }
 
 QFuture<int64_t> RootImpl::free_space_bytes() const

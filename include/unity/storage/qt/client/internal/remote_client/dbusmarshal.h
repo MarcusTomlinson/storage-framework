@@ -24,6 +24,8 @@
 #include <QMetaType>
 #include <QVariant>
 
+class QDBusPendingCallWatcher;
+
 namespace unity
 {
 namespace storage
@@ -39,8 +41,24 @@ QDBusArgument& operator<<(QDBusArgument& argument, QList<storage::internal::Item
 QDBusArgument const& operator>>(QDBusArgument const& argument, QList<storage::internal::ItemMetadata>& md_list);
 
 }  // namespace internal
-}  // namespace storage
-}  // namespace unity
+
+namespace qt
+{
+namespace client
+{
+namespace internal
+{
+namespace remote_client
+{
+
+std::exception_ptr unmarshal_exception(QDBusPendingCallWatcher const& call);
+
+}  // namespace remote_client
+}  // namespace internal
+}  // client
+}  // qt
+}  // storage
+}  // unity
 
 Q_DECLARE_METATYPE(unity::storage::internal::ItemMetadata)
 Q_DECLARE_METATYPE(QList<unity::storage::internal::ItemMetadata>)

@@ -18,6 +18,7 @@ set_source_files_properties(${generated_files} PROPERTIES
 
 add_library(storage-framework-provider SHARED
   DownloadJob.cpp
+  Exceptions.cpp
   ProviderBase.cpp
   Server.cpp
   TempfileUploadJob.cpp

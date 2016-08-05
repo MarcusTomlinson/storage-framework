@@ -13,31 +13,20 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authors: James Henstridge <james.henstridge@canonical.com>
+ * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
 #pragma once
-
-#include <QDBusArgument>
-#include <vector>
 
 namespace unity
 {
 namespace storage
 {
-namespace provider
+namespace internal
 {
 
-struct Item;
+constexpr char DBUS_ERROR_PREFIX[] = "com.canonical.StorageFramework.";
 
-QDBusArgument& operator<<(QDBusArgument& argument, Item const& item);
-QDBusArgument const& operator>>(QDBusArgument const& argument, Item& item);
-
-QDBusArgument& operator<<(QDBusArgument& argument, std::vector<Item> const& items);
-QDBusArgument const& operator>>(QDBusArgument const& argument, std::vector<Item>& items);
-
-}
-}
-}
-
-Q_DECLARE_METATYPE(unity::storage::provider::Item)
+}  // namespace internal
+}  // namespace storage
+}  // namespace unity

@@ -104,7 +104,7 @@ QFuture<void> RootImpl::delete_item()
         return internal::make_exceptional_future(e);
     }
     // Cannot delete root.
-    return internal::make_exceptional_future(LogicException("Root::delete_item(): Cannot delete root folder"));
+    return internal::make_exceptional_future(LogicException("Item::delete_item(): cannot delete root folder"));
 }
 
 QFuture<int64_t> RootImpl::free_space_bytes() const

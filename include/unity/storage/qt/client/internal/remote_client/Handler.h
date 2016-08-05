@@ -20,9 +20,12 @@
 
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/make_future.h>
+#include <unity/storage/qt/client/internal/remote_client/dbusmarshal.h>
 #include <unity/storage/qt/client/internal/remote_client/HandlerBase.h>
 
 #include <QDBusPendingReply>
+
+#include <cassert>
 
 namespace unity
 {
@@ -48,6 +51,12 @@ public:
 
     QFuture<T> future();
 
+#if 0
+    template<typename ... DBusArgs>
+    void unmarshal_exception(QDBusPendingReply<DBusArgs...> const& reply);
+    void unmarshal_exception(QDBusPendingCallWatcher const& call);
+#endif
+
 private:
     QFutureInterface<T> qf_;
 };
@@ -72,8 +81,22 @@ Handler<T>::Handler(QObject* parent,
                       {
                           if (call.isError())
                           {
-                              int err = call.error().type();
-                              make_exceptional_future<T>(ResourceException("DBus error return", err));
+                              try
+                              {
+                                  auto ep = unmarshal_exception(call);
+                                  std::rethrow_exception(ep);
+                              }
+                              catch (StorageException const& e)
+                              {
+                                  make_exceptional_future<T>(qf_, e);
+                                  return;
+                              }
+                              // LCOV_EXCL_START
+                              catch (...)
+                              {
+                                  abort();  // Impossible.
+                              }
+                              // LCOV_EXCL_STOP
                               return;
                           }
                           // TODO: See HACK above. Should just be closure(call, qf_);

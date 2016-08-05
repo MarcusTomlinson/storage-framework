@@ -17,6 +17,7 @@
  */
 
 #include <unity/storage/provider/DownloadJob.h>
+#include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/Server.h>
 #include <unity/storage/provider/TempfileUploadJob.h>
@@ -198,7 +199,7 @@ boost::future<Item> MyProvider::metadata(string const& item_id,
         Item metadata{"child_folder_id", "root_id", "Child_Folder", "etag", ItemType::folder, {}};
         return make_ready_future<Item>(metadata);
     }
-    return make_exceptional_future<Item>(runtime_error("no such file"));
+    return make_exceptional_future<Item>(NotExistsException("metadata(): no such item: " + item_id, item_id));
 }
 
 boost::future<Item> MyProvider::create_folder(
@@ -239,7 +240,12 @@ boost::future<unique_ptr<DownloadJob>> MyProvider::download(
 
     unique_ptr<DownloadJob> job(new MyDownloadJob(make_job_id()));
     const char contents[] = "Hello world";
-    write(job->write_socket(), contents, sizeof(contents));
+    if (write(job->write_socket(), contents, sizeof(contents)) != sizeof(contents))
+    {
+        ResourceException e("download(): write failed", errno);
+        job->report_error(make_exception_ptr(e));
+        return make_exceptional_future<unique_ptr<DownloadJob>>(e);
+    }
     job->report_complete();
     return make_ready_future(std::move(job));
 }

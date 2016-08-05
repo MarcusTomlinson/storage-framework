@@ -228,7 +228,7 @@ public:
 };
 
 /**
-\brief Indicates a system error, such as failure to to create a file or folder,
+\brief Indicates a system error, such as failure to create a file or folder,
 or any other (usually non-recoverable) kind of error that should not arise during normal operation.
 */
 class UNITY_STORAGE_EXPORT ResourceException : public StorageException
