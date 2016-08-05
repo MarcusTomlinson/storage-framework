@@ -6,4 +6,3 @@ target_link_libraries(provider-AccountData_test
   gtest
   )
 add_test(provider-AccountData provider-AccountData_test)
-
