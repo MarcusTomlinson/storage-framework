@@ -70,6 +70,10 @@ boost::future<ItemList> TestProvider::lookup(
     string const& parent_id, string const& name, Context const& ctx)
 {
     boost::promise<ItemList> p;
+    ItemList items = {
+        {"child_id", parent_id, name, "etag", ItemType::file, {}},
+    };
+    p.set_value(items);
     return p.get_future();
 }
 
@@ -77,6 +81,15 @@ boost::future<Item> TestProvider::metadata(
     string const& item_id, Context const& ctx)
 {
     boost::promise<Item> p;
+    if (item_id == "root_id")
+    {
+        Item item = {"root_id", "", "Root", "etag", ItemType::root, {}};
+        p.set_value(item);
+    }
+    else
+    {
+        p.set_exception(runtime_error("Unknown item"));
+    }
     return p.get_future();
 }
 
@@ -84,6 +97,8 @@ boost::future<Item> TestProvider::create_folder(
     string const& parent_id, string const& name, Context const& ctx)
 {
     boost::promise<Item> p;
+    Item item = {"new_folder_id", parent_id, name, "etag", ItemType::folder, {}};
+    p.set_value(item);
     return p.get_future();
 }
 
@@ -93,6 +108,7 @@ boost::future<unique_ptr<UploadJob>> TestProvider::create_file(
     Context const& ctx)
 {
     boost::promise<unique_ptr<UploadJob>> p;
+    p.set_value(unique_ptr<UploadJob>());
     return p.get_future();
 }
 
@@ -101,6 +117,7 @@ boost::future<unique_ptr<UploadJob>> TestProvider::update(
     Context const& ctx)
 {
     boost::promise<unique_ptr<UploadJob>> p;
+    p.set_value(unique_ptr<UploadJob>());
     return p.get_future();
 }
 
@@ -108,6 +125,7 @@ boost::future<unique_ptr<DownloadJob>> TestProvider::download(
         string const& item_id, Context const& ctx)
 {
     boost::promise<unique_ptr<DownloadJob>> p;
+    p.set_value(unique_ptr<DownloadJob>());
     return p.get_future();
 }
 
@@ -115,6 +133,7 @@ boost::future<void> TestProvider::delete_item(
     string const& item_id, Context const& ctx)
 {
     boost::promise<void> p;
+    p.set_value();
     return p.get_future();
 }
 
@@ -123,6 +142,8 @@ boost::future<Item> TestProvider::move(
     string const& new_name, Context const& ctx)
 {
     boost::promise<Item> p;
+    Item item = {item_id, new_parent_id, new_name, "etag", ItemType::file, {}};
+    p.set_value(item);
     return p.get_future();
 }
 
@@ -131,5 +152,7 @@ boost::future<Item> TestProvider::copy(
     string const& new_name, Context const& ctx)
 {
     boost::promise<Item> p;
+    Item item = {"new_id", new_parent_id, new_name, "etag", ItemType::file, {}};
+    p.set_value(item);
     return p.get_future();
 }

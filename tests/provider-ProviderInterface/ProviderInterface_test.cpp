@@ -174,6 +174,87 @@ TEST_F(ProviderInterfaceTest, list)
     EXPECT_EQ("Unknown folder", reply.error().message());
 }
 
+TEST_F(ProviderInterfaceTest, lookup)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    auto reply = client_->Lookup("root_id", "Filename");
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid());
+    auto items = reply.value();
+    ASSERT_EQ(1, items.size());
+    auto item = items[0];
+    EXPECT_EQ("child_id", item.item_id);
+    EXPECT_EQ("root_id", item.parent_id);
+    EXPECT_EQ("Filename", item.name);
+    EXPECT_EQ(ItemType::file, item.type);
+}
+
+TEST_F(ProviderInterfaceTest, metadata)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    auto reply = client_->Metadata("root_id");
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid());
+    auto item = reply.value();
+    EXPECT_EQ("root_id", item.item_id);
+    EXPECT_EQ("", item.parent_id);
+    EXPECT_EQ("Root", item.name);
+    EXPECT_EQ(ItemType::root, item.type);
+}
+
+TEST_F(ProviderInterfaceTest, create_folder)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    auto reply = client_->CreateFolder("root_id", "New Folder");
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid());
+    auto item = reply.value();
+    EXPECT_EQ("new_folder_id", item.item_id);
+    EXPECT_EQ("root_id", item.parent_id);
+    EXPECT_EQ("New Folder", item.name);
+    EXPECT_EQ(ItemType::folder, item.type);
+}
+
+TEST_F(ProviderInterfaceTest, delete_)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    auto reply = client_->Delete("item_id");
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid());
+}
+
+TEST_F(ProviderInterfaceTest, move)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    auto reply = client_->Move("child_id", "new_parent_id", "New name");
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid());
+    auto item = reply.value();
+    EXPECT_EQ("child_id", item.item_id);
+    EXPECT_EQ("new_parent_id", item.parent_id);
+    EXPECT_EQ("New name", item.name);
+    EXPECT_EQ(ItemType::file, item.type);
+}
+
+TEST_F(ProviderInterfaceTest, copy)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    auto reply = client_->Copy("child_id", "new_parent_id", "New name");
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid());
+    auto item = reply.value();
+    EXPECT_EQ("new_id", item.item_id);
+    EXPECT_EQ("new_parent_id", item.parent_id);
+    EXPECT_EQ("New name", item.name);
+    EXPECT_EQ(ItemType::file, item.type);
+}
+
 
 int main(int argc, char **argv)
 {

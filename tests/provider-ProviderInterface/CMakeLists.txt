@@ -28,4 +28,3 @@ target_link_libraries(provider-ProviderInterface_test
   gtest
 )
 add_test(provider-ProviderInterface provider-ProviderInterface_test)
-
