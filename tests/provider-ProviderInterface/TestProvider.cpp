@@ -24,7 +24,7 @@
 using namespace std;
 using namespace unity::storage;
 
-boost::future<ItemList> TestProvider::roots(Context const& ctx)
+boost::future<ItemList> TestProvider::roots(Context const& /*ctx*/)
 {
     ItemList roots = {
         {"root_id", "", "Root", "etag", ItemType::root, {}},
@@ -35,7 +35,7 @@ boost::future<ItemList> TestProvider::roots(Context const& ctx)
 }
 
 boost::future<tuple<ItemList,string>> TestProvider::list(
-    string const& item_id, string const& page_token, Context const& ctx)
+    string const& item_id, string const& page_token, Context const& /*ctx*/)
 {
     boost::promise<tuple<ItemList,string>> p;
 
@@ -67,7 +67,7 @@ boost::future<tuple<ItemList,string>> TestProvider::list(
 }
 
 boost::future<ItemList> TestProvider::lookup(
-    string const& parent_id, string const& name, Context const& ctx)
+    string const& parent_id, string const& name, Context const& /*ctx*/)
 {
     boost::promise<ItemList> p;
     ItemList items = {
@@ -78,7 +78,7 @@ boost::future<ItemList> TestProvider::lookup(
 }
 
 boost::future<Item> TestProvider::metadata(
-    string const& item_id, Context const& ctx)
+    string const& item_id, Context const& /*ctx*/)
 {
     boost::promise<Item> p;
     if (item_id == "root_id")
@@ -94,7 +94,7 @@ boost::future<Item> TestProvider::metadata(
 }
 
 boost::future<Item> TestProvider::create_folder(
-    string const& parent_id, string const& name, Context const& ctx)
+    string const& parent_id, string const& name, Context const& /*ctx*/)
 {
     boost::promise<Item> p;
     Item item = {"new_folder_id", parent_id, name, "etag", ItemType::folder, {}};
@@ -130,16 +130,23 @@ boost::future<unique_ptr<DownloadJob>> TestProvider::download(
 }
 
 boost::future<void> TestProvider::delete_item(
-    string const& item_id, Context const& ctx)
+    string const& item_id, Context const& /*ctx*/)
 {
     boost::promise<void> p;
-    p.set_value();
+    if (item_id == "item_id")
+    {
+        p.set_value();
+    }
+    else
+    {
+        p.set_exception(runtime_error("Bad filename"));
+    }
     return p.get_future();
 }
 
 boost::future<Item> TestProvider::move(
     string const& item_id, string const& new_parent_id,
-    string const& new_name, Context const& ctx)
+    string const& new_name, Context const& /*ctx*/)
 {
     boost::promise<Item> p;
     Item item = {item_id, new_parent_id, new_name, "etag", ItemType::file, {}};
@@ -149,7 +156,7 @@ boost::future<Item> TestProvider::move(
 
 boost::future<Item> TestProvider::copy(
     string const& item_id, string const& new_parent_id,
-    string const& new_name, Context const& ctx)
+    string const& new_name, Context const& /*ctx*/)
 {
     boost::promise<Item> p;
     Item item = {"new_id", new_parent_id, new_name, "etag", ItemType::file, {}};
