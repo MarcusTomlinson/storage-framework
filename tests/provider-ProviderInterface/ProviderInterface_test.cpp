@@ -36,6 +36,7 @@
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
 #include <QSignalSpy>
+#include <QSocketNotifier>
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -216,6 +217,71 @@ TEST_F(ProviderInterfaceTest, create_folder)
     EXPECT_EQ("root_id", item.parent_id);
     EXPECT_EQ("New Folder", item.name);
     EXPECT_EQ(ItemType::folder, item.type);
+}
+
+// TEST_F(ProviderInterfaceTest, create_file)
+// TEST_F(ProviderInterfaceTest, update)
+
+TEST_F(ProviderInterfaceTest, download)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    QString download_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->Download("item_id");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid());
+        download_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+
+    std::string data;
+    auto app = QCoreApplication::instance();
+    QSocketNotifier notifier(socket.fileDescriptor(), QSocketNotifier::Read);
+    QObject::connect(&notifier, &QSocketNotifier::activated,
+                     [&data, app, &notifier](int fd) {
+                         char buf[1024];
+                         ssize_t n_read = read(fd, buf, sizeof(buf));
+                         if (n_read <= 0)
+                         {
+                             // Error or end of file
+                             notifier.setEnabled(false);
+                             app->quit();
+                         }
+                         else
+                         {
+                             data += string(buf, n_read);
+                         }
+                     });
+    notifier.setEnabled(true);
+    app->exec();
+    auto reply = client_->FinishDownload(download_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid());
+
+    // Also check that we got the expected data from the socket.
+    EXPECT_EQ("Hello world", data);
+}
+
+TEST_F(ProviderInterfaceTest, download_finish_early)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    QString download_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->Download("item_id");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid());
+        download_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+    auto reply = client_->FinishDownload(download_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isError());
+    EXPECT_EQ(PROVIDER_ERROR, reply.error().name());
+    EXPECT_EQ("Not all data read", reply.error().message());
 }
 
 TEST_F(ProviderInterfaceTest, delete_)
