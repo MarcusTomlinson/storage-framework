@@ -178,8 +178,10 @@ void TestDownloadJob::write_some()
 }
 
 
-boost::future<ItemList> TestProvider::roots(Context const& /*ctx*/)
+boost::future<ItemList> TestProvider::roots(Context const& ctx)
 {
+    Q_UNUSED(ctx);
+
     ItemList roots = {
         {"root_id", "", "Root", "etag", ItemType::root, {}},
     };
@@ -189,8 +191,10 @@ boost::future<ItemList> TestProvider::roots(Context const& /*ctx*/)
 }
 
 boost::future<tuple<ItemList,string>> TestProvider::list(
-    string const& item_id, string const& page_token, Context const& /*ctx*/)
+    string const& item_id, string const& page_token, Context const& ctx)
 {
+    Q_UNUSED(ctx);
+
     boost::promise<tuple<ItemList,string>> p;
 
     if (item_id != "root_id")
@@ -221,8 +225,10 @@ boost::future<tuple<ItemList,string>> TestProvider::list(
 }
 
 boost::future<ItemList> TestProvider::lookup(
-    string const& parent_id, string const& name, Context const& /*ctx*/)
+    string const& parent_id, string const& name, Context const& ctx)
 {
+    Q_UNUSED(ctx);
+
     boost::promise<ItemList> p;
     ItemList items = {
         {"child_id", parent_id, name, "etag", ItemType::file, {}},
@@ -232,8 +238,10 @@ boost::future<ItemList> TestProvider::lookup(
 }
 
 boost::future<Item> TestProvider::metadata(
-    string const& item_id, Context const& /*ctx*/)
+    string const& item_id, Context const& ctx)
 {
+    Q_UNUSED(ctx);
+
     boost::promise<Item> p;
     if (item_id == "root_id")
     {
@@ -248,8 +256,10 @@ boost::future<Item> TestProvider::metadata(
 }
 
 boost::future<Item> TestProvider::create_folder(
-    string const& parent_id, string const& name, Context const& /*ctx*/)
+    string const& parent_id, string const& name, Context const& ctx)
 {
+    Q_UNUSED(ctx);
+
     boost::promise<Item> p;
     Item item = {"new_folder_id", parent_id, name, "etag", ItemType::folder, {}};
     p.set_value(item);
@@ -261,6 +271,10 @@ boost::future<unique_ptr<UploadJob>> TestProvider::create_file(
     int64_t size, string const& content_type, bool allow_overwrite,
     Context const& ctx)
 {
+    Q_UNUSED(content_type);
+    Q_UNUSED(allow_overwrite);
+    Q_UNUSED(ctx);
+
     boost::promise<unique_ptr<UploadJob>> p;
     Item item = {"new_file_id", parent_id, name, "etag", ItemType::file, {}};
     p.set_value(unique_ptr<UploadJob>(new TestUploadJob("upload_id", item, size)));
@@ -271,6 +285,10 @@ boost::future<unique_ptr<UploadJob>> TestProvider::update(
     string const& item_id, int64_t size, string const& old_etag,
     Context const& ctx)
 {
+    Q_UNUSED(item_id);
+    Q_UNUSED(old_etag);
+    Q_UNUSED(ctx);
+
     boost::promise<unique_ptr<UploadJob>> p;
     Item item = {"item_id", "parent_id", "file name", "etag", ItemType::file, {}};
     p.set_value(unique_ptr<UploadJob>(new TestUploadJob("upload_id", item, size)));
@@ -278,8 +296,11 @@ boost::future<unique_ptr<UploadJob>> TestProvider::update(
 }
 
 boost::future<unique_ptr<DownloadJob>> TestProvider::download(
-    string const& /*item_id*/, Context const& /*ctx*/)
+    string const& item_id, Context const& ctx)
 {
+    Q_UNUSED(item_id);
+    Q_UNUSED(ctx);
+
     boost::promise<unique_ptr<DownloadJob>> p;
     p.set_value(unique_ptr<DownloadJob>(
                     new TestDownloadJob("download_id", "Hello world")));
@@ -287,8 +308,10 @@ boost::future<unique_ptr<DownloadJob>> TestProvider::download(
 }
 
 boost::future<void> TestProvider::delete_item(
-    string const& item_id, Context const& /*ctx*/)
+    string const& item_id, Context const& ctx)
 {
+    Q_UNUSED(ctx);
+
     boost::promise<void> p;
     if (item_id == "item_id")
     {
@@ -303,8 +326,10 @@ boost::future<void> TestProvider::delete_item(
 
 boost::future<Item> TestProvider::move(
     string const& item_id, string const& new_parent_id,
-    string const& new_name, Context const& /*ctx*/)
+    string const& new_name, Context const& ctx)
 {
+    Q_UNUSED(ctx);
+
     boost::promise<Item> p;
     Item item = {item_id, new_parent_id, new_name, "etag", ItemType::file, {}};
     p.set_value(item);
@@ -313,8 +338,11 @@ boost::future<Item> TestProvider::move(
 
 boost::future<Item> TestProvider::copy(
     string const& item_id, string const& new_parent_id,
-    string const& new_name, Context const& /*ctx*/)
+    string const& new_name, Context const& ctx)
 {
+    Q_UNUSED(item_id);
+    Q_UNUSED(ctx);
+
     boost::promise<Item> p;
     Item item = {"new_id", new_parent_id, new_name, "etag", ItemType::file, {}};
     p.set_value(item);
