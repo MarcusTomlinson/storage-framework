@@ -97,13 +97,23 @@ void validate(QString const& method, ItemMetadata const& md)
     {
         throw LocalCommsException(prefix + "item_id cannot be empty");
     }
-    if (md.parent_id.isEmpty() && md.type != ItemType::root)
+    if (md.type != ItemType::root)
     {
-        throw LocalCommsException(prefix + "parent_id of file or folder cannot be empty");
+        if (md.parent_ids.isEmpty())
+        {
+            throw LocalCommsException(prefix + "file or folder must have at least one parent ID");
+        }
+        for (int i = 0; i < md.parent_ids.size(); ++i)
+        {
+            if (md.parent_ids.at(i).isEmpty())
+            {
+                throw LocalCommsException(prefix + "parent_id of file or folder cannot be empty");
+            }
+        }
     }
-    if (!md.parent_id.isEmpty() && md.type == ItemType::root)
+    if (md.type == ItemType::root && !md.parent_ids.isEmpty())
     {
-        throw LocalCommsException(prefix + "metadata: parent_id of root cannot be non-empty");
+        throw LocalCommsException(prefix + "metadata: parent_ids of root must be empty");
     }
     if (md.name.isEmpty())
     {

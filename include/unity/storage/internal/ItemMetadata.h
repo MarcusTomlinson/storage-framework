@@ -24,6 +24,7 @@
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QMap>
 #include <QVariant>
+#include <QVector>
 #pragma GCC diagnostic pop
 
 namespace unity
@@ -36,7 +37,7 @@ namespace internal
 struct ItemMetadata
 {
     QString item_id;
-    QString parent_id;
+    QVector<QString> parent_ids;
     QString name;
     QString etag;
     ItemType type;
