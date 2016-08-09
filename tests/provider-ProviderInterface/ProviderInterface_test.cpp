@@ -219,8 +219,193 @@ TEST_F(ProviderInterfaceTest, create_folder)
     EXPECT_EQ(ItemType::folder, item.type);
 }
 
-// TEST_F(ProviderInterfaceTest, create_file)
-// TEST_F(ProviderInterfaceTest, update)
+TEST_F(ProviderInterfaceTest, create_file)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    const std::string file_contents = "Hello world!";
+    QString upload_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->CreateFile("parent_id", "file name", file_contents.size(), "text/plain", false);
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid());
+        upload_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+
+    auto app = QCoreApplication::instance();
+    QSocketNotifier notifier(socket.fileDescriptor(), QSocketNotifier::Write);
+    size_t total_written = 0;
+    QObject::connect(
+        &notifier, &QSocketNotifier::activated,
+        [&file_contents, app, &notifier, &total_written](int fd) {
+            ssize_t n_written = write(fd, file_contents.data() + total_written, file_contents.size() - total_written);
+            if (n_written < 0)
+            {
+                // Error writing
+                notifier.setEnabled(false);
+                app->quit();
+            }
+            total_written += n_written;
+            if (total_written == file_contents.size())
+            {
+                notifier.setEnabled(false);
+                app->quit();
+            }
+        });
+    notifier.setEnabled(true);
+    app->exec();
+    socket.setFileDescriptor(-1);
+
+    auto reply = client_->FinishUpload(upload_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid());
+    auto item = reply.value();
+    EXPECT_EQ("new_file_id", item.item_id);
+    EXPECT_EQ("parent_id", item.parent_id);
+    EXPECT_EQ("file name", item.name);
+}
+
+TEST_F(ProviderInterfaceTest, update)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    const std::string file_contents = "Hello world!";
+    QString upload_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->Update("item_id", file_contents.size(), "old_etag");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid());
+        upload_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+
+    auto app = QCoreApplication::instance();
+    QSocketNotifier notifier(socket.fileDescriptor(), QSocketNotifier::Write);
+    size_t total_written = 0;
+    QObject::connect(
+        &notifier, &QSocketNotifier::activated,
+        [&file_contents, app, &notifier, &total_written](int fd) {
+            ssize_t n_written = write(fd, file_contents.data() + total_written, file_contents.size() - total_written);
+            if (n_written < 0)
+            {
+                // Error writing
+                notifier.setEnabled(false);
+                app->quit();
+            }
+            total_written += n_written;
+            if (total_written == file_contents.size())
+            {
+                notifier.setEnabled(false);
+                app->quit();
+            }
+        });
+    notifier.setEnabled(true);
+    app->exec();
+    socket.setFileDescriptor(-1);
+
+    auto reply = client_->FinishUpload(upload_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid());
+    auto item = reply.value();
+    EXPECT_EQ("item_id", item.item_id);
+}
+
+TEST_F(ProviderInterfaceTest, upload_short_write)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    QString upload_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->Update("item_id", 100, "old_etag");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid());
+        upload_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+    auto reply = client_->FinishUpload(upload_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isError());
+    EXPECT_EQ(PROVIDER_ERROR, reply.error().name());
+    EXPECT_EQ("wrong number of bytes written", reply.error().message());
+}
+
+TEST_F(ProviderInterfaceTest, upload_long_write)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    const std::string file_contents = "Hello world!";
+    QString upload_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->Update("item_id", file_contents.size() - 5, "old_etag");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid());
+        upload_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+
+    auto app = QCoreApplication::instance();
+    QSocketNotifier notifier(socket.fileDescriptor(), QSocketNotifier::Write);
+    size_t total_written = 0;
+    QObject::connect(
+        &notifier, &QSocketNotifier::activated,
+        [&file_contents, app, &notifier, &total_written](int fd) {
+            ssize_t n_written = write(fd, file_contents.data() + total_written, file_contents.size() - total_written);
+            if (n_written < 0)
+            {
+                // Error writing
+                notifier.setEnabled(false);
+                app->quit();
+            }
+            total_written += n_written;
+            if (total_written == file_contents.size())
+            {
+                notifier.setEnabled(false);
+                app->quit();
+            }
+        });
+    notifier.setEnabled(true);
+    app->exec();
+    socket.setFileDescriptor(-1);
+
+    auto reply = client_->FinishUpload(upload_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isError());
+    EXPECT_EQ("too many bytes written", reply.error().message().toStdString());
+}
+
+TEST_F(ProviderInterfaceTest, cancel_upload)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    QString upload_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->Update("item_id", 100, "old_etag");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid());
+        upload_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+    auto reply = client_->CancelUpload(upload_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid());
+}
+
+TEST_F(ProviderInterfaceTest, finish_upload_unknown)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    auto reply = client_->FinishUpload("no-such-upload");
+    wait_for(reply);
+    ASSERT_TRUE(reply.isError());
+    EXPECT_EQ(PROVIDER_ERROR, reply.error().name());
+    EXPECT_EQ("map::at", reply.error().message());
+}
 
 TEST_F(ProviderInterfaceTest, download)
 {
@@ -239,21 +424,22 @@ TEST_F(ProviderInterfaceTest, download)
     std::string data;
     auto app = QCoreApplication::instance();
     QSocketNotifier notifier(socket.fileDescriptor(), QSocketNotifier::Read);
-    QObject::connect(&notifier, &QSocketNotifier::activated,
-                     [&data, app, &notifier](int fd) {
-                         char buf[1024];
-                         ssize_t n_read = read(fd, buf, sizeof(buf));
-                         if (n_read <= 0)
-                         {
-                             // Error or end of file
-                             notifier.setEnabled(false);
-                             app->quit();
-                         }
-                         else
-                         {
-                             data += string(buf, n_read);
-                         }
-                     });
+    QObject::connect(
+        &notifier, &QSocketNotifier::activated,
+        [&data, app, &notifier](int fd) {
+            char buf[1024];
+            ssize_t n_read = read(fd, buf, sizeof(buf));
+            if (n_read <= 0)
+            {
+                // Error or end of file
+                notifier.setEnabled(false);
+                app->quit();
+            }
+            else
+            {
+                data += string(buf, n_read);
+            }
+        });
     notifier.setEnabled(true);
     app->exec();
     auto reply = client_->FinishDownload(download_id);
@@ -264,7 +450,7 @@ TEST_F(ProviderInterfaceTest, download)
     EXPECT_EQ("Hello world", data);
 }
 
-TEST_F(ProviderInterfaceTest, download_finish_early)
+TEST_F(ProviderInterfaceTest, download_short_read)
 {
     make_provider(unique_ptr<ProviderBase>(new TestProvider));
 
@@ -282,6 +468,17 @@ TEST_F(ProviderInterfaceTest, download_finish_early)
     ASSERT_TRUE(reply.isError());
     EXPECT_EQ(PROVIDER_ERROR, reply.error().name());
     EXPECT_EQ("Not all data read", reply.error().message());
+}
+
+TEST_F(ProviderInterfaceTest, finish_download_unknown)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    auto reply = client_->FinishDownload("no-such-download");
+    wait_for(reply);
+    ASSERT_TRUE(reply.isError());
+    EXPECT_EQ(PROVIDER_ERROR, reply.error().name());
+    EXPECT_EQ("map::at", reply.error().message());
 }
 
 TEST_F(ProviderInterfaceTest, delete_)

@@ -20,6 +20,7 @@
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/UploadJob.h>
 
+#include <QSocketNotifier>
 #include <QTimer>
 #include <unistd.h>
 #include <algorithm>
@@ -27,6 +28,87 @@
 
 using namespace std;
 using namespace unity::storage;
+
+class TestUploadJob : public UploadJob
+{
+public:
+    TestUploadJob(std::string const& upload_id, Item const& item, int64_t size);
+    boost::future<void> cancel() override;
+    boost::future<Item> finish() override;
+
+private:
+    void read_some();
+
+    Item const item_;
+    int64_t const size_;
+    QSocketNotifier notifier_;
+    int64_t bytes_read_ = 0;
+};
+
+TestUploadJob::TestUploadJob(std::string const& upload_id, Item const& item,
+                             int64_t size)
+    : UploadJob(upload_id), item_(item), size_(size),
+      notifier_(read_socket(), QSocketNotifier::Read)
+{
+    QObject::connect(&notifier_, &QSocketNotifier::activated,
+                     [this]() { read_some(); });
+    notifier_.setEnabled(true);
+}
+
+boost::future<void> TestUploadJob::cancel()
+{
+    boost::promise<void> p;
+    notifier_.setEnabled(false);
+    p.set_value();
+    return p.get_future();
+}
+
+boost::future<Item> TestUploadJob::finish()
+{
+    boost::promise<Item> p;
+    printf("TestUploadJob::finish(): %d read of expected %d\n", (int) bytes_read_, (int) size_);
+    notifier_.setEnabled(false);
+    if (bytes_read_ == size_)
+    {
+        p.set_value(item_);
+    }
+    else
+    {
+        p.set_exception(runtime_error("wrong number of bytes written"));
+    }
+    return p.get_future();
+}
+
+void TestUploadJob::read_some()
+{
+    printf("TestUploadJob::read_some(): %d read of expected %d\n", (int) bytes_read_, (int) size_);
+
+    char buf[5];
+    ssize_t n_read = read(read_socket(), buf, sizeof(buf));
+    if (n_read < 0)
+    {
+        report_error(make_exception_ptr(runtime_error("Read failure")));
+        notifier_.setEnabled(false);
+    }
+    else if (n_read == 0)
+    {
+        if (bytes_read_ != size_)
+        {
+            report_error(make_exception_ptr(runtime_error("wrong number of bytes")));
+        }
+        notifier_.setEnabled(false);
+    }
+    else
+    {
+        bytes_read_ += n_read;
+        if (bytes_read_ > size_)
+        {
+            printf("Reporting error\n");
+            report_error(make_exception_ptr(runtime_error("too many bytes written")));
+            notifier_.setEnabled(false);
+        }
+    }
+}
 
 class TestDownloadJob : public DownloadJob
 {
@@ -180,7 +262,8 @@ boost::future<unique_ptr<UploadJob>> TestProvider::create_file(
     Context const& ctx)
 {
     boost::promise<unique_ptr<UploadJob>> p;
-    p.set_value(unique_ptr<UploadJob>());
+    Item item = {"new_file_id", parent_id, name, "etag", ItemType::file, {}};
+    p.set_value(unique_ptr<UploadJob>(new TestUploadJob("upload_id", item, size)));
     return p.get_future();
 }
 
@@ -189,7 +272,8 @@ boost::future<unique_ptr<UploadJob>> TestProvider::update(
     Context const& ctx)
 {
     boost::promise<unique_ptr<UploadJob>> p;
-    p.set_value(unique_ptr<UploadJob>());
+    Item item = {"item_id", "parent_id", "file name", "etag", ItemType::file, {}};
+    p.set_value(unique_ptr<UploadJob>(new TestUploadJob("upload_id", item, size)));
     return p.get_future();
 }
 
