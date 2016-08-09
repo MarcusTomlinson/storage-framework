@@ -23,6 +23,7 @@
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/validate.h>
 
 #include <cassert>
 
@@ -85,6 +86,15 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         auto metadata = reply.argumentAt<0>();
         for (auto const& md : metadata)
         {
+            try
+            {
+                validate("Folder::list()", md);
+            }
+            catch (StorageException const& e)
+            {
+                make_exceptional_future(qf, e);
+                return;
+            }
             if (md.type == ItemType::root)
             {
                 // TODO: log server error here
@@ -138,6 +148,15 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
         auto metadata = reply.value();
         for (auto const& md : metadata)
         {
+            try
+            {
+                validate("Folder::lookup()", md);
+            }
+            catch (StorageException const& e)
+            {
+                make_exceptional_future(qf, e);
+                return;
+            }
             if (md.type == ItemType::root)
             {
                 // TODO: log server error here
@@ -182,6 +201,15 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
 
         shared_ptr<Item> item;
         auto md = reply.value();
+        try
+        {
+            validate("Folder::create_folder()", md);
+        }
+        catch (StorageException const& e)
+        {
+            make_exceptional_future(qf, e);
+            return;
+        }
         if (md.type != ItemType::folder)
         {
             // TODO: log server error here

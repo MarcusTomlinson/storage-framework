@@ -19,10 +19,12 @@
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 
 #include "ProviderInterface.h"
+#include <unity/storage/provider/metadata_keys.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/DownloaderImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/validate.h>
 
 using namespace std;
 
@@ -49,7 +51,7 @@ FileImpl::FileImpl(storage::internal::ItemMetadata const& md)
 int64_t FileImpl::size() const
 {
     throw_if_destroyed("File::size()");
-    return 0;  // TODO
+    return md_.metadata.value(provider::SIZE_IN_BYTES).toLongLong();
 }
 
 QFuture<shared_ptr<Uploader>> FileImpl::create_uploader(ConflictPolicy policy, int64_t size)

@@ -31,6 +31,24 @@ namespace storage
 namespace provider
 {
 
+namespace
+{
+
+QDBusVariant to_qdbus_variant(MetadataValue const& v)
+{
+    switch (v.which())
+    {
+        case 0:
+            return QDBusVariant(QString::fromStdString(boost::get<string>(v)));
+        case 1:
+            return QDBusVariant(qlonglong(boost::get<int64_t>(v)));
+        default:
+            abort();  // Impossible.  // LCOV_EXCL_LINE
+    }
+}
+
+}  // namespace
+
 QDBusArgument& operator<<(QDBusArgument& argument, Item const& item)
 {
     argument.beginStructure();
@@ -43,7 +61,7 @@ QDBusArgument& operator<<(QDBusArgument& argument, Item const& item)
     for (auto const& pair : item.metadata)
     {
         argument.beginMapEntry();
-        argument << QString::fromStdString(pair.first) << QDBusVariant(QString::fromStdString(pair.second));
+        argument << QString::fromStdString(pair.first) << to_qdbus_variant(pair.second);
         argument.endMapEntry();
     }
     argument.endMap();

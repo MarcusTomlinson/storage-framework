@@ -21,6 +21,7 @@
 #include "ProviderInterface.h"
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
+#include <unity/storage/qt/client/internal/remote_client/validate.h>
 
 #include <cassert>
 
@@ -137,6 +138,15 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         }
 
         auto md = reply.value();
+        try
+        {
+            validate("Root::get()", md);
+        }
+        catch (StorageException const& e)
+        {
+            make_exceptional_future(qf, e);
+            return;
+        }
         Item::SPtr item;
         if (md.type == ItemType::root)
         {

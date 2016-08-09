@@ -214,12 +214,12 @@ TEST_F(FolderTest, basic)
     ASSERT_EQ(1, items.size());
 
     // Create a file and check that it was created with correct type, name, and size 0.
-    auto uploader = call(root->create_file("file1", 0));
-    EXPECT_EQ(0, uploader->size());
+    auto uploader = call(root->create_file("file1", 10));
+    EXPECT_EQ(10, uploader->size());
     auto file = call(uploader->finish_upload());
     EXPECT_EQ(ItemType::file, file->type());
     EXPECT_EQ("some_upload", file->name());
-    EXPECT_EQ(0, file->size());
+    EXPECT_EQ(10, file->size());
     EXPECT_EQ("some_id", file->native_identity());
 
     // For coverage: getting a file must return the correct one.
