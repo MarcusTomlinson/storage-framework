@@ -21,11 +21,15 @@
 #include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/provider/internal/Handler.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Wswitch-default"
 #include <QObject>
 #include <QList>
 #include <QDBusConnection>
 #include <QDBusContext>
 #include <QDBusUnixFileDescriptor>
+#pragma GCC diagnostic pop
 
 #include <map>
 #include <memory>
