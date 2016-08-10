@@ -51,14 +51,14 @@ UploaderImpl::UploaderImpl(QString const& upload_id,
     , fd_(fd)
     , size_(size)
     , old_etag_(old_etag)
-    , root_(root)
+    , root_(root.lock())
     , provider_(provider)
     , write_socket_(new QLocalSocket)
 {
     assert(!upload_id.isEmpty());
     assert(fd.isValid());
     assert(size >= 0);
-    assert(root_.lock());
+    assert(root_);
     assert(provider);
     assert(fd.isValid());
     write_socket_->setSocketDescriptor(fd_.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::WriteOnly);
@@ -79,13 +79,6 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
     auto reply = provider_->FinishUpload(upload_id_);
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<File>>& qf)
     {
-        auto root = root_.lock();
-        if (!root)
-        {
-            make_exceptional_future(qf, RuntimeDestroyedException("Uploader::finish_upload()"));
-            return;
-        }
-
         auto md = reply.value();
         if (md.type != ItemType::file)
         {
@@ -95,7 +88,7 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
             make_exceptional_future(qf, LocalCommsException(msg));
             return;
         }
-        make_ready_future(qf, FileImpl::make_file(md, root));
+        make_ready_future(qf, FileImpl::make_file(md, root_));
     };
 
     auto handler = new Handler<shared_ptr<File>>(this, reply, process_reply);

@@ -22,7 +22,7 @@
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/File.h>
 #include <unity/storage/qt/client/internal/local_client/FileImpl.h>
-#include <unity/storage/qt/client/internal/local_client/tmpfile-prefix.h>
+#include <unity/storage/qt/client/internal/local_client/tmpfile_prefix.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 
 #include <QLocalSocket>
@@ -93,8 +93,6 @@ void UploadWorker::start_uploading() noexcept
     // Monitor read socket for ready-to-read, disconnected, and error events.
     connect(read_socket_.get(), &QLocalSocket::readyRead, this, &UploadWorker::on_bytes_ready);
     connect(read_socket_.get(), &QIODevice::readChannelFinished, this, &UploadWorker::on_read_channel_finished);
-    connect(read_socket_.get(), static_cast<void(QLocalSocket::*)(QLocalSocket::LocalSocketError)>(&QLocalSocket::error),
-            this, &UploadWorker::on_error);
 
     using namespace boost::filesystem;
 
@@ -114,10 +112,11 @@ void UploadWorker::start_uploading() noexcept
         tmp_fd_.reset(mkstemp(const_cast<char*>(tmpfile.data())));
         if (tmp_fd_.get() == -1)
         {
+            int error_code = errno;
             worker_initialized_.reportFinished();
             QString msg = "cannot create temp file \"" + QString::fromStdString(tmpfile)
                           + "\": " + QString::fromStdString(storage::internal::safe_strerror(errno));
-            handle_error(msg);
+            handle_error(msg, error_code);
             return;
         }
         output_file_.reset(new QFile(QString::fromStdString(tmpfile)));
@@ -140,11 +139,6 @@ void UploadWorker::start_uploading() noexcept
 
 void UploadWorker::do_finish()
 {
-    if (qf_.future().isFinished())
-    {
-        return;  // Future was set previously, no point in continuing.
-    }
-
     switch (state_)
     {
         case in_progress:
@@ -165,8 +159,10 @@ void UploadWorker::do_finish()
         }
         case error:
         {
-            make_exceptional_future(qf_, ResourceException(error_msg_));
+            // LCOV_EXCL_START
+            make_exceptional_future(qf_, ResourceException(error_msg_, error_code_));
             break;
+            // LCOV_EXCL_STOP
         }
         default:
         {
@@ -201,14 +197,14 @@ void UploadWorker::on_bytes_ready()
         auto bytes_written = output_file_->write(buf);
         if (bytes_written == -1)
         {
-            handle_error("socket error: " + output_file_->errorString());  // LCOV_EXCL_LINE
+            handle_error("socket error: " + output_file_->errorString(), output_file_->error());  // LCOV_EXCL_LINE
         }
         else if (bytes_written != buf.size())
         {
             // LCOV_EXCL_START
             QString msg = "write error, requested " + QString::number(buf.size()) + " B, but wrote only "
                           + bytes_written + " B.";
-            handle_error(msg);
+            handle_error(msg, 0);
             // LCOV_EXCL_STOP
         }
     }
@@ -218,11 +214,6 @@ void UploadWorker::on_read_channel_finished()
 {
     on_bytes_ready();  // In case there is still buffered data to be read.
     do_finish();
-}
-
-void UploadWorker::on_error()
-{
-    handle_error(read_socket_->errorString());
 }
 
 void UploadWorker::finalize()
@@ -259,7 +250,7 @@ void UploadWorker::finalize()
             state_ = error;
             QString msg = "Uploader::finish_upload(): cannot close tmp file: "
                           + QString::fromStdString(storage::internal::safe_strerror(errno));
-            make_exceptional_future(qf_, ResourceException(msg));
+            make_exceptional_future(qf_, ResourceException(msg, errno));
             return;
             // LCOV_EXCL_STOP
         }
@@ -273,7 +264,7 @@ void UploadWorker::finalize()
         // LCOV_EXCL_START
         state_ = error;
         QString msg = "Uploader::finish_upload(): cannot flush output file: " + output_file_->errorString();
-        make_exceptional_future(qf_, ResourceException(msg));
+        make_exceptional_future(qf_, ResourceException(msg, output_file_->error()));
         return;
         // LCOV_EXCL_STOP
     }
@@ -287,11 +278,12 @@ void UploadWorker::finalize()
         if (linkat(-1, old_path.c_str(), tmp_fd_.get(), new_path.c_str(), AT_SYMLINK_FOLLOW) == -1)
         {
             // LCOV_EXCL_START
+            int error_code = errno;
             state_ = error;
             QString msg = "Uploader::finish_upload(): linkat \"" + QString::fromStdString(old_path)
                           + "\" to \"" + file->native_identity() + "\" failed: "
                           + QString::fromStdString(storage::internal::safe_strerror(errno));
-            make_exceptional_future(qf_, ResourceException(msg));
+            make_exceptional_future(qf_, ResourceException(msg, error_code));
             return;
             // LCOV_EXCL_STOP
         }
@@ -302,11 +294,12 @@ void UploadWorker::finalize()
         auto old_path = output_file_->fileName().toStdString();
         if (rename(old_path.c_str(), new_path.c_str()) == -1)
         {
+            int error_code = errno;
             state_ = error;
             QString msg = "Uploader::finish_upload(): rename \"" + QString::fromStdString(old_path)
                           + "\" to \"" + file->native_identity() + "\" failed: "
                           + QString::fromStdString(storage::internal::safe_strerror(errno));
-            make_exceptional_future(qf_, ResourceException(msg));
+            make_exceptional_future(qf_, ResourceException(msg, error_code));
             return;
         }
         // LCOV_EXCL_STOP
@@ -318,7 +311,8 @@ void UploadWorker::finalize()
     make_ready_future(qf_, file);
 }
 
-void UploadWorker::handle_error(QString const& msg)
+// LCOV_EXCL_START
+void UploadWorker::handle_error(QString const& msg, int error_code)
 {
     if (state_ == in_progress)
     {
@@ -327,8 +321,10 @@ void UploadWorker::handle_error(QString const& msg)
     }
     state_ = error;
     error_msg_ = "Uploader: " + msg;
+    error_code_ = error_code;
     do_finish();
 }
+// LCOV_EXCL_STOP
 
 UploadThread::UploadThread(UploadWorker* worker)
     : worker_(worker)
@@ -357,7 +353,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file,
         // LCOV_EXCL_START
         QString msg = "Uploader: cannot create socket pair: "
                       + QString::fromStdString(storage::internal::safe_strerror(errno));
-        make_exceptional_future(qf_, ResourceException(msg));
+        make_exceptional_future(qf_, ResourceException(msg, errno));
         return;
         // LCOV_EXCL_STOP
     }
@@ -405,6 +401,7 @@ QFuture<File::SPtr> UploaderImpl::finish_upload()
     if (write_socket_->state() == QLocalSocket::ConnectedState)
     {
         write_socket_->disconnectFromServer();
+        write_socket_->close();
     }
     return qf_.future();
 }
@@ -412,6 +409,8 @@ QFuture<File::SPtr> UploaderImpl::finish_upload()
 QFuture<void> UploaderImpl::cancel() noexcept
 {
     Q_EMIT do_cancel();
+    upload_thread_->wait();
+    write_socket_->abort();
     return qf_.future();
 }
 

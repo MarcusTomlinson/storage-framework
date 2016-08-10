@@ -69,7 +69,7 @@ private:
     QDBusUnixFileDescriptor fd_;
     int64_t size_;
     QString old_etag_;
-    std::weak_ptr<Root> root_;
+    std::shared_ptr<Root> root_;
     std::shared_ptr<ProviderInterface> provider_;
     std::shared_ptr<QLocalSocket> write_socket_;
 };

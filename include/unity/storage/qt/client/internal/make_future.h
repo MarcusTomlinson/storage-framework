@@ -36,21 +36,6 @@ namespace client
 namespace internal
 {
 
-template<typename T = void>
-QFuture<T> make_ready_future()
-{
-    QFutureInterface<void> qf;
-    qf.reportFinished();
-    return qf.future();
-}
-
-template<typename T = void>
-QFuture<T> make_ready_future(QFutureInterface<T> qf)
-{
-    qf.reportFinished();
-    return qf.future();
-}
-
 template<typename T>
 QFuture<T> make_ready_future(T const& val)
 {
@@ -66,6 +51,20 @@ QFuture<T> make_ready_future(QFutureInterface<T> qf, T const& val)
     qf.reportResult(val);
     qf.reportFinished();
     return qf.future();
+}
+
+template<typename T = void>
+QFuture<T> make_ready_future(QFutureInterface<T> qf)
+{
+    qf.reportFinished();
+    return qf.future();
+}
+
+template<typename T = void>
+QFuture<T> make_ready_future()
+{
+    QFutureInterface<void> qf;
+    return make_ready_future(qf);
 }
 
 template<typename E>
