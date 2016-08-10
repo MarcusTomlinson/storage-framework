@@ -276,6 +276,7 @@ TEST_F(FolderTest, basic)
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto uploader = create_file_fut.result();
+    EXPECT_EQ(0, uploader->size());
     auto finish_upload_fut = uploader->finish_upload();
     {
         QFutureWatcher<File::SPtr> w;
@@ -424,6 +425,7 @@ TEST_F(FileTest, upload)
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto uploader = create_uploader_fut.result();
+    EXPECT_EQ(0, uploader->size());
 
     auto finish_upload_fut = uploader->finish_upload();
     {

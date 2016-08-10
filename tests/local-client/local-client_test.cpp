@@ -422,6 +422,7 @@ TEST(File, create_uploader)
 
     // Make a new file first.
     auto uploader = call(root->create_file("new_file", 0));
+    EXPECT_EQ(0, uploader->size());
     auto file = call(uploader->finish_upload());
     EXPECT_EQ(0, file->size());
     auto old_etag = file->etag();
@@ -434,6 +435,7 @@ TEST(File, create_uploader)
     // Same test again, but this time, we write a bunch of data.
     std::string s(1000000, 'a');
     uploader = call(file->create_uploader(ConflictPolicy::overwrite, s.size()));
+    EXPECT_EQ(1000000, uploader->size());
     uploader->socket()->write(&s[0], s.size());
 
     // Need to sleep here, otherwise it is possible for the
@@ -546,6 +548,69 @@ TEST(File, upload_error)
         EXPECT_TRUE(e.error_message().endsWith("\" exists already"));
         EXPECT_EQ(TEST_DIR "/storage-framework/new_file", e.native_identity()) << e.native_identity().toStdString();
         EXPECT_EQ("new_file", e.name());
+    }
+}
+
+TEST(File, upload_bad_size)
+{
+    auto runtime = Runtime::create();
+
+    auto acc = get_account(runtime);
+    auto root = get_root(runtime);
+    clear_folder(root);
+
+    // Uploader expects 100 bytes, but we write only 50.
+    {
+        auto uploader = call(root->create_file("file50", 100));
+        auto socket = uploader->socket();
+
+        QByteArray const contents(50, 'x');
+        auto written = socket->write(contents);
+        ASSERT_EQ(50, written);
+
+        try
+        {
+            call(uploader->finish_upload());
+            FAIL();
+        }
+        catch (LogicException const& e)
+        {
+            EXPECT_TRUE(e.error_message().startsWith("Uploader::finish_upload(): "));
+            EXPECT_TRUE(e.error_message().endsWith(": upload size of 100 does not match actual number of bytes read: 50"));
+        }
+    }
+
+    // Uploader expects 100 bytes, but we write 101.
+    {
+        auto uploader = call(root->create_file("file100", 100));
+        auto socket = uploader->socket();
+
+        QByteArray const contents(101, 'x');
+        auto written = socket->write(contents);
+        ASSERT_EQ(101, written);
+
+        try
+        {
+            call(uploader->finish_upload());
+            FAIL();
+        }
+        catch (LogicException const& e)
+        {
+            EXPECT_TRUE(e.error_message().startsWith("Uploader::finish_upload(): "));
+            EXPECT_TRUE(e.error_message().endsWith(": upload size of 100 does not match actual number of bytes read: 101"));
+        }
+
+        // Calling finish_upload() again must return the same future as the first time.
+        try
+        {
+            call(uploader->finish_upload());
+            FAIL();
+        }
+        catch (LogicException const& e)
+        {
+            EXPECT_TRUE(e.error_message().startsWith("Uploader::finish_upload(): "));
+            EXPECT_TRUE(e.error_message().endsWith(": upload size of 100 does not match actual number of bytes read: 101"));
+        }
     }
 }
 
