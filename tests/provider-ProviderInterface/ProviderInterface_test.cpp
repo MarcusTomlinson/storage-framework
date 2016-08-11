@@ -16,6 +16,7 @@
  * Authors: James Henstridge <james.henstridge@canonical.com>
  */
 
+#include <unity/storage/internal/dbus_error.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/testing/TestServer.h>
 
@@ -50,7 +51,7 @@ namespace {
 const auto SERVICE_CONNECTION_NAME = QStringLiteral("service-session-bus");
 const auto BUS_PATH = QStringLiteral("/provider");
 const auto PROVIDER_IFACE = QStringLiteral("com.canonical.StorageFramework.Provider");
-const char PROVIDER_ERROR[] = "com.canonical.StorageFramework.Provider.Error";
+const QString PROVIDER_ERROR = unity::storage::internal::DBUS_ERROR_PREFIX;
 
 }
 
@@ -158,13 +159,13 @@ TEST_F(ProviderInterfaceTest, list)
     reply = client_->List("root_id", "bad_page_token");
     wait_for(reply);
     EXPECT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR, reply.error().name());
-    EXPECT_EQ("Unknown page token", reply.error().message());
+    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name()) << reply.error().name().toStdString();
+    EXPECT_EQ("Unknown page token", reply.error().message()) << reply.error().message().toStdString();
 
     reply = client_->List("no_such_folder_id", "");
     wait_for(reply);
     EXPECT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR, reply.error().name());
+    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
     EXPECT_EQ("Unknown folder", reply.error().message());
 }
 
@@ -253,7 +254,7 @@ TEST_F(ProviderInterfaceTest, create_file)
 
     auto reply = client_->FinishUpload(upload_id);
     wait_for(reply);
-    ASSERT_TRUE(reply.isValid());
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("new_file_id", item.item_id);
     EXPECT_EQ("parent_id", item.parent_id);
@@ -322,7 +323,7 @@ TEST_F(ProviderInterfaceTest, upload_short_write)
     auto reply = client_->FinishUpload(upload_id);
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR, reply.error().name());
+    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
     EXPECT_EQ("wrong number of bytes written", reply.error().message());
 }
 
@@ -396,7 +397,7 @@ TEST_F(ProviderInterfaceTest, finish_upload_unknown)
     auto reply = client_->FinishUpload("no-such-upload");
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR, reply.error().name());
+    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
     EXPECT_EQ("map::at", reply.error().message());
 }
 
@@ -459,7 +460,7 @@ TEST_F(ProviderInterfaceTest, download_short_read)
     auto reply = client_->FinishDownload(download_id);
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR, reply.error().name());
+    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
     EXPECT_EQ("Not all data read", reply.error().message());
 }
 
@@ -470,7 +471,7 @@ TEST_F(ProviderInterfaceTest, finish_download_unknown)
     auto reply = client_->FinishDownload("no-such-download");
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR, reply.error().name());
+    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
     EXPECT_EQ("map::at", reply.error().message());
 }
 

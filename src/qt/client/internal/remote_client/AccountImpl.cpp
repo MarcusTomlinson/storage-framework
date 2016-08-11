@@ -83,6 +83,15 @@ QString AccountImpl::description() const
 
 QFuture<QVector<Root::SPtr>> AccountImpl::roots()
 {
+    try
+    {
+        runtime();  // Throws if runtime was destroyed.
+    }
+    catch (RuntimeDestroyedException const& e)
+    {
+        return make_exceptional_future<QVector<Root::SPtr>>(e);
+    }
+
     auto reply = provider_->Roots();
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<QVector<Root::SPtr>>& qf)

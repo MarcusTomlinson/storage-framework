@@ -356,7 +356,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file,
 {
     // Set up socket pair.
     int fds[2];
-    int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
+    int rc = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
     if (rc == -1)
     {
         // LCOV_EXCL_START
