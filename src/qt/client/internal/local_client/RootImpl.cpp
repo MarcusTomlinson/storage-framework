@@ -79,7 +79,14 @@ QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Item::parents()");
+    try
+    {
+        throw_if_destroyed("Item::parents()");
+    }
+    catch (StorageException const& e)
+    {
+        return internal::make_exceptional_future<QVector<Folder::SPtr>>(e);
+    }
     return make_ready_future(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
 }
 

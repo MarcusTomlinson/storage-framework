@@ -51,12 +51,6 @@ public:
 
     QFuture<T> future();
 
-#if 0
-    template<typename ... DBusArgs>
-    void unmarshal_exception(QDBusPendingReply<DBusArgs...> const& reply);
-    void unmarshal_exception(QDBusPendingCallWatcher const& call);
-#endif
-
 private:
     QFutureInterface<T> qf_;
 };

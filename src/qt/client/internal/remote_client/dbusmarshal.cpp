@@ -197,7 +197,8 @@ std::exception_ptr unmarshal_exception(QDBusPendingCallWatcher const& call)
     auto exception_type = call.error().name();
     if (!exception_type.startsWith(DBUS_ERROR_PREFIX))
     {
-        QString msg = "unmarshal_exception(): impossible exception type received from server: " + exception_type;
+        QString msg = "unmarshal_exception(): unknown exception type received from server: " + exception_type
+                      + ": " + call.error().message();
         return make_exception_ptr(LocalCommsException(msg));
     }
     exception_type = exception_type.remove(0, strlen(DBUS_ERROR_PREFIX));
@@ -205,7 +206,8 @@ std::exception_ptr unmarshal_exception(QDBusPendingCallWatcher const& call)
     auto factory_it = exception_factories.find(exception_type);
     if (factory_it == exception_factories.end())
     {
-        QString msg = "unmarshal_exception(): impossible exception type received from server: " + exception_type;
+        QString msg = "unmarshal_exception(): unknown exception type received from server: " + exception_type
+                      + ": " + call.error().message();
         return make_exception_ptr(LocalCommsException(msg));
     }
     return factory_it->second(call);

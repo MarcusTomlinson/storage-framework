@@ -18,6 +18,7 @@ add_executable(provider-ProviderInterface_test
   ../../src/qt/client/internal/remote_client/dbusmarshal.cpp
   ${generated_files}
 )
+add_dependencies(provider-ProviderInterface_test storage-framework-provider)
 set_target_properties(provider-ProviderInterface_test PROPERTIES
   AUTOMOC TRUE
 )

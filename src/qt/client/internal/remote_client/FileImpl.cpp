@@ -124,7 +124,7 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
         }
         catch (StorageException const& e)
         {
-            make_exceptional_future(qf, RuntimeDestroyedException("File::create_uploader()"));
+            make_exceptional_future(qf, e);
         }
 
         auto download_id = reply.argumentAt<0>();
