@@ -18,7 +18,12 @@
 
 #pragma once
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QDBusArgument>
+#include <QVariant>
+#pragma GCC diagnostic pop
+
 #include <vector>
 
 namespace unity
