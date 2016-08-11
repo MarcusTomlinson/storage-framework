@@ -54,7 +54,7 @@ protected:
     void SetUp() override
     {
         dbus_.reset(new DBusEnvironment);
-        dbus_->add_demo_provider("google-drive-scope");
+        dbus_->add_demo_provider("com.canonical.scopes.mcloud_mcloud_mcloud");
         dbus_->start_services();
     }
 
