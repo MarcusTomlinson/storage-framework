@@ -18,28 +18,27 @@
 
 #pragma once
 
-#include <exception>
+#include <unity/storage/internal/ItemMetadata.h>
 
-class QDBusPendingCallWatcher;
+#include <QDBusArgument>
+#include <QMetaType>
 
 namespace unity
 {
 namespace storage
 {
-namespace qt
-{
-namespace client
-{
 namespace internal
 {
-namespace remote_client
-{
 
-std::exception_ptr unmarshal_exception(QDBusPendingCallWatcher const& call);
+QDBusArgument& operator<<(QDBusArgument& argument, ItemMetadata const& metadata);
+QDBusArgument const& operator>>(QDBusArgument const& argument, ItemMetadata& metadata);
 
-}  // namespace remote_client
+QDBusArgument& operator<<(QDBusArgument& argument, QList<ItemMetadata> const& md_list);
+QDBusArgument const& operator>>(QDBusArgument const& argument, QList<ItemMetadata>& md_list);
+
 }  // namespace internal
-}  // client
-}  // qt
 }  // storage
 }  // unity
+
+Q_DECLARE_METATYPE(unity::storage::internal::ItemMetadata)
+Q_DECLARE_METATYPE(QList<unity::storage::internal::ItemMetadata>)
