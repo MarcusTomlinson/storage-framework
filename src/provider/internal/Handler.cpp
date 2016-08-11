@@ -116,7 +116,7 @@ void Handler::marshal_exception(exception_ptr ep)
     }
     catch (StorageException const& e)
     {
-        reply_ = message_.createErrorReply(QString::fromStdString(DBUS_ERROR_PREFIX) + QString::fromStdString(e.type()),
+        reply_ = message_.createErrorReply(QString(DBUS_ERROR_PREFIX) + QString::fromStdString(e.type()),
                                            QString::fromStdString(e.error_message()));
         try
         {
@@ -142,12 +142,11 @@ void Handler::marshal_exception(exception_ptr ep)
     }
     catch (std::exception const& e)
     {
-        reply_ = message_.createErrorReply(QString::fromStdString(DBUS_ERROR_PREFIX) + "UnknownException", e.what());
+        reply_ = message_.createErrorReply(QString(DBUS_ERROR_PREFIX) + "UnknownException", e.what());
     }
     catch (...)
     {
-        reply_ = message_.createErrorReply(QString::fromStdString(DBUS_ERROR_PREFIX) + "UnknownException",
-                                           "unknown exception type");
+        reply_ = message_.createErrorReply(QString(DBUS_ERROR_PREFIX) + "UnknownException", "unknown exception type");
     }
 }
 
