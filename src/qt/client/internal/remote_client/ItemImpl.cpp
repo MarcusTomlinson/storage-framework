@@ -209,7 +209,7 @@ QVector<QString> ItemImpl::parent_ids() const
 {
     throw_if_destroyed("Item::parent_ids()");
     // TODO, need different metadata representation, affects xml
-    return QVector<QString>();
+    return md_.parent_ids;
 }
 
 QFuture<void> ItemImpl::delete_item()

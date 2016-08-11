@@ -141,7 +141,7 @@ boost::future<ItemList> MyProvider::roots(Context const& ctx)
 {
     printf("roots() called by %s (%d)\n", ctx.security_label.c_str(), ctx.pid);
     ItemList roots = {
-        {"root_id", "", "Root", "etag", ItemType::root, {}},
+        {"root_id", {}, "Root", "etag", ItemType::root, {}},
     };
     return make_ready_future<ItemList>(roots);
 }
@@ -162,7 +162,7 @@ boost::future<tuple<ItemList,string>> MyProvider::list(
     ItemList children =
     {
         {
-            "child_id", "root_id", "Child", "etag", ItemType::file,
+            "child_id", { "root_id" }, "Child", "etag", ItemType::file,
             { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
         }
     };
@@ -181,7 +181,7 @@ boost::future<ItemList> MyProvider::lookup(
     }
     ItemList children =
     {
-        { "child_id", "root_id", "Child", "etag", ItemType::file,
+        { "child_id", { "root_id" }, "Child", "etag", ItemType::file,
           { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } } }
     };
     return make_ready_future<ItemList>(children);
@@ -193,21 +193,21 @@ boost::future<Item> MyProvider::metadata(string const& item_id,
     printf("metadata('%s') called by %s (%d)\n", item_id.c_str(), ctx.security_label.c_str(), ctx.pid);
     if (item_id == "root_id")
     {
-        Item metadata{"root_id", "", "Root", "etag", ItemType::root, {}};
+        Item metadata{"root_id", {}, "Root", "etag", ItemType::root, {}};
         return make_ready_future<Item>(metadata);
     }
     else if (item_id == "child_id")
     {
         Item metadata
         {
-            "child_id", "root_id", "Child", "etag", ItemType::file,
+            "child_id", { "root_id" }, "Child", "etag", ItemType::file,
             { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
         };
         return make_ready_future<Item>(metadata);
     }
     else if (item_id == "child_folder_id")
     {
-        Item metadata{"child_folder_id", "root_id", "Child_Folder", "etag", ItemType::folder, {}};
+        Item metadata{"child_folder_id", { "root_id" }, "Child_Folder", "etag", ItemType::folder, {}};
         return make_ready_future<Item>(metadata);
     }
     return make_exceptional_future<Item>(NotExistsException("metadata(): no such item: " + item_id, item_id));
@@ -218,7 +218,7 @@ boost::future<Item> MyProvider::create_folder(
     Context const& ctx)
 {
     printf("create_folder('%s', '%s') called by %s (%d)\n", parent_id.c_str(), name.c_str(), ctx.security_label.c_str(), ctx.pid);
-    Item metadata{"new_folder_id", parent_id, name, "etag", ItemType::folder, {}};
+    Item metadata{"new_folder_id", { parent_id }, name, "etag", ItemType::folder, {}};
     return make_ready_future<Item>(metadata);
 }
 
@@ -273,7 +273,7 @@ boost::future<Item> MyProvider::move(
     string const& new_name, Context const& ctx)
 {
     printf("move('%s', '%s', '%s') called by %s (%d)\n", item_id.c_str(), new_parent_id.c_str(), new_name.c_str(), ctx.security_label.c_str(), ctx.pid);
-    Item metadata{item_id, new_parent_id, new_name, "etag", ItemType::file, {}};
+    Item metadata{item_id, { new_parent_id }, new_name, "etag", ItemType::file, {}};
     return make_ready_future(metadata);
 }
 
@@ -282,7 +282,7 @@ boost::future<Item> MyProvider::copy(
     string const& new_name, Context const& ctx)
 {
     printf("copy('%s', '%s', '%s') called by %s (%d)\n", item_id.c_str(), new_parent_id.c_str(), new_name.c_str(), ctx.security_label.c_str(), ctx.pid);
-    Item metadata{"new_item_id", new_parent_id, new_name, "etag", ItemType::file, {}};
+    Item metadata{"new_item_id", { new_parent_id }, new_name, "etag", ItemType::file, {}};
     return make_ready_future(metadata);
 }
 
@@ -304,7 +304,7 @@ boost::future<Item> MyUploadJob::finish()
 
     Item metadata
     {
-        "some_id", "root_id", "some_upload", "etag", ItemType::file,
+        "some_id", { "root_id" }, "some_upload", "etag", ItemType::file,
         { { SIZE_IN_BYTES, 10 }, { LAST_MODIFIED_TIME, "2011-04-05T14:30:10.005Z" } }
     };
     return make_ready_future(metadata);
