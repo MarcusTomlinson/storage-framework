@@ -261,7 +261,7 @@ TEST_F(ProviderInterfaceTest, create_file)
 
     auto reply = client_->FinishUpload(upload_id);
     wait_for(reply);
-    ASSERT_TRUE(reply.isValid());
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("new_file_id", item.item_id);
     EXPECT_EQ("parent_id", item.parent_id);
