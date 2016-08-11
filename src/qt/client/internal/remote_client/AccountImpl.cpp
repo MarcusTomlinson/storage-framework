@@ -41,10 +41,9 @@ namespace internal
 namespace remote_client
 {
 
-static constexpr char BUS_NAME[] = "com.canonical.StorageFramework.Provider.ProviderTest";
-
 AccountImpl::AccountImpl(weak_ptr<Runtime> const& runtime,
-                         int account_id,
+                         QString const& bus_name,
+                         QString const& object_path,
                          QString const& owner,
                          QString const& owner_id,
                          QString const& description)
@@ -55,8 +54,7 @@ AccountImpl::AccountImpl(weak_ptr<Runtime> const& runtime,
 {
     auto rt_impl = dynamic_pointer_cast<RuntimeImpl>(runtime.lock()->p_);
     assert(rt_impl);
-    QString bus_path = "/provider/" + QString::number(account_id);
-    provider_.reset(new ProviderInterface(BUS_NAME, bus_path, rt_impl->connection()));
+    provider_.reset(new ProviderInterface(bus_name, object_path, rt_impl->connection()));
     if (!provider_->isValid())
     {
         throw LocalCommsException("AccountImpl(): " + provider_->lastError().message());

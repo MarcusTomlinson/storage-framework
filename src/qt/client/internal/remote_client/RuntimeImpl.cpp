@@ -41,6 +41,11 @@
 
 using namespace std;
 
+namespace
+{
+constexpr char BUS_NAME[] = "com.canonical.StorageFramework.Provider.ProviderTest";
+}
+
 namespace unity
 {
 namespace storage
@@ -128,7 +133,8 @@ void RuntimeImpl::manager_ready()
         QVector<Account::SPtr> accounts;
         for (auto const& a : manager_->availableAccounts("google-drive-scope"))
         {
-            auto impl = new AccountImpl(public_instance_, a->id(), "", a->serviceId(), a->displayName());
+            auto object_path = QStringLiteral("/provider/%1").arg(a->id());
+            auto impl = new AccountImpl(public_instance_, BUS_NAME, object_path, "", a->serviceId(), a->displayName());
             Account::SPtr acc(new Account(impl));
             impl->set_public_instance(acc);
             accounts.append(acc);
