@@ -13,33 +13,56 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authors: Michi Henning <michi.henning@canonical.com>
+ * Authors: James Henstridge <james.henstridge@canonical.com>
  */
 
 #pragma once
 
-#include <exception>
+#include <unity/storage/visibility.h>
 
-class QDBusPendingCallWatcher;
+#include <memory>
+#include <string>
+
+namespace OnlineAccounts
+{
+class Account;
+}
+class QDBusConnection;
 
 namespace unity
 {
 namespace storage
 {
-namespace qt
+namespace provider
 {
-namespace client
-{
+
+class ProviderBase;
+
 namespace internal
 {
-namespace remote_client
+class TestServerImpl;
+}
+
+namespace testing
 {
 
-std::exception_ptr unmarshal_exception(QDBusPendingCallWatcher const& call);
+class UNITY_STORAGE_EXPORT TestServer
+{
+public:
+    TestServer(std::unique_ptr<ProviderBase>&& provider,
+               OnlineAccounts::Account* account,
+               QDBusConnection const& connection,
+               std::string const& object_path);
+    ~TestServer();
 
-}  // namespace remote_client
-}  // namespace internal
-}  // client
-}  // qt
-}  // storage
-}  // unity
+    QDBusConnection const& connection() const;
+    std::string const& object_path() const;
+
+private:
+    std::unique_ptr<internal::TestServerImpl> p_;
+};
+
+}
+}
+}
+}
