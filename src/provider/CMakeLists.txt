@@ -18,6 +18,7 @@ add_library(sf-provider-objects OBJECT
   Server.cpp
   TempfileUploadJob.cpp
   UploadJob.cpp
+  testing/TestServer.cpp
   internal/AccountData.cpp
   internal/DBusPeerCache.cpp
   internal/DownloadJobImpl.cpp
@@ -27,6 +28,7 @@ add_library(sf-provider-objects OBJECT
   internal/ProviderInterface.cpp
   internal/ServerImpl.cpp
   internal/TempfileUploadJobImpl.cpp
+  internal/TestServerImpl.cpp
   internal/UploadJobImpl.cpp
   internal/dbusmarshal.cpp
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/AccountData.h
