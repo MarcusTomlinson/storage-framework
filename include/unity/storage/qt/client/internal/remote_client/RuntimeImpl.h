@@ -53,6 +53,12 @@ public:
 
     QDBusConnection& connection();
 
+    std::shared_ptr<Account> make_account(QString const& bus_name,
+                                          QString const& object_path,
+                                          QString const& owner,
+                                          QString const& owner_id,
+                                          QString const& description);
+
 private Q_SLOTS:
     virtual void manager_ready();
     virtual void timeout();

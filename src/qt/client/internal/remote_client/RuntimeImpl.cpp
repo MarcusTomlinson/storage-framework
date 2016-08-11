@@ -134,10 +134,8 @@ void RuntimeImpl::manager_ready()
         for (auto const& a : manager_->availableAccounts("google-drive-scope"))
         {
             auto object_path = QStringLiteral("/provider/%1").arg(a->id());
-            auto impl = new AccountImpl(public_instance_, BUS_NAME, object_path, "", a->serviceId(), a->displayName());
-            Account::SPtr acc(new Account(impl));
-            impl->set_public_instance(acc);
-            accounts.append(acc);
+            accounts.append(make_account(BUS_NAME, object_path,
+                                         "", a->serviceId(), a->displayName()));
         }
         accounts_ = accounts;
         make_ready_future(qf_, accounts);
@@ -152,6 +150,20 @@ void RuntimeImpl::timeout()
 {
     make_exceptional_future(qf_, ResourceException("Runtime::accounts(): timeout retrieving Online accounts", 0));
 }
+
+shared_ptr<Account> RuntimeImpl::make_account(QString const& bus_name,
+                                              QString const& object_path,
+                                              QString const& owner,
+                                              QString const& owner_id,
+                                              QString const& description)
+{
+    auto impl = new AccountImpl(public_instance_, bus_name, object_path,
+                                owner, owner_id, description);
+    Account::SPtr acc(new Account(impl));
+    impl->set_public_instance(acc);
+    return acc;
+}
+
 
 }  // namespace local_client
 }  // namespace internal
