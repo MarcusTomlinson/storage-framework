@@ -124,7 +124,15 @@ void DownloadJobImpl::report_error(std::exception_ptr p)
 
     lock_guard<mutex> guard(completion_lock_);
     completed_ = true;
-    completion_promise_.set_exception(p);
+    // Convert std::exception_ptr to boost::exception_ptr
+    try
+    {
+        std::rethrow_exception(p);
+    }
+    catch (...)
+    {
+        completion_promise_.set_exception(boost::current_exception());
+    }
 }
 
 boost::future<void> DownloadJobImpl::finish(DownloadJob& job)
