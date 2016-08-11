@@ -52,7 +52,7 @@ protected:
     void SetUp() override
     {
         dbus_.reset(new DBusEnvironment);
-        dbus_->add_demo_provider("google-drive-scope");
+        dbus_->add_demo_provider("com.canonical.scopes.mcloud_mcloud_mcloud");
         dbus_->start_services();
     }
 
@@ -157,8 +157,8 @@ TEST_F(RuntimeTest, basic)
     auto acc = get_account(runtime);
     EXPECT_EQ(runtime, acc->runtime());
     EXPECT_EQ("", acc->owner());
-    EXPECT_EQ("google-drive-scope", acc->owner_id()) << acc->owner_id().toStdString();
-    EXPECT_EQ("Fake google account", acc->description()) << acc->description().toStdString();
+    EXPECT_EQ("com.canonical.scopes.mcloud_mcloud_mcloud", acc->owner_id());
+    EXPECT_EQ("Fake mcloud account", acc->description());
 }
 
 TEST_F(RuntimeTest, roots)
