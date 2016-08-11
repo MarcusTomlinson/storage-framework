@@ -14,6 +14,7 @@ add_custom_target(sf-provider-generated-files DEPENDS ${generated_files})
 
 add_library(sf-provider-objects OBJECT
   DownloadJob.cpp
+  Exceptions.cpp
   ProviderBase.cpp
   Server.cpp
   TempfileUploadJob.cpp

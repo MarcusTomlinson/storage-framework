@@ -71,7 +71,7 @@ QString RootImpl::name() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Root::name()");
+    throw_if_destroyed("Item::name()");
     return "";
 }
 
@@ -79,7 +79,14 @@ QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Root::parents()");
+    try
+    {
+        throw_if_destroyed("Item::parents()");
+    }
+    catch (StorageException const& e)
+    {
+        return internal::make_exceptional_future<QVector<Folder::SPtr>>(e);
+    }
     return make_ready_future(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
 }
 
@@ -87,7 +94,7 @@ QVector<QString> RootImpl::parent_ids() const
 {
     lock_guard<decltype(mutex_)> guard(mutex_);
 
-    throw_if_destroyed("Root::parent_ids()");
+    throw_if_destroyed("Item::parent_ids()");
     return QVector<QString>();  // For the root, we return an empty vector.
 }
 
@@ -97,14 +104,14 @@ QFuture<void> RootImpl::delete_item()
 
     try
     {
-        throw_if_destroyed("Root::delete_item()");
+        throw_if_destroyed("Item::delete_item()");
     }
     catch (StorageException const& e)
     {
         return internal::make_exceptional_future(e);
     }
     // Cannot delete root.
-    return internal::make_exceptional_future(LogicException("Root::delete_item(): Cannot delete root folder"));
+    return internal::make_exceptional_future(LogicException("Item::delete_item(): cannot delete root folder"));
 }
 
 QFuture<int64_t> RootImpl::free_space_bytes() const

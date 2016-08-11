@@ -105,7 +105,7 @@ QString DeletedException::native_identity() const
 }
 
 RuntimeDestroyedException::RuntimeDestroyedException(QString const& method)
-    : StorageException("RuntimeDestroyedException", method + ": Runtime was destroyed previously")
+    : StorageException("RuntimeDestroyedException", method + ": runtime was destroyed previously")
 {
 }
 
