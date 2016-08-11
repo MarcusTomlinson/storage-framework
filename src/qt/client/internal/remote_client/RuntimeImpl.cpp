@@ -124,15 +124,22 @@ void RuntimeImpl::manager_ready()
     }
 
     timer_.stop();
+
+    static QString const service_ids[] = { "com.canonical.scopes.mcloud_mcloud_mcloud", "google-drive-scope" };
+
     try
     {
         QVector<Account::SPtr> accounts;
-        for (auto const& a : manager_->availableAccounts("google-drive-scope"))
+        for (auto const service_id : service_ids)
         {
-            auto impl = new AccountImpl(public_instance_, a->id(), "", a->serviceId(), a->displayName());
-            Account::SPtr acc(new Account(impl));
-            impl->set_public_instance(acc);
-            accounts.append(acc);
+            for (auto const& a : manager_->availableAccounts(service_id))
+            {
+                qDebug() << "got account:" << a->displayName() << a->serviceId() << a->id();
+                auto impl = new AccountImpl(public_instance_, a->id(), "", a->serviceId(), a->displayName());
+                Account::SPtr acc(new Account(impl));
+                impl->set_public_instance(acc);
+                accounts.append(acc);
+            }
         }
         accounts_ = accounts;
         make_ready_future(qf_, accounts);
