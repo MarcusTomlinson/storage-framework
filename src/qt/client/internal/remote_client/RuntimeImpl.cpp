@@ -81,15 +81,21 @@ RuntimeImpl::~RuntimeImpl()
 
 void RuntimeImpl::shutdown()
 {
-    if (destroyed_.exchange(true))
+    if (destroyed_)
     {
         return;
     }
+    destroyed_ = true;
     conn_.disconnectFromBus(conn_.name());
 }
 
 QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 {
+    if (destroyed_)
+    {
+        return make_exceptional_future(qf_, RuntimeDestroyedException("Runtime::accounts()"));
+    }
+
     if (!manager_)
     {
         manager_.reset(new OnlineAccounts::Manager("", conn_));
@@ -110,6 +116,12 @@ QDBusConnection& RuntimeImpl::connection()
 
 void RuntimeImpl::manager_ready()
 {
+    if (destroyed_)
+    {
+        make_exceptional_future(qf_, RuntimeDestroyedException("Runtime::accounts()"));
+        return;
+    }
+
     timer_.stop();
     try
     {
@@ -133,7 +145,7 @@ void RuntimeImpl::manager_ready()
 
 void RuntimeImpl::timeout()
 {
-    make_exceptional_future(qf_, ResourceException("timeout error"));  // TODO
+    make_exceptional_future(qf_, ResourceException("Runtime::accounts(): timeout retrieving Online accounts", 0));
 }
 
 }  // namespace local_client

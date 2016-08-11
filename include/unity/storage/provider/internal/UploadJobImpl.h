@@ -21,7 +21,10 @@
 #include <unity/storage/provider/ProviderBase.h>
 
 #include <boost/thread/future.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-default"
 #include <QObject>
+#pragma GCC diagnostic pop
 
 #include <exception>
 #include <mutex>

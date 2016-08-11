@@ -173,7 +173,7 @@ TEST_F(RuntimeTest, basic)
     auto runtime = Runtime::create(connection());
 
     auto acc = get_account(runtime);
-    EXPECT_EQ(runtime.get(), acc->runtime());
+    EXPECT_EQ(runtime, acc->runtime());
     qDebug() << "owner:      " << acc->owner();
     qDebug() << "owner ID:   " << acc->owner_id();
     qDebug() << "description:" << acc->description();
@@ -204,7 +204,7 @@ TEST_F(RootTest, basic)
     auto acc = get_account(runtime);
     auto root = get_root(runtime);
     EXPECT_EQ("root_id", root->native_identity());
-    EXPECT_EQ(acc.get(), root->account());
+    EXPECT_EQ(acc, root->account());
     EXPECT_EQ(ItemType::root, root->type());
     EXPECT_EQ("Root", root->name());
     EXPECT_NE("", root->etag());
@@ -262,7 +262,7 @@ TEST_F(FolderTest, basic)
         QFutureWatcher<QVector<Item::SPtr>> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(list_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto items = list_fut.result();
     ASSERT_EQ(1, items.size());
@@ -273,15 +273,16 @@ TEST_F(FolderTest, basic)
         QFutureWatcher<Uploader::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(create_file_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto uploader = create_file_fut.result();
+    EXPECT_EQ(0, uploader->size());
     auto finish_upload_fut = uploader->finish_upload();
     {
         QFutureWatcher<File::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(finish_upload_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto file = finish_upload_fut.result();
     EXPECT_EQ(ItemType::file, file->type());
@@ -295,7 +296,7 @@ TEST_F(FolderTest, basic)
         QFutureWatcher<Item::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(get_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     file = dynamic_pointer_cast<File>(get_fut.result());
     EXPECT_EQ("child_id", file->native_identity());
@@ -308,7 +309,7 @@ TEST_F(FolderTest, basic)
         QFutureWatcher<Folder::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(create_folder_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     EXPECT_EQ(ItemType::folder, folder->type());
     EXPECT_EQ("folder1", folder->name());
@@ -408,7 +409,7 @@ TEST_F(FileTest, upload)
         QFutureWatcher<QVector<Item::SPtr>> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(lookup_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto children = lookup_fut.result();
     ASSERT_EQ(1, children.size());
@@ -421,16 +422,17 @@ TEST_F(FileTest, upload)
         QFutureWatcher<Uploader::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(create_uploader_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto uploader = create_uploader_fut.result();
+    EXPECT_EQ(0, uploader->size());
 
     auto finish_upload_fut = uploader->finish_upload();
     {
         QFutureWatcher<File::SPtr> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(finish_upload_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     auto uploaded_file = finish_upload_fut.result();
     EXPECT_EQ("some_id", uploaded_file->native_identity());
@@ -446,7 +448,7 @@ TEST_F(FileTest, upload)
             QFutureWatcher<File::SPtr> w;
             QSignalSpy spy(&w, &decltype(w)::finished);
             w.setFuture(finish_upload_fut);
-            assert(spy.wait(SIGNAL_WAIT_TIME));
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
         }
         auto file = finish_upload_fut.result();
     }

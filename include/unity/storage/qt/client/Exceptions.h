@@ -46,6 +46,8 @@ public:
 
     virtual char const* what() const noexcept override;
 
+    QString error_message() const;
+
 private:
     std::string what_string_;
     QString error_message_;
@@ -83,18 +85,16 @@ public:
 class UNITY_STORAGE_EXPORT DeletedException : public StorageException
 {
 public:
-    DeletedException(QString const& error_message, QString const& identity_, QString const& name_);
+    DeletedException(QString const& error_message, QString const& identity_);
     ~DeletedException();
 
     virtual DeletedException* clone() const override;
     virtual void raise() const override;
 
     QString native_identity() const;
-    QString name() const;
 
 private:
     QString identity_;
-    QString name_;
 };
 
 /**
@@ -234,11 +234,16 @@ or any other (usually non-recoverable) kind of error that should not arise durin
 class UNITY_STORAGE_EXPORT ResourceException : public StorageException
 {
 public:
-    ResourceException(QString const& error_message);
+    ResourceException(QString const& error_message, int error_code);
     ~ResourceException();
 
     virtual ResourceException* clone() const override;
     virtual void raise() const override;
+
+    int error_code() const noexcept;
+
+private:
+    int error_code_;
 };
 
 }  // namespace client

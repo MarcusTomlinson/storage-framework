@@ -132,6 +132,8 @@ enable_coverage_report(
         qt-client-lib-common
         storage-framework-qt-client
         storage-framework-qt-local-client
+        sf-provider-objects
+        storage-framework-provider
     FILTER
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_BINARY_DIR}/*

@@ -18,9 +18,13 @@
 
 #pragma once
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Wswitch-default"
 #include <QDBusConnection>
 #include <QDBusServiceWatcher>
 #include <QObject>
+#pragma GCC diagnostic pop
 
 #include <map>
 #include <memory>

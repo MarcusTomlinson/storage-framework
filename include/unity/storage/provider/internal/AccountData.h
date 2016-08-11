@@ -20,10 +20,14 @@
 
 #include <unity/storage/provider/Credentials.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Wswitch-default"
 #include <OnlineAccounts/Account>
 #include <OnlineAccounts/PendingCallWatcher>
 #include <QObject>
 #include <QDBusConnection>
+#pragma GCC diagnostic pop
 
 #include <string>
 

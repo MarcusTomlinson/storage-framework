@@ -44,6 +44,7 @@ class Account;
 namespace internal
 {
 
+class AccountBase;
 class RuntimeBase;
 
 namespace remote_client
@@ -100,6 +101,7 @@ private:
 
     std::shared_ptr<internal::RuntimeBase> p_;
 
+    friend class internal::AccountBase;
     friend class internal::remote_client::AccountImpl;
 };
 

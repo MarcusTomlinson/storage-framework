@@ -57,9 +57,13 @@ FolderImpl::FolderImpl(storage::internal::ItemMetadata const& md, ItemType type)
 
 QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
 {
-    if (deleted_)
+    try
     {
-        return make_exceptional_future<QVector<shared_ptr<Item>>>(deleted_ex("Folder::list()"));
+        throw_if_destroyed("Folder::list()");
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<QVector<shared_ptr<Item>>>(e);
     }
 
     auto prov = provider();
@@ -74,7 +78,7 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
     function<void(decltype(reply) const&, QFutureInterface<QVector<shared_ptr<Item>>>&)> process_reply
         = [this, prov, &process_reply](decltype(reply) const& reply, QFutureInterface<QVector<shared_ptr<Item>>>& qf)
     {
-        auto root = root_.lock();
+        auto root = get_root();
         if (!root)
         {
             make_exceptional_future(qf, RuntimeDestroyedException("Folder::list()"));
@@ -113,21 +117,21 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
 
 QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
 {
-    if (deleted_)
+    try
     {
-        return make_exceptional_future<QVector<shared_ptr<Item>>>(deleted_ex("Folder::lookup()"));
+        throw_if_destroyed("Folder::lookup()");
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<QVector<shared_ptr<Item>>>(e);
     }
 
     auto prov = provider();
-    if (!prov)
-    {
-        return make_exceptional_future<QVector<shared_ptr<Item>>>(RuntimeDestroyedException("Folder::lookup()"));
-    }
     auto reply = prov->Lookup(md_.item_id, name);
 
     auto process_reply = [this, name](decltype(reply) const& reply, QFutureInterface<QVector<shared_ptr<Item>>>& qf)
     {
-        auto root = root_.lock();
+        auto root = get_root();
         if (!root)
         {
             make_exceptional_future(qf, RuntimeDestroyedException("Folder::lookup()"));
@@ -159,21 +163,21 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
 
 QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
 {
-    if (deleted_)
+    try
     {
-        return make_exceptional_future<shared_ptr<Folder>>(deleted_ex("Folder::create_folder()"));
+        throw_if_destroyed("Folder::create_folder()");
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<shared_ptr<Folder>>(e);
     }
 
     auto prov = provider();
-    if (!prov)
-    {
-        return make_exceptional_future<shared_ptr<Folder>>(RuntimeDestroyedException("Folder::create_folder()"));
-    }
     auto reply = prov->CreateFolder(md_.item_id, name);
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<Folder>>& qf)
     {
-        auto root = root_.lock();
+        auto root = get_root();
         if (!root)
         {
             make_exceptional_future(qf, RuntimeDestroyedException("Folder::create_folder()"));
@@ -199,9 +203,13 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
 
 QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64_t size)
 {
-    if (deleted_)
+    try
     {
-        return make_exceptional_future<shared_ptr<Uploader>>(deleted_ex("Folder::create_file()"));
+        throw_if_destroyed("Folder::create_file()");
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<shared_ptr<Uploader>>(e);
     }
     if (size < 0)
     {
@@ -210,15 +218,11 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
     }
 
     auto prov = provider();
-    if (!prov)
-    {
-        return make_exceptional_future<shared_ptr<Uploader>>(RuntimeDestroyedException("Folder::create_file()"));
-    }
-
     auto reply = prov->CreateFile(md_.item_id, name, size, "application/octet-stream", false);
+
     auto process_reply = [this, size](decltype(reply) const& reply, QFutureInterface<shared_ptr<Uploader>>& qf)
     {
-        auto root = root_.lock();
+        auto root = get_root();
         if (!root)
         {
             make_exceptional_future(qf, RuntimeDestroyedException("Folder::create_file()"));

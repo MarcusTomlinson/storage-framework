@@ -60,7 +60,7 @@ public:
 
     QString native_identity() const;
     ItemType type() const;
-    Root* root() const;
+    std::shared_ptr<Root> root() const;
 
     virtual QString name() const = 0;
     virtual QString etag() const = 0;
@@ -82,10 +82,14 @@ public:
     void set_public_instance(std::weak_ptr<Item> p);
 
 protected:
+    std::shared_ptr<Root> get_root() const noexcept;
+    void throw_if_destroyed(QString const& method) const;
+
     const QString identity_;
     const ItemType type_;
     std::weak_ptr<Root> root_;
     std::weak_ptr<Item> public_instance_;
+    bool deleted_ = false;
 
     friend class ItemImpl;
 };
