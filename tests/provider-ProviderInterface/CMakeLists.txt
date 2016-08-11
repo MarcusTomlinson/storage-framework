@@ -22,7 +22,7 @@ set_target_properties(provider-ProviderInterface_test PROPERTIES
   AUTOMOC TRUE
 )
 target_link_libraries(provider-ProviderInterface_test
-  storage-framework-provider-static
+  storage-framework-provider
   Qt5::Test
   testutils
   gtest
