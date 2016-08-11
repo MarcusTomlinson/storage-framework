@@ -66,6 +66,12 @@ void validate_type_and_value(QString const& prefix,
                 throw LocalCommsException(prefix + actual.key() + ": value \"" + actual.value().toString()
                                           + "\" does not parse as ISO-8601 date");
             }
+            auto timespec = dt.timeSpec();
+            if (timespec == Qt::LocalTime)
+            {
+                throw LocalCommsException(prefix + actual.key() + ": value \"" + actual.value().toString()
+                                          + "\" lacks a time zone specification");
+            }
             break;
         }
         case MetadataType::int64:
