@@ -34,16 +34,26 @@ namespace provider
 namespace testing
 {
 
-TestServer::TestServer(std::unique_ptr<ProviderBase>&& provider,
+TestServer::TestServer(unique_ptr<ProviderBase>&& provider,
                        OnlineAccounts::Account* account,
                        QDBusConnection const& connection,
-                       std::string const& object_path)
-    : p_(new internal::TestServerImpl(std::move(provider), account,
+                       string const& object_path)
+    : p_(new internal::TestServerImpl(move(provider), account,
                                       connection, object_path))
 {
 }
 
 TestServer::~TestServer() = default;
+
+QDBusConnection const& TestServer::connection() const
+{
+    return p_->connection();
+}
+
+string const& TestServer::object_path() const
+{
+    return p_->object_path();
+}
 
 }
 }

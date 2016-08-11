@@ -37,6 +37,8 @@ namespace provider
 namespace internal
 {
 
+class ProviderInterface;
+
 class TestServerImpl
 {
 public:
@@ -46,11 +48,14 @@ public:
                    std::string const& object_path);
     ~TestServerImpl();
 
+    QDBusConnection const& connection() const;
+    std::string const& object_path() const;
+
 private:
-    std::unique_ptr<ProviderBase> provider_;
-    OnlineAccounts::Account* account_;
-    QDBusConnection const connection_;
+    QDBusConnection connection_;
     std::string const object_path_;
+
+    std::unique_ptr<ProviderInterface> interface_;
 };
 
 }

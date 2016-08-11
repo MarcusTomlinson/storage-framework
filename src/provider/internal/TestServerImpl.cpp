@@ -18,9 +18,15 @@
 
 #include <unity/storage/provider/internal/TestServerImpl.h>
 #include <unity/storage/provider/ProviderBase.h>
+#include <unity/storage/provider/internal/AccountData.h>
+#include <unity/storage/provider/internal/DBusPeerCache.h>
+#include <unity/storage/provider/internal/ProviderInterface.h>
+#include <unity/storage/provider/internal/dbusmarshal.h>
+#include "provideradaptor.h"
 
 #include <OnlineAccounts/Account>
 
+#include <stdexcept>
 
 using namespace std;
 
@@ -33,16 +39,42 @@ namespace provider
 namespace internal
 {
 
-TestServerImpl::TestServerImpl(std::unique_ptr<ProviderBase>&& provider,
+TestServerImpl::TestServerImpl(unique_ptr<ProviderBase>&& provider,
                                OnlineAccounts::Account* account,
                                QDBusConnection const& connection,
-                               std::string const& object_path)
-    : provider_(std::move(provider)), account_(account),
-      connection_(connection), object_path_(object_path)
+                               string const& object_path)
+    : connection_(connection), object_path_(object_path)
 {
+    qDBusRegisterMetaType<Item>();
+    qDBusRegisterMetaType<std::vector<Item>>();
+
+    auto peer_cache = make_shared<DBusPeerCache>(connection_);
+    auto account_data = make_shared<AccountData>(
+        move(provider), peer_cache, connection_, account);
+    interface_.reset(new ProviderInterface(account_data));
+    new ProviderAdaptor(interface_.get());
+
+    if (!connection_.registerObject(QString::fromStdString(object_path_),
+                                   interface_.get()))
+    {
+        throw runtime_error("Could not register provider on connection");
+    }
 }
 
-TestServerImpl::~TestServerImpl() = default;
+TestServerImpl::~TestServerImpl()
+{
+    connection_.unregisterObject(QString::fromStdString(object_path_));
+}
+
+QDBusConnection const& TestServerImpl::connection() const
+{
+    return connection_;
+}
+
+string const& TestServerImpl::object_path() const
+{
+    return object_path_;
+}
 
 }
 }

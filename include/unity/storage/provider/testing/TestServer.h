@@ -55,6 +55,9 @@ public:
                std::string const& object_path);
     ~TestServer();
 
+    QDBusConnection const& connection() const;
+    std::string const& object_path() const;
+
 private:
     std::unique_ptr<internal::TestServerImpl> p_;
 };
