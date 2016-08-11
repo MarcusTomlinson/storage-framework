@@ -151,6 +151,12 @@ void RuntimeImpl::timeout()
     make_exceptional_future(qf_, ResourceException("Runtime::accounts(): timeout retrieving Online accounts", 0));
 }
 
+shared_ptr<Account> RuntimeImpl::make_test_account(QString const& bus_name,
+                                                   QString const& object_path)
+{
+    return make_account(bus_name, object_path, "", "", "");
+}
+
 shared_ptr<Account> RuntimeImpl::make_account(QString const& bus_name,
                                               QString const& object_path,
                                               QString const& owner,

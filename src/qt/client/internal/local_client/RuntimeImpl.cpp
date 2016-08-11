@@ -107,6 +107,13 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
     return make_ready_future(accounts_);
 }
 
+shared_ptr<Account> RuntimeImpl::make_test_account(QString const& bus_name,
+                                                   QString const& object_path)
+{
+    throw LocalCommsException("Can not create test account with local client");
+}
+
+
 }  // namespace local_client
 }  // namespace internal
 }  // namespace client

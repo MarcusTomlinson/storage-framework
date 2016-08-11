@@ -54,6 +54,8 @@ public:
 
     virtual void shutdown() = 0;
     virtual QFuture<QVector<std::shared_ptr<Account>>> accounts() = 0;
+    virtual std::shared_ptr<Account> make_test_account(QString const& bus_name,
+                                                       QString const& object_path) = 0;
 
     void set_public_instance(std::weak_ptr<Runtime> p);
 
