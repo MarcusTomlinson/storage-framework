@@ -50,37 +50,46 @@ RootImpl::RootImpl(storage::internal::ItemMetadata const& md, weak_ptr<Account> 
 
 QFuture<QVector<Folder::SPtr>> RootImpl::parents() const
 {
-    if (!get_root())
+    try
     {
-        return make_exceptional_future<QVector<Folder::SPtr>>(RuntimeDestroyedException("Root::parents()"));
+        throw_if_destroyed("Root::parents()");
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<QVector<Folder::SPtr>>(e);
     }
     return make_ready_future(QVector<Folder::SPtr>());  // For the root, we return an empty vector.
 }
 
 QVector<QString> RootImpl::parent_ids() const
 {
-    if (!get_root())
-    {
-        return make_exceptional_future<QVector<QString>>(RuntimeDestroyedException("Root::parent_ids()"));
-    }
+    throw_if_destroyed("Root::parent_ids()");
     return QVector<QString>();  // For the root, we return an empty vector.
 }
 
 QFuture<void> RootImpl::delete_item()
 {
-    if (!get_root())
+    try
     {
-        return make_exceptional_future(RuntimeDestroyedException("Root::delete_item()"));
+        throw_if_destroyed("Item::delete_item()");
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<QVector<Folder::SPtr>>(e);
     }
     // Cannot delete root.
-    return make_exceptional_future(LogicException("Root::delete_item(): root item cannot be deleted"));
+    return make_exceptional_future(LogicException("Item::delete_item(): cannot delete root folder"));
 }
 
 QFuture<int64_t> RootImpl::free_space_bytes() const
 {
-    if (!get_root())
+    try
     {
-        return make_exceptional_future<int64_t>(RuntimeDestroyedException("Root::free_space_bytes()"));
+        throw_if_destroyed("Root::free_space_bytes()");
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<int64_t>(e);
     }
     // TODO, need to refresh metadata here instead.
     return make_ready_future(int64_t(1));
@@ -88,9 +97,13 @@ QFuture<int64_t> RootImpl::free_space_bytes() const
 
 QFuture<int64_t> RootImpl::used_space_bytes() const
 {
-    if (!get_root())
+    try
     {
-        return make_exceptional_future<int64_t>(RuntimeDestroyedException("Root::used_space_bytes()"));
+        throw_if_destroyed("Root::used_space_bytes()");
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<int64_t>(e);
     }
     // TODO, need to refresh metadata here instead.
     return make_ready_future(int64_t(1));
@@ -98,9 +111,13 @@ QFuture<int64_t> RootImpl::used_space_bytes() const
 
 QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
 {
-    if (!get_root())
+    try
     {
-        return make_exceptional_future<Item::SPtr>(RuntimeDestroyedException("Root::get()"));
+        throw_if_destroyed("Root::get()");
+    }
+    catch (StorageException const& e)
+    {
+        return make_exceptional_future<Item::SPtr>(e);
     }
 
     auto prov = provider();
@@ -115,7 +132,7 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         }
         catch (RuntimeDestroyedException const&)
         {
-            make_exceptional_future<Item::SPtr>(qf, RuntimeDestroyedException("Root::get()"));
+            make_exceptional_future(qf, RuntimeDestroyedException("Root::get()"));
             return;
         }
 

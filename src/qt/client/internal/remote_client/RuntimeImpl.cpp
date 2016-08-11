@@ -128,7 +128,6 @@ void RuntimeImpl::manager_ready()
         QVector<Account::SPtr> accounts;
         for (auto const& a : manager_->availableAccounts("google-drive-scope"))
         {
-            qDebug() << "got account:" << a->displayName() << a->serviceId() << a->id();
             auto impl = new AccountImpl(public_instance_, a->id(), "", a->serviceId(), a->displayName());
             Account::SPtr acc(new Account(impl));
             impl->set_public_instance(acc);

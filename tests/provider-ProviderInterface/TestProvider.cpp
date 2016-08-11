@@ -18,6 +18,7 @@
 
 #include "TestProvider.h"
 #include <unity/storage/provider/DownloadJob.h>
+#include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/UploadJob.h>
 
 #include <QSocketNotifier>
