@@ -21,6 +21,7 @@
 #include "ProviderInterface.h"
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
+#include <unity/storage/qt/client/internal/remote_client/validate.h>
 #include <unity/storage/qt/client/Uploader.h>
 
 #include <cassert>
@@ -79,6 +80,15 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<File>>& qf)
     {
         auto md = reply.value();
+        try
+        {
+            validate("Uploader::finish_upload()", md);
+        }
+        catch (StorageException const& e)
+        {
+            make_exceptional_future(qf, e);
+            return;
+        }
         if (md.type != ItemType::file)
         {
             // TODO: log server error here

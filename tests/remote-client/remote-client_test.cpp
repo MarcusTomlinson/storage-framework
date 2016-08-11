@@ -107,13 +107,7 @@ void call(QFuture<void> fut)
 
 Account::SPtr get_account(Runtime::SPtr const& runtime)
 {
-    auto accounts_fut = runtime->accounts();
-    QFutureWatcher<QVector<Account::SPtr>> w;
-    QSignalSpy spy(&w, &decltype(w)::finished);
-    w.setFuture(accounts_fut);
-    assert(spy.wait(SIGNAL_WAIT_TIME));
-
-    auto accounts = accounts_fut.result();
+    auto accounts = call(runtime->accounts());
     if (accounts.size() == 0)
     {
         qCritical() << "Cannot find any online account";
@@ -126,14 +120,7 @@ Account::SPtr get_account(Runtime::SPtr const& runtime)
 Root::SPtr get_root(Runtime::SPtr const& runtime)
 {
     auto acc = get_account(runtime);
-    auto roots_fut = acc->roots();
-    {
-        QFutureWatcher<QVector<Root::SPtr>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(roots_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto roots = roots_fut.result();
+    auto roots = call(acc->roots());
     assert(roots.size() >= 1);
     return roots[0];
 }
@@ -141,36 +128,18 @@ Root::SPtr get_root(Runtime::SPtr const& runtime)
 Folder::SPtr get_parent(Item::SPtr const& item)
 {
     assert(item->type() != ItemType::root);
-    auto parents_fut = item->parents();
-    {
-        QFutureWatcher<QVector<Folder::SPtr>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(parents_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto parents = parents_fut.result();
+    auto parents = call(item->parents());
     assert(parents.size() >= 1);
     return parents[0];
 }
 
 void clear_folder(Folder::SPtr const& folder)
 {
-    auto list_fut = folder->list();
-    {
-        QFutureWatcher<QVector<Item::SPtr>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(list_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto items = list_fut.result();
+    auto items = call(folder->list());
     assert(items.size() != 0);  // TODO: temporary hack for use with demo provider
     for (auto i : items)
     {
-        auto delete_fut = i->delete_item();
-        QFutureWatcher<void> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(delete_fut);
-        assert(spy.wait(SIGNAL_WAIT_TIME));
+        wait(i->delete_item());
     }
 }
 
@@ -198,14 +167,7 @@ TEST_F(RuntimeTest, roots)
 
     auto acc = get_account(runtime);
     ASSERT_NE(nullptr, acc);
-    auto roots_fut = acc->roots();
-    {
-        QFutureWatcher<QVector<Root::SPtr>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(roots_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto roots = roots_fut.result();
+    auto roots = call(acc->roots());
     ASSERT_GE(roots.size(), 0);
     EXPECT_EQ("root_id", roots[0]->native_identity());
 }
@@ -222,42 +184,21 @@ TEST_F(RootTest, basic)
     EXPECT_EQ("Root", root->name());
     EXPECT_NE("", root->etag());
 
-    auto parents = root->parents().result();
+    auto parents = call(root->parents());
     EXPECT_TRUE(parents.isEmpty());
     EXPECT_TRUE(root->parent_ids().isEmpty());
 
     // get(<root-ID>) must return the root.
-    auto get_fut = root->get(root->native_identity());
-    {
-        QFutureWatcher<Item::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(get_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto item = get_fut.result();
+    auto item = call(root->get(root->native_identity()));
     EXPECT_NE(nullptr, dynamic_pointer_cast<Root>(item));
     EXPECT_TRUE(root->equal_to(item));
 
     // Free and used space can be anything, but must be > 0.
-    auto free_space_fut = root->free_space_bytes();
-    {
-        QFutureWatcher<int64_t> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(free_space_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto free_space = free_space_fut.result();
+    auto free_space = call(root->free_space_bytes());
     cerr << "bytes free: " << free_space << endl;
     EXPECT_GT(free_space, 0);
 
-    auto used_space_fut = root->used_space_bytes();
-    {
-        QFutureWatcher<int64_t> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(free_space_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto used_space = used_space_fut.result();
+    auto used_space = call(root->used_space_bytes());
     cerr << "bytes used: " << used_space << endl;
     EXPECT_GT(used_space, 0);
 }
@@ -269,48 +210,20 @@ TEST_F(FolderTest, basic)
     auto root = get_root(runtime);
     clear_folder(root);
 
-    auto list_fut = root->list();
-    {
-        QFutureWatcher<QVector<Item::SPtr>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(list_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto items = list_fut.result();
+    auto items = call(root->list());
     ASSERT_EQ(1, items.size());
 
     // Create a file and check that it was created with correct type, name, and size 0.
-    auto create_file_fut = root->create_file("file1", 0);
-    {
-        QFutureWatcher<Uploader::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(create_file_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto uploader = create_file_fut.result();
-    EXPECT_EQ(0, uploader->size());
-    auto finish_upload_fut = uploader->finish_upload();
-    {
-        QFutureWatcher<File::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(finish_upload_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto file = finish_upload_fut.result();
+    auto uploader = call(root->create_file("file1", 10));
+    EXPECT_EQ(10, uploader->size());
+    auto file = call(uploader->finish_upload());
     EXPECT_EQ(ItemType::file, file->type());
     EXPECT_EQ("some_upload", file->name());
-    EXPECT_EQ(0, file->size());
+    EXPECT_EQ(10, file->size());
     EXPECT_EQ("some_id", file->native_identity());
 
     // For coverage: getting a file must return the correct one.
-    auto get_fut = root->get("child_id");
-    {
-        QFutureWatcher<Item::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(get_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    file = dynamic_pointer_cast<File>(get_fut.result());
+    file = dynamic_pointer_cast<File>(call(root->get("child_id")));
     EXPECT_EQ("child_id", file->native_identity());
     EXPECT_EQ("Child", file->name());
 }
@@ -323,37 +236,16 @@ TEST_F(FileTest, upload)
     clear_folder(root);
 
     // Get a file.
-    auto lookup_fut = root->lookup("Child");
-    {
-        QFutureWatcher<QVector<Item::SPtr>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(lookup_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto children = lookup_fut.result();
+    auto children = call(root->lookup("Child"));
     ASSERT_EQ(1, children.size());
     auto file = dynamic_pointer_cast<File>(children[0]);
     EXPECT_EQ("child_id", file->native_identity());
     EXPECT_EQ("Child", file->name());
 
-    auto create_uploader_fut = file->create_uploader(ConflictPolicy::error_if_conflict, 0);
-    {
-        QFutureWatcher<Uploader::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(create_uploader_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto uploader = create_uploader_fut.result();
+    auto uploader = call(file->create_uploader(ConflictPolicy::error_if_conflict, 0));
     EXPECT_EQ(0, uploader->size());
 
-    auto finish_upload_fut = uploader->finish_upload();
-    {
-        QFutureWatcher<File::SPtr> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(finish_upload_fut);
-        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
-    }
-    auto uploaded_file = finish_upload_fut.result();
+    auto uploaded_file = call(uploader->finish_upload());
     EXPECT_EQ("some_id", uploaded_file->native_identity());
     EXPECT_EQ("some_upload", uploaded_file->name());
 }

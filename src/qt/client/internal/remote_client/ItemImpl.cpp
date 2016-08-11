@@ -19,11 +19,13 @@
 #include <unity/storage/qt/client/internal/remote_client/ItemImpl.h>
 
 #include "ProviderInterface.h"
+#include <unity/storage/provider/metadata_keys.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
+#include <unity/storage/qt/client/internal/remote_client/validate.h>
 
 #include <cassert>
 
@@ -70,8 +72,7 @@ QVariantMap ItemImpl::metadata() const
 QDateTime ItemImpl::last_modified_time() const
 {
     throw_if_destroyed("Item::last_modified_time()");
-    // TODO: need to agree on metadata representation
-    return QDateTime();
+    return QDateTime::fromString(md_.metadata.value(provider::LAST_MODIFIED_TIME).toString(), Qt::ISODate);
 }
 
 QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, QString const& new_name)
@@ -106,6 +107,15 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         }
 
         auto md = reply.value();
+        try
+        {
+            validate("Item::copy()", md);
+        }
+        catch (StorageException const& e)
+        {
+            make_exceptional_future(qf, e);
+            return;
+        }
         if (md.type == ItemType::root)
         {
             // TODO: log server error here
@@ -158,6 +168,15 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         }
 
         auto md = reply.value();
+        try
+        {
+            validate("Item::move()", md);
+        }
+        catch (StorageException const& e)
+        {
+            make_exceptional_future(qf, e);
+            return;
+        }
         if (md.type == ItemType::root)
         {
             // TODO: log server error here
@@ -220,8 +239,7 @@ QFuture<void> ItemImpl::delete_item()
 QDateTime ItemImpl::creation_time() const
 {
     throw_if_destroyed("Item::creation_time()");
-    // TODO: need to agree on metadata representation
-    return QDateTime();
+    return QDateTime::fromString(md_.metadata.value(provider::CREATION_TIME).toString(), Qt::ISODate);
 }
 
 MetadataMap ItemImpl::native_metadata() const

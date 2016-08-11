@@ -18,6 +18,7 @@
 
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/Exceptions.h>
+#include <unity/storage/provider/metadata_keys.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/Server.h>
 #include <unity/storage/provider/TempfileUploadJob.h>
@@ -158,8 +159,12 @@ boost::future<tuple<ItemList,string>> MyProvider::list(
     {
         return make_exceptional_future<tuple<ItemList,string>>(runtime_error("unknown page token"));
     }
-    ItemList children = {
-        {"child_id", "root_id", "Child", "etag", ItemType::file, {}}
+    ItemList children =
+    {
+        {
+            "child_id", "root_id", "Child", "etag", ItemType::file,
+            { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+        }
     };
     boost::promise<tuple<ItemList,string>> p;
     p.set_value(make_tuple(children, string()));
@@ -174,8 +179,10 @@ boost::future<ItemList> MyProvider::lookup(
     {
         return make_exceptional_future<ItemList>(runtime_error("file not found"));
     }
-    ItemList children = {
-        {"child_id", "root_id", "Child", "etag", ItemType::file, {}}
+    ItemList children =
+    {
+        { "child_id", "root_id", "Child", "etag", ItemType::file,
+          { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } } }
     };
     return make_ready_future<ItemList>(children);
 }
@@ -191,7 +198,11 @@ boost::future<Item> MyProvider::metadata(string const& item_id,
     }
     else if (item_id == "child_id")
     {
-        Item metadata{"child_id", "root_id", "Child", "etag", ItemType::file, {}};
+        Item metadata
+        {
+            "child_id", "root_id", "Child", "etag", ItemType::file,
+            { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+        };
         return make_ready_future<Item>(metadata);
     }
     else if (item_id == "child_folder_id")
@@ -291,7 +302,11 @@ boost::future<Item> MyUploadJob::finish()
     unlink(new_filename.c_str());
     link(old_filename.c_str(), new_filename.c_str());
 
-    Item metadata{"some_id", "", "some_upload", "etag", ItemType::file, {}};
+    Item metadata
+    {
+        "some_id", "root_id", "some_upload", "etag", ItemType::file,
+        { { SIZE_IN_BYTES, 10 }, { LAST_MODIFIED_TIME, "2011-04-05T14:30:10.005Z" } }
+    };
     return make_ready_future(metadata);
 }
 
