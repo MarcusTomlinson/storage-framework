@@ -14,6 +14,9 @@ add_subdirectory(utils)
 set(unit_test_dirs
     local-client  # -TODO: Temporarily disabled due to a "unknown file: Failure" error in CI.
     remote-client # -TODO: Temporarily disabled due to a "Cannot find any online account" error in CI.
+    provider-AccountData
+    provider-DBusPeerCache
+    provider-ProviderInterface
 )
 
 set(slow_test_dirs

@@ -20,8 +20,11 @@
 
 #include <unity/storage/provider/internal/UploadJobImpl.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QLocalSocket>
 #include <QTemporaryFile>
+#pragma GCC diagnostic pop
 
 #include <memory>
 #include <string>
