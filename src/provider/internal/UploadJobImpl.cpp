@@ -17,6 +17,8 @@
  */
 
 #include <unity/storage/provider/internal/UploadJobImpl.h>
+#include <unity/storage/internal/safe_strerror.h>
+#include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/UploadJob.h>
 
 #include <sys/socket.h>
@@ -26,6 +28,7 @@
 #include <stdexcept>
 
 using namespace std;
+using namespace unity::storage::internal;
 
 namespace unity
 {
@@ -42,17 +45,23 @@ UploadJobImpl::UploadJobImpl(std::string const& upload_id)
     int socks[2];
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, socks) < 0)
     {
-        throw runtime_error("could not create socketpair");
+        int error_code = errno;
+        string msg = "could not create socketpair: " + safe_strerror(error_code);
+        throw ResourceException(msg, error_code);
     }
     read_socket_ = socks[0];
     write_socket_ = socks[1];
     if (shutdown(read_socket_, SHUT_WR) < 0)
     {
-        throw runtime_error("Could not shut down write channel on read socket");
+        int error_code = errno;
+        string msg = "could not shut down write channel on read socket: " + safe_strerror(error_code);
+        throw ResourceException(msg, error_code);
     }
     if (shutdown(write_socket_, SHUT_RD) < 0)
     {
-        throw runtime_error("Could not shut down read channel on write socket");
+        int error_code = errno;
+        string msg = "Could not shut down read channel on write socket" + safe_strerror(error_code);
+        throw ResourceException(msg, error_code);
     }
 }
 
@@ -115,6 +124,10 @@ void UploadJobImpl::report_error(std::exception_ptr p)
     try
     {
         std::rethrow_exception(p);
+    }
+    catch (StorageException const& e)
+    {
+        completion_promise_.set_exception(e);
     }
     catch (...)
     {

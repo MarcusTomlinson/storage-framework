@@ -17,6 +17,7 @@
  */
 
 #include "TestProvider.h"
+#include <unity/storage/internal/safe_strerror.h>
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/UploadJob.h>
@@ -29,6 +30,8 @@
 
 using namespace std;
 using namespace unity::storage;
+using namespace unity::storage::internal;
+using namespace unity::storage::provider;
 
 class TestUploadJob : public UploadJob
 {
@@ -75,7 +78,7 @@ boost::future<Item> TestUploadJob::finish()
     }
     else
     {
-        p.set_exception(runtime_error("wrong number of bytes written"));
+        p.set_exception(LogicException("wrong number of bytes written"));
     }
     return p.get_future();
 }
@@ -88,14 +91,15 @@ void TestUploadJob::read_some()
     ssize_t n_read = read(read_socket(), buf, sizeof(buf));
     if (n_read < 0)
     {
-        report_error(make_exception_ptr(runtime_error("Read failure")));
+        int error_code = errno;
+        report_error(make_exception_ptr(ResourceException("Read failure: " + safe_strerror(error_code), error_code)));
         notifier_.setEnabled(false);
     }
     else if (n_read == 0)
     {
         if (bytes_read_ != size_)
         {
-            report_error(make_exception_ptr(runtime_error("wrong number of bytes")));
+            report_error(make_exception_ptr(LogicException("wrong number of bytes")));
         }
         notifier_.setEnabled(false);
     }
@@ -105,7 +109,7 @@ void TestUploadJob::read_some()
         if (bytes_read_ > size_)
         {
             printf("Reporting error\n");
-            report_error(make_exception_ptr(runtime_error("too many bytes written")));
+            report_error(make_exception_ptr(LogicException("too many bytes written")));
             notifier_.setEnabled(false);
         }
     }
@@ -148,7 +152,7 @@ boost::future<void> TestDownloadJob::finish()
     boost::promise<void> p;
     if (bytes_written_ < (ssize_t)data_.size())
     {
-        p.set_exception(runtime_error("Not all data read"));
+        p.set_exception(LogicException("Not all data read"));
     }
     else
     {
@@ -169,7 +173,9 @@ void TestDownloadJob::write_some()
                               min(data_.size() - bytes_written_, (size_t)2));
     if (n_written < 0)
     {
-        report_error(make_exception_ptr(runtime_error("Write failure")));
+        int error_code = errno;
+        string msg = string("Write failure: ") + safe_strerror(error_code);
+        report_error(make_exception_ptr(ResourceException(msg, error_code)));
         timer_.stop();
     }
     else
@@ -200,7 +206,7 @@ boost::future<tuple<ItemList,string>> TestProvider::list(
 
     if (item_id != "root_id")
     {
-        p.set_exception(runtime_error("Unknown folder"));
+        p.set_exception(NotExistsException("Unknown folder", item_id));
     }
     else if (page_token == "")
     {
@@ -220,7 +226,7 @@ boost::future<tuple<ItemList,string>> TestProvider::list(
     }
     else
     {
-        p.set_exception(runtime_error("Unknown page token"));
+        p.set_exception(LogicException("Unknown page token"));
     }
     return p.get_future();
 }
@@ -251,7 +257,7 @@ boost::future<Item> TestProvider::metadata(
     }
     else
     {
-        p.set_exception(runtime_error("Unknown item"));
+        p.set_exception(NotExistsException("Unknown item", item_id));
     }
     return p.get_future();
 }
@@ -320,7 +326,7 @@ boost::future<void> TestProvider::delete_item(
     }
     else
     {
-        p.set_exception(runtime_error("Bad filename"));
+        p.set_exception(NotExistsException("Bad filename", item_id));
     }
     return p.get_future();
 }

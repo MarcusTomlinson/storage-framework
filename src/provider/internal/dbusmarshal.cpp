@@ -80,7 +80,8 @@ QDBusArgument& operator<<(QDBusArgument& argument, Item const& item)
 
 QDBusArgument const& operator>>(QDBusArgument const&, Item&)
 {
-    throw std::runtime_error("Item decode not implemented");
+    // We don't expect to ever have to unmarshal anything, only marshal it.
+    qFatal("unexpected call to operator>>(QDBusArgument const&, Item&)");  // LCOV_EXCL_LINE
 }
 
 QDBusArgument& operator<<(QDBusArgument& argument, ItemList const& items)
@@ -96,7 +97,8 @@ QDBusArgument& operator<<(QDBusArgument& argument, ItemList const& items)
 
 QDBusArgument const& operator>>(QDBusArgument const&, ItemList&)
 {
-    throw std::runtime_error("std::vector<Item> decode not implemented");
+    // We don't expect to ever have to unmarshal anything, only marshal it.
+    qFatal("unexpected call to operator>>(QDBusArgument const&, ItemList&)");  // LCOV_EXCL_LINE
 }
 
 }

@@ -159,13 +159,13 @@ TEST_F(ProviderInterfaceTest, list)
     reply = client_->List("root_id", "bad_page_token");
     wait_for(reply);
     EXPECT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name()) << reply.error().name().toStdString();
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name()) << reply.error().name().toStdString();
     EXPECT_EQ("Unknown page token", reply.error().message()) << reply.error().message().toStdString();
 
     reply = client_->List("no_such_folder_id", "");
     wait_for(reply);
     EXPECT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
+    EXPECT_EQ(PROVIDER_ERROR + "NotExistsException", reply.error().name());
     EXPECT_EQ("Unknown folder", reply.error().message());
 }
 
@@ -323,7 +323,7 @@ TEST_F(ProviderInterfaceTest, upload_short_write)
     auto reply = client_->FinishUpload(upload_id);
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
     EXPECT_EQ("wrong number of bytes written", reply.error().message());
 }
 
@@ -460,7 +460,7 @@ TEST_F(ProviderInterfaceTest, download_short_read)
     auto reply = client_->FinishDownload(download_id);
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
     EXPECT_EQ("Not all data read", reply.error().message());
 }
 
