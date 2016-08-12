@@ -17,6 +17,7 @@
  */
 
 #include <unity/storage/provider/internal/TestServerImpl.h>
+#include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/internal/AccountData.h>
 #include <unity/storage/provider/internal/DBusPeerCache.h>
@@ -57,7 +58,8 @@ TestServerImpl::TestServerImpl(unique_ptr<ProviderBase>&& provider,
     if (!connection_.registerObject(QString::fromStdString(object_path_),
                                    interface_.get()))
     {
-        throw runtime_error("Could not register provider on connection");
+        string msg = "Could not register provider on connection: " + connection_.lastError().message().toStdString();
+        throw ResourceException(msg, int(connection_.lastError().type()));
     }
 }
 

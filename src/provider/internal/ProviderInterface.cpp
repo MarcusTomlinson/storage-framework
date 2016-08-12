@@ -18,6 +18,7 @@
 
 #include <unity/storage/provider/internal/ProviderInterface.h>
 #include <unity/storage/provider/DownloadJob.h>
+#include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/UploadJob.h>
 #include <unity/storage/provider/internal/AccountData.h>
@@ -223,7 +224,7 @@ ProviderInterface::IMD ProviderInterface::FinishUpload(QString const& upload_id)
             auto job = account->jobs().get_upload(upload_id.toStdString());
             if (job->p_->sender_bus_name() != message.service().toStdString())
             {
-                throw runtime_error("Upload job belongs to a different client");
+                throw LogicException("Upload job belongs to a different client");
             }
             // FIXME: removing the job at this point means we can't
             // cancel during finish().
@@ -246,7 +247,7 @@ void ProviderInterface::CancelUpload(QString const& upload_id)
             auto job = account->jobs().get_upload(upload_id.toStdString());
             if (job->p_->sender_bus_name() != message.service().toStdString())
             {
-                throw runtime_error("Upload job belongs to a different client");
+                throw LogicException("Upload job belongs to a different client");
             }
             account->jobs().remove_upload(upload_id.toStdString());
             auto f = job->p_->cancel(*job);
@@ -293,7 +294,7 @@ void ProviderInterface::FinishDownload(QString const& download_id)
             auto job = account->jobs().get_download(download_id.toStdString());
             if (job->p_->sender_bus_name() != message.service().toStdString())
             {
-                throw runtime_error("Download job belongs to a different client");
+                throw LogicException("Download job belongs to a different client");
             }
             // FIXME: removing the job at this point means we can't
             // cancel during finish().
