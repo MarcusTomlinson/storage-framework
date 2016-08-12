@@ -110,6 +110,8 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 shared_ptr<Account> RuntimeImpl::make_test_account(QString const& bus_name,
                                                    QString const& object_path)
 {
+    Q_UNUSED(bus_name);
+    Q_UNUSED(object_path);
     throw LocalCommsException("Can not create test account with local client");
 }
 
