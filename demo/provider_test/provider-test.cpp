@@ -153,11 +153,13 @@ boost::future<tuple<ItemList,string>> MyProvider::list(
     printf("list('%s', '%s') called by %s (%d)\n", item_id.c_str(), page_token.c_str(), ctx.security_label.c_str(), ctx.pid);
     if (item_id != "root_id")
     {
-        return make_exceptional_future<tuple<ItemList,string>>(runtime_error("unknown folder"));
+        string msg = string("Item::list(): no such item: \"") + item_id + "\"";
+        return make_exceptional_future<tuple<ItemList,string>>(NotExistsException(msg, item_id));
     }
     if (page_token != "")
     {
-        return make_exceptional_future<tuple<ItemList,string>>(runtime_error("unknown page token"));
+        string msg = string("Item::list(): invalid page token: \"") + page_token + "\"";
+        return make_exceptional_future<tuple<ItemList,string>>(msg);
     }
     ItemList children =
     {
@@ -175,9 +177,15 @@ boost::future<ItemList> MyProvider::lookup(
     string const& parent_id, string const& name, Context const& ctx)
 {
     printf("lookup('%s', '%s') called by %s (%d)\n", parent_id.c_str(), name.c_str(), ctx.security_label.c_str(), ctx.pid);
-    if (parent_id != "root_id" || name != "Child")
+    if (parent_id != "root_id")
     {
-        return make_exceptional_future<ItemList>(runtime_error("file not found"));
+        string msg = string("Folder::lookup(): no such item: \"") + parent_id + "\"";
+        return make_exceptional_future<ItemList>(NotExistsException(msg, parent_id));
+    }
+    if (name != "Child")
+    {
+        string msg = string("Folder::lookup(): no such item: \"") + name + "\"";
+        return make_exceptional_future<ItemList>(NotExistsException(msg, name));
     }
     ItemList children =
     {
