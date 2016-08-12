@@ -96,6 +96,7 @@ public:
 
     QFuture<QVector<std::shared_ptr<Account>>> accounts();
 
+    /// @cond
     /**
     \brief Creates an Account object pointing at (bus_name, object_path)
 
@@ -104,6 +105,7 @@ public:
     */
     std::shared_ptr<Account> make_test_account(QString const& bus_name,
                                                QString const& object_path);
+    /// @endcond
 
 private:
     Runtime(internal::RuntimeBase* p) UNITY_STORAGE_HIDDEN;
