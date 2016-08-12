@@ -398,7 +398,7 @@ TEST_F(ProviderInterfaceTest, finish_upload_unknown)
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
     EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
-    EXPECT_EQ("map::at", reply.error().message());
+    EXPECT_EQ("unknown exception thrown by provider: map::at", reply.error().message());
 }
 
 TEST_F(ProviderInterfaceTest, download)
@@ -472,7 +472,7 @@ TEST_F(ProviderInterfaceTest, finish_download_unknown)
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
     EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
-    EXPECT_EQ("map::at", reply.error().message());
+    EXPECT_EQ("unknown exception thrown by provider: map::at", reply.error().message());
 }
 
 TEST_F(ProviderInterfaceTest, delete_)
