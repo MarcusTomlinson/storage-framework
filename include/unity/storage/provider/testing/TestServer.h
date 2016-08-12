@@ -13,38 +13,56 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authors: Michi Henning <michi.henning@canonical.com>
+ * Authors: James Henstridge <james.henstridge@canonical.com>
  */
 
 #pragma once
 
-#include <unity/storage/common.h>
+#include <unity/storage/visibility.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Wswitch-default"
-#include <QMap>
-#include <QVariant>
-#include <QVector>
-#pragma GCC diagnostic pop
+#include <memory>
+#include <string>
+
+namespace OnlineAccounts
+{
+class Account;
+}
+class QDBusConnection;
 
 namespace unity
 {
 namespace storage
 {
+namespace provider
+{
+
+class ProviderBase;
+
 namespace internal
 {
+class TestServerImpl;
+}
 
-struct ItemMetadata
+namespace testing
 {
-    QString item_id;
-    QVector<QString> parent_ids;
-    QString name;
-    QString etag;
-    ItemType type;
-    QMap<QString, QVariant> metadata;
+
+class UNITY_STORAGE_EXPORT TestServer
+{
+public:
+    TestServer(std::unique_ptr<ProviderBase>&& provider,
+               OnlineAccounts::Account* account,
+               QDBusConnection const& connection,
+               std::string const& object_path);
+    ~TestServer();
+
+    QDBusConnection const& connection() const;
+    std::string const& object_path() const;
+
+private:
+    std::unique_ptr<internal::TestServerImpl> p_;
 };
 
-}  // namespace internal
-}  // namespace storage
-}  // namespace unity
+}
+}
+}
+}

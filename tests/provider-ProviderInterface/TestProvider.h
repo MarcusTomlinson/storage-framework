@@ -21,7 +21,12 @@
 #include <unity/storage/provider/ProviderBase.h>
 
 using namespace std;
-using namespace unity::storage::provider;
+using unity::storage::provider::Context;
+using unity::storage::provider::DownloadJob;
+using unity::storage::provider::ProviderBase;
+using unity::storage::provider::Item;
+using unity::storage::provider::ItemList;
+using unity::storage::provider::UploadJob;
 
 class TestProvider : public ProviderBase {
 public:

@@ -18,11 +18,12 @@
 
 #include <unity/storage/qt/client/internal/remote_client/RuntimeImpl.h>
 
+#include <unity/storage/internal/dbusmarshal.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/Exceptions.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
-#include <unity/storage/qt/client/internal/remote_client/dbusmarshal.h>
+#include <unity/storage/internal/dbusmarshal.h>
 
 #include <QDBusMetaType>
 
@@ -128,14 +129,21 @@ void RuntimeImpl::manager_ready()
     }
 
     timer_.stop();
+
+    static QString const service_ids[] = { "com.canonical.scopes.mcloud_mcloud_mcloud", "google-drive-scope" };
+
     try
     {
         QVector<Account::SPtr> accounts;
-        for (auto const& a : manager_->availableAccounts("google-drive-scope"))
+        for (auto const service_id : service_ids)
         {
-            auto object_path = QStringLiteral("/provider/%1").arg(a->id());
-            accounts.append(make_account(BUS_NAME, object_path,
-                                         "", a->serviceId(), a->displayName()));
+            for (auto const& a : manager_->availableAccounts(service_id))
+            {
+                qDebug() << "got account:" << a->displayName() << a->serviceId() << a->id();
+                auto object_path = QStringLiteral("/provider/%1").arg(a->id());
+                accounts.append(make_account(BUS_NAME, object_path,
+                                             "", a->serviceId(), a->displayName()));
+            }
         }
         accounts_ = accounts;
         make_ready_future(qf_, accounts);

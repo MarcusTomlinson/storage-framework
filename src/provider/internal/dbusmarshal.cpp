@@ -53,18 +53,27 @@ QDBusArgument& operator<<(QDBusArgument& argument, Item const& item)
 {
     argument.beginStructure();
     argument << QString::fromStdString(item.item_id);
-    argument << QString::fromStdString(item.parent_id);
+    {
+        argument.beginArray(qMetaTypeId<QString>());
+        for (auto const& id : item.parent_ids)
+        {
+            argument << QString::fromStdString(id);
+        }
+        argument.endArray();
+    }
     argument << QString::fromStdString(item.name);
     argument << QString::fromStdString(item.etag);
     argument << static_cast<int32_t>(item.type);
-    argument.beginMap(QVariant::String, qMetaTypeId<QDBusVariant>());
-    for (auto const& pair : item.metadata)
     {
-        argument.beginMapEntry();
-        argument << QString::fromStdString(pair.first) << to_qdbus_variant(pair.second);
-        argument.endMapEntry();
+        argument.beginMap(QVariant::String, qMetaTypeId<QDBusVariant>());
+        for (auto const& pair : item.metadata)
+        {
+            argument.beginMapEntry();
+            argument << QString::fromStdString(pair.first) << to_qdbus_variant(pair.second);
+            argument.endMapEntry();
+        }
+        argument.endMap();
     }
-    argument.endMap();
     argument.endStructure();
     return argument;
 }

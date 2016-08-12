@@ -18,12 +18,7 @@
 
 #include <unity/storage/internal/dbus_error.h>
 #include <unity/storage/provider/ProviderBase.h>
-#include <unity/storage/provider/internal/DBusPeerCache.h>
-#include <unity/storage/provider/internal/AccountData.h>
-#include <unity/storage/provider/internal/ProviderInterface.h>
-#include <unity/storage/provider/internal/dbusmarshal.h>
-// generated DBus service adaptor
-#include "../../src/provider/provideradaptor.h"
+#include <unity/storage/provider/testing/TestServer.h>
 
 #include "TestProvider.h"
 #include "ProviderClient.h"
@@ -48,7 +43,8 @@
 
 using namespace std;
 using unity::storage::ItemType;
-using namespace unity::storage::provider;
+using unity::storage::provider::ProviderBase;
+using unity::storage::provider::testing::TestServer;
 
 namespace {
 
@@ -75,12 +71,9 @@ public:
             2, "oauth2-service");
         ASSERT_NE(nullptr, account);
 
-        auto peer_cache = make_shared<internal::DBusPeerCache>(*service_connection_);
-        auto account_data = make_shared<internal::AccountData>(
-            move(provider), peer_cache, *service_connection_, account);
-        provider_interface_.reset(new internal::ProviderInterface(account_data));
-        new ProviderAdaptor(provider_interface_.get());
-        service_connection_->registerObject(BUS_PATH, provider_interface_.get());
+        test_server_.reset(
+            new TestServer(move(provider), account,
+                           *service_connection_, BUS_PATH.toStdString()));
 
         client_.reset(new ProviderClient(service_connection_->baseService(),
                                          BUS_PATH,
@@ -108,7 +101,7 @@ protected:
     void TearDown() override
     {
         client_.reset();
-        provider_interface_.reset();
+        test_server_.reset();
         service_connection_.reset();
         QDBusConnection::disconnectFromBus(SERVICE_CONNECTION_NAME);
         dbus_.reset();
@@ -117,7 +110,7 @@ protected:
     unique_ptr<DBusEnvironment> dbus_;
     unique_ptr<QDBusConnection> service_connection_;
     unique_ptr<OnlineAccounts::Manager> account_manager_;
-    unique_ptr<internal::ProviderInterface> provider_interface_;
+    unique_ptr<TestServer> test_server_;
     unique_ptr<ProviderClient> client_;
 };
 
@@ -132,7 +125,7 @@ TEST_F(ProviderInterfaceTest, roots)
     EXPECT_EQ(1, reply.value().size());
     auto root = reply.value()[0];
     EXPECT_EQ("root_id", root.item_id);
-    EXPECT_EQ("", root.parent_id);
+    EXPECT_EQ(QVector<QString>(), root.parent_ids);
     EXPECT_EQ("Root", root.name);
     EXPECT_EQ("etag", root.etag);
     EXPECT_EQ(ItemType::root, root.type);
@@ -187,7 +180,7 @@ TEST_F(ProviderInterfaceTest, lookup)
     ASSERT_EQ(1, items.size());
     auto item = items[0];
     EXPECT_EQ("child_id", item.item_id);
-    EXPECT_EQ("root_id", item.parent_id);
+    EXPECT_EQ(QVector<QString>{ "root_id"}, item.parent_ids);
     EXPECT_EQ("Filename", item.name);
     EXPECT_EQ(ItemType::file, item.type);
 }
@@ -201,7 +194,7 @@ TEST_F(ProviderInterfaceTest, metadata)
     ASSERT_TRUE(reply.isValid());
     auto item = reply.value();
     EXPECT_EQ("root_id", item.item_id);
-    EXPECT_EQ("", item.parent_id);
+    EXPECT_EQ(QVector<QString>(), item.parent_ids);
     EXPECT_EQ("Root", item.name);
     EXPECT_EQ(ItemType::root, item.type);
 }
@@ -215,7 +208,7 @@ TEST_F(ProviderInterfaceTest, create_folder)
     ASSERT_TRUE(reply.isValid());
     auto item = reply.value();
     EXPECT_EQ("new_folder_id", item.item_id);
-    EXPECT_EQ("root_id", item.parent_id);
+    EXPECT_EQ(QVector<QString>{ "root_id" }, item.parent_ids);
     EXPECT_EQ("New Folder", item.name);
     EXPECT_EQ(ItemType::folder, item.type);
 }
@@ -264,7 +257,7 @@ TEST_F(ProviderInterfaceTest, create_file)
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("new_file_id", item.item_id);
-    EXPECT_EQ("parent_id", item.parent_id);
+    EXPECT_EQ(QVector<QString>{ "parent_id" }, item.parent_ids);
     EXPECT_EQ("file name", item.name);
 }
 
@@ -500,7 +493,7 @@ TEST_F(ProviderInterfaceTest, move)
     ASSERT_TRUE(reply.isValid());
     auto item = reply.value();
     EXPECT_EQ("child_id", item.item_id);
-    EXPECT_EQ("new_parent_id", item.parent_id);
+    EXPECT_EQ(QVector<QString>{ "new_parent_id" }, item.parent_ids);
     EXPECT_EQ("New name", item.name);
     EXPECT_EQ(ItemType::file, item.type);
 }
@@ -514,7 +507,7 @@ TEST_F(ProviderInterfaceTest, copy)
     ASSERT_TRUE(reply.isValid());
     auto item = reply.value();
     EXPECT_EQ("new_id", item.item_id);
-    EXPECT_EQ("new_parent_id", item.parent_id);
+    EXPECT_EQ(QVector<QString>{ "new_parent_id" }, item.parent_ids);
     EXPECT_EQ("New name", item.name);
     EXPECT_EQ(ItemType::file, item.type);
 }
@@ -525,8 +518,6 @@ int main(int argc, char **argv)
     QCoreApplication app(argc, argv);
     qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
     qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();
-    qDBusRegisterMetaType<unity::storage::provider::Item>();
-    qDBusRegisterMetaType<std::vector<unity::storage::provider::Item>>();
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

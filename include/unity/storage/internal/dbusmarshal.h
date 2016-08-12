@@ -18,15 +18,10 @@
 
 #pragma once
 
-#include <unity/storage/common.h>
+#include <unity/storage/internal/ItemMetadata.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Wswitch-default"
-#include <QMap>
-#include <QVariant>
-#include <QVector>
-#pragma GCC diagnostic pop
+#include <QDBusArgument>
+#include <QMetaType>
 
 namespace unity
 {
@@ -35,16 +30,15 @@ namespace storage
 namespace internal
 {
 
-struct ItemMetadata
-{
-    QString item_id;
-    QVector<QString> parent_ids;
-    QString name;
-    QString etag;
-    ItemType type;
-    QMap<QString, QVariant> metadata;
-};
+QDBusArgument& operator<<(QDBusArgument& argument, ItemMetadata const& metadata);
+QDBusArgument const& operator>>(QDBusArgument const& argument, ItemMetadata& metadata);
+
+QDBusArgument& operator<<(QDBusArgument& argument, QList<ItemMetadata> const& md_list);
+QDBusArgument const& operator>>(QDBusArgument const& argument, QList<ItemMetadata>& md_list);
 
 }  // namespace internal
-}  // namespace storage
-}  // namespace unity
+}  // storage
+}  // unity
+
+Q_DECLARE_METATYPE(unity::storage::internal::ItemMetadata)
+Q_DECLARE_METATYPE(QList<unity::storage::internal::ItemMetadata>)

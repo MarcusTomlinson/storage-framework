@@ -184,7 +184,7 @@ boost::future<ItemList> TestProvider::roots(Context const& ctx)
     Q_UNUSED(ctx);
 
     ItemList roots = {
-        {"root_id", "", "Root", "etag", ItemType::root, {}},
+        {"root_id", {}, "Root", "etag", ItemType::root, {}},
     };
     boost::promise<ItemList> p;
     p.set_value(roots);
@@ -205,16 +205,16 @@ boost::future<tuple<ItemList,string>> TestProvider::list(
     else if (page_token == "")
     {
         ItemList children = {
-            {"child1_id", "root_id", "Child 1", "etag", ItemType::file, {}},
-            {"child2_id", "root_id", "Child 2", "etag", ItemType::file, {}},
+            {"child1_id", { "root_id" }, "Child 1", "etag", ItemType::file, {}},
+            {"child2_id", { "root_id" }, "Child 2", "etag", ItemType::file, {}},
         };
         p.set_value(make_tuple(children, "page_token"));
     }
     else if (page_token == "page_token")
     {
         ItemList children = {
-            {"child3_id", "root_id", "Child 4", "etag", ItemType::file, {}},
-            {"child4_id", "root_id", "Child 3", "etag", ItemType::file, {}},
+            {"child3_id", { "root_id" }, "Child 4", "etag", ItemType::file, {}},
+            {"child4_id", { "root_id" }, "Child 3", "etag", ItemType::file, {}},
         };
         p.set_value(make_tuple(children, ""));
     }
@@ -232,7 +232,7 @@ boost::future<ItemList> TestProvider::lookup(
 
     boost::promise<ItemList> p;
     ItemList items = {
-        {"child_id", parent_id, name, "etag", ItemType::file, {}},
+        {"child_id", { parent_id }, name, "etag", ItemType::file, {}},
     };
     p.set_value(items);
     return p.get_future();
@@ -246,7 +246,7 @@ boost::future<Item> TestProvider::metadata(
     boost::promise<Item> p;
     if (item_id == "root_id")
     {
-        Item item = {"root_id", "", "Root", "etag", ItemType::root, {}};
+        Item item = {"root_id", {}, "Root", "etag", ItemType::root, {}};
         p.set_value(item);
     }
     else
@@ -262,7 +262,7 @@ boost::future<Item> TestProvider::create_folder(
     Q_UNUSED(ctx);
 
     boost::promise<Item> p;
-    Item item = {"new_folder_id", parent_id, name, "etag", ItemType::folder, {}};
+    Item item = {"new_folder_id", { parent_id }, name, "etag", ItemType::folder, {}};
     p.set_value(item);
     return p.get_future();
 }
@@ -277,7 +277,7 @@ boost::future<unique_ptr<UploadJob>> TestProvider::create_file(
     Q_UNUSED(ctx);
 
     boost::promise<unique_ptr<UploadJob>> p;
-    Item item = {"new_file_id", parent_id, name, "etag", ItemType::file, {}};
+    Item item = {"new_file_id", { parent_id }, name, "etag", ItemType::file, {}};
     p.set_value(unique_ptr<UploadJob>(new TestUploadJob("upload_id", item, size)));
     return p.get_future();
 }
@@ -291,7 +291,7 @@ boost::future<unique_ptr<UploadJob>> TestProvider::update(
     Q_UNUSED(ctx);
 
     boost::promise<unique_ptr<UploadJob>> p;
-    Item item = {"item_id", "parent_id", "file name", "etag", ItemType::file, {}};
+    Item item = {"item_id", { "parent_id" }, "file name", "etag", ItemType::file, {}};
     p.set_value(unique_ptr<UploadJob>(new TestUploadJob("upload_id", item, size)));
     return p.get_future();
 }
@@ -332,7 +332,7 @@ boost::future<Item> TestProvider::move(
     Q_UNUSED(ctx);
 
     boost::promise<Item> p;
-    Item item = {item_id, new_parent_id, new_name, "etag", ItemType::file, {}};
+    Item item = {item_id, { new_parent_id }, new_name, "etag", ItemType::file, {}};
     p.set_value(item);
     return p.get_future();
 }
@@ -345,7 +345,7 @@ boost::future<Item> TestProvider::copy(
     Q_UNUSED(ctx);
 
     boost::promise<Item> p;
-    Item item = {"new_id", new_parent_id, new_name, "etag", ItemType::file, {}};
+    Item item = {"new_id", { new_parent_id }, new_name, "etag", ItemType::file, {}};
     p.set_value(item);
     return p.get_future();
 }

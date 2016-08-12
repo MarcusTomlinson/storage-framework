@@ -56,7 +56,7 @@ typedef boost::variant<std::string, int64_t> MetadataValue;
 struct UNITY_STORAGE_EXPORT Item
 {
     std::string item_id;
-    std::string parent_id;
+    std::vector<std::string> parent_ids;
     std::string name;
     std::string etag;
     unity::storage::ItemType type;
