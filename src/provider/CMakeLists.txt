@@ -78,6 +78,7 @@ set_target_properties(storage-framework-provider PROPERTIES
 target_compile_options(storage-framework-provider PUBLIC
   $<TARGET_PROPERTY:sf-provider-objects,COMPILE_OPTIONS>)
 target_link_libraries(storage-framework-provider
+  storage-framework-common-internal
   Qt5::Core
   Qt5::DBus
   Qt5::Network
@@ -102,6 +103,7 @@ set_target_properties(storage-framework-provider-static PROPERTIES
 target_compile_options(storage-framework-provider-static PUBLIC
   $<TARGET_PROPERTY:sf-provider-objects,COMPILE_OPTIONS>)
 target_link_libraries(storage-framework-provider-static
+  storage-framework-common-internal
   Qt5::Core
   Qt5::DBus
   Qt5::Network
