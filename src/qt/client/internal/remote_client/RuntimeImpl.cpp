@@ -42,6 +42,11 @@
 
 using namespace std;
 
+namespace
+{
+constexpr char BUS_NAME[] = "com.canonical.StorageFramework.Provider.ProviderTest";
+}
+
 namespace unity
 {
 namespace storage
@@ -135,10 +140,9 @@ void RuntimeImpl::manager_ready()
             for (auto const& a : manager_->availableAccounts(service_id))
             {
                 qDebug() << "got account:" << a->displayName() << a->serviceId() << a->id();
-                auto impl = new AccountImpl(public_instance_, a->id(), "", a->serviceId(), a->displayName());
-                Account::SPtr acc(new Account(impl));
-                impl->set_public_instance(acc);
-                accounts.append(acc);
+                auto object_path = QStringLiteral("/provider/%1").arg(a->id());
+                accounts.append(make_account(BUS_NAME, object_path,
+                                             "", a->serviceId(), a->displayName()));
             }
         }
         accounts_ = accounts;
@@ -154,6 +158,26 @@ void RuntimeImpl::timeout()
 {
     make_exceptional_future(qf_, ResourceException("Runtime::accounts(): timeout retrieving Online accounts", 0));
 }
+
+shared_ptr<Account> RuntimeImpl::make_test_account(QString const& bus_name,
+                                                   QString const& object_path)
+{
+    return make_account(bus_name, object_path, "", "", "");
+}
+
+shared_ptr<Account> RuntimeImpl::make_account(QString const& bus_name,
+                                              QString const& object_path,
+                                              QString const& owner,
+                                              QString const& owner_id,
+                                              QString const& description)
+{
+    auto impl = new AccountImpl(public_instance_, bus_name, object_path,
+                                owner, owner_id, description);
+    Account::SPtr acc(new Account(impl));
+    impl->set_public_instance(acc);
+    return acc;
+}
+
 
 }  // namespace local_client
 }  // namespace internal
