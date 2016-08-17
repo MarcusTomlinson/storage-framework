@@ -139,7 +139,6 @@ void RuntimeImpl::manager_ready()
         {
             for (auto const& a : manager_->availableAccounts(service_id))
             {
-                qDebug() << "got account:" << a->displayName() << a->serviceId() << a->id();
                 auto object_path = QStringLiteral("/provider/%1").arg(a->id());
                 accounts.append(make_account(BUS_NAME, object_path,
                                              "", a->serviceId(), a->displayName()));

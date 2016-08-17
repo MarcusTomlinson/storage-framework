@@ -83,17 +83,17 @@ Handler<T>::Handler(QObject* parent,
                               // We catch some exceptions that are "surprising" so we can log those.
                               catch (LocalCommsException const& e)
                               {
-                                  qDebug() << "provider exception:" << e.what();
+                                  qCritical() << "provider exception:" << e.what();
                                   make_exceptional_future<T>(qf_, e);
                               }
                               catch (RemoteCommsException const& e)
                               {
-                                  qDebug() << "provider exception:" << e.what();
+                                  qCritical() << "provider exception:" << e.what();
                                   make_exceptional_future<T>(qf_, e);
                               }
                               catch (ResourceException const& e)
                               {
-                                  qDebug() << "provider exception:" << e.what();
+                                  qCritical() << "provider exception:" << e.what();
                                   make_exceptional_future<T>(qf_, e);
                               }
                               catch (StorageException const& e)
