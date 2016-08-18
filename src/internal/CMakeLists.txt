@@ -1,6 +1,7 @@
 set(src
     dbusmarshal.cpp
     safe_strerror.cpp
+    TraceMessageHandler.cpp
 )
 
 add_library(storage-framework-common-internal STATIC ${src})
