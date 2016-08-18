@@ -38,7 +38,7 @@ using namespace unity::storage;
 using namespace unity::storage::qt::client;
 using namespace std;
 
-static constexpr int SIGNAL_WAIT_TIME = 1000;
+static constexpr int SIGNAL_WAIT_TIME = 30000;
 
 class RemoteClientTest : public ::testing::Test
 {

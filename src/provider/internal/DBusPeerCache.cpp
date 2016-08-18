@@ -74,7 +74,9 @@ boost::future<DBusPeerCache::Credentials> DBusPeerCache::get(QString const& peer
     try
     {
         Credentials const& credentials = cache_.at(peer);
-        return boost::make_ready_future<Credentials>(credentials);
+        boost::promise<Credentials> p;
+        p.set_value(credentials);
+        return p.get_future();
     }
     catch (std::out_of_range const &)
     {
@@ -91,7 +93,9 @@ boost::future<DBusPeerCache::Credentials> DBusPeerCache::get(QString const& peer
         // LCOV_EXCL_START
         cache_.emplace(peer, std::move(credentials));
         old_cache_.erase(peer);
-        return boost::make_ready_future<Credentials>(credentials);
+        boost::promise<Credentials> p;
+        p.set_value(credentials);
+        return p.get_future();
         // LCOV_EXCL_STOP
     }
     catch (std::out_of_range const &)

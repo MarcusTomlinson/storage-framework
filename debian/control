@@ -34,7 +34,7 @@ Homepage: https://launchpad.net/storage-framework
 # upstream branch
 Vcs-Bzr: lp:storage-framework
 
-Package: libstorage-framework-provider-1-1
+Package: libstorage-framework-provider-1-2
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
@@ -81,7 +81,7 @@ Section: libdevel
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
-Depends: libstorage-framework-provider-1-1 (= ${binary:Version}),
+Depends: libstorage-framework-provider-1-2 (= ${binary:Version}),
          libboost-thread-dev (>= 1.58) | libboost-thread1.58-dev,
          ${misc:Depends},
 Description: Header files for the Storage Framework provider library
