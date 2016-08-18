@@ -1,17 +1,16 @@
 
 
-set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES
-  CLASSNAME ProviderClient
-  INCLUDE unity/storage/internal/dbusmarshal.h
-)
-qt5_add_dbus_interface(generated_files
-  ${CMAKE_SOURCE_DIR}/data/provider.xml
-  ProviderClient
-)
-set_source_files_properties(${generated_files} PROPERTIES
-  GENERATED TRUE
-)
-
+#set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES
+#  CLASSNAME ProviderClient
+#  INCLUDE unity/storage/internal/dbusmarshal.h
+#)
+#qt5_add_dbus_interface(generated_files
+#  ${CMAKE_SOURCE_DIR}/data/provider.xml
+#  ProviderClient
+#)
+#set_source_files_properties(${generated_files} PROPERTIES
+#  GENERATED TRUE
+#)
 add_executable(provider-ProviderInterface_test
   ProviderInterface_test.cpp
   TestProvider.cpp

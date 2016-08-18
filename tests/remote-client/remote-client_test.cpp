@@ -19,6 +19,7 @@
 #include <unity/storage/qt/client/client-api.h>
 
 #include <utils/DBusEnvironment.h>
+#include <utils/FakeProvider.h>
 
 #include <gtest/gtest.h>
 #include <QCoreApplication>
