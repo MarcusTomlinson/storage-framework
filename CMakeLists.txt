@@ -130,6 +130,7 @@ add_subdirectory(demo)
 enable_coverage_report(
     TARGETS
         qt-client-lib-common
+        storage-framework-common-internal
         storage-framework-qt-client
         storage-framework-qt-local-client
         sf-provider-objects

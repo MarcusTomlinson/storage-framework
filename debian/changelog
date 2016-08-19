@@ -1,5 +1,9 @@
-storage-framework (0.1-0ubuntu1) UNRELEASED; urgency=medium
+storage-framework (0.1+16.10.20160804.1-0ubuntu1) yakkety; urgency=medium
 
+  [ Michi Henning ]
   * Initial release.
 
- -- Michi Henning <michi.henning@canonical.com>  Wed, 20 Apr 2016 11:07:55 +1000
+  [ James Henstridge, Michi Henning ]
+  * Initial release of storage framework.
+
+ -- Michi Henning <michi@triodia.com>  Thu, 04 Aug 2016 07:20:09 +0000

@@ -44,8 +44,14 @@ using namespace std;
 
 namespace
 {
-constexpr char BUS_NAME[] = "com.canonical.StorageFramework.Provider.ProviderTest";
-}
+
+static const map<QString, QString> BUS_NAMES =
+{
+    { "google-drive-scope", "com.canonical.StorageFramework.Provider.ProviderTest" },
+    { "com.canonical.scopes.mcloud_mcloud_mcloud", "com.canonical.StorageFramework.Provider.McloudProvider" }
+};
+
+}  // namespace
 
 namespace unity
 {
@@ -132,18 +138,26 @@ void RuntimeImpl::manager_ready()
 
     timer_.stop();
 
-    static QString const service_ids[] = { "com.canonical.scopes.mcloud_mcloud_mcloud", "google-drive-scope" };
-
     try
     {
         QVector<Account::SPtr> accounts;
-        for (auto const service_id : service_ids)
+        for (auto const map_entry : BUS_NAMES)
         {
+            auto service_id = map_entry.first;
             for (auto const& a : manager_->availableAccounts(service_id))
             {
                 auto object_path = QStringLiteral("/provider/%1").arg(a->id());
-                accounts.append(make_account(BUS_NAME, object_path,
-                                             "", a->serviceId(), a->displayName()));
+                try
+                {
+                    auto bus_name = map_entry.second;
+                    accounts.append(make_account(bus_name, object_path,
+                                                 "", a->serviceId(), a->displayName()));
+
+                }
+                catch (LocalCommsException const& e)
+                {
+                    qDebug() << "RuntimeImpl: ignoring non-existent provider" << a->serviceId();
+                }
             }
         }
         accounts_ = accounts;
