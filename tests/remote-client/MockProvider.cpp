@@ -43,7 +43,7 @@ MockProvider::MockProvider(string const& cmd)
 
 boost::future<ItemList> MockProvider::roots(Context const&)
 {
-    ItemList roots = 
+    ItemList roots =
     {
         {"root_id", {}, "Root", "etag", ItemType::root, {}}
     };
