@@ -159,7 +159,7 @@ boost::future<tuple<ItemList,string>> MyProvider::list(
     if (page_token != "")
     {
         string msg = string("Item::list(): invalid page token: \"") + page_token + "\"";
-        return make_exceptional_future<tuple<ItemList,string>>(msg);
+        return make_exceptional_future<tuple<ItemList,string>>(LogicException(msg));
     }
     ItemList children =
     {

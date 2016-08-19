@@ -61,8 +61,7 @@ QDBusConnection const& FakeProvider::connection() const
 void FakeProvider::set_provider(unique_ptr<ProviderBase>&& provider)
 {
     account_manager_->waitForReady();
-    OnlineAccounts::Account* account = account_manager_->account(
-        2, "oauth2-service");
+    OnlineAccounts::Account* account = account_manager_->account(2, "oauth2-service");
     ASSERT_NE(nullptr, account);
 
     test_server_.reset(
@@ -79,4 +78,9 @@ void FakeProvider::wait_for(QDBusPendingCall const& call)
     QDBusPendingCallWatcher watcher(call);
     QSignalSpy spy(&watcher, &QDBusPendingCallWatcher::finished);
     ASSERT_TRUE(spy.wait());
+}
+
+QString FakeProvider::bus_path() const
+{
+    return BUS_PATH;
 }

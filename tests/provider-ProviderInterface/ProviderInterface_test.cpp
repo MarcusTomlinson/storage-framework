@@ -21,7 +21,6 @@
 #include <unity/storage/provider/testing/TestServer.h>
 
 #include "TestProvider.h"
-#include "ProviderClient.h"
 
 #include <utils/FakeProvider.h>
 

@@ -57,7 +57,7 @@ AccountImpl::AccountImpl(weak_ptr<Runtime> const& runtime,
     provider_.reset(new ProviderInterface(bus_name, object_path, rt_impl->connection()));
     if (!provider_->isValid())
     {
-        throw LocalCommsException("AccountImpl(): " + provider_->lastError().message());
+        throw LocalCommsException("AccountImpl(): " + provider_->lastError().message());  // LCOV_EXCL_LINE
     }
 }
 
@@ -85,9 +85,9 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
     {
         runtime();  // Throws if runtime was destroyed.
     }
-    catch (RuntimeDestroyedException const& e)
+    catch (RuntimeDestroyedException const&)
     {
-        return make_exceptional_future<QVector<Root::SPtr>>(e);
+        return make_exceptional_future<QVector<Root::SPtr>>(RuntimeDestroyedException("Account::roots()"));
     }
 
     auto reply = provider_->Roots();

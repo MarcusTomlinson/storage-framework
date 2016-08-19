@@ -39,6 +39,7 @@ public:
     QDBusConnection const& connection() const;
     void set_provider(std::unique_ptr<unity::storage::provider::ProviderBase>&& provider);
     void wait_for(QDBusPendingCall const& call);
+    QString bus_path() const;
 
 protected:
     std::unique_ptr<DBusEnvironment> dbus_;
