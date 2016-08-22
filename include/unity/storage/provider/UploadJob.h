@@ -55,6 +55,15 @@ public:
     virtual boost::future<void> cancel() = 0;
     virtual boost::future<Item> finish() = 0;
 
+    // Called when finishing a download.  The client should have
+    // closed the socket at this point, but it is possible not all
+    // data has been drained from the socket.
+    //
+    // At this point, it is an error condition for the socket to be
+    // open, so an error should be returned if reading from the socket
+    // would block.
+    virtual void drain();
+
 protected:
     UploadJob(internal::UploadJobImpl *p) UNITY_STORAGE_HIDDEN;
     internal::UploadJobImpl *p_ = nullptr;

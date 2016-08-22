@@ -24,6 +24,8 @@
 
 #include <QSocketNotifier>
 #include <QTimer>
+
+#include <sys/select.h>
 #include <unistd.h>
 #include <algorithm>
 
@@ -40,6 +42,8 @@ public:
     boost::future<void> cancel() override;
     boost::future<Item> finish() override;
 
+    void drain() override;
+
 private:
     void read_some();
 
@@ -47,6 +51,7 @@ private:
     int64_t const size_;
     QSocketNotifier notifier_;
     int64_t bytes_read_ = 0;
+    bool closed_ = false;
 };
 
 TestUploadJob::TestUploadJob(std::string const& upload_id, Item const& item,
@@ -83,6 +88,44 @@ boost::future<Item> TestUploadJob::finish()
     return p.get_future();
 }
 
+void TestUploadJob::drain()
+{
+    while (true)
+    {
+        if (closed_ || read_socket() == -1)
+        {
+            break;
+        }
+
+        fd_set rfds;
+        struct timeval tv;
+
+        FD_ZERO(&rfds);
+        FD_SET(read_socket(), &rfds);
+        tv.tv_sec = 0;
+        tv.tv_usec = 0;
+
+        int ret = select(1, &rfds, nullptr, nullptr, &tv);
+        if (ret > 0)
+        {
+            read_some();
+        }
+        else if (ret == 0)
+        {
+            report_error(make_exception_ptr(LogicException("Socket not closed")));
+            notifier_.setEnabled(false);
+            break;
+        }
+        else if (ret < 0)
+        {
+            int error_code = errno;
+            report_error(make_exception_ptr(ResourceException("Select failure: " + safe_strerror(error_code), error_code)));
+            notifier_.setEnabled(false);
+            break;
+        }
+    }
+}
+
 void TestUploadJob::read_some()
 {
     printf("TestUploadJob::read_some(): %d read of expected %d\n", (int) bytes_read_, (int) size_);
@@ -101,6 +144,7 @@ void TestUploadJob::read_some()
         {
             report_error(make_exception_ptr(LogicException("wrong number of bytes")));
         }
+        closed_ = true;
         notifier_.setEnabled(false);
     }
     else

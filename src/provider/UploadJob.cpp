@@ -69,6 +69,9 @@ void UploadJob::report_error(std::exception_ptr p)
     p_->report_error(p);
 }
 
+void UploadJob::drain() {
+}
+
 }
 }
 }
