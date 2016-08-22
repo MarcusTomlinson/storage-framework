@@ -382,6 +382,26 @@ TEST_F(ProviderInterfaceTest, upload_long_write)
     EXPECT_EQ("too many bytes written", reply.error().message().toStdString());
 }
 
+TEST_F(ProviderInterfaceTest, upload_not_closed)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    QString upload_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->Update("item_id", 100, "old_etag");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+        upload_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+    auto reply = client_->FinishUpload(upload_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isError());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_EQ("Socket not closed", reply.error().message());
+}
+
 TEST_F(ProviderInterfaceTest, cancel_upload)
 {
     make_provider(unique_ptr<ProviderBase>(new TestProvider));
