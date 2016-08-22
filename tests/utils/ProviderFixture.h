@@ -46,5 +46,4 @@ protected:
     std::unique_ptr<QDBusConnection> service_connection_;
     std::unique_ptr<OnlineAccounts::Manager> account_manager_;
     std::unique_ptr<unity::storage::provider::testing::TestServer> test_server_;
-    std::unique_ptr<ProviderClient> client_;
 };

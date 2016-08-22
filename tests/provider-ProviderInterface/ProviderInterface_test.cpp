@@ -22,7 +22,7 @@
 
 #include "TestProvider.h"
 
-#include <utils/FakeProvider.h>
+#include <utils/ProviderFixture.h>
 
 #include <gtest/gtest.h>
 #include <OnlineAccounts/Account>
@@ -56,6 +56,18 @@ const QString PROVIDER_ERROR = unity::storage::internal::DBUS_ERROR_PREFIX;
 
 class ProviderInterfaceTest : public FakeProvider
 {
+protected:
+    void SetUp() override
+    {
+        client_.reset(new ProviderClient(service_connection_->baseService(), BUS_PATH, connection()));
+    }
+
+    void TearDown() override
+    {
+        client_.reset();
+    }
+
+    std::unique_ptr<ProviderClient> client_;
 };
 
 TEST_F(ProviderInterfaceTest, roots)

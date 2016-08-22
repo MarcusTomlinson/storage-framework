@@ -55,10 +55,6 @@ AccountImpl::AccountImpl(weak_ptr<Runtime> const& runtime,
     auto rt_impl = dynamic_pointer_cast<RuntimeImpl>(runtime.lock()->p_);
     assert(rt_impl);
     provider_.reset(new ProviderInterface(bus_name, object_path, rt_impl->connection()));
-    if (!provider_->isValid())
-    {
-        throw LocalCommsException("AccountImpl(): " + provider_->lastError().message());  // LCOV_EXCL_LINE
-    }
 }
 
 QString AccountImpl::owner() const

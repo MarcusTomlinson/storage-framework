@@ -22,47 +22,6 @@
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/UploadJob.h>
 
-#if BOOST_VERSION >= 105600
-using boost::make_ready_future;
-using boost::make_exceptional_future;
-#else
-namespace
-{
-
-boost::future<void> make_ready_future()
-{
-    boost::promise<void> p;
-    p.set_value();
-    return p.get_future();
-}
-
-template <typename T>
-boost::future<T> make_ready_future(T& value)
-{
-    boost::promise<T> p;
-    p.set_value(value);
-    return p.get_future();
-}
-
-template <typename T>
-boost::future<T> make_ready_future(T&& value)
-{
-    boost::promise<T> p;
-    p.set_value(std::move(value));
-    return p.get_future();
-}
-
-template <typename T, typename E>
-boost::future<T> make_exceptional_future(E const& ex)
-{
-    boost::promise<T> p;
-    p.set_exception(boost::copy_exception(ex));
-    return p.get_future();
-}
-
-}  // namespace
-#endif
-
 class MockProvider : public unity::storage::provider::ProviderBase
 {
 public:

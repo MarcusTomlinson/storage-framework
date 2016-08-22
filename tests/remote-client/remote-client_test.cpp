@@ -19,7 +19,7 @@
 #include <unity/storage/qt/client/client-api.h>
 
 #include <utils/DBusEnvironment.h>
-#include <utils/FakeProvider.h>
+#include <utils/ProviderFixture.h>
 #include <MockProvider.h>
 
 #include <gtest/gtest.h>
@@ -143,7 +143,14 @@ Account::SPtr get_account(Runtime::SPtr const& runtime)
         qCritical() << "Configure at least one online account for a provider in System Settings -> Online Accounts";
         return nullptr;
     }
-    return accounts[0];
+    for (auto acc : accounts)
+    {
+        if (acc->owner_id() == "google-drive-scope")
+        {
+            return acc;
+        }
+    }
+    abort();  // Impossible
 }
 
 Root::SPtr get_root(Runtime::SPtr const& runtime)

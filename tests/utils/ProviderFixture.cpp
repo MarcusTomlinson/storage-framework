@@ -16,7 +16,7 @@
  * Authors: James Henstridge <james.henstridge@canonical.com>
  */
 
-#include "FakeProvider.h"
+#include "ProviderFixture.h"
 
 #include <unity/storage/internal/dbus_error.h>
 
@@ -30,8 +30,6 @@ namespace
 
 const auto SERVICE_CONNECTION_NAME = QStringLiteral("service-session-bus");
 const auto BUS_PATH = QStringLiteral("/provider");
-const auto PROVIDER_IFACE = QStringLiteral("com.canonical.StorageFramework.Provider");
-const QString PROVIDER_ERROR = unity::storage::internal::DBUS_ERROR_PREFIX;
 
 }  // namespace
 
@@ -46,7 +44,6 @@ FakeProvider::FakeProvider()
 
 FakeProvider::~FakeProvider()
 {
-    client_.reset();
     test_server_.reset();
     service_connection_.reset();
     QDBusConnection::disconnectFromBus(SERVICE_CONNECTION_NAME);
@@ -67,10 +64,6 @@ void FakeProvider::set_provider(unique_ptr<ProviderBase>&& provider)
     test_server_.reset(
         new unity::storage::provider::testing::TestServer(move(provider), account,
                                                           *service_connection_, BUS_PATH.toStdString()));
-
-    client_.reset(new ProviderClient(service_connection_->baseService(),
-                                     BUS_PATH,
-                                     connection()));
 }
 
 void FakeProvider::wait_for(QDBusPendingCall const& call)
