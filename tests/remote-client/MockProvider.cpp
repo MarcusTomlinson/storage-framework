@@ -32,6 +32,9 @@ using namespace unity::storage;
 using namespace unity::storage::provider;
 using namespace std;
 
+using boost::make_exceptional_future;
+using boost::make_ready_future;
+
 MockProvider::MockProvider()
 {
 }
