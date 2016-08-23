@@ -21,9 +21,8 @@
 #include <unity/storage/provider/testing/TestServer.h>
 
 #include "TestProvider.h"
-#include "ProviderClient.h"
 
-#include <utils/DBusEnvironment.h>
+#include <utils/ProviderFixture.h>
 
 #include <gtest/gtest.h>
 #include <OnlineAccounts/Account>
@@ -55,69 +54,25 @@ const QString PROVIDER_ERROR = unity::storage::internal::DBUS_ERROR_PREFIX;
 
 }
 
-
-class ProviderInterfaceTest : public ::testing::Test
+class ProviderInterfaceTest : public ProviderFixture
 {
-public:
-    QDBusConnection const& connection()
-    {
-        return dbus_->connection();
-    }
-
-    void make_provider(unique_ptr<ProviderBase>&& provider)
-    {
-        account_manager_->waitForReady();
-        OnlineAccounts::Account* account = account_manager_->account(
-            2, "oauth2-service");
-        ASSERT_NE(nullptr, account);
-
-        test_server_.reset(
-            new TestServer(move(provider), account,
-                           *service_connection_, BUS_PATH.toStdString()));
-
-        client_.reset(new ProviderClient(service_connection_->baseService(),
-                                         BUS_PATH,
-                                         connection()));
-    }
-
-    void wait_for(QDBusPendingCall const& call) {
-        QDBusPendingCallWatcher watcher(call);
-        QSignalSpy spy(&watcher, &QDBusPendingCallWatcher::finished);
-        ASSERT_TRUE(spy.wait());
-    }
-
 protected:
     void SetUp() override
     {
-        dbus_.reset(new DBusEnvironment);
-        dbus_->start_services();
-        service_connection_.reset(
-            new QDBusConnection(QDBusConnection::connectToBus(
-                dbus_->busAddress(), SERVICE_CONNECTION_NAME)));
-        account_manager_.reset(new OnlineAccounts::Manager(
-                                   "", *service_connection_));
+        client_.reset(new ProviderClient(service_connection_->baseService(), BUS_PATH, connection()));
     }
 
     void TearDown() override
     {
         client_.reset();
-        test_server_.reset();
-        service_connection_.reset();
-        QDBusConnection::disconnectFromBus(SERVICE_CONNECTION_NAME);
-        dbus_.reset();
     }
 
-    unique_ptr<DBusEnvironment> dbus_;
-    unique_ptr<QDBusConnection> service_connection_;
-    unique_ptr<OnlineAccounts::Manager> account_manager_;
-    unique_ptr<TestServer> test_server_;
-    unique_ptr<ProviderClient> client_;
+    std::unique_ptr<ProviderClient> client_;
 };
-
 
 TEST_F(ProviderInterfaceTest, roots)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     auto reply = client_->Roots();
     wait_for(reply);
@@ -133,7 +88,7 @@ TEST_F(ProviderInterfaceTest, roots)
 
 TEST_F(ProviderInterfaceTest, list)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     auto reply = client_->List("root_id", "");
     wait_for(reply);
@@ -171,7 +126,7 @@ TEST_F(ProviderInterfaceTest, list)
 
 TEST_F(ProviderInterfaceTest, lookup)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     auto reply = client_->Lookup("root_id", "Filename");
     wait_for(reply);
@@ -187,7 +142,7 @@ TEST_F(ProviderInterfaceTest, lookup)
 
 TEST_F(ProviderInterfaceTest, metadata)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     auto reply = client_->Metadata("root_id");
     wait_for(reply);
@@ -201,7 +156,7 @@ TEST_F(ProviderInterfaceTest, metadata)
 
 TEST_F(ProviderInterfaceTest, create_folder)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     auto reply = client_->CreateFolder("root_id", "New Folder");
     wait_for(reply);
@@ -215,7 +170,7 @@ TEST_F(ProviderInterfaceTest, create_folder)
 
 TEST_F(ProviderInterfaceTest, create_file)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     const std::string file_contents = "Hello world!";
     QString upload_id;
@@ -263,7 +218,7 @@ TEST_F(ProviderInterfaceTest, create_file)
 
 TEST_F(ProviderInterfaceTest, update)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     const std::string file_contents = "Hello world!";
     QString upload_id;
@@ -309,7 +264,7 @@ TEST_F(ProviderInterfaceTest, update)
 
 TEST_F(ProviderInterfaceTest, upload_short_write)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     QString upload_id;
     QDBusUnixFileDescriptor socket;
@@ -329,7 +284,7 @@ TEST_F(ProviderInterfaceTest, upload_short_write)
 
 TEST_F(ProviderInterfaceTest, upload_long_write)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     const std::string file_contents = "Hello world!";
     QString upload_id;
@@ -374,7 +329,7 @@ TEST_F(ProviderInterfaceTest, upload_long_write)
 
 TEST_F(ProviderInterfaceTest, cancel_upload)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     QString upload_id;
     QDBusUnixFileDescriptor socket;
@@ -392,7 +347,7 @@ TEST_F(ProviderInterfaceTest, cancel_upload)
 
 TEST_F(ProviderInterfaceTest, finish_upload_unknown)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     auto reply = client_->FinishUpload("no-such-upload");
     wait_for(reply);
@@ -403,7 +358,7 @@ TEST_F(ProviderInterfaceTest, finish_upload_unknown)
 
 TEST_F(ProviderInterfaceTest, download)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     QString download_id;
     QDBusUnixFileDescriptor socket;
@@ -446,7 +401,7 @@ TEST_F(ProviderInterfaceTest, download)
 
 TEST_F(ProviderInterfaceTest, download_short_read)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     QString download_id;
     QDBusUnixFileDescriptor socket;
@@ -466,7 +421,7 @@ TEST_F(ProviderInterfaceTest, download_short_read)
 
 TEST_F(ProviderInterfaceTest, finish_download_unknown)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     auto reply = client_->FinishDownload("no-such-download");
     wait_for(reply);
@@ -477,7 +432,7 @@ TEST_F(ProviderInterfaceTest, finish_download_unknown)
 
 TEST_F(ProviderInterfaceTest, delete_)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     auto reply = client_->Delete("item_id");
     wait_for(reply);
@@ -486,7 +441,7 @@ TEST_F(ProviderInterfaceTest, delete_)
 
 TEST_F(ProviderInterfaceTest, move)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     auto reply = client_->Move("child_id", "new_parent_id", "New name");
     wait_for(reply);
@@ -500,7 +455,7 @@ TEST_F(ProviderInterfaceTest, move)
 
 TEST_F(ProviderInterfaceTest, copy)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     auto reply = client_->Copy("child_id", "new_parent_id", "New name");
     wait_for(reply);

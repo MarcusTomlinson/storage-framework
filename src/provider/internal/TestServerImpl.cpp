@@ -56,7 +56,7 @@ TestServerImpl::TestServerImpl(unique_ptr<ProviderBase>&& provider,
     new ProviderAdaptor(interface_.get());
 
     if (!connection_.registerObject(QString::fromStdString(object_path_),
-                                   interface_.get()))
+                                    interface_.get()))
     {
         string msg = "Could not register provider on connection: " + connection_.lastError().message().toStdString();
         throw ResourceException(msg, int(connection_.lastError().type()));

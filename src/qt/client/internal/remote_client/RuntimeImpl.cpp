@@ -84,9 +84,9 @@ RuntimeImpl::~RuntimeImpl()
         shutdown();
     }
     // LCOV_EXCL_START
-    catch (std::exception const&)
+    catch (std::exception const& e)
     {
-        qCritical() << "shutdown error";  // TODO, log the error properly
+        qCritical() << "shutdown error" << e.what();
     }
     // LCOV_EXCL_STOP
 }
@@ -130,8 +130,10 @@ void RuntimeImpl::manager_ready()
 {
     if (destroyed_)
     {
+        // LCOV_EXCL_START
         make_exceptional_future(qf_, RuntimeDestroyedException("Runtime::accounts()"));
         return;
+        // LCOV_EXCL_STOP
     }
 
     timer_.stop();
@@ -161,16 +163,20 @@ void RuntimeImpl::manager_ready()
         accounts_ = accounts;
         make_ready_future(qf_, accounts);
     }
+    // LCOV_EXCL_START
     catch (StorageException const& e)
     {
         make_exceptional_future(qf_, e);
     }
+    // LCOV_EXCL_STOP
 }
 
+// LCOV_EXCL_START
 void RuntimeImpl::timeout()
 {
     make_exceptional_future(qf_, ResourceException("Runtime::accounts(): timeout retrieving Online accounts", 0));
 }
+// LCOV_EXCL_STOP
 
 shared_ptr<Account> RuntimeImpl::make_test_account(QString const& bus_name,
                                                    QString const& object_path)

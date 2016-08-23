@@ -22,7 +22,6 @@
 
 #include <OnlineAccounts/Account>
 
-
 using namespace std;
 
 namespace unity
