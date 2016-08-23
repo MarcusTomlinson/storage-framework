@@ -379,6 +379,7 @@ TEST_F(ProviderInterfaceTest, upload_long_write)
     auto reply = client_->FinishUpload(upload_id);
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
     EXPECT_EQ("too many bytes written", reply.error().message().toStdString());
 }
 
@@ -429,6 +430,145 @@ TEST_F(ProviderInterfaceTest, finish_upload_unknown)
     ASSERT_TRUE(reply.isError());
     EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
     EXPECT_EQ("unknown exception thrown by provider: map::at", reply.error().message());
+}
+
+TEST_F(ProviderInterfaceTest, tempfile_upload)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    const std::string file_contents = "Hello world!";
+    QString upload_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->Update("tempfile_item_id", file_contents.size(), "old_etag");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+        upload_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+
+    auto app = QCoreApplication::instance();
+    QSocketNotifier notifier(socket.fileDescriptor(), QSocketNotifier::Write);
+    size_t total_written = 0;
+    QObject::connect(
+        &notifier, &QSocketNotifier::activated,
+        [&file_contents, app, &notifier, &total_written](int fd) {
+            ssize_t n_written = write(fd, file_contents.data() + total_written, file_contents.size() - total_written);
+            if (n_written < 0)
+            {
+                // Error writing
+                notifier.setEnabled(false);
+                app->quit();
+            }
+            total_written += n_written;
+            if (total_written == file_contents.size())
+            {
+                notifier.setEnabled(false);
+                app->quit();
+            }
+        });
+    notifier.setEnabled(true);
+    app->exec();
+    // File descriptor is owned by QDBusUnixFileDescriptor, so using
+    // shutdown() to make sure the write channel is closed.
+    ASSERT_EQ(0, shutdown(socket.fileDescriptor(), SHUT_WR));
+
+    auto reply = client_->FinishUpload(upload_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+    auto item = reply.value();
+    EXPECT_EQ("item_id", item.item_id);
+}
+
+TEST_F(ProviderInterfaceTest, tempfile_upload_short_write)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    QString upload_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->Update("tempfile_item_id", 100, "old_etag");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+        upload_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+    // File descriptor is owned by QDBusUnixFileDescriptor, so using
+    // shutdown() to make sure the write channel is closed.
+    ASSERT_EQ(0, shutdown(socket.fileDescriptor(), SHUT_WR));
+    auto reply = client_->FinishUpload(upload_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isError());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_EQ("wrong number of bytes written", reply.error().message().toStdString());
+}
+
+TEST_F(ProviderInterfaceTest, tempfile_upload_long_write)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    const std::string file_contents = "Hello world!";
+    QString upload_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->Update("tempfile_item_id", file_contents.size() - 5, "old_etag");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+        upload_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+
+    auto app = QCoreApplication::instance();
+    QSocketNotifier notifier(socket.fileDescriptor(), QSocketNotifier::Write);
+    size_t total_written = 0;
+    QObject::connect(
+        &notifier, &QSocketNotifier::activated,
+        [&file_contents, app, &notifier, &total_written](int fd) {
+            ssize_t n_written = write(fd, file_contents.data() + total_written, file_contents.size() - total_written);
+            if (n_written < 0)
+            {
+                // Error writing
+                notifier.setEnabled(false);
+                app->quit();
+            }
+            total_written += n_written;
+            if (total_written == file_contents.size())
+            {
+                notifier.setEnabled(false);
+                app->quit();
+            }
+        });
+    notifier.setEnabled(true);
+    app->exec();
+    // File descriptor is owned by QDBusUnixFileDescriptor, so using
+    // shutdown() to make sure the write channel is closed.
+    ASSERT_EQ(0, shutdown(socket.fileDescriptor(), SHUT_WR));
+
+    auto reply = client_->FinishUpload(upload_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isError());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_EQ("wrong number of bytes written", reply.error().message());
+}
+
+TEST_F(ProviderInterfaceTest, tempfile_upload_not_closed)
+{
+    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    QString upload_id;
+    QDBusUnixFileDescriptor socket;
+    {
+        auto reply = client_->Update("tempfile_item_id", 100, "old_etag");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+        upload_id = reply.argumentAt<0>();
+        socket = reply.argumentAt<1>();
+    }
+    auto reply = client_->FinishUpload(upload_id);
+    wait_for(reply);
+    ASSERT_TRUE(reply.isError());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_EQ("Socket not closed", reply.error().message());
 }
 
 TEST_F(ProviderInterfaceTest, download)

@@ -55,8 +55,8 @@ private Q_SLOTS:
     void on_read_channel_finished();
 
 private:
-    std::unique_ptr<QLocalSocket> reader_;
     std::unique_ptr<QTemporaryFile> tmpfile_;
+    std::unique_ptr<QLocalSocket> reader_;
 
     Q_DISABLE_COPY(TempfileUploadJobImpl)
 };

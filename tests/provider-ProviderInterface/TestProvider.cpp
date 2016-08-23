@@ -21,11 +21,14 @@
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/UploadJob.h>
+#include <unity/storage/provider/TempfileUploadJob.h>
 
 #include <QSocketNotifier>
 #include <QTimer>
 
 #include <sys/select.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <algorithm>
 
@@ -157,6 +160,49 @@ void TestUploadJob::read_some()
             notifier_.setEnabled(false);
         }
     }
+}
+
+class TestTempfileUploadJob : public TempfileUploadJob
+{
+public:
+    TestTempfileUploadJob(std::string const& upload_id, Item const& item, int64_t size);
+    boost::future<void> cancel() override;
+    boost::future<Item> finish() override;
+
+private:
+    Item const item_;
+    int64_t const size_;
+};
+
+TestTempfileUploadJob::TestTempfileUploadJob(std::string const& upload_id, Item const& item, int64_t size)
+    : TempfileUploadJob(upload_id), item_(item), size_(size)
+{
+}
+
+boost::future<void> TestTempfileUploadJob::cancel()
+{
+    boost::promise<void> p;
+    p.set_value();
+    return p.get_future();
+}
+
+boost::future<Item> TestTempfileUploadJob::finish()
+{
+    boost::promise<Item> p;
+    struct stat buf;
+    if (stat(file_name().c_str(), &buf) < 0)
+    {
+        p.set_exception(ResourceException("Could not stat temp file", errno));
+    }
+    else if (buf.st_size == size_)
+    {
+        p.set_value(item_);
+    }
+    else
+    {
+        p.set_exception(LogicException("wrong number of bytes written"));
+    }
+    return p.get_future();
 }
 
 class TestDownloadJob : public DownloadJob
@@ -342,7 +388,14 @@ boost::future<unique_ptr<UploadJob>> TestProvider::update(
 
     boost::promise<unique_ptr<UploadJob>> p;
     Item item = {"item_id", { "parent_id" }, "file name", "etag", ItemType::file, {}};
-    p.set_value(unique_ptr<UploadJob>(new TestUploadJob("upload_id", item, size)));
+    if (item_id == "tempfile_item_id")
+    {
+        p.set_value(unique_ptr<UploadJob>(new TestTempfileUploadJob("tempfile_upload_id", item, size)));
+    }
+    else
+    {
+        p.set_value(unique_ptr<UploadJob>(new TestUploadJob("upload_id", item, size)));
+    }
     return p.get_future();
 }
 
