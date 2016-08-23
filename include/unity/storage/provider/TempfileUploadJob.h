@@ -42,6 +42,7 @@ public:
     TempfileUploadJob(std::string const& upload_id);
     virtual ~TempfileUploadJob();
 
+    void drain() override;
     std::string file_name() const;
 
 protected:

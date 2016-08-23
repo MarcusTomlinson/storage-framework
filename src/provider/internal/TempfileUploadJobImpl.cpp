@@ -17,9 +17,10 @@
  */
 
 #include <unity/storage/provider/internal/TempfileUploadJobImpl.h>
+#include <unity/storage/provider/Exceptions.h>
 
 #include <cassert>
-#include <stdexcept>
+#include <exception>
 
 using namespace std;
 
@@ -62,6 +63,26 @@ std::string TempfileUploadJobImpl::file_name() const
         return "";
     }
     return tmpfile_->fileName().toStdString();
+}
+
+void TempfileUploadJobImpl::drain()
+{
+    while (true)
+    {
+        if (!tmpfile_->isOpen())
+        {
+            return;
+        }
+        if (!reader_->waitForReadyRead(0))
+        {
+            // Nothing was available to read
+            if (tmpfile_->isOpen())
+            {
+                report_error(make_exception_ptr(LogicException("Socket not closed")));
+                break;
+            }
+        }
+    }
 }
 
 void TempfileUploadJobImpl::on_ready_read()

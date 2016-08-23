@@ -46,6 +46,7 @@ public:
     virtual ~TempfileUploadJobImpl();
 
     void complete_init() override;
+    void drain();
 
     std::string file_name() const;
 
