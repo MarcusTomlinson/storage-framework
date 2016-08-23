@@ -30,11 +30,11 @@
 
 #include <memory>
 
-class FakeProvider : public ::testing::Test
+class ProviderFixture : public ::testing::Test
 {
 public:
-    FakeProvider();
-    virtual ~FakeProvider();
+    ProviderFixture();
+    virtual ~ProviderFixture();
 
     QDBusConnection const& connection() const;
     void set_provider(std::unique_ptr<unity::storage::provider::ProviderBase>&& provider);

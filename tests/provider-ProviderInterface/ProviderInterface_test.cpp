@@ -54,7 +54,7 @@ const QString PROVIDER_ERROR = unity::storage::internal::DBUS_ERROR_PREFIX;
 
 }
 
-class ProviderInterfaceTest : public FakeProvider
+class ProviderInterfaceTest : public ProviderFixture
 {
 protected:
     void SetUp() override

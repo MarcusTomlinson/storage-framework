@@ -73,7 +73,7 @@ class FolderTest : public RemoteClientTest {};
 class FileTest : public RemoteClientTest {};
 class ItemTest : public RemoteClientTest {};
 
-class DestroyedTest : public FakeProvider
+class DestroyedTest : public ProviderFixture
 {
 protected:
     void SetUp() override

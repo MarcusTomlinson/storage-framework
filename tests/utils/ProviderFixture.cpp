@@ -33,7 +33,7 @@ const auto BUS_PATH = QStringLiteral("/provider");
 
 }  // namespace
 
-FakeProvider::FakeProvider()
+ProviderFixture::ProviderFixture()
 {
     dbus_.reset(new DBusEnvironment);
     dbus_->start_services();
@@ -42,7 +42,7 @@ FakeProvider::FakeProvider()
     account_manager_.reset(new OnlineAccounts::Manager("", *service_connection_));
 }
 
-FakeProvider::~FakeProvider()
+ProviderFixture::~ProviderFixture()
 {
     test_server_.reset();
     service_connection_.reset();
@@ -50,12 +50,12 @@ FakeProvider::~FakeProvider()
     dbus_.reset();
 }
 
-QDBusConnection const& FakeProvider::connection() const
+QDBusConnection const& ProviderFixture::connection() const
 {
     return dbus_->connection();
 }
 
-void FakeProvider::set_provider(unique_ptr<ProviderBase>&& provider)
+void ProviderFixture::set_provider(unique_ptr<ProviderBase>&& provider)
 {
     account_manager_->waitForReady();
     OnlineAccounts::Account* account = account_manager_->account(2, "oauth2-service");
@@ -66,14 +66,14 @@ void FakeProvider::set_provider(unique_ptr<ProviderBase>&& provider)
                                                           *service_connection_, BUS_PATH.toStdString()));
 }
 
-void FakeProvider::wait_for(QDBusPendingCall const& call)
+void ProviderFixture::wait_for(QDBusPendingCall const& call)
 {
     QDBusPendingCallWatcher watcher(call);
     QSignalSpy spy(&watcher, &QDBusPendingCallWatcher::finished);
     ASSERT_TRUE(spy.wait());
 }
 
-QString FakeProvider::bus_path() const
+QString ProviderFixture::bus_path() const
 {
     return BUS_PATH;
 }
