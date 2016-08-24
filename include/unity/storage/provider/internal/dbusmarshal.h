@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <unity/storage/provider/ProviderBase.h>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QDBusArgument>
