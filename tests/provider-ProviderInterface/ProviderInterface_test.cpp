@@ -54,6 +54,14 @@ const auto BUS_PATH = QStringLiteral("/provider");
 const auto PROVIDER_IFACE = QStringLiteral("com.canonical.StorageFramework.Provider");
 const QString PROVIDER_ERROR = unity::storage::internal::DBUS_ERROR_PREFIX;
 
+const string file_contents =
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do "
+    "eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut "
+    "enim ad minim veniam, quis nostrud exercitation ullamco laboris "
+    "nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor "
+    "in reprehenderit in voluptate velit esse cillum dolore eu fugiat "
+    "nulla pariatur. Excepteur sint occaecat cupidatat non proident, "
+    "sunt in culpa qui officia deserunt mollit anim id est laborum.";
 }
 
 
@@ -218,7 +226,6 @@ TEST_F(ProviderInterfaceTest, create_file)
 {
     make_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    const std::string file_contents = "Hello world!Hello world!Hello world!Hello world!Hello world!Hello world!";
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
@@ -234,7 +241,7 @@ TEST_F(ProviderInterfaceTest, create_file)
     size_t total_written = 0;
     QObject::connect(
         &notifier, &QSocketNotifier::activated,
-        [&file_contents, app, &notifier, &total_written](int fd) {
+        [app, &notifier, &total_written](int fd) {
             ssize_t n_written = write(fd, file_contents.data() + total_written, file_contents.size() - total_written);
             if (n_written < 0)
             {
@@ -268,7 +275,6 @@ TEST_F(ProviderInterfaceTest, update)
 {
     make_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    const std::string file_contents = "Hello world!";
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
@@ -284,7 +290,7 @@ TEST_F(ProviderInterfaceTest, update)
     size_t total_written = 0;
     QObject::connect(
         &notifier, &QSocketNotifier::activated,
-        [&file_contents, app, &notifier, &total_written](int fd) {
+        [app, &notifier, &total_written](int fd) {
             ssize_t n_written = write(fd, file_contents.data() + total_written, file_contents.size() - total_written);
             if (n_written < 0)
             {
@@ -339,7 +345,6 @@ TEST_F(ProviderInterfaceTest, upload_long_write)
 {
     make_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    const std::string file_contents = "Hello world!";
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
@@ -355,7 +360,7 @@ TEST_F(ProviderInterfaceTest, upload_long_write)
     size_t total_written = 0;
     QObject::connect(
         &notifier, &QSocketNotifier::activated,
-        [&file_contents, app, &notifier, &total_written](int fd) {
+        [app, &notifier, &total_written](int fd) {
             ssize_t n_written = write(fd, file_contents.data() + total_written, file_contents.size() - total_written);
             if (n_written < 0)
             {
@@ -436,7 +441,6 @@ TEST_F(ProviderInterfaceTest, tempfile_upload)
 {
     make_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    const std::string file_contents = "Hello world!";
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
@@ -452,7 +456,7 @@ TEST_F(ProviderInterfaceTest, tempfile_upload)
     size_t total_written = 0;
     QObject::connect(
         &notifier, &QSocketNotifier::activated,
-        [&file_contents, app, &notifier, &total_written](int fd) {
+        [app, &notifier, &total_written](int fd) {
             ssize_t n_written = write(fd, file_contents.data() + total_written, file_contents.size() - total_written);
             if (n_written < 0)
             {
@@ -507,7 +511,6 @@ TEST_F(ProviderInterfaceTest, tempfile_upload_long_write)
 {
     make_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    const std::string file_contents = "Hello world!";
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
@@ -523,7 +526,7 @@ TEST_F(ProviderInterfaceTest, tempfile_upload_long_write)
     size_t total_written = 0;
     QObject::connect(
         &notifier, &QSocketNotifier::activated,
-        [&file_contents, app, &notifier, &total_written](int fd) {
+        [app, &notifier, &total_written](int fd) {
             ssize_t n_written = write(fd, file_contents.data() + total_written, file_contents.size() - total_written);
             if (n_written < 0)
             {
