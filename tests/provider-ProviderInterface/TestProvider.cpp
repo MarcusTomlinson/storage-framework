@@ -100,15 +100,17 @@ void TestUploadJob::drain()
             break;
         }
 
+        int nfds;
         fd_set rfds;
         struct timeval tv;
 
+        nfds = read_socket() + 1;
         FD_ZERO(&rfds);
         FD_SET(read_socket(), &rfds);
         tv.tv_sec = 0;
         tv.tv_usec = 0;
 
-        int ret = select(1, &rfds, nullptr, nullptr, &tv);
+        int ret = select(nfds, &rfds, nullptr, nullptr, &tv);
         if (ret > 0)
         {
             read_some();

@@ -71,11 +71,11 @@ void TempfileUploadJobImpl::drain()
     {
         if (!tmpfile_->isOpen())
         {
-            return;
+            break;
         }
         if (!reader_->waitForReadyRead(0))
         {
-            // Nothing was available to read
+            // Nothing was available to read: is the read channel still open?
             if (tmpfile_->isOpen())
             {
                 report_error(make_exception_ptr(LogicException("Socket not closed")));

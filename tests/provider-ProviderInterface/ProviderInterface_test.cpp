@@ -218,7 +218,7 @@ TEST_F(ProviderInterfaceTest, create_file)
 {
     make_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    const std::string file_contents = "Hello world!";
+    const std::string file_contents = "Hello world!Hello world!Hello world!Hello world!Hello world!Hello world!";
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
