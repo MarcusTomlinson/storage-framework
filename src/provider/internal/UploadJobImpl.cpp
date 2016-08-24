@@ -138,12 +138,6 @@ void UploadJobImpl::report_error(exception_ptr p)
 
 boost::future<Item> UploadJobImpl::finish(UploadJob& job)
 {
-    try {
-        job.drain();
-    } catch (...) {
-        report_error(current_exception());
-    }
-
     lock_guard<mutex> guard(completion_lock_);
     if (completed_)
     {

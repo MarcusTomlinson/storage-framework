@@ -42,8 +42,13 @@ public:
     TempfileUploadJob(std::string const& upload_id);
     virtual ~TempfileUploadJob();
 
-    void drain() override;
     std::string file_name() const;
+
+    // This function should be called from your finish()
+    // implementation to read the remaining data from the socket.  If
+    // the client has not closed the socket as expected, LogicError
+    // will be thrown.
+    void drain();
 
 protected:
     TempfileUploadJob(internal::TempfileUploadJobImpl *p) UNITY_STORAGE_HIDDEN;

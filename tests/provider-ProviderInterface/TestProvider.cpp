@@ -45,9 +45,8 @@ public:
     boost::future<void> cancel() override;
     boost::future<Item> finish() override;
 
-    void drain() override;
-
 private:
+    void drain();
     void read_some();
 
     Item const item_;
@@ -62,8 +61,18 @@ TestUploadJob::TestUploadJob(std::string const& upload_id, Item const& item,
     : UploadJob(upload_id), item_(item), size_(size),
       notifier_(read_socket(), QSocketNotifier::Read)
 {
-    QObject::connect(&notifier_, &QSocketNotifier::activated,
-                     [this]() { read_some(); });
+    QObject::connect(
+        &notifier_, &QSocketNotifier::activated,
+        [this]() {
+            try
+            {
+                read_some();
+            }
+            catch (...)
+            {
+                report_error(current_exception());
+            }
+        });
     notifier_.setEnabled(true);
 }
 
@@ -80,6 +89,7 @@ boost::future<Item> TestUploadJob::finish()
     boost::promise<Item> p;
     printf("TestUploadJob::finish(): %d read of expected %d\n", (int) bytes_read_, (int) size_);
     notifier_.setEnabled(false);
+    drain();
     if (bytes_read_ == size_)
     {
         p.set_value(item_);
@@ -117,16 +127,12 @@ void TestUploadJob::drain()
         }
         else if (ret == 0)
         {
-            report_error(make_exception_ptr(LogicException("Socket not closed")));
-            notifier_.setEnabled(false);
-            break;
+            throw LogicException("Socket not closed");
         }
         else if (ret < 0)
         {
             int error_code = errno;
-            report_error(make_exception_ptr(ResourceException("Select failure: " + safe_strerror(error_code), error_code)));
-            notifier_.setEnabled(false);
-            break;
+            throw ResourceException("Select failure: " + safe_strerror(error_code), error_code);
         }
     }
 }
@@ -140,26 +146,25 @@ void TestUploadJob::read_some()
     if (n_read < 0)
     {
         int error_code = errno;
-        report_error(make_exception_ptr(ResourceException("Read failure: " + safe_strerror(error_code), error_code)));
         notifier_.setEnabled(false);
+        throw ResourceException("Read failure: " + safe_strerror(error_code), error_code);
     }
     else if (n_read == 0)
     {
-        if (bytes_read_ != size_)
-        {
-            report_error(make_exception_ptr(LogicException("wrong number of bytes")));
-        }
         closed_ = true;
         notifier_.setEnabled(false);
+        if (bytes_read_ != size_)
+        {
+            throw LogicException("wrong number of bytes");
+        }
     }
     else
     {
         bytes_read_ += n_read;
         if (bytes_read_ > size_)
         {
-            printf("Reporting error\n");
-            report_error(make_exception_ptr(LogicException("too many bytes written")));
             notifier_.setEnabled(false);
+            throw LogicException("too many bytes written");
         }
     }
 }
@@ -190,6 +195,7 @@ boost::future<void> TestTempfileUploadJob::cancel()
 
 boost::future<Item> TestTempfileUploadJob::finish()
 {
+    drain();
     boost::promise<Item> p;
     struct stat buf;
     if (stat(file_name().c_str(), &buf) < 0)
