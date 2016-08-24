@@ -19,6 +19,8 @@
 #include <unity/storage/qt/client/client-api.h>
 
 #include <utils/DBusEnvironment.h>
+#include <utils/ProviderFixture.h>
+#include <MockProvider.h>
 
 #include <gtest/gtest.h>
 #include <QCoreApplication>
@@ -71,37 +73,64 @@ class FolderTest : public RemoteClientTest {};
 class FileTest : public RemoteClientTest {};
 class ItemTest : public RemoteClientTest {};
 
+class DestroyedTest : public ProviderFixture
+{
+protected:
+    void SetUp() override
+    {
+        runtime_ = Runtime::create(connection());
+        acc_ = runtime_->make_test_account(service_connection_->baseService(), bus_path());
+    }
+
+    void TearDown() override
+    {
+    }
+
+    Runtime::SPtr runtime_;
+    Account::SPtr acc_;
+};
+
 // Bunch of helper functions to reduce the amount of noise in the tests.
 
 template<typename T>
-void wait(T fut)
+bool wait(T fut)
 {
     QFutureWatcher<decltype(fut.result())> w;
     QSignalSpy spy(&w, &decltype(w)::finished);
     w.setFuture(fut);
-    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    bool rc = spy.wait(SIGNAL_WAIT_TIME);
+    EXPECT_TRUE(rc);
+    return rc;
 }
 
 template<>
-void wait(QFuture<void> fut)
+bool wait(QFuture<void> fut)
 {
     QFutureWatcher<void> w;
     QSignalSpy spy(&w, &decltype(w)::finished);
     w.setFuture(fut);
-    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    bool rc = spy.wait(SIGNAL_WAIT_TIME);
+    EXPECT_TRUE(rc);
+    return rc;
 }
 
 template <typename T>
 T call(QFuture<T> fut)
 {
-    wait(fut);
+    if (!wait(fut))
+    {
+        throw runtime_error("call timed out");
+    }
     return fut.result();
 }
 
 template <>
 void call(QFuture<void> fut)
 {
-    wait(fut);
+    if (!wait(fut))
+    {
+        throw runtime_error("call timed out");
+    }
     fut.waitForFinished();
 }
 
@@ -114,7 +143,14 @@ Account::SPtr get_account(Runtime::SPtr const& runtime)
         qCritical() << "Configure at least one online account for a provider in System Settings -> Online Accounts";
         return nullptr;
     }
-    return accounts[0];
+    for (auto acc : accounts)
+    {
+        if (acc->owner_id() == "google-drive-scope")
+        {
+            return acc;
+        }
+    }
+    abort();  // Impossible
 }
 
 Root::SPtr get_root(Runtime::SPtr const& runtime)
@@ -139,7 +175,7 @@ void clear_folder(Folder::SPtr const& folder)
     assert(items.size() != 0);  // TODO: temporary hack for use with demo provider
     for (auto i : items)
     {
-        wait(i->delete_item());
+        call(i->delete_item());
     }
 }
 
@@ -282,7 +318,7 @@ TEST_F(RootTest, root_exceptions)
 
 TEST_F(RuntimeTest, runtime_destroyed_exceptions)
 {
-    // Gettting an account after shutting down the runtime must fail.
+    // Getting the runtime from an account after shutting down the runtime must fail.
     {
         auto runtime = Runtime::create(connection());
         auto acc = get_account(runtime);
@@ -298,7 +334,7 @@ TEST_F(RuntimeTest, runtime_destroyed_exceptions)
         }
     }
 
-    // Getting an account after destroying the runtime must fail.
+    // Getting the runtime from an account after destroying the runtime must fail.
     {
         auto runtime = Runtime::create(connection());
         auto acc = get_account(runtime);
@@ -326,6 +362,22 @@ TEST_F(RuntimeTest, runtime_destroyed_exceptions)
         catch (RuntimeDestroyedException const& e)
         {
             EXPECT_EQ("Runtime::accounts(): runtime was destroyed previously", e.error_message());
+        }
+    }
+
+    // Getting roots from an account after shutting down the runtime must fail.
+    {
+        auto runtime = Runtime::create(connection());
+        auto acc = get_account(runtime);
+        runtime->shutdown();
+        try
+        {
+            call(acc->roots());
+            FAIL();
+        }
+        catch (RuntimeDestroyedException const& e)
+        {
+            EXPECT_EQ("Account::roots(): runtime was destroyed previously", e.error_message());
         }
     }
 
@@ -885,6 +937,198 @@ TEST_F(RuntimeTest, runtime_destroyed_exceptions)
         {
             EXPECT_EQ("Root::get(): runtime was destroyed previously", e.error_message());
         }
+    }
+}
+
+TEST_F(DestroyedTest, roots_destroyed_while_reply_outstanding)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider));
+
+    auto fut = acc_->roots();
+    runtime_->shutdown();
+    try
+    {
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (RuntimeDestroyedException const& e)
+    {
+        EXPECT_EQ("Account::roots(): runtime was destroyed previously", e.error_message());
+    }
+}
+
+TEST_F(DestroyedTest, get_destroyed_while_reply_outstanding)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("metadata slow")));
+
+    auto root = call(acc_->roots())[0];
+    auto fut = root->get("root_id");
+    runtime_->shutdown();
+    try
+    {
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (RuntimeDestroyedException const& e)
+    {
+        EXPECT_EQ("Root::get(): runtime was destroyed previously", e.error_message());
+    }
+}
+
+TEST_F(DestroyedTest, copy_destroyed_while_reply_outstanding)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    auto root = call(acc_->roots())[0];
+    auto fut = root->copy(root, "new name");
+    runtime_->shutdown();
+    try
+    {
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (RuntimeDestroyedException const& e)
+    {
+        EXPECT_EQ("Item::copy(): runtime was destroyed previously", e.error_message());
+    }
+}
+
+TEST_F(DestroyedTest, move_destroyed_while_reply_outstanding)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("move slow")));
+
+    auto root = call(acc_->roots())[0];
+    auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+    auto fut = file->move(root, "new name");
+    runtime_->shutdown();
+    try
+    {
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (RuntimeDestroyedException const& e)
+    {
+        EXPECT_EQ("Item::move(): runtime was destroyed previously", e.error_message());
+    }
+}
+
+TEST_F(DestroyedTest, list_destroyed_while_reply_outstanding)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("list slow")));
+
+    auto root = call(acc_->roots())[0];
+    auto fut = root->list();
+    runtime_->shutdown();
+    try
+    {
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (RuntimeDestroyedException const& e)
+    {
+        EXPECT_EQ("Folder::list(): runtime was destroyed previously", e.error_message());
+    }
+}
+
+TEST_F(DestroyedTest, lookup_destroyed_while_reply_outstanding)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("lookup slow")));
+
+    auto root = call(acc_->roots())[0];
+    auto fut = root->lookup("Child");
+    runtime_->shutdown();
+    try
+    {
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (RuntimeDestroyedException const& e)
+    {
+        EXPECT_EQ("Folder::lookup(): runtime was destroyed previously", e.error_message());
+    }
+}
+
+TEST_F(DestroyedTest, create_folder_destroyed_while_reply_outstanding)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("create_folder slow")));
+
+    auto root = call(acc_->roots())[0];
+    auto fut = root->create_folder("Child");
+    runtime_->shutdown();
+    try
+    {
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (RuntimeDestroyedException const& e)
+    {
+        EXPECT_EQ("Folder::create_folder(): runtime was destroyed previously", e.error_message());
+    }
+}
+
+TEST_F(DestroyedTest, create_file_destroyed_while_reply_outstanding)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("create_file slow")));
+
+    auto root = call(acc_->roots())[0];
+    auto fut = root->create_file("Child", 0);
+    runtime_->shutdown();
+    try
+    {
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (RuntimeDestroyedException const& e)
+    {
+        EXPECT_EQ("Folder::create_file(): runtime was destroyed previously", e.error_message());
+    }
+}
+
+TEST_F(DestroyedTest, create_uploader_destroyed_while_reply_outstanding)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("create_file slow")));
+
+    auto root = call(acc_->roots())[0];
+    auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+    auto fut = file->create_uploader(ConflictPolicy::overwrite, 0);
+    runtime_->shutdown();
+    try
+    {
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (RuntimeDestroyedException const& e)
+    {
+        EXPECT_EQ("File::create_uploader(): runtime was destroyed previously", e.error_message());
+    }
+}
+
+TEST_F(DestroyedTest, create_downloader_destroyed_while_reply_outstanding)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("create_file slow")));
+
+    auto root = call(acc_->roots())[0];
+    auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
+    auto fut = file->create_downloader();
+    runtime_->shutdown();
+    try
+    {
+        ASSERT_TRUE(wait(fut));
+        fut.result();
+        FAIL();
+    }
+    catch (RuntimeDestroyedException const& e)
+    {
+        EXPECT_EQ("File::create_downloader(): runtime was destroyed previously", e.error_message());
     }
 }
 

@@ -55,10 +55,6 @@ AccountImpl::AccountImpl(weak_ptr<Runtime> const& runtime,
     auto rt_impl = dynamic_pointer_cast<RuntimeImpl>(runtime.lock()->p_);
     assert(rt_impl);
     provider_.reset(new ProviderInterface(bus_name, object_path, rt_impl->connection()));
-    if (!provider_->isValid())
-    {
-        throw LocalCommsException("AccountImpl(): " + provider_->lastError().message());
-    }
 }
 
 QString AccountImpl::owner() const
@@ -85,9 +81,9 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
     {
         runtime();  // Throws if runtime was destroyed.
     }
-    catch (RuntimeDestroyedException const& e)
+    catch (RuntimeDestroyedException const&)
     {
-        return make_exceptional_future<QVector<Root::SPtr>>(e);
+        return make_exceptional_future<QVector<Root::SPtr>>(RuntimeDestroyedException("Account::roots()"));
     }
 
     auto reply = provider_->Roots();
