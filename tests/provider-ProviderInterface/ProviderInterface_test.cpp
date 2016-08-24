@@ -345,7 +345,7 @@ TEST_F(ProviderInterfaceTest, upload_long_write)
 
 TEST_F(ProviderInterfaceTest, upload_not_closed)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     QString upload_id;
     QDBusUnixFileDescriptor socket;
@@ -394,7 +394,7 @@ TEST_F(ProviderInterfaceTest, finish_upload_unknown)
 
 TEST_F(ProviderInterfaceTest, tempfile_upload)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     QString upload_id;
     QDBusUnixFileDescriptor socket;
@@ -441,7 +441,7 @@ TEST_F(ProviderInterfaceTest, tempfile_upload)
 
 TEST_F(ProviderInterfaceTest, tempfile_upload_short_write)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     QString upload_id;
     QDBusUnixFileDescriptor socket;
@@ -464,7 +464,7 @@ TEST_F(ProviderInterfaceTest, tempfile_upload_short_write)
 
 TEST_F(ProviderInterfaceTest, tempfile_upload_long_write)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     QString upload_id;
     QDBusUnixFileDescriptor socket;
@@ -511,7 +511,7 @@ TEST_F(ProviderInterfaceTest, tempfile_upload_long_write)
 
 TEST_F(ProviderInterfaceTest, tempfile_upload_not_closed)
 {
-    make_provider(unique_ptr<ProviderBase>(new TestProvider));
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     QString upload_id;
     QDBusUnixFileDescriptor socket;
