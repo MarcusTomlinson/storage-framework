@@ -54,6 +54,7 @@ UploaderImpl::UploaderImpl(QString const& upload_id,
     , root_(root.lock())
     , provider_(provider)
     , write_socket_(new QLocalSocket)
+    , state_(uploading)
 {
     assert(!upload_id.isEmpty());
     assert(fd.isValid());
@@ -66,7 +67,10 @@ UploaderImpl::UploaderImpl(QString const& upload_id,
 
 UploaderImpl::~UploaderImpl()
 {
-    write_socket_->abort();
+    if (state_ == uploading)
+    {
+        cancel();
+    }
 }
 
 shared_ptr<QLocalSocket> UploaderImpl::socket() const
@@ -76,6 +80,8 @@ shared_ptr<QLocalSocket> UploaderImpl::socket() const
 
 QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
 {
+    state_ = finalized;
+
     auto reply = provider_->FinishUpload(upload_id_);
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<File>>& qf)
     {
@@ -107,6 +113,8 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
 
 QFuture<void> UploaderImpl::cancel() noexcept
 {
+    state_ = finalized;
+
     auto reply = provider_->CancelUpload(upload_id_);
     auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>&)
     {
