@@ -21,9 +21,14 @@
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/UploadJob.h>
+#include <unity/storage/provider/TempfileUploadJob.h>
 
 #include <QSocketNotifier>
 #include <QTimer>
+
+#include <sys/select.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <algorithm>
 
@@ -41,12 +46,14 @@ public:
     boost::future<Item> finish() override;
 
 private:
+    void drain();
     void read_some();
 
     Item const item_;
     int64_t const size_;
     QSocketNotifier notifier_;
     int64_t bytes_read_ = 0;
+    bool closed_ = false;
 };
 
 TestUploadJob::TestUploadJob(std::string const& upload_id, Item const& item,
@@ -54,8 +61,18 @@ TestUploadJob::TestUploadJob(std::string const& upload_id, Item const& item,
     : UploadJob(upload_id), item_(item), size_(size),
       notifier_(read_socket(), QSocketNotifier::Read)
 {
-    QObject::connect(&notifier_, &QSocketNotifier::activated,
-                     [this]() { read_some(); });
+    QObject::connect(
+        &notifier_, &QSocketNotifier::activated,
+        [this]() {
+            try
+            {
+                read_some();
+            }
+            catch (...)
+            {
+                report_error(current_exception());
+            }
+        });
     notifier_.setEnabled(true);
 }
 
@@ -72,6 +89,7 @@ boost::future<Item> TestUploadJob::finish()
     boost::promise<Item> p;
     printf("TestUploadJob::finish(): %d read of expected %d\n", (int) bytes_read_, (int) size_);
     notifier_.setEnabled(false);
+    drain();
     if (bytes_read_ == size_)
     {
         p.set_value(item_);
@@ -83,6 +101,42 @@ boost::future<Item> TestUploadJob::finish()
     return p.get_future();
 }
 
+void TestUploadJob::drain()
+{
+    while (true)
+    {
+        if (closed_ || read_socket() == -1)
+        {
+            break;
+        }
+
+        int nfds;
+        fd_set rfds;
+        struct timeval tv;
+
+        nfds = read_socket() + 1;
+        FD_ZERO(&rfds);
+        FD_SET(read_socket(), &rfds);
+        tv.tv_sec = 0;
+        tv.tv_usec = 0;
+
+        int ret = select(nfds, &rfds, nullptr, nullptr, &tv);
+        if (ret > 0)
+        {
+            read_some();
+        }
+        else if (ret == 0)
+        {
+            throw LogicException("Socket not closed");
+        }
+        else if (ret < 0)
+        {
+            int error_code = errno;
+            throw ResourceException("Select failure: " + safe_strerror(error_code), error_code);
+        }
+    }
+}
+
 void TestUploadJob::read_some()
 {
     printf("TestUploadJob::read_some(): %d read of expected %d\n", (int) bytes_read_, (int) size_);
@@ -92,27 +146,71 @@ void TestUploadJob::read_some()
     if (n_read < 0)
     {
         int error_code = errno;
-        report_error(make_exception_ptr(ResourceException("Read failure: " + safe_strerror(error_code), error_code)));
         notifier_.setEnabled(false);
+        throw ResourceException("Read failure: " + safe_strerror(error_code), error_code);
     }
     else if (n_read == 0)
     {
+        closed_ = true;
+        notifier_.setEnabled(false);
         if (bytes_read_ != size_)
         {
-            report_error(make_exception_ptr(LogicException("wrong number of bytes")));
+            throw LogicException("wrong number of bytes");
         }
-        notifier_.setEnabled(false);
     }
     else
     {
         bytes_read_ += n_read;
         if (bytes_read_ > size_)
         {
-            printf("Reporting error\n");
-            report_error(make_exception_ptr(LogicException("too many bytes written")));
             notifier_.setEnabled(false);
+            throw LogicException("too many bytes written");
         }
     }
+}
+
+class TestTempfileUploadJob : public TempfileUploadJob
+{
+public:
+    TestTempfileUploadJob(std::string const& upload_id, Item const& item, int64_t size);
+    boost::future<void> cancel() override;
+    boost::future<Item> finish() override;
+
+private:
+    Item const item_;
+    int64_t const size_;
+};
+
+TestTempfileUploadJob::TestTempfileUploadJob(std::string const& upload_id, Item const& item, int64_t size)
+    : TempfileUploadJob(upload_id), item_(item), size_(size)
+{
+}
+
+boost::future<void> TestTempfileUploadJob::cancel()
+{
+    boost::promise<void> p;
+    p.set_value();
+    return p.get_future();
+}
+
+boost::future<Item> TestTempfileUploadJob::finish()
+{
+    drain();
+    boost::promise<Item> p;
+    struct stat buf;
+    if (stat(file_name().c_str(), &buf) < 0)
+    {
+        p.set_exception(ResourceException("Could not stat temp file", errno));
+    }
+    else if (buf.st_size == size_)
+    {
+        p.set_value(item_);
+    }
+    else
+    {
+        p.set_exception(LogicException("wrong number of bytes written"));
+    }
+    return p.get_future();
 }
 
 class TestDownloadJob : public DownloadJob
@@ -298,7 +396,14 @@ boost::future<unique_ptr<UploadJob>> TestProvider::update(
 
     boost::promise<unique_ptr<UploadJob>> p;
     Item item = {"item_id", { "parent_id" }, "file name", "etag", ItemType::file, {}};
-    p.set_value(unique_ptr<UploadJob>(new TestUploadJob("upload_id", item, size)));
+    if (item_id == "tempfile_item_id")
+    {
+        p.set_value(unique_ptr<UploadJob>(new TestTempfileUploadJob("tempfile_upload_id", item, size)));
+    }
+    else
+    {
+        p.set_value(unique_ptr<UploadJob>(new TestUploadJob("upload_id", item, size)));
+    }
     return p.get_future();
 }
 
