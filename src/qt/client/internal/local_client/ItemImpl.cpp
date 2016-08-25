@@ -30,6 +30,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QtConcurrent>
 #pragma GCC diagnostic pop
