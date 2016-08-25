@@ -41,7 +41,9 @@ using namespace unity::storage;
 using namespace unity::storage::qt::client;
 using namespace std;
 
-static constexpr int SIGNAL_WAIT_TIME = 1000;
+// Yes, that's ridiculously long, but the builders in Jenkins and the CI Train
+// are stupifyingly slow at times.
+static constexpr int SIGNAL_WAIT_TIME = 30000;
 
 // Bunch of helper functions to reduce the amount of noise in the tests.
 
