@@ -22,6 +22,7 @@
 #include <unity/storage/qt/client/Exceptions.h>
 
 #include <QDateTime>
+#include <QDebug>
 #include <QString>
 
 using namespace unity::storage::internal;
@@ -138,9 +139,12 @@ void validate(QString const& method, ItemMetadata const& md)
         auto known = known_metadata.find(actual.key().toStdString());
         if (known == known_metadata.end())
         {
-            throw LocalCommsException(prefix + "unknown metadata key:" + actual.key());
+            qWarning() << prefix << "unknown metadata key:" << actual.key();
         }
-        validate_type_and_value(prefix, actual, known);
+        else
+        {
+            validate_type_and_value(prefix, actual, known);
+        }
     }
 
     // Sanity check metadata to make sure that mandatory fields are present.
