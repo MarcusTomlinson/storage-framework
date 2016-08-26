@@ -25,7 +25,11 @@
 #include <unity/storage/qt/client/internal/local_client/tmpfile_prefix.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #include <QLocalSocket>
+#pragma GCC diagnostic pop
 
 #include <cassert>
 
