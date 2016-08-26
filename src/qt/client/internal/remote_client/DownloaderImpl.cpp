@@ -79,9 +79,9 @@ QFuture<void> DownloaderImpl::finish_download()
 {
     auto reply = provider_->FinishDownload(download_id_);
 
-    auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>&)
+    auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>& qf)
     {
-        make_ready_future();
+        make_ready_future(qf);
     };
 
     auto handler = new Handler<void>(this, reply, process_reply);

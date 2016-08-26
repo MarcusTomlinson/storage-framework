@@ -69,7 +69,7 @@ UploaderImpl::~UploaderImpl()
 {
     if (state_ == uploading)
     {
-        cancel();
+        provider_->CancelUpload(upload_id_);
     }
 }
 
@@ -116,9 +116,9 @@ QFuture<void> UploaderImpl::cancel() noexcept
     state_ = finalized;
 
     auto reply = provider_->CancelUpload(upload_id_);
-    auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>&)
+    auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>& qf)
     {
-        make_ready_future();
+        make_ready_future(qf);
     };
 
     write_socket_->abort();
