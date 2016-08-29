@@ -2,6 +2,7 @@
 # local and remote client libraries, so we don't compile them twice.
 
 add_library(qt-client-lib-common OBJECT
+    api2.cpp
     Account.cpp
     Downloader.cpp
     Exceptions.cpp
