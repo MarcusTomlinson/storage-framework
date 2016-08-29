@@ -24,15 +24,17 @@ class QDBusConnection;
 
 // TODO: Split this header into several headers once we know what we want and adjust forward declarations.
 
-namespace api2  // TODO: Make this unity::storage::qt?
+namespace unity
+{
+namespace storage
+{
+namespace qt
 {
 
 class AccountsJob;
 class CancelJob;
 class Downloader;
 class DownloadJob;
-class FinishDownloadJob;
-class FinishUploadJob;
 class Item;
 class ItemJob;
 class ItemListJob;
@@ -97,7 +99,7 @@ public:
     QString ownerId() const;
     QString description() const;
 
-    Runtime* runtime() const;
+    Q_INVOKABLE ItemListJob* roots() const;
 
     bool operator==(Account const&) const;
     bool operator!=(Account const&) const;
@@ -180,6 +182,9 @@ public:
     qint64 sizeInBytes() const;
     Item item() const;
 
+    Q_INVOKABLE void finishUpload();
+    Q_INVOKABLE void cancel();
+
 Q_SIGNALS:
     void statusChanged(Status status) const;
     void error(StorageError const& e) const;
@@ -193,7 +198,6 @@ class Item final
     Q_PROPERTY(QString itemId READ itemId CONSTANT)
     Q_PROPERTY(QString name READ name CONSTANT)
     Q_PROPERTY(QString parentId READ parentId CONSTANT)
-    Q_PROPERTY(Runtime* runtime READ runtime CONSTANT)
     Q_PROPERTY(Account account READ account CONSTANT)
     Q_PROPERTY(Item root READ root CONSTANT)
     Q_PROPERTY(QString eTag READ eTag CONSTANT)
@@ -218,7 +222,6 @@ public:
     QString itemId() const;
     QString name() const;
     QString parentId() const;
-    Runtime* runtime() const;
     Account account() const;
     Item root() const;
     QString eTag() const;
@@ -277,8 +280,6 @@ public:
     StorageError error() const;
     QList<Account> accounts() const;
     
-    Q_INVOKABLE ItemListJob* roots() const;
-
 Q_SIGNALS:
     void statusChanged(Status status) const;
     void error(StorageError const& e) const;
@@ -354,56 +355,6 @@ Q_SIGNALS:
     void finished() const;
 };
 
-class FinishDownloadJob : public QObject
-{
-    Q_OBJECT
-    Q_PROPERTY(Status READ status NOTIFY statusChanged)
-    Q_PROPERTY(StorageError READ Error NOTIFY error)
-    Q_PROPERTY(Item READ item NOTIFY finished)
-
-public:
-    FinishDownloadJob(QObject* parent = nullptr);
-    virtual ~FinishDownloadJob();
-
-    enum class Status { Loading, Cancelled, Finished, Error };
-    Q_ENUM(Status)
-
-    Status status() const;
-    StorageError error() const;
-    Item item() const;
-
-Q_SIGNALS:
-    void statusChanged(Status status) const;
-    void error(StorageError const& e) const;
-    void finished(Item const& item) const;
-    void cancelled() const;
-};
-
-class FinishUploadJob : public QObject
-{
-    Q_OBJECT
-    Q_PROPERTY(Status READ status NOTIFY statusChanged)
-    Q_PROPERTY(StorageError READ Error NOTIFY error)
-    Q_PROPERTY(qint64 READ sizeInBytes)
-    Q_PROPERTY(Item READ item NOTIFY finished)
-
-public:
-    FinishUploadJob(QObject* parent = nullptr);
-    virtual ~FinishUploadJob();
-
-    enum class Status { Loading, Cancelled, Finished, Error };
-    Q_ENUM(Status)
-
-    Status status() const;
-    StorageError error() const;
-    qint64 sizeInBytes() const;
-    Item item() const;
-
-Q_SIGNALS:
-    void statusChanged(Status status) const;
-    void error(StorageError const& e) const;
-    void finished(Item const& item) const;
-    void cancelled() const;
-};
-
-}  // namespace api2
+}  // namespace qt
+}  // namespace storage
+}  // namespace unity
