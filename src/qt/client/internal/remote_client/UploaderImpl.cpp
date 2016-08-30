@@ -19,9 +19,9 @@
 #include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>
 
 #include "ProviderInterface.h"
+#include <unity/storage/internal/validate.h>
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
-#include <unity/storage/qt/client/internal/remote_client/validate.h>
 #include <unity/storage/qt/client/Uploader.h>
 
 #include <cassert>

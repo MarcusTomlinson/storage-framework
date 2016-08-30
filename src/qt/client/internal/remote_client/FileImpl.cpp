@@ -24,7 +24,6 @@
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/DownloaderImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/UploaderImpl.h>
-#include <unity/storage/qt/client/internal/remote_client/validate.h>
 
 using namespace std;
 

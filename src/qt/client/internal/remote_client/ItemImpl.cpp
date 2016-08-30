@@ -19,13 +19,13 @@
 #include <unity/storage/qt/client/internal/remote_client/ItemImpl.h>
 
 #include "ProviderInterface.h"
+#include <unity/storage/internal/validate.h>
 #include <unity/storage/provider/metadata_keys.h>
 #include <unity/storage/qt/client/Account.h>
 #include <unity/storage/qt/client/internal/remote_client/AccountImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/FileImpl.h>
 #include <unity/storage/qt/client/internal/remote_client/Handler.h>
 #include <unity/storage/qt/client/internal/remote_client/RootImpl.h>
-#include <unity/storage/qt/client/internal/remote_client/validate.h>
 
 #include <cassert>
 

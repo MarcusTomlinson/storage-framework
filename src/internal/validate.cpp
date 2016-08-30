@@ -26,21 +26,15 @@
 #include <QString>
 
 using namespace unity::storage::internal;
+using namespace unity::storage::qt::client;
 using namespace std;
 
 namespace unity
 {
 namespace storage
 {
-namespace qt
-{
-namespace client
-{
 namespace internal
 {
-namespace remote_client
-{
-
 namespace
 {
 
@@ -91,7 +85,7 @@ void validate_type_and_value(QString const& prefix,
     }
 }
 
-}
+}  // namespace
 
 void validate(QString const& method, ItemMetadata const& md)
 {
@@ -161,9 +155,6 @@ void validate(QString const& method, ItemMetadata const& md)
     }
 }
 
-}  // namespace remote_client
 }  // namespace internal
-}  // namespace client
-}  // namespace qt
 }  // namespace storage
 }  // namespace unity

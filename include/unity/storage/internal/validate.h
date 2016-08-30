@@ -24,28 +24,13 @@ namespace unity
 {
 namespace storage
 {
-
 namespace internal
 {
 
 class ItemMetadata;
 
-}  // namespace internal
-
-namespace qt
-{
-namespace client
-{
-namespace internal
-{
-namespace remote_client
-{
-
 void validate(QString const& method, unity::storage::internal::ItemMetadata const& md);
 
-}  // namespace remote_client
 }  // namespace internal
-}  // namespace client
-}  // namespace qt
 }  // namespace storage
 }  // namespace unity
