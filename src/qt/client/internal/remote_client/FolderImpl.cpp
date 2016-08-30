@@ -86,13 +86,10 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         auto metadata = reply.argumentAt<0>();
         for (auto const& md : metadata)
         {
-            try
+            QString error = validate("Folder::list()", md);
+            if (!error.isEmpty())
             {
-                validate("Folder::list()", md);
-            }
-            catch (StorageException const& e)
-            {
-                make_exceptional_future(qf, e);
+                make_exceptional_future(qf, LocalCommsException(error));
                 return;
             }
             if (md.type == ItemType::root)
@@ -148,13 +145,10 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
         auto metadata = reply.value();
         for (auto const& md : metadata)
         {
-            try
+            QString error = validate("Folder::lookup()", md);
+            if (!error.isEmpty())
             {
-                validate("Folder::lookup()", md);
-            }
-            catch (StorageException const& e)
-            {
-                make_exceptional_future(qf, e);
+                make_exceptional_future(qf, LocalCommsException(error));
                 return;
             }
             if (md.type == ItemType::root)
@@ -201,13 +195,10 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
 
         shared_ptr<Item> item;
         auto md = reply.value();
-        try
+        QString error = validate("Folder::create_folder()", md);
+        if (!error.isEmpty())
         {
-            validate("Folder::create_folder()", md);
-        }
-        catch (StorageException const& e)
-        {
-            make_exceptional_future(qf, e);
+            make_exceptional_future(qf, LocalCommsException(error));
             return;
         }
         if (md.type != ItemType::folder)

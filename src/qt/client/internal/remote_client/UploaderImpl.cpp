@@ -86,13 +86,10 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<File>>& qf)
     {
         auto md = reply.value();
-        try
+        QString error = validate("Uploader::finish_upload()", md);
+        if (!error.isEmpty())
         {
-            validate("Uploader::finish_upload()", md);
-        }
-        catch (StorageException const& e)
-        {
-            make_exceptional_future(qf, e);
+            make_exceptional_future(qf, LocalCommsException(error));
             return;
         }
         if (md.type != ItemType::file)

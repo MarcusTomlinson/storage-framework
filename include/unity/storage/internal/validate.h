@@ -29,7 +29,8 @@ namespace internal
 
 class ItemMetadata;
 
-void validate(QString const& method, unity::storage::internal::ItemMetadata const& md);
+QString validate(QString const& method,
+                 unity::storage::internal::ItemMetadata const& md) __attribute__ ((warn_unused_result));
 
 }  // namespace internal
 }  // namespace storage

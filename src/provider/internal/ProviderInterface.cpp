@@ -17,6 +17,8 @@
  */
 
 #include <unity/storage/provider/internal/ProviderInterface.h>
+#include <unity/storage/internal/dbusmarshal.h>
+#include <unity/storage/internal/validate.h>
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/ProviderBase.h>
@@ -31,12 +33,35 @@
 #include <OnlineAccounts/AuthenticationData>
 #include <QDebug>
 
+using namespace unity::storage::internal;
 using namespace std;
 
-namespace unity {
-namespace storage {
-namespace provider {
-namespace internal {
+namespace unity
+{
+namespace storage
+{
+namespace provider
+{
+namespace internal
+{
+namespace
+{
+
+QString validate(QString const& method, unity::storage::provider::Item const& item)
+{
+    // To avoid duplicating the error checking logic for string/QString and boost::variant/QVariant,
+    // we convert Item to ItemMetadata and use the common error checking code that works with the Qt types.
+
+    QDBusArgument dba;
+    dba << item;
+
+    ItemMetadata imd;
+    dba >> imd;
+
+    return validate(method, imd);
+}
+
+}  // namespace
 
 ProviderInterface::ProviderInterface(shared_ptr<AccountData> const& account, QObject *parent)
     : QObject(parent), account_(account)
@@ -94,6 +119,14 @@ QList<ProviderInterface::IMD> ProviderInterface::Roots()
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto roots = f.get();
+                    for (auto const& item : roots)
+                    {
+                        QString error = validate("ProviderBase::roots()", item);
+                        if (!error.isEmpty())
+                        {
+                            qCritical().noquote() << error;
+                        }
+                    }
                     return message.createReply(QVariant::fromValue(roots));
                 });
         });
@@ -110,6 +143,14 @@ QList<ProviderInterface::IMD> ProviderInterface::List(QString const& item_id, QS
                     vector<Item> children;
                     string next_token;
                     tie(children, next_token) = f.get();
+                    for (auto const& item : children)
+                    {
+                        QString error = validate("ProviderBase::list()", item);
+                        if (!error.isEmpty())
+                        {
+                            qCritical().noquote() << error;
+                        }
+                    }
                     return message.createReply({
                             QVariant::fromValue(children),
                             QVariant(QString::fromStdString(next_token)),
@@ -127,6 +168,14 @@ QList<ProviderInterface::IMD> ProviderInterface::Lookup(QString const& parent_id
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto items = f.get();
+                    for (auto const& item : items)
+                    {
+                        QString error = validate("ProviderBase::lookup()", item);
+                        if (!error.isEmpty())
+                        {
+                            qCritical().noquote() << error;
+                        }
+                    }
                     return message.createReply(QVariant::fromValue(items));
                 });
         });
@@ -141,6 +190,11 @@ ProviderInterface::IMD ProviderInterface::Metadata(QString const& item_id)
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
+                    QString error = validate("ProviderBase::metadata()", item);
+                    if (!error.isEmpty())
+                    {
+                        qCritical().noquote() << error;
+                    }
                     return message.createReply(QVariant::fromValue(item));
                 });
         });
@@ -156,6 +210,11 @@ ProviderInterface::IMD ProviderInterface::CreateFolder(QString const& parent_id,
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
+                    QString error = validate("ProviderBase::create_folder()", item);
+                    if (!error.isEmpty())
+                    {
+                        qCritical().noquote() << error;
+                    }
                     return message.createReply(QVariant::fromValue(item));
                 });
         });
@@ -234,6 +293,11 @@ ProviderInterface::IMD ProviderInterface::FinishUpload(QString const& upload_id)
                 EXEC_IN_MAIN
                 [account, message, job](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
+                    QString error = validate("ProviderBase::finish_upload()", item);
+                    if (!error.isEmpty())
+                    {
+                        qCritical().noquote() << error;
+                    }
                     return message.createReply(QVariant::fromValue(item));
                 });
         });
@@ -333,6 +397,11 @@ ProviderInterface::IMD ProviderInterface::Move(QString const& item_id, QString c
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
+                    QString error = validate("ProviderBase::move()", item);
+                    if (!error.isEmpty())
+                    {
+                        qCritical().noquote() << error;
+                    }
                     return message.createReply(QVariant::fromValue(item));
                 });
         });
@@ -349,6 +418,11 @@ ProviderInterface::IMD ProviderInterface::Copy(QString const& item_id, QString c
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto item = f.get();
+                    QString error = validate("ProviderBase::copy()", item);
+                    if (!error.isEmpty())
+                    {
+                        qCritical().noquote() << error;
+                    }
                     return message.createReply(QVariant::fromValue(item));
                 });
         });

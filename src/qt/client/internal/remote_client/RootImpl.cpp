@@ -138,13 +138,10 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         }
 
         auto md = reply.value();
-        try
+        QString error = validate("Root::get()", md);
+        if (!error.isEmpty())
         {
-            validate("Root::get()", md);
-        }
-        catch (StorageException const& e)
-        {
-            make_exceptional_future(qf, e);
+            make_exceptional_future(qf, LocalCommsException(error));
             return;
         }
         Item::SPtr item;

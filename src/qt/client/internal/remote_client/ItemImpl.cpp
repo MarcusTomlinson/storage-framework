@@ -107,13 +107,10 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         }
 
         auto md = reply.value();
-        try
+        QString error = validate("Item::copy()", md);
+        if (!error.isEmpty())
         {
-            validate("Item::copy()", md);
-        }
-        catch (StorageException const& e)
-        {
-            make_exceptional_future(qf, e);
+            make_exceptional_future(qf, LocalCommsException(error));
             return;
         }
         if (md.type == ItemType::root)
@@ -168,13 +165,10 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         }
 
         auto md = reply.value();
-        try
+        QString error = validate("Item::move()", md);
+        if (!error.isEmpty())
         {
-            validate("Item::move()", md);
-        }
-        catch (StorageException const& e)
-        {
-            make_exceptional_future(qf, e);
+            make_exceptional_future(qf, LocalCommsException(error));
             return;
         }
         if (md.type == ItemType::root)
