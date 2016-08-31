@@ -20,6 +20,7 @@
 #include <unity/storage/internal/safe_strerror.h>
 #include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/UploadJob.h>
+#include <unity/storage/provider/internal/MainLoopExecutor.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -51,6 +52,11 @@ UploadJobImpl::UploadJobImpl(std::string const& upload_id)
     }
     read_socket_ = socks[0];
     write_socket_ = socks[1];
+
+#if 0
+    // TODO: We should be able to half-close the write channel of the read socket, and the read channel of
+    // the write socket. But, if we do, QLocalSocket indicates that everything was closed, which causes
+    // failures on the client side. We suspect a QLocalSocket bug -- need to investigate.
     if (shutdown(read_socket_, SHUT_WR) < 0)
     {
         int error_code = errno;
@@ -63,6 +69,7 @@ UploadJobImpl::UploadJobImpl(std::string const& upload_id)
         string msg = "Could not shut down read channel on write socket" + safe_strerror(error_code);
         throw ResourceException(msg, error_code);
     }
+#endif
 }
 
 UploadJobImpl::~UploadJobImpl()
@@ -81,7 +88,7 @@ void UploadJobImpl::complete_init()
 {
 }
 
-std::string const& UploadJobImpl::upload_id() const
+string const& UploadJobImpl::upload_id() const
 {
     return upload_id_;
 }
@@ -110,11 +117,11 @@ void UploadJobImpl::set_sender_bus_name(string const& bus_name)
     sender_bus_name_ = bus_name;
 }
 
-void UploadJobImpl::report_error(std::exception_ptr p)
+void UploadJobImpl::report_error(exception_ptr p)
 {
     if (read_socket_ >= 0)
     {
-        close(write_socket_);
+        close(read_socket_);
         read_socket_ = -1;
     }
 
@@ -123,7 +130,7 @@ void UploadJobImpl::report_error(std::exception_ptr p)
     // Convert std::exception_ptr to boost::exception_ptr
     try
     {
-        std::rethrow_exception(p);
+        rethrow_exception(p);
     }
     catch (StorageException const& e)
     {

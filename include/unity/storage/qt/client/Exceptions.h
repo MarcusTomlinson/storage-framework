@@ -20,7 +20,10 @@
 
 #include <unity/storage/visibility.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #include <QException>
+#pragma GCC diagnostic pop
 #include <QString>
 
 namespace unity

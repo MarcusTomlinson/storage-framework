@@ -51,6 +51,11 @@ DownloadJobImpl::DownloadJobImpl(std::string const& download_id)
     }
     read_socket_ = socks[0];
     write_socket_ = socks[1];
+
+#if 0
+    // TODO: We should be able to half-close the write channel of the read socket and the read channel of
+    // the write socket. But, if we do, QLocalSocket indicates that everything was closed, which causes
+    // failures on the client side. We suspect a QLocalSocket bug -- need to investigate.
     if (shutdown(read_socket_, SHUT_WR) < 0)
     {
         int error_code = errno;
@@ -63,6 +68,7 @@ DownloadJobImpl::DownloadJobImpl(std::string const& download_id)
         string msg = "Could not shut down read channel on write socket: " + safe_strerror(error_code);
         throw ResourceException(msg, error_code);
     }
+#endif
 }
 
 DownloadJobImpl::~DownloadJobImpl()

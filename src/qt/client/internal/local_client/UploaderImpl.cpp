@@ -25,7 +25,11 @@
 #include <unity/storage/qt/client/internal/local_client/tmpfile_prefix.h>
 #include <unity/storage/qt/client/internal/make_future.h>
 
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #include <QLocalSocket>
+#pragma GCC diagnostic pop
 
 #include <cassert>
 
@@ -388,9 +392,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file,
 
     upload_thread_->start();
 
-    qDebug() << "waiting for worker thread to initialize";
     worker_initialized.waitForFinished();
-    qDebug() << "worker thread ready";
 }
 
 UploaderImpl::~UploaderImpl()
@@ -398,9 +400,7 @@ UploaderImpl::~UploaderImpl()
     if (upload_thread_->isRunning())
     {
         Q_EMIT do_cancel();
-        qDebug() << "joining with worker thread";
         upload_thread_->wait();
-        qDebug() << "join complete";
     }
 }
 
