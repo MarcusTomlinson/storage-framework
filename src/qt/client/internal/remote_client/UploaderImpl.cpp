@@ -53,7 +53,7 @@ UploaderImpl::UploaderImpl(QString const& upload_id,
     , old_etag_(old_etag)
     , root_(root.lock())
     , provider_(provider)
-    , write_socket_(new QLocalSocket)
+    , write_socket_(new QLocalSocket, [](QLocalSocket* s){ s->deleteLater(); })
     , state_(uploading)
 {
     assert(!upload_id.isEmpty());
