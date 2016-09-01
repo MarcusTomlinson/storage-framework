@@ -9,13 +9,13 @@ project(storage-framework VERSION "0.1" LANGUAGES C CXX)
 
 # These variables should be incremented when we wish to create a new
 # source incompatible version of the the library where users of the
-# old API could will not compile against the new one.  It is not
+# old API will not compile against the new one.  It is not
 # necessary to increment this for ABI breaks that are source compatible.
-set(SF_CLIENT_API_VERSION "1")
+set(SF_CLIENT_API_VERSION "2")
 set(SF_PROVIDER_API_VERSION "1")
 
 # These two should be incremented when the ABI changes.
-set(SF_CLIENT_SOVERSION "0")
+set(SF_CLIENT_SOVERSION "1")
 execute_process(
   COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tools/get-provider-soversion.sh
   OUTPUT_VARIABLE SF_PROVIDER_SOVERSION

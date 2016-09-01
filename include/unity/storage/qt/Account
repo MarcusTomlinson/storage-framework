@@ -1,0 +1,75 @@
+/*
+ * Copyright (C) 2016 Canonical Ltd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Michi Henning <michi.henning@canonical.com>
+ */
+
+#pragma once
+
+#include <QMetaType>
+
+#include <memory>
+
+namespace unity
+{
+namespace storage
+{
+namespace qt
+{
+namespace internal
+{
+
+class AccountImpl;
+
+}
+
+class ItemListJob;
+
+class Q_DECL_EXPORT Account final
+{
+    Q_GADGET
+    Q_PROPERTY(QString READ owner)
+    Q_PROPERTY(QString READ ownerId)
+    Q_PROPERTY(QString READ description)
+
+public:
+    Account();
+    Account(Account const&);
+    Account(Account&&);
+    ~Account();
+    Account& operator=(Account const&);
+    Account& operator=(Account&&);
+
+    bool isValid() const;
+    QString ownerId() const;
+    QString owner() const;
+    QString description() const;
+
+    Q_INVOKABLE ItemListJob* roots() const;
+
+    bool operator==(Account const&) const;
+    bool operator!=(Account const&) const;
+    bool operator<(Account const&) const;
+    bool operator<=(Account const&) const;
+    bool operator>(Account const&) const;
+    bool operator>=(Account const&) const;
+
+private:
+    std::unique_ptr<internal::AccountImpl> p_;
+};
+
+}  // namespace qt
+}  // namespace storage
+}  // namespace unity

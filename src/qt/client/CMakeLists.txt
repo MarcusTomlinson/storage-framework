@@ -2,7 +2,6 @@
 # local and remote client libraries, so we don't compile them twice.
 
 add_library(qt-client-lib-common OBJECT
-    api2.cpp
     Account.cpp
     Downloader.cpp
     Exceptions.cpp
@@ -51,9 +50,9 @@ target_include_directories(storage-framework-qt-local-client PRIVATE
 set_target_properties(storage-framework-qt-local-client PROPERTIES
     AUTOMOC TRUE
     LINK_FLAGS "-Wl,--no-undefined"
-    OUTPUT_NAME "storage-framework-qt-local-client-${SF_CLIENT_API_VERSION}"
-    SOVERSION ${SF_CLIENT_SOVERSION}
-    VERSION ${SF_CLIENT_LIBVERSION}
+    OUTPUT_NAME "storage-framework-qt-local-client-1"
+    SOVERSION 0
+    VERSION 0.${PROJECT_VERSION}
 )
 target_link_libraries(storage-framework-qt-local-client
     storage-framework-common-internal
@@ -69,12 +68,8 @@ install(
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-configure_file(
-    storage-framework-qt-local-client.pc.in
-    storage-framework-qt-local-client-${SF_CLIENT_API_VERSION}.pc
-)
 install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-local-client-${SF_CLIENT_API_VERSION}.pc
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-local-client-1.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
 
@@ -105,9 +100,9 @@ target_include_directories(storage-framework-qt-client PRIVATE
 set_target_properties(storage-framework-qt-client PROPERTIES
     AUTOMOC TRUE
     LINK_FLAGS "-Wl,--no-undefined"
-    OUTPUT_NAME "storage-framework-qt-client-${SF_CLIENT_API_VERSION}"
-    SOVERSION ${SF_CLIENT_SOVERSION}
-    VERSION ${SF_CLIENT_LIBVERSION}
+    OUTPUT_NAME "storage-framework-qt-client-1"
+    SOVERSION 0
+    VERSION 0.${PROJECT_VERSION}
 )
 target_link_libraries(storage-framework-qt-client
     storage-framework-common-internal
@@ -122,11 +117,7 @@ install(
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-configure_file(
-    storage-framework-qt-client.pc.in
-    storage-framework-qt-client-${SF_CLIENT_API_VERSION}.pc
-)
 install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-client-${SF_CLIENT_API_VERSION}.pc
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/storage-framework-qt-client-1.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )

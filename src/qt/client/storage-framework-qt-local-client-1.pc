@@ -1,0 +1,6 @@
+Name: storage-framework-qt-local-client-1
+Description: A Qt client library for the storage framework (soon to be deprecated)
+Version: 0.1
+Requires.private: Qt5Core Qt5Network
+Cflags: -I/home/michi/src/storage-framework/api2/build/install/include/storage-framework-client-1
+Libs: -L/home/michi/src/storage-framework/api2/build/install/lib -lstorage-framework-qt-local-client-1
