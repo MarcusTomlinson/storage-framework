@@ -415,6 +415,7 @@ TEST_F(ProviderInterfaceTest, cancel_upload_on_disconnect)
     QTimer timer;
     timer.setSingleShot(true);
     timer.setInterval(100);
+    timer.start();
     QSignalSpy timer_spy(&timer, &QTimer::timeout);
     ASSERT_TRUE(timer_spy.wait());
 }
