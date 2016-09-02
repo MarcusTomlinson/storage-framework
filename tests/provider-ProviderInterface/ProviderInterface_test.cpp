@@ -29,9 +29,10 @@
 #include <OnlineAccounts/Manager>
 #include <QCoreApplication>
 #include <QDBusConnection>
-#include <QDBusConnectionInterface>
+#include <QDBusServiceWatcher>
 #include <QSignalSpy>
 #include <QSocketNotifier>
+#include <QTimer>
 
 #include <unistd.h>
 #include <sys/socket.h>
@@ -47,6 +48,8 @@ using unity::storage::provider::ProviderBase;
 using unity::storage::provider::testing::TestServer;
 
 namespace {
+
+const auto SECOND_CONNECTION_NAME = QStringLiteral("second-bus-connection");
 
 const QString PROVIDER_ERROR = unity::storage::internal::DBUS_ERROR_PREFIX;
 
@@ -376,6 +379,44 @@ TEST_F(ProviderInterfaceTest, cancel_upload)
     auto reply = client_->CancelUpload(upload_id);
     wait_for(reply);
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+}
+
+TEST_F(ProviderInterfaceTest, cancel_upload_on_disconnect)
+{
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    QDBusServiceWatcher service_watcher;
+    service_watcher.setConnection(*service_connection_);
+    service_watcher.setWatchMode(QDBusServiceWatcher::WatchForUnregistration);
+    QSignalSpy service_spy(
+        &service_watcher, &QDBusServiceWatcher::serviceUnregistered);
+
+    QDBusUnixFileDescriptor socket;
+    {
+        QDBusConnection connection2 = QDBusConnection::connectToBus(dbus_->busAddress(), SECOND_CONNECTION_NAME);
+        service_watcher.addWatchedService(connection2.baseService());
+        ProviderClient client2(bus_name(), object_path(), connection2);
+        auto reply = client2.Update("item_id", 100, "old_etag");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+        // Store socket so it will remain open past the closing of the
+        // D-Bus connection.
+        socket = reply.argumentAt<1>();
+        QDBusConnection::disconnectFromBus(SECOND_CONNECTION_NAME);
+    }
+
+    // Wait until we're sure the fact that connection2 closed has
+    // reached the service's connection, and then a little more to
+    // ensure it is triggered.
+    if (service_spy.count() == 0)
+    {
+        ASSERT_TRUE(service_spy.wait());
+    }
+    QTimer timer;
+    timer.setSingleShot(true);
+    timer.setInterval(100);
+    QSignalSpy timer_spy(&timer, &QTimer::timeout);
+    ASSERT_TRUE(timer_spy.wait());
 }
 
 TEST_F(ProviderInterfaceTest, finish_upload_unknown)
