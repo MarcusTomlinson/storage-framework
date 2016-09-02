@@ -73,7 +73,12 @@ void ProviderFixture::wait_for(QDBusPendingCall const& call)
     ASSERT_TRUE(spy.wait());
 }
 
-QString ProviderFixture::bus_path() const
+QString ProviderFixture::bus_name() const
 {
-    return BUS_PATH;
+    return test_server_->connection().baseService();
+}
+
+QString ProviderFixture::object_path() const
+{
+    return QString::fromStdString(test_server_->object_path());
 }

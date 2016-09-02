@@ -48,9 +48,6 @@ using unity::storage::provider::testing::TestServer;
 
 namespace {
 
-const auto SERVICE_CONNECTION_NAME = QStringLiteral("service-session-bus");
-const auto BUS_PATH = QStringLiteral("/provider");
-const auto PROVIDER_IFACE = QStringLiteral("com.canonical.StorageFramework.Provider");
 const QString PROVIDER_ERROR = unity::storage::internal::DBUS_ERROR_PREFIX;
 
 const string file_contents =
@@ -68,7 +65,7 @@ class ProviderInterfaceTest : public ProviderFixture
 protected:
     void SetUp() override
     {
-        client_.reset(new ProviderClient(service_connection_->baseService(), BUS_PATH, connection()));
+        client_.reset(new ProviderClient(bus_name(), object_path(), connection()));
     }
 
     void TearDown() override
