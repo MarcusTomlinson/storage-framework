@@ -18,6 +18,7 @@
 
 #include <unity/storage/provider/internal/PendingJobs.h>
 #include <unity/storage/provider/DownloadJob.h>
+#include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/UploadJob.h>
 #include <unity/storage/provider/internal/DownloadJobImpl.h>
 #include <unity/storage/provider/internal/MainLoopExecutor.h>
@@ -68,9 +69,13 @@ shared_ptr<DownloadJob> PendingJobs::remove_download(QString const& client_bus_n
 {
     lock_guard<mutex> guard(lock_);
 
-    const auto job_id = make_pair(client_bus_name, download_id);
-    auto job = downloads_.at(job_id);
-    downloads_.erase(job_id);
+    auto it = downloads_.find({client_bus_name, download_id});
+    if (it == downloads_.cend())
+    {
+        throw LogicException("No such download");
+    }
+    auto job = it->second;
+    downloads_.erase(it);
     unwatch_peer(client_bus_name);
     return job;
 }
@@ -94,9 +99,13 @@ shared_ptr<UploadJob> PendingJobs::remove_upload(QString const& client_bus_name,
 {
     lock_guard<mutex> guard(lock_);
 
-    const auto job_id = make_pair(client_bus_name, upload_id);
-    auto job = uploads_.at(job_id);
-    uploads_.erase(job_id);
+    auto it = uploads_.find({client_bus_name, upload_id});
+    if (it == uploads_.cend())
+    {
+        throw LogicException("No such upload");
+    }
+    auto job = it->second;
+    uploads_.erase(it);
     unwatch_peer(client_bus_name);
     return job;
 }

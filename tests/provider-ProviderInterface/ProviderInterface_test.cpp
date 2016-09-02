@@ -397,8 +397,8 @@ TEST_F(ProviderInterfaceTest, cancel_upload_wrong_connection)
     auto reply = client2.CancelUpload(upload_id);
     wait_for(reply);
     ASSERT_FALSE(reply.isValid());
-    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
-    EXPECT_EQ("unknown exception thrown by provider: map::at", reply.error().message());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_EQ("No such upload", reply.error().message());
 }
 
 TEST_F(ProviderInterfaceTest, cancel_upload_on_disconnect)
@@ -447,8 +447,8 @@ TEST_F(ProviderInterfaceTest, finish_upload_unknown)
     auto reply = client_->FinishUpload("no-such-upload");
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
-    EXPECT_EQ("unknown exception thrown by provider: map::at", reply.error().message());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_EQ("No such upload", reply.error().message());
 }
 
 TEST_F(ProviderInterfaceTest, finish_upload_wrong_connection)
@@ -467,8 +467,8 @@ TEST_F(ProviderInterfaceTest, finish_upload_wrong_connection)
     auto reply = client2.FinishUpload(upload_id);
     wait_for(reply);
     ASSERT_FALSE(reply.isValid());
-    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
-    EXPECT_EQ("unknown exception thrown by provider: map::at", reply.error().message());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_EQ("No such upload", reply.error().message());
 }
 
 TEST_F(ProviderInterfaceTest, tempfile_upload)
@@ -678,8 +678,8 @@ TEST_F(ProviderInterfaceTest, finish_download_unknown)
     auto reply = client_->FinishDownload("no-such-download");
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
-    EXPECT_EQ("unknown exception thrown by provider: map::at", reply.error().message());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_EQ("No such download", reply.error().message());
 }
 
 TEST_F(ProviderInterfaceTest, finish_download_wrong_connection)
@@ -698,8 +698,8 @@ TEST_F(ProviderInterfaceTest, finish_download_wrong_connection)
     auto reply = client2.FinishDownload(download_id);
     wait_for(reply);
     ASSERT_FALSE(reply.isValid());
-    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
-    EXPECT_EQ("unknown exception thrown by provider: map::at", reply.error().message());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_EQ("No such download", reply.error().message());
 }
 
 TEST_F(ProviderInterfaceTest, cancel_download_on_disconnect)
