@@ -48,7 +48,17 @@ PendingJobs::PendingJobs(QDBusConnection const& bus, QObject *parent)
             this, &PendingJobs::service_disconnected);
 }
 
-PendingJobs::~PendingJobs() = default;
+PendingJobs::~PendingJobs()
+{
+    for (const auto& pair : downloads_)
+    {
+        cancel_job(pair.second, "download " + pair.second->download_id());
+    }
+    for (const auto& pair : uploads_)
+    {
+        cancel_job(pair.second, "upload " + pair.second->upload_id());
+    }
+}
 
 void PendingJobs::add_download(QString const& client_bus_name,
                                unique_ptr<DownloadJob> &&job)
@@ -153,29 +163,7 @@ void PendingJobs::service_disconnected(QString const& service_name)
     {
         auto job = it->second;
         it = downloads_.erase(it);
-        auto f = job->p_->cancel(*job);
-        // This continuation also ensures that the job remains
-        // alive until the cancel method has completed.
-        auto cancel_future = make_shared<boost::future<void>>();
-        *cancel_future = f.then(
-            EXEC_IN_MAIN
-            [job, cancel_future](decltype(f) f) {
-                try
-                {
-                    f.get();
-                }
-                catch (std::exception const& e)
-                {
-                    fprintf(stderr, "Error cancelling download job '%s': %s\n",
-                            job->download_id().c_str(), e.what());
-                }
-
-                // Break the reference cycle between the continuation
-                // future and closure, while making sure the future
-                // survives long enough to be marked ready.
-                auto fut = make_shared<boost::future<void>>(std::move(*cancel_future));
-                MainLoopExecutor::instance().submit([fut]{});
-            });
+        cancel_job(job, "download " + job->download_id());
     }
 
     for (auto it = uploads_.lower_bound(lower);
@@ -183,30 +171,36 @@ void PendingJobs::service_disconnected(QString const& service_name)
     {
         auto job = it->second;
         it = uploads_.erase(it);
-        auto f = job->p_->cancel(*job);
-        // This continuation also ensures that the job remains
-        // alive until the cancel method has completed.
-        auto cancel_future = make_shared<boost::future<void>>();
-        *cancel_future = f.then(
-            EXEC_IN_MAIN
-            [job, cancel_future](decltype(f) f) {
-                try
-                {
-                    f.get();
-                }
-                catch (std::exception const& e)
-                {
-                    fprintf(stderr, "Error cancelling upload job '%s': %s\n",
-                            job->upload_id().c_str(), e.what());
-                }
-
-                // Break the reference cycle between the continuation
-                // future and closure, while making sure the future
-                // survives long enough to be marked ready.
-                auto fut = make_shared<boost::future<void>>(std::move(*cancel_future));
-                MainLoopExecutor::instance().submit([fut]{});
-            });
+        cancel_job(job, "upload " + job->upload_id());
     }
+}
+
+template<typename Job>
+void PendingJobs::cancel_job(shared_ptr<Job> const& job, string const& identifier)
+{
+    auto f = job->p_->cancel(*job);
+    // This continuation also ensures that the job remains
+    // alive until the cancel method has completed.
+    auto cancel_future = make_shared<boost::future<void>>();
+    *cancel_future = f.then(
+        EXEC_IN_MAIN
+        [job, identifier, cancel_future](decltype(f) f) {
+            try
+            {
+                f.get();
+            }
+            catch (std::exception const& e)
+            {
+                fprintf(stderr, "Error cancelling job '%s': %s\n",
+                        identifier.c_str(), e.what());
+            }
+
+            // Break the reference cycle between the continuation
+            // future and closure, while making sure the future
+            // survives long enough to be marked ready.
+            auto fut = make_shared<boost::future<void>>(std::move(*cancel_future));
+            MainLoopExecutor::instance().submit([fut]{});
+        });
 }
 
 }

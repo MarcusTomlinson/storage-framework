@@ -69,6 +69,10 @@ private:
     void watch_peer(QString const& bus_name);
     void unwatch_peer(QString const& bus_name);
 
+    template <typename Job>
+    void cancel_job(std::shared_ptr<Job> const& job,
+                    std::string const& identifier);
+
     std::mutex lock_;
     // Key is client_bus_name and upload or download ID.
     std::map<std::pair<QString,std::string>,std::shared_ptr<UploadJob>> uploads_;
