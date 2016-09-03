@@ -143,6 +143,9 @@ void PendingJobs::service_disconnected(QString const& service_name)
 {
     lock_guard<mutex> guard(lock_);
 
+    services_.erase(service_name);
+    watcher_.removeWatchedService(service_name);
+
     const auto lower = make_pair(service_name, string());
 
     for (auto it = downloads_.lower_bound(lower);
@@ -166,6 +169,12 @@ void PendingJobs::service_disconnected(QString const& service_name)
                     fprintf(stderr, "Error cancelling download job '%s': %s\n",
                             job->download_id().c_str(), e.what());
                 }
+
+                // Break the reference cycle between the continuation
+                // future and closure, while making sure the future
+                // survives long enough to be marked ready.
+                auto fut = make_shared<boost::future<void>>(std::move(*cancel_future));
+                MainLoopExecutor::instance().submit([fut]{});
             });
     }
 
@@ -190,6 +199,12 @@ void PendingJobs::service_disconnected(QString const& service_name)
                     fprintf(stderr, "Error cancelling upload job '%s': %s\n",
                             job->upload_id().c_str(), e.what());
                 }
+
+                // Break the reference cycle between the continuation
+                // future and closure, while making sure the future
+                // survives long enough to be marked ready.
+                auto fut = make_shared<boost::future<void>>(std::move(*cancel_future));
+                MainLoopExecutor::instance().submit([fut]{});
             });
     }
 }
