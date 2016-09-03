@@ -56,14 +56,6 @@ target_include_directories(sf-provider-objects PRIVATE
   ${Qt5Network_INCLUDE_DIRS}
 )
 
-# moc does not know how to interpret the preprocessor logic in
-# MainLoopExecutor.h, so we reproduce it here.
-if(Boost_VERSION GREATER "105599")
-  set_target_properties(sf-provider-objects PROPERTIES
-    AUTOMOC_MOC_OPTIONS "-DSF_SUPPORTS_EXECUTORS"
-  )
-endif()
-
 add_library(storage-framework-provider SHARED
   $<TARGET_OBJECTS:sf-provider-objects>
   ${generated_files})
