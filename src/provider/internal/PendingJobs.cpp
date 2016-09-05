@@ -82,7 +82,7 @@ shared_ptr<DownloadJob> PendingJobs::remove_download(QString const& client_bus_n
     auto it = downloads_.find({client_bus_name, download_id});
     if (it == downloads_.cend())
     {
-        throw LogicException("No such download");
+        throw LogicException("No such download: " + download_id);
     }
     auto job = it->second;
     downloads_.erase(it);
@@ -112,7 +112,7 @@ shared_ptr<UploadJob> PendingJobs::remove_upload(QString const& client_bus_name,
     auto it = uploads_.find({client_bus_name, upload_id});
     if (it == uploads_.cend())
     {
-        throw LogicException("No such upload");
+        throw LogicException("No such upload: " + upload_id);
     }
     auto job = it->second;
     uploads_.erase(it);
