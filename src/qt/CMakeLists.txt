@@ -3,10 +3,12 @@ add_subdirectory(client)
 # Sources for remote client V2 library.
 set(QT_CLIENT_LIB_V2_SRC
     Account.cpp
+    AccountsJob.cpp
     Item.cpp
     Runtime.cpp
     StorageError.cpp
     internal/AccountImpl.cpp
+    internal/AccountsJobImpl.cpp
     internal/ItemImpl.cpp
     internal/RuntimeImpl.cpp
     internal/StorageErrorImpl.cpp

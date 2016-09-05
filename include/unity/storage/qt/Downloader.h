@@ -34,12 +34,12 @@ class Q_DECL_EXPORT Downloader final : public QIODevice
 {
     Q_OBJECT
     Q_PROPERTY(bool isValid READ isValid)
-    Q_PROPERTY(Status status READ status NOTIFY statusChanged)
-    Q_PROPERTY(StorageError error READ error NOTIFY error)
-    Q_PROPERTY(Item item READ item NOTIFY finished)
+    Q_PROPERTY(unity::Storage::qt::Downloader::Status status READ status NOTIFY statusChanged)
+    Q_PROPERTY(unity::Storage::qt::StorageError error READ error)
+    Q_PROPERTY(unity::Storage::qt::Item item READ item)
 
 public:
-    enum class Status { Loading, Cancelled, Finished, Error };
+    enum Status { Loading, Ready, Cancelled, Finished, Error };
     Q_ENUM(Status)
 
     bool isValid();
@@ -51,10 +51,7 @@ public:
     Q_INVOKABLE void cancel();
     
 Q_SIGNALS:
-    void statusChanged(Status status) const;
-    void error(StorageError const& e) const;
-    void finished(Item const& item) const;
-    void cancelled() const;
+    void statusChanged(unity::storage::qt::Status status) const;
 
 protected:
     virtual qint64 readData(char* data, qint64 maxSize) override;

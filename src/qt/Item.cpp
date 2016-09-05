@@ -16,8 +16,8 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/Item>
-#include <unity/storage/qt/internal/ItemImpl>
+#include <unity/storage/qt/Item.h>
+#include <unity/storage/qt/internal/ItemImpl.h>
 
 using namespace std;
 
@@ -130,12 +130,12 @@ VoidJob* Item::deleteItem() const
     return p_->deleteItem();
 }
 
-UploadJob* Item::createUploader(ConflictPolicy policy, qint64 sizeInBytes) const
+Uploader* Item::createUploader(ConflictPolicy policy, qint64 sizeInBytes) const
 {
     return p_->createUploader(policy, sizeInBytes);
 }
 
-DownloadJob* Item::createDownloader() const
+Downloader* Item::createDownloader() const
 {
     return p_->createDownloader();
 }
@@ -155,7 +155,7 @@ ItemJob* Item::createFolder(QString const& name) const
     return p_->createFolder(name);
 }
 
-UploadJob* Item::createFile(QString const& name) const
+Uploader* Item::createFile(QString const& name) const
 {
     return p_->createFile(name);
 }

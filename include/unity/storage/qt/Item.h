@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <unity/storage/qt/ConflictPolicy>
+#include <unity/storage/qt/ConflictPolicy.h>
 
 #include <QMetaType>
 
@@ -38,11 +38,11 @@ class ItemImpl;
 }  // namespace internal
 
 class Account;
-class DownloadJob;
+class Downloader;
 class IntJob;
 class ItemJob;
 class ItemListJob;
-class UploadJob;
+class Uploader;
 class VoidJob;
 
 class Q_DECL_EXPORT Item final
@@ -51,10 +51,10 @@ class Q_DECL_EXPORT Item final
     Q_PROPERTY(QString itemId READ itemId CONSTANT)
     Q_PROPERTY(QString name READ name CONSTANT)
     Q_PROPERTY(QString parentId READ parentId CONSTANT)
-    Q_PROPERTY(Account account READ account CONSTANT)
-    Q_PROPERTY(Item root READ root CONSTANT)
+    Q_PROPERTY(unity::Storage::qt::Account account READ account CONSTANT)
+    Q_PROPERTY(unity::Storage::qt::Item root READ root CONSTANT)
     Q_PROPERTY(QString eTag READ eTag CONSTANT)
-    Q_PROPERTY(ItemType type READ type CONSTANT)
+    Q_PROPERTY(unity::Storage::qt::Item::Type type READ type CONSTANT)
     Q_PROPERTY(QVariantMap metadata READ metadata CONSTANT)
     Q_PROPERTY(QDateTime lastModifiedTime READ lastModifiedTime CONSTANT)
     Q_PROPERTY(QVector<QString> parentIds READ parentIds CONSTANT)
@@ -67,7 +67,7 @@ public:
     Item& operator=(Item const&);
     Item& operator=(Item&&);
 
-    enum class Type { File, Folder, Root };
+    enum Type { File, Folder, Root };
     Q_ENUM(Type)
 
     bool isValid() const;
@@ -86,13 +86,13 @@ public:
     Q_INVOKABLE ItemJob* move(Item const& newParent, QString const& newName) const;
     Q_INVOKABLE VoidJob* deleteItem() const;
 
-    Q_INVOKABLE UploadJob* createUploader(ConflictPolicy policy, qint64 sizeInBytes) const;
-    Q_INVOKABLE DownloadJob* createDownloader() const;
+    Q_INVOKABLE Uploader* createUploader(ConflictPolicy policy, qint64 sizeInBytes) const;
+    Q_INVOKABLE Downloader* createDownloader() const;
 
     Q_INVOKABLE ItemListJob* list() const;
     Q_INVOKABLE ItemListJob* lookup(QString const& name) const;
     Q_INVOKABLE ItemJob* createFolder(QString const& name) const;
-    Q_INVOKABLE UploadJob* createFile(QString const& name) const;
+    Q_INVOKABLE Uploader* createFile(QString const& name) const;
 
     Q_INVOKABLE ItemJob* get(QString const& itemId) const;
     Q_INVOKABLE IntJob* freeSpaceBytes() const;
@@ -105,6 +105,8 @@ public:
     bool operator>(Item const&) const;
     bool operator>=(Item const&) const;
 
+    size_t hash() const;
+
 private:
     std::unique_ptr<internal::ItemImpl> p_;
 };
@@ -112,3 +114,16 @@ private:
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
+
+namespace std
+{
+
+template<> struct hash<unity::storage::qt::Item>
+{
+    std::size_t operator()(unity::storage::qt::Item const& i)
+    {
+        return i.hash();
+    }
+};
+
+}

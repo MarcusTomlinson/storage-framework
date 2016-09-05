@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <unity/storage/qt/Account>
-#include <unity/storage/qt/Item>
+#include <unity/storage/qt/Account.h>
+#include <unity/storage/qt/Item.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
@@ -63,12 +63,12 @@ public:
     ItemJob* copy(Item const& newParent, QString const& newName) const;
     ItemJob* move(Item const& newParent, QString const& newName) const;
     VoidJob* deleteItem() const;
-    UploadJob* createUploader(ConflictPolicy policy, qint64 sizeInBytes) const;
-    DownloadJob* createDownloader() const;
+    Uploader* createUploader(ConflictPolicy policy, qint64 sizeInBytes) const;
+    Downloader* createDownloader() const;
     ItemListJob* list() const;
     ItemListJob* lookup(QString const& name) const;
     ItemJob* createFolder(QString const& name) const;
-    UploadJob* createFile(QString const& name) const;
+    Uploader* createFile(QString const& name) const;
     ItemJob* get(QString const& itemId) const;
     IntJob* freeSpaceBytes() const;
     IntJob* usedSpaceBytes() const;
@@ -79,6 +79,8 @@ public:
     bool operator<=(ItemImpl const&) const;
     bool operator>(ItemImpl const&) const;
     bool operator>=(ItemImpl const&) const;
+
+    size_t hash() const;
 
 private:
     bool is_valid_;

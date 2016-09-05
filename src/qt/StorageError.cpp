@@ -16,8 +16,8 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/StorageError>
-#include <unity/storage/qt/internal/StorageErrorImpl>
+#include <unity/storage/qt/StorageError.h>
+#include <unity/storage/qt/internal/StorageErrorImpl.h>
 
 #include <cassert>
 #include <memory>

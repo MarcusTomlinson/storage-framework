@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <unity/storage/qt/StorageError>
+#include <unity/storage/qt/StorageError.h>
 
 namespace unity
 {

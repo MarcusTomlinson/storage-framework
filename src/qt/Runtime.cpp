@@ -16,8 +16,8 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/Runtime>
-#include <unity/storage/qt/internal/RuntimeImpl>
+#include <unity/storage/qt/Runtime.h>
+#include <unity/storage/qt/internal/RuntimeImpl.h>
 
 using namespace std;
 
@@ -32,19 +32,41 @@ Runtime::Runtime(QObject* parent)
     : QObject(parent)
     , p_(new internal::RuntimeImpl)
 {
+    p_->public_instance_ = this;
 }
 
 Runtime::Runtime(QDBusConnection const& bus, QObject* parent)
     : QObject(parent)
     , p_(new internal::RuntimeImpl(bus))
 {
+    p_->public_instance_ = this;
 }
 
 Runtime::~Runtime() = default;
 
+bool Runtime::isValid() const
+{
+    return p_->isValid();
+}
+
+StorageError Runtime::error() const
+{
+    return p_->error();
+}
+
+QDBusConnection Runtime::connection() const
+{
+    return p_->connection();
+}
+
+StorageError Runtime::shutdown()
+{
+    return p_->shutdown();
+}
+
 AccountsJob* Runtime::accounts() const
 {
-    return nullptr;  // TODO
+    return p_->accounts();
 }
 
 }  // namespace qt

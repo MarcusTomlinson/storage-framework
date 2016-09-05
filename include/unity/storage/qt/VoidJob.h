@@ -27,33 +27,28 @@ namespace storage
 namespace qt
 {
 
-class Item;
 class StorageError;
 
-class Q_DECL_EXPORT ItemJob final : public QObject
+class Q_DECL_EXPORT VoidJob final : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool READ isValid)
-    Q_PROPERTY(Status READ status NOTIFY statusChanged)
-    Q_PROPERTY(StorageError READ error NOTIFY error)
-    Q_PROPERTY(Item const& READ item NOTIFY finished)
+    Q_PROPERTY(unity::storage::qt::VoidJob::Status READ status NOTIFY statusChanged)
+    Q_PROPERTY(unity::storage::qt::StorageError READ error)
 
 public:
-    ItemJob(QObject* parent = nullptr);
-    virtual ~ItemJob();
+    VoidJob(QObject* parent = nullptr);
+    virtual ~VoidJob();
 
-    enum class Status { Loading, Finished, Error };
+    enum Status { Loading, Finished, Error };
     Q_ENUM(Status)
 
     bool isValid() const;
     Status status() const;
     StorageError error() const;
-    Item item() const;
 
 Q_SIGNALS:
-    void statusChanged(Status status) const;
-    void error(StorageError const& e) const;
-    void finished(Item const& item) const;
+    void statusChanged(unity::storage::qt::VoidJob::Status status) const;
 };
 
 }  // namespace qt

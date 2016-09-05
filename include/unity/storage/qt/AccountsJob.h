@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <unity/storage/qt/Account.h>
+#include <unity/storage/qt/StorageError.h>
+
 #include <QObject>
 
 namespace unity
@@ -26,32 +29,48 @@ namespace storage
 {
 namespace qt
 {
+namespace internal
+{
+
+class AccountsJobImpl;
+class RuntimeImpl;
+
+}  // namespace internal
 
 class Account;
+class Runtime;
 class StorageError;
 
 class Q_DECL_EXPORT AccountsJob final : public QObject
 {
-    Q_OBJECT
-    Q_PROPERTY(Status READ status NOTIFY statusChanged)
-    Q_PROPERTY(StorageError READ Error NOTIFY error)
-    Q_PROPERTY(QList<Account> READ accounts)
+    // TODO: Add FINAL to all property macros?
+    Q_PROPERTY(bool READ isValid)
+    Q_PROPERTY(unity::storage::qt::Account::Status READ status NOTIFY statusChanged)
+    Q_PROPERTY(unity::storage::qt::StorageError READ Error)
+    Q_PROPERTY(QList<unity::storage::qt::Account> READ accounts)
 
 public:
-    AccountsJob(QObject*);
+    AccountsJob(QObject* = nullptr);
     virtual ~AccountsJob();
 
-    enum class Status { Loading, Finished, Error };
+    enum Status { Loading, Finished, Error };
     Q_ENUM(Status)
 
+    bool isValid() const;
     Status status() const;
     StorageError error() const;
     QList<Account> accounts() const;
     
 Q_SIGNALS:
-    void statusChanged(Status status) const;
-    void error(StorageError const& e) const;
-    void finished(QList<Account> const& accounts) const;
+    void statusChanged(unity::storage::qt::AccountsJob::Status status) const;
+
+private:
+    AccountsJob(std::shared_ptr<internal::RuntimeImpl> const& runtime, QObject* parent);
+    AccountsJob(StorageError const& error, QObject* parent);
+
+    std::unique_ptr<internal::AccountsJobImpl> const p_;
+
+    friend class internal::RuntimeImpl;
 };
 
 }  // namespace qt

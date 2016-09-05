@@ -34,17 +34,14 @@ class Q_DECL_EXPORT Uploader final : public QIODevice
 {
     Q_OBJECT
     Q_PROPERTY(bool isValid READ isValid)
-    Q_PROPERTY(Status status READ status)
-    Q_PROPERTY(error item READ error)
-    Q_PROPERTY(ConflictPolicy policy READ policy)
+    Q_PROPERTY(unity::storage::qt::Uploader::Status status READ status)
+    Q_PROPERTY(unity::storage::qt::StorageError READ error)
+    Q_PROPERTY(unity::storage::qt::ConflictPolicy policy READ policy)
     Q_PROPERTY(qint64 sizeInBytes READ sizeInBytes)
-    Q_PROPERTY(Item item READ item)
+    Q_PROPERTY(unity::storage::qt::Item item READ item)
 
 public:
-    enum class ConflictPolicy { ErrorIfConflict, Overwrite };
-    Q_ENUM(ConflictPolicy)
-
-    enum class Status { Loading, Cancelled, Finished, Error };
+    enum Status { Loading, Cancelled, Finished, Error };
     Q_ENUM(Status)
 
     bool isValid() const;
@@ -58,10 +55,7 @@ public:
     Q_INVOKABLE void cancel();
 
 Q_SIGNALS:
-    void statusChanged(Status status) const;
-    void error(StorageError const& e) const;
-    void finished(Item const& item) const;
-    void cancelled() const;
+    void statusChanged(unity::storage::qt::Status status) const;
 
 protected:
     virtual qint64 readData(char* data, qint64 maxSize) override;

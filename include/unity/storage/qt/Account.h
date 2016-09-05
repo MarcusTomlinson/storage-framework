@@ -40,6 +40,7 @@ class ItemListJob;
 class Q_DECL_EXPORT Account final
 {
     Q_GADGET
+    Q_PROPERTY(bool READ isValid)
     Q_PROPERTY(QString READ owner)
     Q_PROPERTY(QString READ ownerId)
     Q_PROPERTY(QString READ description)
@@ -53,8 +54,8 @@ public:
     Account& operator=(Account&&);
 
     bool isValid() const;
-    QString ownerId() const;
     QString owner() const;
+    QString ownerId() const;
     QString description() const;
 
     Q_INVOKABLE ItemListJob* roots() const;
@@ -66,6 +67,8 @@ public:
     bool operator>(Account const&) const;
     bool operator>=(Account const&) const;
 
+    size_t hash() const;
+
 private:
     std::unique_ptr<internal::AccountImpl> p_;
 };
@@ -73,3 +76,16 @@ private:
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
+
+namespace std
+{
+
+template<> struct hash<unity::storage::qt::Account>
+{
+    std::size_t operator()(unity::storage::qt::Account const& a)
+    {
+        return a.hash();
+    }
+};
+
+}

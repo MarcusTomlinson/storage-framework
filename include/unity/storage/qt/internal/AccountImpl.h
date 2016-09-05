@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <unity/storage/qt/Item>
+#include <unity/storage/qt/Item.h>
 
 #include <QString>
 
@@ -38,10 +38,10 @@ class AccountImpl
 public:
     AccountImpl();
     AccountImpl(AccountImpl const&) = default;
-    AccountImpl(AccountImpl&&) = delete;
+    AccountImpl(AccountImpl&&) = default;
     ~AccountImpl() = default;
     AccountImpl& operator=(AccountImpl const&) = default;
-    AccountImpl& operator=(AccountImpl&&) = delete;
+    AccountImpl& operator=(AccountImpl&&) = default;
 
     QString ownerId() const;
     QString owner() const;
@@ -56,7 +56,11 @@ public:
     bool operator>(AccountImpl const&) const;
     bool operator>=(AccountImpl const&) const;
 
+    size_t hash() const;
+
 private:
+    Account* public_instance_;
+
     bool is_valid_;
     QString owner_id_;
     QString owner_;

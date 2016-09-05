@@ -18,8 +18,13 @@
 
 #pragma once
 
-#include <unity/storage/qt/StorageError>
+#include <unity/storage/qt/StorageError.h>
+
 #include <QDBusConnection>
+
+#include <memory>
+
+class QDBusConnection;
 
 namespace unity
 {
@@ -27,36 +32,35 @@ namespace storage
 {
 namespace qt
 {
-
-class ItemListJob;
-
 namespace internal
 {
 
-class RuntimeImpl
-{
-public:
-    RuntimeImpl();
-    RuntimeImpl(QDBusConnection const& bus);
-    RuntimeImpl(RuntimeImpl const&) = delete;
-    RuntimeImpl(RuntimeImpl&&) = delete;
-    ~RuntimeImpl();
-    RuntimeImpl& operator=(RuntimeImpl const&) = delete;
-    RuntimeImpl& operator=(RuntimeImpl&&) = delete;
-
-    bool isValid() const;
-    StorageError lastError() const;
-    ItemListJob* accounts() const;
-
-    StorageError shutdown();
-
-private:
-    bool is_valid_;
-    QDBusConnection conn_;
-    StorageError last_error_;
-};
+class RuntimeImpl;
 
 }  // namespace internal
+
+class AccountsJob;
+
+class Q_DECL_EXPORT Runtime final : public QObject
+{
+    Q_PROPERTY(bool READ isValid)
+    Q_PROPERTY(unity::storage::StorageError READ error)
+    Q_PROPERTY(QDBusConnection READ connection)
+public:
+    Runtime(QObject* parent = nullptr);
+    Runtime(QDBusConnection const& bus, QObject* parent = nullptr);
+    virtual ~Runtime();
+
+    bool isValid() const;
+    StorageError error() const;
+    QDBusConnection connection() const;
+    StorageError shutdown();
+    Q_INVOKABLE AccountsJob* accounts() const;
+
+private:
+    std::shared_ptr<internal::RuntimeImpl> p_;
+};
+
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity

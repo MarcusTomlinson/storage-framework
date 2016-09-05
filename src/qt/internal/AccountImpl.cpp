@@ -16,7 +16,9 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/internal/AccountImpl>
+#include <unity/storage/qt/internal/AccountImpl.h>
+
+#include <boost/functional/hash.hpp>
 
 #include <cassert>
 
@@ -112,6 +114,19 @@ bool AccountImpl::operator>(AccountImpl const& other) const
 bool AccountImpl::operator>=(AccountImpl const& other) const
 {
     return !operator<(other);
+}
+
+size_t AccountImpl::hash() const
+{
+    if (!is_valid_)
+    {
+        return 0;
+    }
+    size_t hash = 0;
+    boost::hash_combine(hash, owner_.toStdString());
+    boost::hash_combine(hash, owner_id_.toStdString());
+    boost::hash_combine(hash, description_.toStdString());
+    return hash;
 }
 
 }  // namespace internal

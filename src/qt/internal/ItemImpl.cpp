@@ -16,7 +16,7 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/internal/ItemImpl>
+#include <unity/storage/qt/internal/ItemImpl.h>
 
 using namespace std;
 
@@ -100,12 +100,12 @@ VoidJob* ItemImpl::deleteItem() const
     return nullptr;  // TODO
 }
 
-UploadJob* ItemImpl::createUploader(ConflictPolicy policy, qint64 sizeInBytes) const
+Uploader* ItemImpl::createUploader(ConflictPolicy policy, qint64 sizeInBytes) const
 {
     return nullptr;  // TODO
 }
 
-DownloadJob* ItemImpl::createDownloader() const
+Downloader* ItemImpl::createDownloader() const
 {
     return nullptr;  // TODO
 }
@@ -125,7 +125,7 @@ ItemJob* ItemImpl::createFolder(QString const& name) const
     return nullptr;  // TODO
 }
 
-UploadJob* ItemImpl::createFile(QString const& name) const
+Uploader* ItemImpl::createFile(QString const& name) const
 {
     return nullptr;  // TODO
 }
@@ -181,6 +181,15 @@ bool ItemImpl::operator>(ItemImpl const& other) const
 bool ItemImpl::operator>=(ItemImpl const& other) const
 {
     return !operator<(other);
+}
+
+size_t ItemImpl::hash() const
+{
+    if (!is_valid_)
+    {
+        return 0;
+    }
+    return std::hash<std::string>()(item_id_.toStdString());
 }
 
 }  // namespace internal

@@ -16,8 +16,8 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/Account>
-#include <unity/storage/qt/internal/AccountImpl>
+#include <unity/storage/qt/Account.h>
+#include <unity/storage/qt/internal/AccountImpl.h>
 
 using namespace std;
 
@@ -31,17 +31,19 @@ namespace qt
 Account::Account()
     : p_(new internal::AccountImpl)
 {
+    p_->public_instance_ = this;
 }
 
 Account::Account(Account const& other)
     : p_(new internal::AccountImpl(*other.p_))
 {
+    p_->public_instance_ = this;
 }
 
 Account::Account(Account&& other)
+    : p_(move(other.p_))
 {
-    p_->is_valid_ = false;
-    swap(p_, other.p_);
+    p_->public_instance_ = this;
 }
 
 Account::~Account()
@@ -50,14 +52,23 @@ Account::~Account()
 
 Account& Account::operator=(Account const& other)
 {
+    if (this == &other)
+    {
+        return *this;
+    }
     *p_ = *other.p_;
+    p_->public_instance_ = this;
     return *this;
 }
 
 Account& Account::operator=(Account&& other)
 {
-    p_->is_valid_ = false;
-    swap(p_, other.p_);
+    if (this == &other)
+    {
+        return *this;
+    }
+    *p_ = move(*other.p_);
+    p_->public_instance_ = this;
     return *this;
 }
 
@@ -114,6 +125,11 @@ bool Account::operator>(Account const& other) const
 bool Account::operator>=(Account const& other) const
 {
     return p_->operator>=(*other.p_);
+}
+
+size_t Account::hash() const
+{
+    return p_->hash();
 }
 
 }  // namespace qt

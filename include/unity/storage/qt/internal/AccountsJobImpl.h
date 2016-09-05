@@ -18,11 +18,7 @@
 
 #pragma once
 
-#include <QObject>
-
-#include <memory>
-
-class QDBusConnection;
+#include <unity/storage/qt/AccountsJob.h>
 
 namespace unity
 {
@@ -30,28 +26,35 @@ namespace storage
 {
 namespace qt
 {
+
 namespace internal
 {
 
-class RuntimeImpl;
-
-}  // namespace internal
-
-class AccountsJob;
-
-class Q_DECL_EXPORT Runtime final : public QObject
+class AccountsJobImpl
 {
 public:
-    Runtime(QObject* parent = nullptr);
-    Runtime(QDBusConnection const& bus, QObject* parent = nullptr);
-    virtual ~Runtime();
+    AccountsJobImpl(std::shared_ptr<RuntimeImpl> const& runtime);
+    AccountsJobImpl(StorageError const& error);
+    AccountsJobImpl(AccountsJobImpl const&) = default;
+    AccountsJobImpl(AccountsJobImpl&&) = delete;
+    ~AccountsJobImpl() = default;
+    AccountsJobImpl& operator=(AccountsJobImpl const&) = default;
+    AccountsJobImpl& operator=(AccountsJobImpl&&) = delete;
 
-    Q_INVOKABLE AccountsJob* accounts() const;
+    bool isValid() const;
+    AccountsJob::Status status() const;
+    StorageError error() const;
+    QList<Account> accounts() const;
 
 private:
-    std::unique_ptr<internal::RuntimeImpl> p_;
+    bool is_valid_;
+    AccountsJob::Status status_;
+    StorageError error_;
+    QList<unity::storage::qt::Account> accounts_;
+    std::weak_ptr<RuntimeImpl> const runtime_;
 };
 
+}  // namespace internal
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity

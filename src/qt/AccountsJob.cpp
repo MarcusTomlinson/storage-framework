@@ -16,9 +16,13 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#pragma once
+#include <unity/storage/qt/AccountsJob.h>
 
-#include <QObject>
+#include <unity/storage/qt/Account.h>
+#include <unity/storage/qt/internal/AccountsJobImpl.h>
+
+using namespace unity::storage::qt;
+using namespace std;
 
 namespace unity
 {
@@ -27,26 +31,39 @@ namespace storage
 namespace qt
 {
 
-class StorageError;
-
-class Q_DECL_EXPORT VoidJob final : public QObject
+AccountsJob::AccountsJob(shared_ptr<internal::RuntimeImpl> const& runtime, QObject* parent)
+    : QObject(parent)
+    , p_(new internal::AccountsJobImpl(runtime))
 {
-    Q_OBJECT
-    Q_PROPERTY(Status READ status NOTIFY statusChanged)
-    Q_PROPERTY(StorageError READ Error NOTIFY error)
+}
 
-public:
-    VoidJob(QObject* parent = nullptr);
-    virtual ~VoidJob();
+AccountsJob::AccountsJob(StorageError const& error, QObject* parent)
+    : QObject(parent)
+    , p_(new internal::AccountsJobImpl(error))
+{
+}
 
-    enum class Status { Loading, Finished, Error };
-    Q_ENUM(Status)
+AccountsJob::~AccountsJob() = default;
 
-Q_SIGNALS:
-    void statusChanged(Status status) const;
-    void error(StorageError const& e) const;
-    void finished() const;
-};
+bool AccountsJob::isValid() const
+{
+    return p_->isValid();
+}
+
+AccountsJob::Status AccountsJob::status() const
+{
+    return p_->status();
+}
+
+StorageError AccountsJob::error() const
+{
+    return p_->error();
+}
+
+QList<Account> AccountsJob::accounts() const
+{
+    return p_->accounts();
+}
 
 }  // namespace qt
 }  // namespace storage
