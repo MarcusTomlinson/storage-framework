@@ -20,6 +20,8 @@
 
 #include <unity/storage/qt/AccountsJob.h>
 
+#include <QTimer>
+
 namespace unity
 {
 namespace storage
@@ -30,11 +32,11 @@ namespace qt
 namespace internal
 {
 
-class AccountsJobImpl
+class AccountsJobImpl : public QObject
 {
 public:
-    AccountsJobImpl(std::shared_ptr<RuntimeImpl> const& runtime);
-    AccountsJobImpl(StorageError const& error);
+    AccountsJobImpl(AccountsJob* public_instance, std::shared_ptr<RuntimeImpl> const& runtime);
+    AccountsJobImpl(AccountsJob* public_instance, StorageError const& error);
     AccountsJobImpl(AccountsJobImpl const&) = default;
     AccountsJobImpl(AccountsJobImpl&&) = delete;
     ~AccountsJobImpl() = default;
@@ -46,12 +48,24 @@ public:
     StorageError error() const;
     QList<Account> accounts() const;
 
+private Q_SLOTS:
+    void manager_ready();
+    void timeout();
+
 private:
-    bool is_valid_;
+    std::shared_ptr<RuntimeImpl> get_runtime(QString const& method) const;
+    void initialize_accounts();
+    void emit_status_changed() const;
+
+    AccountsJob* public_instance_;
+
     AccountsJob::Status status_;
     StorageError error_;
     QList<unity::storage::qt::Account> accounts_;
     std::weak_ptr<RuntimeImpl> const runtime_;
+    QTimer timer_;
+
+    friend class unity::storage::qt::AccountsJob;
 };
 
 }  // namespace internal

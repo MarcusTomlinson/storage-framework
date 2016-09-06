@@ -37,6 +37,11 @@ class AccountImpl
 {
 public:
     AccountImpl();
+    AccountImpl(QString const& bus_name,
+                QString const& object_path,
+                QString const& owner_id,
+                QString const& owner,
+                QString const& description);
     AccountImpl(AccountImpl const&) = default;
     AccountImpl(AccountImpl&&) = default;
     ~AccountImpl() = default;
@@ -58,10 +63,18 @@ public:
 
     size_t hash() const;
 
+    static Account make_account(QString const& bus_name,
+                                QString const& object_path,
+                                QString const& owner_id,
+                                QString const& owner,
+                                QString const& description);
+
 private:
     Account* public_instance_;
 
     bool is_valid_;
+    QString bus_name_;
+    QString object_path_;
     QString owner_id_;
     QString owner_;
     QString description_;

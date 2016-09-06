@@ -70,7 +70,11 @@ public:
     size_t hash() const;
 
 private:
+    Account(std::unique_ptr<internal::AccountImpl> p);
+
     std::unique_ptr<internal::AccountImpl> p_;
+
+    friend class internal::AccountImpl;
 };
 
 }  // namespace qt

@@ -17,7 +17,10 @@
  */
 
 #include <unity/storage/qt/Account.h>
+
 #include <unity/storage/qt/internal/AccountImpl.h>
+
+#include <cassert>
 
 using namespace std;
 
@@ -32,6 +35,12 @@ Account::Account()
     : p_(new internal::AccountImpl)
 {
     p_->public_instance_ = this;
+}
+
+Account::Account(unique_ptr<internal::AccountImpl> p)
+    : p_(move(p))
+{
+    assert(p);
 }
 
 Account::Account(Account const& other)

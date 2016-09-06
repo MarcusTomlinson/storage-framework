@@ -18,6 +18,8 @@
 
 #include <unity/storage/qt/internal/AccountImpl.h>
 
+#include <unity/storage/qt/Account.h>
+
 #include <boost/functional/hash.hpp>
 
 #include <cassert>
@@ -36,6 +38,21 @@ namespace internal
 AccountImpl::AccountImpl()
     : is_valid_(false)
 {
+}
+
+AccountImpl::AccountImpl(QString const& bus_name,
+                         QString const& object_path,
+                         QString const& owner_id,
+                         QString const& owner,
+                         QString const& description)
+    : bus_name_(bus_name)
+    , object_path_(object_path)
+    , owner_id_(owner_id)
+    , owner_(owner)
+    , description_(description)
+{
+    assert(!bus_name.isEmpty());
+    assert(!object_path.isEmpty());
 }
 
 QString AccountImpl::owner() const
@@ -127,6 +144,16 @@ size_t AccountImpl::hash() const
     boost::hash_combine(hash, owner_id_.toStdString());
     boost::hash_combine(hash, description_.toStdString());
     return hash;
+}
+
+Account AccountImpl::make_account(QString const& bus_name,
+                                  QString const& object_path,
+                                  QString const& owner_id,
+                                  QString const& owner,
+                                  QString const& description)
+{
+    unique_ptr<AccountImpl> p(new AccountImpl(bus_name, object_path, owner_id, owner, description));
+    return Account(move(p));
 }
 
 }  // namespace internal

@@ -33,13 +33,13 @@ namespace qt
 
 AccountsJob::AccountsJob(shared_ptr<internal::RuntimeImpl> const& runtime, QObject* parent)
     : QObject(parent)
-    , p_(new internal::AccountsJobImpl(runtime))
+    , p_(new internal::AccountsJobImpl(this, runtime))
 {
 }
 
 AccountsJob::AccountsJob(StorageError const& error, QObject* parent)
     : QObject(parent)
-    , p_(new internal::AccountsJobImpl(error))
+    , p_(new internal::AccountsJobImpl(this, error))
 {
 }
 
