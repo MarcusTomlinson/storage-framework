@@ -181,7 +181,7 @@ void PendingJobs::cancel_job(shared_ptr<Job> const& job, string const& identifie
     auto f = job->p_->cancel(*job);
     // This continuation also ensures that the job remains
     // alive until the cancel method has completed.
-    auto cancel_future = make_shared<boost::future<void>>();
+    auto cancel_future = std::make_shared<boost::future<void>>();
     *cancel_future = f.then(
         EXEC_IN_MAIN
         [job, identifier, cancel_future](decltype(f) f) {
@@ -198,7 +198,7 @@ void PendingJobs::cancel_job(shared_ptr<Job> const& job, string const& identifie
             // Break the reference cycle between the continuation
             // future and closure, while making sure the future
             // survives long enough to be marked ready.
-            auto fut = make_shared<boost::future<void>>(std::move(*cancel_future));
+            auto fut = std::make_shared<boost::future<void>>(std::move(*cancel_future));
             MainLoopExecutor::instance().submit([fut]{});
         });
 }
