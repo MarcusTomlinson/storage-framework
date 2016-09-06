@@ -105,7 +105,9 @@ QFuture<QVector<Account::SPtr>> RuntimeImpl::accounts()
 {
     if (destroyed_)
     {
-        return make_exceptional_future(qf_, RuntimeDestroyedException("Runtime::accounts()"));
+        qf_.reportException(RuntimeDestroyedException("Runtime::accounts()"));
+        qf_.reportFinished();
+        return qf_.future();
     }
 
     if (!manager_)
@@ -131,7 +133,8 @@ void RuntimeImpl::manager_ready()
     if (destroyed_)
     {
         // LCOV_EXCL_START
-        make_exceptional_future(qf_, RuntimeDestroyedException("Runtime::accounts()"));
+        qf_.reportException(RuntimeDestroyedException("Runtime::accounts()"));
+        qf_.reportFinished();
         return;
         // LCOV_EXCL_STOP
     }
@@ -161,20 +164,22 @@ void RuntimeImpl::manager_ready()
             }
         }
         accounts_ = accounts;
-        make_ready_future(qf_, accounts);
+        qf_.reportResult(accounts);
     }
     // LCOV_EXCL_START
     catch (StorageException const& e)
     {
-        make_exceptional_future(qf_, e);
+        qf_.reportException(e);
     }
     // LCOV_EXCL_STOP
+    qf_.reportFinished();
 }
 
 // LCOV_EXCL_START
 void RuntimeImpl::timeout()
 {
-    make_exceptional_future(qf_, ResourceException("Runtime::accounts(): timeout retrieving Online accounts", 0));
+    qf_.reportException(ResourceException("Runtime::accounts(): timeout retrieving Online accounts", 0));
+    qf_.reportFinished();
 }
 // LCOV_EXCL_STOP
 

@@ -84,21 +84,25 @@ Handler<T>::Handler(QObject* parent,
                               catch (LocalCommsException const& e)
                               {
                                   qCritical() << "provider exception:" << e.what();
-                                  make_exceptional_future<T>(qf_, e);
+                                  qf_.reportException(e);
+                                  qf_.reportFinished();
                               }
                               catch (RemoteCommsException const& e)
                               {
                                   qCritical() << "provider exception:" << e.what();
-                                  make_exceptional_future<T>(qf_, e);
+                                  qf_.reportException(e);
+                                  qf_.reportFinished();
                               }
                               catch (ResourceException const& e)
                               {
                                   qCritical() << "provider exception:" << e.what();
-                                  make_exceptional_future<T>(qf_, e);
+                                  qf_.reportException(e);
+                                  qf_.reportFinished();
                               }
                               catch (StorageException const& e)
                               {
-                                  make_exceptional_future<T>(qf_, e);
+                                  qf_.reportException(e);
+                                  qf_.reportFinished();
                               }
                               // LCOV_EXCL_START
                               catch (...)
