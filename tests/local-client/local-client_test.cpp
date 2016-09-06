@@ -425,7 +425,6 @@ TEST(File, create_uploader)
     EXPECT_EQ(0, file->size());
     auto old_etag = file->etag();
 
-    qDebug() << "Uploading 0 bytes";
     // Create uploader for the file and write nothing.
     uploader = call(file->create_uploader(ConflictPolicy::overwrite, 0));
     file = call(uploader->finish_upload());
@@ -436,7 +435,6 @@ TEST(File, create_uploader)
     uploader = call(file->create_uploader(ConflictPolicy::overwrite, s.size()));
     EXPECT_EQ(1000000, uploader->size());
     uploader->socket()->write(&s[0], s.size());
-    qDebug() << "Waiting for write to complete";
     uploader->socket()->waitForBytesWritten(SIGNAL_WAIT_TIME);
 
     // Need to sleep here, otherwise it is possible for the

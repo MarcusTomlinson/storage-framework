@@ -102,15 +102,20 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
         auto root = get_root();
         if (!root)
         {
-            make_exceptional_future(qf, RuntimeDestroyedException("Item::copy()"));
+            qf.reportException(RuntimeDestroyedException("Item::copy()"));
+            qf.reportFinished();
             return;
         }
 
         auto md = reply.value();
-        QString error = validate("Item::copy()", md);
-        if (!error.isEmpty())
+        try
         {
-            make_exceptional_future(qf, LocalCommsException(error));
+            validate("Item::copy()", md);
+        }
+        catch (StorageException const& e)
+        {
+            qf.reportException(e);
+            qf.reportFinished();
             return;
         }
         if (md.type == ItemType::root)
@@ -118,10 +123,12 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
             // TODO: log server error here
             QString msg = "File::create_folder(): impossible item type returned by server: "
                           + QString::number(int(md.type));
-            make_exceptional_future(qf, LocalCommsException(msg));
+            qf.reportException(LocalCommsException(msg));
+            qf.reportFinished();
             return;
         }
-        make_ready_future(qf, ItemImpl::make_item(md, root));
+        qf.reportResult(ItemImpl::make_item(md, root));
+        qf.reportFinished();
         return;
     };
 
@@ -160,25 +167,32 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
         auto root = get_root();
         if (!root)
         {
-            make_exceptional_future(qf, RuntimeDestroyedException("Item::move()"));
+            qf.reportException(RuntimeDestroyedException("Item::move()"));
+            qf.reportFinished();
             return;
         }
 
         auto md = reply.value();
-        QString error = validate("Item::move()", md);
-        if (!error.isEmpty())
+        try
         {
-            make_exceptional_future(qf, LocalCommsException(error));
+            validate("Item::move()", md);
+        }
+        catch (StorageException const& e)
+        {
+            qf.reportException(e);
+            qf.reportFinished();
             return;
         }
         if (md.type == ItemType::root)
         {
             // TODO: log server error here
             QString msg = "Item::move(): impossible root item returned by server";
-            make_exceptional_future(qf, LocalCommsException(msg));
+            qf.reportException(LocalCommsException(msg));
+            qf.reportFinished();
             return;
         }
-        make_ready_future(qf, ItemImpl::make_item(md, root));
+        qf.reportResult(ItemImpl::make_item(md, root));
+        qf.reportFinished();
     };
 
     auto handler = new Handler<shared_ptr<Item>>(this, reply, process_reply);
@@ -223,7 +237,7 @@ QFuture<void> ItemImpl::delete_item()
     auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>& qf)
     {
         deleted_ = true;
-        make_ready_future(qf);
+        qf.reportFinished();
     };
 
     auto handler = new Handler<void>(this, reply, process_reply);

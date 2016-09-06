@@ -121,7 +121,7 @@ void DownloadWorker::do_finish()
                               + QString::number(written) + " byte";
                 msg += written == 1 ? " was" : "s were";
                 msg += " consumed.";
-                make_exceptional_future(qf_, LogicException(msg));
+                qf_.reportException(LogicException(msg));
             }
             else
             {
@@ -136,12 +136,12 @@ void DownloadWorker::do_finish()
         case cancelled:
         {
             QString msg = "Downloader::finish_download(): download of " + filename_ + " was cancelled";
-            make_exceptional_future(qf_, CancelledException(msg));
+            qf_.reportException(CancelledException(msg));
             break;
         }
         case error:
         {
-            make_exceptional_future(qf_, ResourceException(error_msg_, error_code_));
+            qf_.reportException(ResourceException(error_msg_, error_code_));
             break;
         }
         default:
@@ -149,7 +149,7 @@ void DownloadWorker::do_finish()
             abort();  // LCOV_EXCL_LINE  // Impossible
         }
     }
-    make_ready_future(qf_);
+    qf_.reportFinished();
     QThread::currentThread()->quit();
 }
 
@@ -258,7 +258,7 @@ void DownloadThread::run()
 
 DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     : DownloaderBase(file)
-    , read_socket_(new QLocalSocket)
+    , read_socket_(new QLocalSocket, [](QLocalSocket* s){ s->deleteLater(); })
 {
     // Set up socket pair.
     int fds[2];
@@ -268,7 +268,8 @@ DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
         // LCOV_EXCL_START
         QString msg = "Downloader: cannot create socket pair: "
                       + QString::fromStdString(storage::internal::safe_strerror(errno));
-        make_exceptional_future(qf_, ResourceException(msg, errno));
+        qf_.reportException(ResourceException(msg, errno));
+        qf_.reportFinished();
         return;
         // LCOV_EXCL_STOP
     }

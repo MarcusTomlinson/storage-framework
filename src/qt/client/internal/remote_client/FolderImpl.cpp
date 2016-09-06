@@ -78,7 +78,8 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         auto root = get_root();
         if (!root)
         {
-            make_exceptional_future(qf, RuntimeDestroyedException("Folder::list()"));
+            qf.reportException(RuntimeDestroyedException("Folder::list()"));
+            qf.reportFinished();
             return;
         }
 
@@ -86,10 +87,14 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         auto metadata = reply.argumentAt<0>();
         for (auto const& md : metadata)
         {
-            QString error = validate("Folder::list()", md);
-            if (!error.isEmpty())
+            try
             {
-                make_exceptional_future(qf, LocalCommsException(error));
+                validate("Folder::list()", md);
+            }
+            catch (StorageException const& e)
+            {
+                qf.reportException(e);
+                qf.reportFinished();
                 return;
             }
             if (md.type == ItemType::root)
@@ -137,7 +142,8 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
         auto root = get_root();
         if (!root)
         {
-            make_exceptional_future(qf, RuntimeDestroyedException("Folder::lookup()"));
+            qf.reportException(RuntimeDestroyedException("Folder::lookup()"));
+            qf.reportFinished();
             return;
         }
 
@@ -145,10 +151,14 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
         auto metadata = reply.value();
         for (auto const& md : metadata)
         {
-            QString error = validate("Folder::lookup()", md);
-            if (!error.isEmpty())
+            try
             {
-                make_exceptional_future(qf, LocalCommsException(error));
+                validate("Folder::lookup()", md);
+            }
+            catch (StorageException const& e)
+            {
+                qf.reportException(e);
+                qf.reportFinished();
                 return;
             }
             if (md.type == ItemType::root)
@@ -160,10 +170,12 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
         }
         if (items.isEmpty())
         {
-            make_exceptional_future(qf, NotExistsException("Folder::lookup(): no such item: " + name, name));
+            qf.reportException(NotExistsException("Folder::lookup(): no such item: " + name, name));
+            qf.reportFinished();
             return;
         }
-        make_ready_future(qf, items);
+        qf.reportResult(items);
+        qf.reportFinished();
     };
 
     auto handler = new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this), reply, process_reply);
@@ -189,16 +201,21 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
         auto root = get_root();
         if (!root)
         {
-            make_exceptional_future(qf, RuntimeDestroyedException("Folder::create_folder()"));
+            qf.reportException(RuntimeDestroyedException("Folder::create_folder()"));
+            qf.reportFinished();
             return;
         }
 
         shared_ptr<Item> item;
         auto md = reply.value();
-        QString error = validate("Folder::create_folder()", md);
-        if (!error.isEmpty())
+        try
         {
-            make_exceptional_future(qf, LocalCommsException(error));
+            validate("Folder::create_folder()", md);
+        }
+        catch (StorageException const& e)
+        {
+            qf.reportException(e);
+            qf.reportFinished();
             return;
         }
         if (md.type != ItemType::folder)
@@ -206,10 +223,12 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
             // TODO: log server error here
             QString msg = "File::create_folder(): impossible item type returned by server: "
                           + QString::number(int(md.type));
-            make_exceptional_future(qf, LocalCommsException(msg));
+            qf.reportException(LocalCommsException(msg));
+            qf.reportFinished();
             return;
         }
-        make_ready_future(qf, FolderImpl::make_folder(md, root));
+        qf.reportResult(FolderImpl::make_folder(md, root));
+        qf.reportFinished();
     };
 
     auto handler = new Handler<shared_ptr<Folder>>(this, reply, process_reply);
@@ -240,14 +259,16 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
         auto root = get_root();
         if (!root)
         {
-            make_exceptional_future(qf, RuntimeDestroyedException("Folder::create_file()"));
+            qf.reportException(RuntimeDestroyedException("Folder::create_file()"));
+            qf.reportFinished();
             return;
         }
 
         auto upload_id = reply.argumentAt<0>();
         auto fd = reply.argumentAt<1>();
         auto uploader = UploaderImpl::make_uploader(upload_id, fd, size, "", root, provider());
-        make_ready_future(qf, uploader);
+        qf.reportResult(uploader);
+        qf.reportFinished();
     };
 
     auto handler = new Handler<shared_ptr<Uploader>>(this, reply, process_reply);

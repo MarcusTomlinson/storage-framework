@@ -133,15 +133,20 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
         }
         catch (RuntimeDestroyedException const&)
         {
-            make_exceptional_future(qf, RuntimeDestroyedException("Root::get()"));
+            qf.reportException(RuntimeDestroyedException("Root::get()"));
+            qf.reportFinished();
             return;
         }
 
         auto md = reply.value();
-        QString error = validate("Root::get()", md);
-        if (!error.isEmpty())
+        try
         {
-            make_exceptional_future(qf, LocalCommsException(error));
+            validate("Root::get()", md);
+        }
+        catch (StorageException const& e)
+        {
+            qf.reportException(e);
+            qf.reportFinished();
             return;
         }
         Item::SPtr item;
@@ -154,7 +159,8 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
             // acc owns the root, so the root weak_ptr is guaranteed to be lockable.
             item = ItemImpl::make_item(md, root_);
         }
-        make_ready_future(qf, item);
+        qf.reportResult(item);
+        qf.reportFinished();
     };
 
     auto handler = new Handler<Item::SPtr>(const_cast<RootImpl*>(this), reply, process_reply);
