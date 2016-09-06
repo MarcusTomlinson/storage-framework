@@ -258,7 +258,7 @@ void DownloadThread::run()
 
 DownloaderImpl::DownloaderImpl(weak_ptr<File> file)
     : DownloaderBase(file)
-    , read_socket_(new QLocalSocket)
+    , read_socket_(new QLocalSocket, [](QLocalSocket* s){ s->deleteLater(); })
 {
     // Set up socket pair.
     int fds[2];

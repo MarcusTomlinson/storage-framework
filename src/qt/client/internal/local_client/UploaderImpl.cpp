@@ -366,7 +366,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file,
                            ConflictPolicy policy,
                            weak_ptr<Root> root)
     : UploaderBase(policy, size)
-    , write_socket_(new QLocalSocket)
+    , write_socket_(new QLocalSocket, [](QLocalSocket* s){ s->deleteLater(); })
 {
     // Set up socket pair.
     int fds[2];

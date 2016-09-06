@@ -52,7 +52,7 @@ DownloaderImpl::DownloaderImpl(QString const& download_id,
     , fd_(fd)
     , file_(file)
     , provider_(provider)
-    , read_socket_(new QLocalSocket)
+    , read_socket_(new QLocalSocket, [](QLocalSocket* s){ s->deleteLater(); })
 {
     assert(!download_id.isEmpty());
     assert(fd.isValid());
