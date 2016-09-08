@@ -16,20 +16,18 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/client-api.h>
+#include <unity/storage/qt/client/client-api.h>
 
 #include <utils/DBusEnvironment.h>
 #include <utils/ProviderFixture.h>
 #include <MockProvider.h>
 
 #include <gtest/gtest.h>
-#if 0
 #include <QCoreApplication>
 #include <QFile>
 #include <QFutureWatcher>
 #include <QSignalSpy>
 #include <QTimer>
-#endif
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
@@ -39,14 +37,14 @@
 #include <fstream>
 
 using namespace unity::storage;
-using namespace unity::storage::qt;
+using namespace unity::storage::qt::client;
 using namespace std;
 
 // Yes, that's ridiculously long, but the builders in Jenkins and the CI Train
 // are stupifyingly slow at times.
-//static constexpr int SIGNAL_WAIT_TIME = 30000;
+static constexpr int SIGNAL_WAIT_TIME = 30000;
 
-class RemoteClientTest : public ProviderFixture
+class RemoteClientTest : public ::testing::Test
 {
 public:
     QDBusConnection const& connection()
@@ -72,13 +70,11 @@ private:
 };
 
 class RuntimeTest : public RemoteClientTest {};
-class AccountTest : public RemoteClientTest {};
 class RootTest : public RemoteClientTest {};
 class FolderTest : public RemoteClientTest {};
 class FileTest : public RemoteClientTest {};
 class ItemTest : public RemoteClientTest {};
 
-#if 0
 class DestroyedTest : public ProviderFixture
 {
 protected:
@@ -184,258 +180,14 @@ void clear_folder(Folder::SPtr const& folder)
         call(i->delete_item());
     }
 }
-#endif
 
 TEST_F(RuntimeTest, lifecycle)
 {
-    Runtime runtime;
-    EXPECT_TRUE(runtime.isValid());
-    EXPECT_EQ(StorageError::NoError, runtime.error().type());
-
-    EXPECT_EQ(StorageError::NoError, runtime.shutdown().type());
-    EXPECT_FALSE(runtime.isValid());
-    EXPECT_EQ(StorageError::NoError, runtime.error().type());
-
-    // Check that a second shutdown sets the error.
-    EXPECT_EQ(StorageError::RuntimeDestroyed, runtime.shutdown().type());
-    EXPECT_FALSE(runtime.isValid());
-    EXPECT_EQ(StorageError::RuntimeDestroyed, runtime.error().type());
-    EXPECT_EQ("Runtime::shutdown(): Runtime was destroyed previously", runtime.error().message());
+    auto runtime = Runtime::create(connection());
+    runtime->shutdown();
+    runtime->shutdown();  // Just to show that this is safe.
 }
 
-TEST_F(RuntimeTest, init_error)
-{
-    QDBusConnection conn(connection());
-    EXPECT_TRUE(conn.isConnected());
-    TearDown();
-    EXPECT_FALSE(conn.isConnected());
-
-    Runtime rt(conn);
-    EXPECT_FALSE(rt.isValid());
-    EXPECT_FALSE(rt.connection().isConnected());
-    auto e = rt.error();
-    EXPECT_EQ(StorageError::LocalCommsError, e.type());
-    EXPECT_EQ("Runtime(): DBus connection is not connected", e.message());
-}
-
-TEST_F(AccountTest, basic)
-{
-    {
-        // Default constructor.
-        Account a;
-        EXPECT_FALSE(a.isValid());
-        EXPECT_EQ("", a.ownerId());
-        EXPECT_EQ("", a.owner());
-        EXPECT_EQ("", a.description());
-    }
-
-    {
-        Runtime rt(connection());
-        auto acc = rt.make_test_account(service_connection_->baseService(), bus_path(), "id", "owner", "description");
-        EXPECT_TRUE(acc.isValid());
-        EXPECT_EQ("id", acc.ownerId());
-        EXPECT_EQ("owner", acc.owner());
-        EXPECT_EQ("description", acc.description());
-
-        // Copy constructor
-        Account a2(acc);
-        EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id", a2.ownerId());
-        EXPECT_EQ("owner", a2.owner());
-        EXPECT_EQ("description", a2.description());
-
-        // Move constructor
-        Account a3(move(a2));
-        EXPECT_TRUE(a3.isValid());
-        EXPECT_EQ("id", a3.ownerId());
-        EXPECT_EQ("owner", a3.owner());
-        EXPECT_EQ("description", a3.description());
-
-        // Moved-from object must be invalid
-        EXPECT_FALSE(a2.isValid());
-
-        // Moved-from object must be assignable
-        auto a4 = rt.make_test_account(service_connection_->baseService(), bus_path(), "id4", "owner4", "description4");
-        a2 = a4;
-        EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id4", a2.ownerId());
-        EXPECT_EQ("owner4", a2.owner());
-        EXPECT_EQ("description4", a2.description());
-    }
-
-    {
-        Runtime rt(connection());
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "id", "owner", "description");
-        auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "id2", "owner2", "description2");
-
-        // Copy assignment
-        a1 = a2;
-        EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id2", a1.ownerId());
-        EXPECT_EQ("owner2", a2.owner());
-        EXPECT_EQ("description2", a1.description());
-
-        // Self-assignment
-        a2 = a2;
-        EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id2", a1.ownerId());
-        EXPECT_EQ("owner2", a2.owner());
-        EXPECT_EQ("description2", a1.description());
-
-        // Move assignment
-        auto a3 = rt.make_test_account(service_connection_->baseService(), bus_path(), "id3", "owner3", "description3");
-        a1 = move(a3);
-        EXPECT_TRUE(a1.isValid());
-        EXPECT_EQ("id3", a1.ownerId());
-        EXPECT_EQ("owner3", a1.owner());
-        EXPECT_EQ("description3", a1.description());
-
-        // Moved-from object must be invalid
-        EXPECT_FALSE(a3.isValid());
-
-        // Moved-from object must be assignable
-        auto a4 = rt.make_test_account(service_connection_->baseService(), bus_path(), "id4", "owner4", "description4");
-        a2 = a4;
-        EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id4", a2.ownerId());
-        EXPECT_EQ("owner4", a2.owner());
-        EXPECT_EQ("description4", a2.description());
-    }
-}
-
-TEST_F(AccountTest, comparison)
-{
-    Runtime rt(connection());
-
-    {
-        // Both accounts invalid.
-        Account a1;
-        Account a2;
-        EXPECT_TRUE(a1 == a2);
-        EXPECT_FALSE(a1 != a2);
-        EXPECT_FALSE(a1 < a2);
-        EXPECT_TRUE(a1 <= a2);
-        EXPECT_FALSE(a1 > a2);
-        EXPECT_TRUE(a1 >= a2);
-    }
-
-    {
-        // a1 valid, a2 invalid
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
-        Account a2;
-        EXPECT_FALSE(a1 == a2);
-        EXPECT_TRUE(a1 != a2);
-        EXPECT_FALSE(a1 < a2);
-        EXPECT_FALSE(a1 <= a2);
-        EXPECT_TRUE(a1 > a2);
-        EXPECT_TRUE(a1 >= a2);
-
-        // And with swapped operands:
-        EXPECT_FALSE(a2 == a1);
-        EXPECT_TRUE(a2 != a1);
-        EXPECT_TRUE(a2 < a1);
-        EXPECT_TRUE(a2 <= a1);
-        EXPECT_FALSE(a2 > a1);
-        EXPECT_FALSE(a2 >= a1);
-    }
-
-    {
-        // a1 < a2 for owner ID
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "x", "x");
-        auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "b", "x", "x");
-
-        EXPECT_FALSE(a1 == a2);
-        EXPECT_TRUE(a1 != a2);
-        EXPECT_TRUE(a1 < a2);
-        EXPECT_TRUE(a1 <= a2);
-        EXPECT_FALSE(a1 > a2);
-        EXPECT_FALSE(a1 >= a2);
-
-        // And with swapped operands:
-        EXPECT_FALSE(a2 == a1);
-        EXPECT_TRUE(a2 != a1);
-        EXPECT_FALSE(a2 < a1);
-        EXPECT_FALSE(a2 <= a1);
-        EXPECT_TRUE(a2 > a1);
-        EXPECT_TRUE(a2 >= a1);
-    }
-
-    {
-        // a1 < a2 for owner
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "x");
-        auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "b", "x");
-
-        EXPECT_FALSE(a1 == a2);
-        EXPECT_TRUE(a1 != a2);
-        EXPECT_TRUE(a1 < a2);
-        EXPECT_TRUE(a1 <= a2);
-        EXPECT_FALSE(a1 > a2);
-        EXPECT_FALSE(a1 >= a2);
-
-        // And with swapped operands:
-        EXPECT_FALSE(a2 == a1);
-        EXPECT_TRUE(a2 != a1);
-        EXPECT_FALSE(a2 < a1);
-        EXPECT_FALSE(a2 <= a1);
-        EXPECT_TRUE(a2 > a1);
-        EXPECT_TRUE(a2 >= a1);
-    }
-
-    {
-        // a1 < a2 for description
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
-        auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "b");
-
-        EXPECT_FALSE(a1 == a2);
-        EXPECT_TRUE(a1 != a2);
-        EXPECT_TRUE(a1 < a2);
-        EXPECT_TRUE(a1 <= a2);
-        EXPECT_FALSE(a1 > a2);
-        EXPECT_FALSE(a1 >= a2);
-
-        // And with swapped operands:
-        EXPECT_FALSE(a2 == a1);
-        EXPECT_TRUE(a2 != a1);
-        EXPECT_FALSE(a2 < a1);
-        EXPECT_FALSE(a2 <= a1);
-        EXPECT_TRUE(a2 > a1);
-        EXPECT_TRUE(a2 >= a1);
-    }
-
-    {
-        // a1 == a2
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
-        auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
-
-        EXPECT_TRUE(a1 == a2);
-        EXPECT_FALSE(a1 != a2);
-        EXPECT_FALSE(a1 < a2);
-        EXPECT_TRUE(a1 <= a2);
-        EXPECT_FALSE(a1 > a2);
-        EXPECT_TRUE(a1 >= a2);
-
-        // And with swapped operands:
-        EXPECT_TRUE(a2 == a1);
-        EXPECT_FALSE(a2 != a1);
-        EXPECT_FALSE(a2 < a1);
-        EXPECT_TRUE(a2 <= a1);
-        EXPECT_FALSE(a2 > a1);
-        EXPECT_TRUE(a2 >= a1);
-    }
-}
-
-TEST_F(AccountTest, hash)
-{
-    Runtime rt(connection());
-
-    Account a1;
-    EXPECT_EQ(0, a1.hash());
-
-    auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
-    EXPECT_NE(0, a2.hash());
-}
-
-#if 0
 TEST_F(RuntimeTest, basic)
 {
     auto runtime = Runtime::create(connection());
@@ -1381,7 +1133,6 @@ TEST_F(DestroyedTest, create_downloader_destroyed_while_reply_outstanding)
         EXPECT_EQ("File::create_downloader(): runtime was destroyed previously", e.error_message());
     }
 }
-#endif
 
 int main(int argc, char** argv)
 {

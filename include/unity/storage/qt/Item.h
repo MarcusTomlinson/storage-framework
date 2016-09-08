@@ -48,16 +48,16 @@ class VoidJob;
 class Q_DECL_EXPORT Item final
 {
     Q_GADGET
-    Q_PROPERTY(QString itemId READ itemId CONSTANT)
-    Q_PROPERTY(QString name READ name CONSTANT)
-    Q_PROPERTY(QString parentId READ parentId CONSTANT)
-    Q_PROPERTY(unity::Storage::qt::Account account READ account CONSTANT)
-    Q_PROPERTY(unity::Storage::qt::Item root READ root CONSTANT)
-    Q_PROPERTY(QString eTag READ eTag CONSTANT)
-    Q_PROPERTY(unity::Storage::qt::Item::Type type READ type CONSTANT)
-    Q_PROPERTY(QVariantMap metadata READ metadata CONSTANT)
-    Q_PROPERTY(QDateTime lastModifiedTime READ lastModifiedTime CONSTANT)
-    Q_PROPERTY(QVector<QString> parentIds READ parentIds CONSTANT)
+    Q_PROPERTY(QString itemId READ itemId CONSTANT FINAL)
+    Q_PROPERTY(QString name READ name CONSTANT FINAL)
+    Q_PROPERTY(QString parentId READ parentId CONSTANT FINAL)
+    Q_PROPERTY(unity::Storage::qt::Account account READ account CONSTANT FINAL)
+    Q_PROPERTY(unity::Storage::qt::Item root READ root CONSTANT FINAL)
+    Q_PROPERTY(QString eTag READ eTag CONSTANT FINAL)
+    Q_PROPERTY(unity::Storage::qt::Item::Type type READ type CONSTANT FINAL)
+    Q_PROPERTY(QVariantMap metadata READ metadata CONSTANT FINAL)
+    Q_PROPERTY(QDateTime lastModifiedTime READ lastModifiedTime CONSTANT FINAL)
+    Q_PROPERTY(QVector<QString> parentIds READ parentIds CONSTANT FINAL)
 
 public:
     Item();
@@ -108,7 +108,7 @@ public:
     size_t hash() const;
 
 private:
-    std::unique_ptr<internal::ItemImpl> p_;
+    std::shared_ptr<internal::ItemImpl> p_;
 };
 
 }  // namespace qt

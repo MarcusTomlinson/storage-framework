@@ -32,9 +32,9 @@ class StorageError;
 class Q_DECL_EXPORT VoidJob final : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(bool READ isValid)
-    Q_PROPERTY(unity::storage::qt::VoidJob::Status READ status NOTIFY statusChanged)
-    Q_PROPERTY(unity::storage::qt::StorageError READ error)
+    Q_PROPERTY(bool READ isValid FINAL)
+    Q_PROPERTY(unity::storage::qt::VoidJob::Status READ status NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError READ error FINAL)
 
 public:
     VoidJob(QObject* parent = nullptr);

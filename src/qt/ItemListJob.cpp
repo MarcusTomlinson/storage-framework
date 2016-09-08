@@ -16,10 +16,7 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/AccountsJob.h>
-
-#include <unity/storage/qt/Account.h>
-#include <unity/storage/qt/internal/AccountsJobImpl.h>
+#include <unity/storage/qt/ItemListJob.h>
 
 using namespace unity::storage::qt;
 using namespace std;
@@ -31,44 +28,43 @@ namespace storage
 namespace qt
 {
 
-AccountsJob::AccountsJob(QObject* parent)
+ItemListJob::ItemListJob(QObject* parent)
     : QObject(parent)
+    //, p_(new internal::ItemListJobImpl(this, runtime))
 {
 }
 
-AccountsJob::AccountsJob(shared_ptr<internal::RuntimeImpl> const& runtime, QObject* parent)
+ItemListJob::~ItemListJob() = default;
+
+#if 0
+ItemListJob::ItemListJob(StorageError const& error, QObject* parent)
     : QObject(parent)
-    , p_(new internal::AccountsJobImpl(this, runtime))
+    , p_(new internal::ItemListJobImpl(this, error))
 {
 }
 
-AccountsJob::AccountsJob(StorageError const& error, QObject* parent)
-    : QObject(parent)
-    , p_(new internal::AccountsJobImpl(this, error))
-{
-}
+ItemListJob::~ItemListJob() = default;
 
-AccountsJob::~AccountsJob() = default;
-
-bool AccountsJob::isValid() const
+bool ItemListJob::isValid() const
 {
     return p_->isValid();
 }
 
-AccountsJob::Status AccountsJob::status() const
+ItemListJob::Status ItemListJob::status() const
 {
     return p_->status();
 }
 
-StorageError AccountsJob::error() const
+StorageError ItemListJob::error() const
 {
     return p_->error();
 }
 
-QList<Account> AccountsJob::accounts() const
+QList<Account> ItemListJob::accounts() const
 {
     return p_->accounts();
 }
+#endif
 
 }  // namespace qt
 }  // namespace storage

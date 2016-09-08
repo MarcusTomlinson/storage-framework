@@ -32,8 +32,20 @@ namespace qt
 namespace internal
 {
 
+namespace
+{
+
+static char const * const ERROR_NAMES[StorageError::__LAST_STORAGE_ERROR] =
+{
+    "NoError", "LocalCommsError", "RemoteCommsError", "Deleted", "RuntimeDestroyed", "NotExists",
+    "Exists", "Conflict", "PermissionDenied", "Cancelled", "LogicError", "InvalidArgument", "ResourceError"
+};
+
+}  // namespace
+
 StorageErrorImpl::StorageErrorImpl()
     : type_(StorageError::Type::NoError)
+    , name_(ERROR_NAMES[type_])
     , message_("No error")
     , error_code_(0)
 {
@@ -41,6 +53,7 @@ StorageErrorImpl::StorageErrorImpl()
 
 StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg)
     : type_(type)
+    , name_(ERROR_NAMES[type_])
     , message_(msg)
     , error_code_(0)
 {
@@ -57,6 +70,7 @@ StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg)
 
 StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg, QString const& key)
     : type_(type)
+    , name_(ERROR_NAMES[type_])
     , message_(msg)
     , error_code_(0)
 {
@@ -67,7 +81,7 @@ StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg, 
     item_id_ = key;
     if (type == StorageError::Type::NotExists)
     {
-        name_ = key;
+        item_name_ = key;
     }
 }
 
@@ -76,6 +90,7 @@ StorageErrorImpl::StorageErrorImpl(StorageError::Type type,
                                    QString const& item_id,
                                    QString const& item_name)
     : type_(type)
+    , name_(ERROR_NAMES[type_])
     , message_(msg)
     , item_id_(item_id)
     , item_name_(item_name)

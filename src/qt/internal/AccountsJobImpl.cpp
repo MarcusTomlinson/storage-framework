@@ -42,7 +42,7 @@ namespace
 
 // TODO: We retrieve the accounts directly from online accounts until we have a working registry.
 
-static const map<QString, QString> BUS_NAMES =
+static map<QString, QString> const BUS_NAMES =
 {
     { "google-drive-scope", "com.canonical.StorageFramework.Provider.ProviderTest" },
     { "com.canonical.scopes.mcloud_mcloud_mcloud", "com.canonical.StorageFramework.Provider.McloudProvider" }
@@ -154,7 +154,12 @@ void AccountsJobImpl::initialize_accounts()
         {
             auto object_path = QStringLiteral("/provider/%1").arg(a->id());
             auto bus_name = map_entry.second;
-            accounts_.append(AccountImpl::make_account(bus_name, object_path, a->serviceId(), "", a->displayName()));
+            accounts_.append(AccountImpl::make_account(runtime,
+                                                       bus_name,
+                                                       object_path,
+                                                       a->serviceId(),
+                                                       "",
+                                                       a->displayName()));
         }
     }
     status_ = AccountsJob::Status::Finished;

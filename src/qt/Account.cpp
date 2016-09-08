@@ -32,32 +32,28 @@ namespace qt
 {
 
 Account::Account()
-    : p_(new internal::AccountImpl)
+    : p_(make_shared<internal::AccountImpl>())
 {
-    p_->public_instance_ = this;
 }
 
-Account::Account(unique_ptr<internal::AccountImpl> p)
-    : p_(move(p))
+Account::Account(shared_ptr<internal::AccountImpl> const& p)
+    : p_(p)
 {
     assert(p);
 }
 
 Account::Account(Account const& other)
-    : p_(new internal::AccountImpl(*other.p_))
+    : p_(make_shared<internal::AccountImpl>(*other.p_))
 {
-    p_->public_instance_ = this;
 }
 
 Account::Account(Account&& other)
-    : p_(move(other.p_))
+    : p_(make_shared<internal::AccountImpl>())
 {
-    p_->public_instance_ = this;
+    swap(p_, other.p_);
 }
 
-Account::~Account()
-{
-}
+Account::~Account() = default;
 
 Account& Account::operator=(Account const& other)
 {
@@ -66,18 +62,13 @@ Account& Account::operator=(Account const& other)
         return *this;
     }
     *p_ = *other.p_;
-    p_->public_instance_ = this;
     return *this;
 }
 
 Account& Account::operator=(Account&& other)
 {
-    if (this == &other)
-    {
-        return *this;
-    }
-    *p_ = move(*other.p_);
-    p_->public_instance_ = this;
+    p_->is_valid_ = false;
+    swap(p_, other.p_);
     return *this;
 }
 

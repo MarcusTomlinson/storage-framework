@@ -40,10 +40,10 @@ class ItemListJob;
 class Q_DECL_EXPORT Account final
 {
     Q_GADGET
-    Q_PROPERTY(bool READ isValid)
-    Q_PROPERTY(QString READ owner)
-    Q_PROPERTY(QString READ ownerId)
-    Q_PROPERTY(QString READ description)
+    Q_PROPERTY(bool READ isValid FINAL)
+    Q_PROPERTY(QString READ owner FINAL)
+    Q_PROPERTY(QString READ ownerId FINAL)
+    Q_PROPERTY(QString READ description FINAL)
 
 public:
     Account();
@@ -70,9 +70,9 @@ public:
     size_t hash() const;
 
 private:
-    Account(std::unique_ptr<internal::AccountImpl> p);
+    Account(std::shared_ptr<internal::AccountImpl> const& p);
 
-    std::unique_ptr<internal::AccountImpl> p_;
+    std::shared_ptr<internal::AccountImpl> p_;
 
     friend class internal::AccountImpl;
 };

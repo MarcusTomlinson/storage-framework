@@ -18,54 +18,64 @@
 
 #pragma once
 
-#include <unity/storage/qt/AccountsJob.h>
+#include <unity/storage/qt/ItemListJob.h>
 
-#include <QTimer>
+#include <unity/storage/qt/Account.h>
+#include <unity/storage/qt/internal/Handler.h>
+#include <unity/storage/qt/StorageError.h>
 
 namespace unity
 {
 namespace storage
 {
+namespace internal
+{
+
+class ItemMetadata;
+
+}
+
 namespace qt
 {
 namespace internal
 {
 
-class AccountsJobImpl : public QObject
+class RuntimeImpl;
+
+class ItemListJobImpl : public QObject
 {
     Q_OBJECT
 public:
-    AccountsJobImpl(AccountsJob* public_instance, std::shared_ptr<RuntimeImpl> const& runtime);
-    AccountsJobImpl(AccountsJob* public_instance, StorageError const& error);
-    AccountsJobImpl(AccountsJobImpl const&) = default;
-    AccountsJobImpl(AccountsJobImpl&&) = delete;
-    virtual ~AccountsJobImpl() = default;
-    AccountsJobImpl& operator=(AccountsJobImpl const&) = default;
-    AccountsJobImpl& operator=(AccountsJobImpl&&) = delete;
+    ItemListJobImpl(ItemListJob* public_instance, std::shared_ptr<RuntimeImpl> const& runtime);
+    ItemListJobImpl(ItemListJob* public_instance, StorageError const& error);
+    ItemListJobImpl(ItemListJobImpl const&) = default;
+    ItemListJobImpl(ItemListJobImpl&&) = delete;
+    virtual ~ItemListJobImpl() = default;
+    ItemListJobImpl& operator=(ItemListJobImpl const&) = default;
+    ItemListJobImpl& operator=(ItemListJobImpl&&) = delete;
 
     bool isValid() const;
-    AccountsJob::Status status() const;
+    ItemListJob::Status status() const;
     StorageError error() const;
     QList<Account> accounts() const;
 
-private Q_SLOTS:
-    void manager_ready();
-    void timeout();
+    static ItemListJob* make_item_list_job(
+                std::shared_ptr<AccountImpl> const& account,
+                QString const& method,
+                std::function<QVector<Item>(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const&)> const& f,
+                QObject* parent);
 
 private:
     std::shared_ptr<RuntimeImpl> get_runtime(QString const& method) const;
-    void initialize_accounts();
     void emit_status_changed() const;
 
-    AccountsJob* const public_instance_;
+    ItemListJob* const public_instance_;
 
-    AccountsJob::Status status_;
+    ItemListJob::Status status_;
     StorageError error_;
-    QList<unity::storage::qt::Account> accounts_;
     std::weak_ptr<RuntimeImpl> const runtime_;
-    QTimer timer_;
 
-    friend class unity::storage::qt::AccountsJob;
+    friend class unity::storage::qt::ItemListJob;
 };
 
 }  // namespace internal

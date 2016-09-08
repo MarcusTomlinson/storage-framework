@@ -29,18 +29,18 @@ namespace qt
 {
 
 Item::Item()
-    : p_(new internal::ItemImpl)
+    : p_(make_shared<internal::ItemImpl>())
 {
 }
 
 Item::Item(Item const& other)
-    : p_(new internal::ItemImpl(*other.p_))
+    : p_(make_shared<internal::ItemImpl>(*other.p_))
 {
 }
 
 Item::Item(Item&& other)
+    : p_(make_shared<internal::ItemImpl>())
 {
-    p_->is_valid_ = false;
     swap(p_, other.p_);
 }
 
@@ -48,6 +48,10 @@ Item::~Item() = default;
 
 Item& Item::operator=(Item const& other)
 {
+    if (this == &other)
+    {
+        return *this;
+    }
     *p_ = *other.p_;
     return *this;
 }

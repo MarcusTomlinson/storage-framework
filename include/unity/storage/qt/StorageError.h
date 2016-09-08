@@ -39,14 +39,14 @@ class StorageErrorImpl;
 class Q_DECL_EXPORT StorageError final
 {
     Q_GADGET
-    Q_PROPERTY(unity::storage::qt::StorageError::Type type READ type)
-    Q_PROPERTY(QString name READ name)
-    Q_PROPERTY(QString message READ message)
-    Q_PROPERTY(QString errorString READ errorString)
+    Q_PROPERTY(unity::storage::qt::StorageError::Type type READ type FINAL)
+    Q_PROPERTY(QString name READ name FINAL)
+    Q_PROPERTY(QString message READ message FINAL)
+    Q_PROPERTY(QString errorString READ errorString FINAL)
 
-    Q_PROPERTY(QString itemId READ itemId)
-    Q_PROPERTY(QString itemName READ itemName)
-    Q_PROPERTY(int errorCode READ errorCode)
+    Q_PROPERTY(QString itemId READ itemId FINAL)
+    Q_PROPERTY(QString itemName READ itemName FINAL)
+    Q_PROPERTY(int errorCode READ errorCode FINAL)
 
 public:
     StorageError();
@@ -59,7 +59,8 @@ public:
     enum Type
     {
         NoError, LocalCommsError, RemoteCommsError, Deleted, RuntimeDestroyed, NotExists,
-        Exists, Conflict, PermissionDenied, Cancelled, LogicError, InvalidArgument, ResourceError
+        Exists, Conflict, PermissionDenied, Cancelled, LogicError, InvalidArgument, ResourceError,
+        __LAST_STORAGE_ERROR
     };
     Q_ENUM(Type)
 

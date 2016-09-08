@@ -24,6 +24,8 @@
 
 #include <memory>
 
+class ProviderInterface;
+
 namespace unity
 {
 namespace storage
@@ -33,15 +35,12 @@ namespace qt
 namespace internal
 {
 
-class AccountImpl
+class RuntimeImpl;
+
+class AccountImpl : public std::enable_shared_from_this<AccountImpl>
 {
 public:
     AccountImpl();
-    AccountImpl(QString const& bus_name,
-                QString const& object_path,
-                QString const& owner_id,
-                QString const& owner,
-                QString const& description);
     AccountImpl(AccountImpl const&) = default;
     AccountImpl(AccountImpl&&) = default;
     ~AccountImpl() = default;
@@ -63,14 +62,23 @@ public:
 
     size_t hash() const;
 
-    static Account make_account(QString const& bus_name,
+    std::shared_ptr<RuntimeImpl> runtime() const;
+    std::shared_ptr<ProviderInterface> provider() const;
+
+    static Account make_account(std::shared_ptr<RuntimeImpl> const& runtime,
+                                QString const& bus_name,
                                 QString const& object_path,
                                 QString const& owner_id,
                                 QString const& owner,
                                 QString const& description);
 
 private:
-    Account* public_instance_;
+    AccountImpl(std::shared_ptr<RuntimeImpl> const& runtime,
+                QString const& bus_name,
+                QString const& object_path,
+                QString const& owner_id,
+                QString const& owner,
+                QString const& description);
 
     bool is_valid_;
     QString bus_name_;
@@ -78,6 +86,8 @@ private:
     QString owner_id_;
     QString owner_;
     QString description_;
+    std::weak_ptr<RuntimeImpl> runtime_;
+    std::shared_ptr<ProviderInterface> provider_;
 
     friend class unity::storage::qt::Account;
 };

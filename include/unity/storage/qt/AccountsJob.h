@@ -43,18 +43,18 @@ class StorageError;
 
 class Q_DECL_EXPORT AccountsJob final : public QObject
 {
-    // TODO: Add FINAL to all property macros?
-    Q_PROPERTY(bool READ isValid)
-    Q_PROPERTY(unity::storage::qt::Account::Status READ status NOTIFY statusChanged)
-    Q_PROPERTY(unity::storage::qt::StorageError READ Error)
-    Q_PROPERTY(QList<unity::storage::qt::Account> READ accounts)
+    Q_OBJECT
+    Q_PROPERTY(bool isValid READ isValid FINAL)
+    Q_PROPERTY(unity::storage::qt::AccountsJob::Status status READ status NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError error READ error FINAL)
+    Q_PROPERTY(QList<unity::storage::qt::Account> accounts READ accounts FINAL)
 
 public:
-    AccountsJob(QObject* = nullptr);
-    virtual ~AccountsJob();
-
     enum Status { Loading, Finished, Error };
     Q_ENUM(Status)
+
+    AccountsJob(QObject* = nullptr);
+    virtual ~AccountsJob();
 
     bool isValid() const;
     Status status() const;

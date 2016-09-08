@@ -18,6 +18,8 @@
 
 #include <unity/storage/qt/internal/ItemImpl.h>
 
+#include <unity/storage/internal/ItemMetadata.h>
+
 using namespace std;
 
 namespace unity
@@ -190,6 +192,12 @@ size_t ItemImpl::hash() const
         return 0;
     }
     return std::hash<std::string>()(item_id_.toStdString());
+}
+
+Item ItemImpl::make_item(storage::internal::ItemMetadata const& md,
+                         std::shared_ptr<AccountImpl> account)
+{
+    return Item();
 }
 
 }  // namespace internal

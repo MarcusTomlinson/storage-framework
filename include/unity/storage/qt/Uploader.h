@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <unity/storage/common.h>
+
 #include <QIODevice>
 
 namespace unity
@@ -33,16 +35,19 @@ class StorageError;
 class Q_DECL_EXPORT Uploader final : public QIODevice
 {
     Q_OBJECT
-    Q_PROPERTY(bool isValid READ isValid)
-    Q_PROPERTY(unity::storage::qt::Uploader::Status status READ status)
-    Q_PROPERTY(unity::storage::qt::StorageError READ error)
-    Q_PROPERTY(unity::storage::qt::ConflictPolicy policy READ policy)
-    Q_PROPERTY(qint64 sizeInBytes READ sizeInBytes)
-    Q_PROPERTY(unity::storage::qt::Item item READ item)
+    Q_PROPERTY(bool isValid READ isValid FINAL)
+    Q_PROPERTY(unity::storage::qt::Uploader::Status status READ status FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError READ error FINAL)
+    Q_PROPERTY(unity::storage::qt::ConflictPolicy policy READ policy FINAL)
+    Q_PROPERTY(qint64 sizeInBytes READ sizeInBytes FINAL)
+    Q_PROPERTY(unity::storage::qt::Item item READ item FINAL)
 
 public:
     enum Status { Loading, Cancelled, Finished, Error };
     Q_ENUM(Status)
+
+    Uploader();
+    virtual ~Uploader();
 
     bool isValid() const;
     Status status() const;
@@ -55,7 +60,7 @@ public:
     Q_INVOKABLE void cancel();
 
 Q_SIGNALS:
-    void statusChanged(unity::storage::qt::Status status) const;
+    void statusChanged(unity::storage::qt::Uploader::Status status) const;
 
 protected:
     virtual qint64 readData(char* data, qint64 maxSize) override;

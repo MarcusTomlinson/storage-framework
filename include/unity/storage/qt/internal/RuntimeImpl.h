@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <unity/storage/qt/Account.h>
 #include <unity/storage/qt/StorageError.h>
 
 #include <OnlineAccounts/Manager>
@@ -39,8 +40,8 @@ namespace internal
 class RuntimeImpl : public std::enable_shared_from_this<RuntimeImpl>
 {
 public:
-    RuntimeImpl();
-    RuntimeImpl(QDBusConnection const& bus);
+    RuntimeImpl(Runtime* public_instance);
+    RuntimeImpl(Runtime* public_instance, QDBusConnection const& bus);
     RuntimeImpl(RuntimeImpl const&) = delete;
     RuntimeImpl(RuntimeImpl&&) = delete;
     ~RuntimeImpl();
@@ -50,13 +51,23 @@ public:
     bool isValid() const;
     StorageError error() const;
     QDBusConnection connection() const;
-    StorageError shutdown();
     AccountsJob* accounts() const;
+    StorageError shutdown();
 
+    Runtime* public_instance() const;
     std::shared_ptr<OnlineAccounts::Manager> accounts_manager() const;
 
+    Account make_test_account(QString const& bus_name,
+                              QString const& object_path);
+
+    Account make_test_account(QString const& bus_name,
+                              QString const& object_path,
+                              QString const& owner_id,
+                              QString const& owner,
+                              QString const& description);
+
 private:
-    Runtime* public_instance_;
+    Runtime* const public_instance_;
 
     bool is_valid_;
     StorageError error_;

@@ -18,7 +18,9 @@
 
 #pragma once
 
-#include <QObject>
+#include <unity/storage/qt/StorageError.h>
+
+class QDBusPendingCallWatcher;
 
 namespace unity
 {
@@ -26,34 +28,12 @@ namespace storage
 {
 namespace qt
 {
-
-class Item;
-class StorageError;
-
-class Q_DECL_EXPORT ItemJob final : public QObject
+namespace internal
 {
-    Q_OBJECT
-    Q_PROPERTY(bool READ isValid FINAL)
-    Q_PROPERTY(unity::Storage::ItemListJob::Status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::Storage::StorageError READ error FINAL)
-    Q_PROPERTY(unity::Storage::qt::Item READ item FINAL)
 
-public:
-    ItemJob(QObject* parent = nullptr);
-    virtual ~ItemJob();
+StorageError unmarshal_exception(QDBusPendingCallWatcher const& call);
 
-    enum Status { Loading, Finished, Error };
-    Q_ENUM(Status)
-
-    bool isValid() const;
-    Status status() const;
-    StorageError error() const;
-    Item item() const;
-
-Q_SIGNALS:
-    void statusChanged(unity::storage::qt::ItemJob::Status status) const;
-};
-
-}  // namespace qt
-}  // namespace storage
-}  // namespace unity
+}  // namespace internal
+}  // qt
+}  // storage
+}  // unity

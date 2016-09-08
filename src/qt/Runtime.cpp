@@ -17,6 +17,7 @@
  */
 
 #include <unity/storage/qt/Runtime.h>
+
 #include <unity/storage/qt/internal/RuntimeImpl.h>
 
 using namespace std;
@@ -30,16 +31,14 @@ namespace qt
 
 Runtime::Runtime(QObject* parent)
     : QObject(parent)
-    , p_(new internal::RuntimeImpl)
+    , p_(new internal::RuntimeImpl(this))
 {
-    p_->public_instance_ = this;
 }
 
 Runtime::Runtime(QDBusConnection const& bus, QObject* parent)
     : QObject(parent)
-    , p_(new internal::RuntimeImpl(bus))
+    , p_(new internal::RuntimeImpl(this, bus))
 {
-    p_->public_instance_ = this;
 }
 
 Runtime::~Runtime() = default;
@@ -67,6 +66,20 @@ StorageError Runtime::shutdown()
 AccountsJob* Runtime::accounts() const
 {
     return p_->accounts();
+}
+
+Account Runtime::make_test_account(QString const& bus_name, QString const& object_path)
+{
+    return p_->make_test_account(bus_name, object_path);
+}
+
+Account Runtime::make_test_account(QString const& bus_name,
+                                   QString const& object_path,
+                                   QString const& owner_id,
+                                   QString const& owner,
+                                   QString const& description)
+{
+    return p_->make_test_account(bus_name, object_path, owner_id, owner, description);
 }
 
 }  // namespace qt

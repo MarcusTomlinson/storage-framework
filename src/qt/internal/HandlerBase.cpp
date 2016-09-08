@@ -16,12 +16,15 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/AccountsJob.h>
+#include <unity/storage/qt/internal/HandlerBase.h>
 
-#include <unity/storage/qt/Account.h>
-#include <unity/storage/qt/internal/AccountsJobImpl.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#include <QFuture>
+#pragma GCC diagnostic pop
 
-using namespace unity::storage::qt;
+#include <cassert>
+
 using namespace std;
 
 namespace unity
@@ -30,46 +33,29 @@ namespace storage
 {
 namespace qt
 {
+namespace internal
+{
 
-AccountsJob::AccountsJob(QObject* parent)
+HandlerBase::HandlerBase(QObject* parent,
+                         QDBusPendingCall& call,
+                         function<void(QDBusPendingCallWatcher&)> const& closure)
     : QObject(parent)
+    , watcher_(call)
+    , closure_(closure)
 {
+    assert(closure);
+    connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &HandlerBase::finished);
 }
 
-AccountsJob::AccountsJob(shared_ptr<internal::RuntimeImpl> const& runtime, QObject* parent)
-    : QObject(parent)
-    , p_(new internal::AccountsJobImpl(this, runtime))
+void HandlerBase::finished(QDBusPendingCallWatcher* call)
 {
+    deleteLater();
+    closure_(*call);
 }
 
-AccountsJob::AccountsJob(StorageError const& error, QObject* parent)
-    : QObject(parent)
-    , p_(new internal::AccountsJobImpl(this, error))
-{
-}
-
-AccountsJob::~AccountsJob() = default;
-
-bool AccountsJob::isValid() const
-{
-    return p_->isValid();
-}
-
-AccountsJob::Status AccountsJob::status() const
-{
-    return p_->status();
-}
-
-StorageError AccountsJob::error() const
-{
-    return p_->error();
-}
-
-QList<Account> AccountsJob::accounts() const
-{
-    return p_->accounts();
-}
-
+}  // namespace internal
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
+
+#include "HandlerBase.moc"

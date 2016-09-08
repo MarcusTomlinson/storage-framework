@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <QIODevice>
+#include <QObject>
 
 namespace unity
 {
@@ -30,35 +30,26 @@ namespace qt
 class Item;
 class StorageError;
 
-class Q_DECL_EXPORT Downloader final : public QIODevice
+class Q_DECL_EXPORT ItemListJob final : public QObject
 {
-    Q_OBJECT
-    Q_PROPERTY(bool isValid READ isValid FINAL)
-    Q_PROPERTY(unity::Storage::qt::Downloader::Status status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::Storage::qt::StorageError error READ error FINAL)
-    Q_PROPERTY(unity::Storage::qt::Item item READ item FINAL)
+    Q_PROPERTY(bool READ isValid FINAL)
+    Q_PROPERTY(unity::Storage::ItemJob::Status READ status NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::Storage::StorageError READ error FINAL)
 
 public:
-    enum Status { Loading, Ready, Cancelled, Finished, Error };
+    ItemListJob(QObject* parent = nullptr);
+    virtual ~ItemListJob();
+
+    enum Status { Loading, Finished, Error };
     Q_ENUM(Status)
 
-    Downloader();
-    virtual ~Downloader();
-
-    bool isValid();
+    bool isValid() const;
     Status status() const;
     StorageError error() const;
-    Item item() const;
 
-    Q_INVOKABLE void finishDownload();
-    Q_INVOKABLE void cancel();
-    
 Q_SIGNALS:
-    void statusChanged(unity::storage::qt::Downloader::Status status) const;
-
-protected:
-    virtual qint64 readData(char* data, qint64 maxSize) override;
-    virtual qint64 writeData(char const* data, qint64 maxSize) override;
+    void statusChanged(unity::storage::qt::ItemListJob::Status status) const;
+    void itemsReady(QList<unity::storage::qt::Item> const& items) const;
 };
 
 }  // namespace qt

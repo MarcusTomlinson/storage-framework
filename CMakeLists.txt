@@ -132,6 +132,7 @@ enable_coverage_report(
         qt-client-lib-common
         storage-framework-common-internal
         storage-framework-qt-client
+        storage-framework-qt-client-v2
         storage-framework-qt-local-client
         sf-provider-objects
         storage-framework-provider

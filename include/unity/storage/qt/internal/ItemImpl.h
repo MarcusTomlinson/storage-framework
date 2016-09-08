@@ -34,10 +34,19 @@ namespace unity
 {
 namespace storage
 {
+namespace internal
+{
+
+class ItemMetadata;
+
+}
+
 namespace qt
 {
 namespace internal
 {
+
+class AccountImpl;
 
 class ItemImpl
 {
@@ -81,6 +90,8 @@ public:
     bool operator>=(ItemImpl const&) const;
 
     size_t hash() const;
+
+    static Item make_item(storage::internal::ItemMetadata const& md, std::shared_ptr<AccountImpl> account);
 
 private:
     bool is_valid_;

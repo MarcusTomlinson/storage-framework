@@ -1,17 +1,40 @@
 add_subdirectory(client)
 
+set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES
+    CLASSNAME ProviderInterface
+    INCLUDE unity/storage/internal/dbusmarshal.h
+)
+
+qt5_add_dbus_interface(generated_files
+    ${CMAKE_SOURCE_DIR}/data/provider.xml
+    ProviderInterface
+)
+set_source_files_properties(${generated_files} PROPERTIES
+    COMPILE_FLAGS "-Wno-ctor-dtor-privacy -Wmissing-field-initializers"
+    GENERATED TRUE
+)
+
 # Sources for remote client V2 library.
 set(QT_CLIENT_LIB_V2_SRC
     Account.cpp
     AccountsJob.cpp
     Item.cpp
+    ItemListJob.cpp
     Runtime.cpp
     StorageError.cpp
     internal/AccountImpl.cpp
     internal/AccountsJobImpl.cpp
+    internal/HandlerBase.cpp
     internal/ItemImpl.cpp
+    internal/ItemListJobImpl.cpp
     internal/RuntimeImpl.cpp
     internal/StorageErrorImpl.cpp
+    ${generated_files}
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/AccountsJob.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Runtime.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/AccountsJobImpl.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/HandlerBase.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemListJobImpl.h
 )
 
 add_library(storage-framework-qt-client-v2 SHARED
@@ -31,6 +54,7 @@ set_target_properties(storage-framework-qt-client-v2 PROPERTIES
     VERSION ${SF_CLIENT_LIBVERSION}
 )
 target_link_libraries(storage-framework-qt-client-v2
+    storage-framework-common-internal
     Qt5::Core
     Qt5::DBus
     Qt5::Network

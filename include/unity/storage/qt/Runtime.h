@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <unity/storage/qt/Account.h>
 #include <unity/storage/qt/StorageError.h>
 
 #include <QDBusConnection>
@@ -43,9 +44,9 @@ class AccountsJob;
 
 class Q_DECL_EXPORT Runtime final : public QObject
 {
-    Q_PROPERTY(bool READ isValid)
-    Q_PROPERTY(unity::storage::StorageError READ error)
-    Q_PROPERTY(QDBusConnection READ connection)
+    Q_PROPERTY(bool isValid READ isValid FINAL)
+    Q_PROPERTY(unity::storage::StorageError error READ FINAL)
+    Q_PROPERTY(QDBusConnection connection READ connection FINAL)
 public:
     Runtime(QObject* parent = nullptr);
     Runtime(QDBusConnection const& bus, QObject* parent = nullptr);
@@ -56,6 +57,13 @@ public:
     QDBusConnection connection() const;
     StorageError shutdown();
     Q_INVOKABLE AccountsJob* accounts() const;
+
+    Account make_test_account(QString const& bus_name, QString const& object_path);
+    Account make_test_account(QString const& bus_name,
+                              QString const& object_path,
+                              QString const& owner_id,
+                              QString const& owner,
+                              QString const& description);
 
 private:
     std::shared_ptr<internal::RuntimeImpl> p_;

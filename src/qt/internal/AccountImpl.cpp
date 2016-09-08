@@ -18,7 +18,12 @@
 
 #include <unity/storage/qt/internal/AccountImpl.h>
 
+#include "ProviderInterface.h"
 #include <unity/storage/qt/Account.h>
+#include <unity/storage/qt/internal/ItemImpl.h>
+#include <unity/storage/qt/internal/ItemListJobImpl.h>
+#include <unity/storage/qt/internal/RuntimeImpl.h>
+#include <unity/storage/qt/Runtime.h>
 
 #include <boost/functional/hash.hpp>
 
@@ -40,16 +45,20 @@ AccountImpl::AccountImpl()
 {
 }
 
-AccountImpl::AccountImpl(QString const& bus_name,
+AccountImpl::AccountImpl(shared_ptr<RuntimeImpl> const& runtime,
+                         QString const& bus_name,
                          QString const& object_path,
                          QString const& owner_id,
                          QString const& owner,
                          QString const& description)
-    : bus_name_(bus_name)
+    : is_valid_(true)
+    , bus_name_(bus_name)
     , object_path_(object_path)
     , owner_id_(owner_id)
     , owner_(owner)
     , description_(description)
+    , runtime_(runtime)
+    , provider_(new ProviderInterface(bus_name, object_path, runtime->connection()))
 {
     assert(!bus_name.isEmpty());
     assert(!object_path.isEmpty());
@@ -72,7 +81,35 @@ QString AccountImpl::description() const
 
 ItemListJob* AccountImpl::roots() const
 {
-    return nullptr;  // TODO
+    auto runtime = runtime_.lock();
+    // TODO: check if runtime destroyed here
+
+    QString method = "Account::roots()";
+    auto reply = provider_->Roots();
+    auto This = const_pointer_cast<AccountImpl>(shared_from_this());
+    auto process_reply = [This, method](decltype(reply) const& r)
+    {
+        QVector<Item> roots;
+        auto metadata = r.value();
+        for (auto const& md : metadata)
+        {
+            if (md.type != ItemType::root)
+            {
+                // LCOV_EXCL_START
+                qCritical().nospace() << method << ": invalid non-root item received from provider";
+                continue;
+                // LCOV_EXCL_STOP
+            }
+            auto root = ItemImpl::make_item(md, This);
+            roots.append(root);
+        }
+        return roots;
+    };
+
+    return ItemListJobImpl::make_item_list_job(This,
+                                               method,
+                                               process_reply,
+                                               runtime->public_instance()->parent());
 }
 
 bool AccountImpl::operator==(AccountImpl const& other) const
@@ -107,9 +144,17 @@ bool AccountImpl::operator<(AccountImpl const& other) const
     {
         return true;
     }
+    if (owner_id_ > other.owner_id_)
+    {
+        return false;
+    }
     if (owner_ < other.owner_)
     {
         return true;
+    }
+    if (owner_ > other.owner_)
+    {
+        return false;
     }
     if (description_ < other.description_)
     {
@@ -146,14 +191,15 @@ size_t AccountImpl::hash() const
     return hash;
 }
 
-Account AccountImpl::make_account(QString const& bus_name,
+Account AccountImpl::make_account(shared_ptr<RuntimeImpl> const& runtime,
+                                  QString const& bus_name,
                                   QString const& object_path,
                                   QString const& owner_id,
                                   QString const& owner,
                                   QString const& description)
 {
-    unique_ptr<AccountImpl> p(new AccountImpl(bus_name, object_path, owner_id, owner, description));
-    return Account(move(p));
+    shared_ptr<AccountImpl> p(new AccountImpl(runtime, bus_name, object_path, owner_id, owner, description));
+    return Account(p);
 }
 
 }  // namespace internal

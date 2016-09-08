@@ -8,7 +8,7 @@ add_custom_command(
         ${convenience_hdr} ${includeprefix} ${CMAKE_CURRENT_SOURCE_DIR}
     DEPENDS ${public_hdrs})
 
-add_custom_target(qt-client-all-headers ALL DEPENDS ${convenience_hdr})
+add_custom_target(qt-client-all-headers-v1 ALL DEPENDS ${convenience_hdr})
 
 install(
     FILES ${public_hdrs} ${convenience_hdr}

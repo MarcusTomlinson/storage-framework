@@ -19,6 +19,7 @@
 #include <unity/storage/qt/internal/RuntimeImpl.h>
 
 #include <unity/storage/qt/AccountsJob.h>
+#include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
 #include <unity/storage/qt/Runtime.h>
 
@@ -35,28 +36,32 @@ namespace qt
 namespace internal
 {
 
-RuntimeImpl::RuntimeImpl()
-    : is_valid_(true)
+RuntimeImpl::RuntimeImpl(Runtime* public_instance)
+    : public_instance_(public_instance)
+    , is_valid_(true)
     , conn_(QDBusConnection::sessionBus())
     , accounts_manager_(new OnlineAccounts::Manager("", conn_))
 {
     if (!conn_.isConnected())
     {
+        // LCOV_EXCL_START
         is_valid_ = false;
-        QString msg = "Runtime: cannot connect to session bus: " + conn_.lastError().message();
+        QString msg = "Runtime(): cannot connect to session bus: " + conn_.lastError().message();
         error_ = StorageErrorImpl::local_comms_error(msg);
+        // LCOV_EXCL_STOP
     }
 }
 
-RuntimeImpl::RuntimeImpl(QDBusConnection const& bus)
-    : is_valid_(true)
+RuntimeImpl::RuntimeImpl(Runtime* public_instance, QDBusConnection const& bus)
+    : public_instance_(public_instance)
+    , is_valid_(true)
     , conn_(bus)
     , accounts_manager_(new OnlineAccounts::Manager("", conn_))
 {
     if (!conn_.isConnected())
     {
         is_valid_ = false;
-        QString msg = "Runtime: DBus connection is not connected";
+        QString msg = "Runtime(): DBus connection is not connected";
         error_ = StorageErrorImpl::local_comms_error(msg);
     }
 }
@@ -93,13 +98,40 @@ StorageError RuntimeImpl::shutdown()
     {
         conn_.disconnectFromBus(conn_.name());
         is_valid_ = false;
+        return StorageError();
     }
-    return StorageError();
+    error_ = StorageErrorImpl::runtime_destroyed_error("Runtime::shutdown(): Runtime was destroyed previously");
+    return error_;
+}
+
+Runtime* RuntimeImpl::public_instance() const
+{
+    return public_instance_;
 }
 
 shared_ptr<OnlineAccounts::Manager> RuntimeImpl::accounts_manager() const
 {
     return accounts_manager_;
+}
+
+Account RuntimeImpl::make_test_account(QString const& bus_name,
+                                       QString const& object_path)
+{
+    return make_test_account(bus_name, object_path, "", "", "");
+}
+
+Account RuntimeImpl::make_test_account(QString const& bus_name,
+                                       QString const& object_path,
+                                       QString const& owner_id,
+                                       QString const& owner,
+                                       QString const& description)
+{
+    return AccountImpl::make_account(shared_from_this(),
+                                     bus_name,
+                                     object_path,
+                                     owner_id,
+                                     owner,
+                                     description);
 }
 
 }  // namespace internal
