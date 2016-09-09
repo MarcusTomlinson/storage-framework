@@ -151,7 +151,8 @@ void UploadWorker::do_finish()
             {
                 QString msg = "Uploader::finish_upload(): " + path_ + ": upload size of " + QString::number(size_)
                               + " does not match actual number of bytes read: " + QString::number(bytes_read_);
-                make_exceptional_future(qf_, LogicException(msg));
+                qf_.reportException(LogicException(msg));
+                qf_.reportFinished();
             }
             else
             {
@@ -167,13 +168,15 @@ void UploadWorker::do_finish()
         case cancelled:
         {
             QString msg = "Uploader::finish_upload(): upload was cancelled";
-            make_exceptional_future(qf_, CancelledException(msg));
+            qf_.reportException(CancelledException(msg));
+            qf_.reportFinished();
             break;
         }
         case error:
         {
             // LCOV_EXCL_START
-            make_exceptional_future(qf_, ResourceException(error_msg_, error_code_));
+            qf_.reportException(ResourceException(error_msg_, error_code_));
+            qf_.reportFinished();
             break;
             // LCOV_EXCL_STOP
         }
@@ -241,7 +244,8 @@ void UploadWorker::finalize()
         if (impl->has_conflict())
         {
             state_ = error;
-            make_exceptional_future(qf_, ConflictException("Uploader::finish_upload(): ETag mismatch"));
+            qf_.reportException(ConflictException("Uploader::finish_upload(): ETag mismatch"));
+            qf_.reportFinished();
             return;
         }
     }
@@ -254,7 +258,8 @@ void UploadWorker::finalize()
             state_ = error;
             QString msg = "Uploader::finish_upload(): item with name \"" + path_ + "\" exists already";
             QString name = QString::fromStdString(boost::filesystem::path(path_.toStdString()).filename().native());
-            make_exceptional_future(qf_, ExistsException(msg, path_, name));
+            qf_.reportException(ExistsException(msg, path_, name));
+            qf_.reportFinished();
             return;
         }
         if (close(fd) == -1)
@@ -263,7 +268,8 @@ void UploadWorker::finalize()
             state_ = error;
             QString msg = "Uploader::finish_upload(): cannot close tmp file: "
                           + QString::fromStdString(storage::internal::safe_strerror(errno));
-            make_exceptional_future(qf_, ResourceException(msg, errno));
+            qf_.reportException(ResourceException(msg, errno));
+            qf_.reportFinished();
             return;
             // LCOV_EXCL_STOP
         }
@@ -277,7 +283,8 @@ void UploadWorker::finalize()
         // LCOV_EXCL_START
         state_ = error;
         QString msg = "Uploader::finish_upload(): cannot flush output file: " + output_file_->errorString();
-        make_exceptional_future(qf_, ResourceException(msg, output_file_->error()));
+        qf_.reportException(ResourceException(msg, output_file_->error()));
+        qf_.reportFinished();
         return;
         // LCOV_EXCL_STOP
     }
@@ -296,7 +303,8 @@ void UploadWorker::finalize()
             QString msg = "Uploader::finish_upload(): linkat \"" + QString::fromStdString(old_path)
                           + "\" to \"" + file->native_identity() + "\" failed: "
                           + QString::fromStdString(storage::internal::safe_strerror(errno));
-            make_exceptional_future(qf_, ResourceException(msg, error_code));
+            qf_.reportException(ResourceException(msg, error_code));
+            qf_.reportFinished();
             return;
             // LCOV_EXCL_STOP
         }
@@ -312,7 +320,8 @@ void UploadWorker::finalize()
             QString msg = "Uploader::finish_upload(): rename \"" + QString::fromStdString(old_path)
                           + "\" to \"" + file->native_identity() + "\" failed: "
                           + QString::fromStdString(storage::internal::safe_strerror(errno));
-            make_exceptional_future(qf_, ResourceException(msg, error_code));
+            qf_.reportException(ResourceException(msg, error_code));
+            qf_.reportFinished();
             return;
         }
         // LCOV_EXCL_STOP
@@ -321,7 +330,8 @@ void UploadWorker::finalize()
     state_ = finalized;
     output_file_->close();
     impl->set_timestamps();
-    make_ready_future(qf_, file);
+    qf_.reportResult(file);
+    qf_.reportFinished();
 }
 
 // LCOV_EXCL_START
@@ -356,7 +366,7 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file,
                            ConflictPolicy policy,
                            weak_ptr<Root> root)
     : UploaderBase(policy, size)
-    , write_socket_(new QLocalSocket)
+    , write_socket_(new QLocalSocket, [](QLocalSocket* s){ s->deleteLater(); })
 {
     // Set up socket pair.
     int fds[2];
@@ -366,7 +376,8 @@ UploaderImpl::UploaderImpl(weak_ptr<File> file,
         // LCOV_EXCL_START
         QString msg = "Uploader: cannot create socket pair: "
                       + QString::fromStdString(storage::internal::safe_strerror(errno));
-        make_exceptional_future(qf_, ResourceException(msg, errno));
+        qf_.reportException(ResourceException(msg, errno));
+        qf_.reportFinished();
         return;
         // LCOV_EXCL_STOP
     }
