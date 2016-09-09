@@ -1,8 +1,8 @@
-storage-framework (0.1+16.10.20160804.1-0ubuntu2) UNRELEASED; urgency=medium
+storage-framework (0.1+16.10.20160909-0ubuntu1) yakkety; urgency=medium
 
   * Merged devel at revision 64.
 
- -- Michi Henning <michi.henning@canonical.com>  Fri, 26 Aug 2016 14:03:02 +1000
+ -- Michi Henning <michi@triodia.com>  Fri, 09 Sep 2016 02:36:03 +0000
 
 storage-framework (0.1+16.10.20160804.1-0ubuntu1) yakkety; urgency=medium
 
