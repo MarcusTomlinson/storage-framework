@@ -185,9 +185,9 @@ size_t AccountImpl::hash() const
         return 0;
     }
     size_t hash = 0;
-    boost::hash_combine(hash, owner_.toStdString());
-    boost::hash_combine(hash, owner_id_.toStdString());
-    boost::hash_combine(hash, description_.toStdString());
+    boost::hash_combine(hash, qHash(owner_));
+    boost::hash_combine(hash, qHash(owner_id_));
+    boost::hash_combine(hash, qHash(description_));
     return hash;
 }
 

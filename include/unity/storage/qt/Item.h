@@ -111,6 +111,8 @@ private:
     std::shared_ptr<internal::ItemImpl> p_;
 };
 
+uint qHash(Item const& i);
+
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity

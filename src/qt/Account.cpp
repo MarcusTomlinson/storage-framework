@@ -132,6 +132,11 @@ size_t Account::hash() const
     return p_->hash();
 }
 
+uint qHash(Account const& acc)
+{
+    return acc.hash();
+}
+
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity

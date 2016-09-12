@@ -77,6 +77,8 @@ private:
     friend class internal::AccountImpl;
 };
 
+uint qHash(Account const& acc);
+
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity

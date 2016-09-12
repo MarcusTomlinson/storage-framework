@@ -191,7 +191,7 @@ size_t ItemImpl::hash() const
     {
         return 0;
     }
-    return std::hash<std::string>()(item_id_.toStdString());
+    return qHash(item_id_);
 }
 
 Item ItemImpl::make_item(storage::internal::ItemMetadata const& md,
