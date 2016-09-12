@@ -51,11 +51,11 @@ public:
 private Q_SLOTS:
     void manager_ready();
     void timeout();
+    void emit_status_changed() const;
 
 private:
     std::shared_ptr<RuntimeImpl> get_runtime(QString const& method) const;
     void initialize_accounts();
-    void emit_status_changed() const;
 
     AccountsJob* const public_instance_;
 

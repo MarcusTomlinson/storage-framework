@@ -31,11 +31,6 @@ namespace storage
 namespace qt
 {
 
-AccountsJob::AccountsJob(QObject* parent)
-    : QObject(parent)
-{
-}
-
 AccountsJob::AccountsJob(shared_ptr<internal::RuntimeImpl> const& runtime, QObject* parent)
     : QObject(parent)
     , p_(new internal::AccountsJobImpl(this, runtime))

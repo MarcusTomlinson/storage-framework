@@ -18,12 +18,14 @@
 
 #include <unity/storage/qt/internal/RuntimeImpl.h>
 
+#include <unity/storage/internal/dbusmarshal.h>
 #include <unity/storage/qt/AccountsJob.h>
 #include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
 #include <unity/storage/qt/Runtime.h>
 
 #include <QDBusError>
+#include <QDBusMetaType>
 
 using namespace std;
 
@@ -50,6 +52,11 @@ RuntimeImpl::RuntimeImpl(Runtime* public_instance)
         error_ = StorageErrorImpl::local_comms_error(msg);
         // LCOV_EXCL_STOP
     }
+
+    qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
+    qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();
+
+    qRegisterMetaType<unity::storage::qt::AccountsJob::Status>();
 }
 
 RuntimeImpl::RuntimeImpl(Runtime* public_instance, QDBusConnection const& bus)
@@ -88,8 +95,13 @@ QDBusConnection RuntimeImpl::connection() const
 
 AccountsJob* RuntimeImpl::accounts() const
 {
+    if (!is_valid_)
+    {
+        QString msg = "Runtime::accounts(): Runtime was destroyed previously";
+        return new AccountsJob(StorageErrorImpl::runtime_destroyed_error(msg), public_instance_);
+    }
     auto This = const_cast<RuntimeImpl*>(this);
-    return new AccountsJob(This->shared_from_this(), public_instance_->parent());
+    return new AccountsJob(This->shared_from_this(), public_instance_);
 }
 
 StorageError RuntimeImpl::shutdown()

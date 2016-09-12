@@ -214,11 +214,11 @@ size_t Item::hash() const
     return p_->hash();
 }
 
-uint qHash(Item const& i)
-{
-    return i.hash();
-}
-
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
+
+uint qHash(unity::storage::qt::Item const& i)
+{
+    return i.hash();
+}

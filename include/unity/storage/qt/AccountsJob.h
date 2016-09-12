@@ -53,7 +53,6 @@ public:
     enum Status { Loading, Finished, Error };
     Q_ENUM(Status)
 
-    AccountsJob(QObject* = nullptr);
     virtual ~AccountsJob();
 
     bool isValid() const;

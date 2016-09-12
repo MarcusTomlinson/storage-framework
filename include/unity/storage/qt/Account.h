@@ -77,8 +77,6 @@ private:
     friend class internal::AccountImpl;
 };
 
-uint qHash(Account const& acc);
-
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
@@ -86,7 +84,7 @@ uint qHash(Account const& acc);
 namespace std
 {
 
-template<> struct hash<unity::storage::qt::Account>
+template<> struct Q_DECL_EXPORT hash<unity::storage::qt::Account>
 {
     std::size_t operator()(unity::storage::qt::Account const& a)
     {
@@ -94,4 +92,8 @@ template<> struct hash<unity::storage::qt::Account>
     }
 };
 
-}
+}  // namespace std
+
+// Note: qHash(Account) does *not* return the same hash value is std::hash<Account> because
+//       std:hash() returns size_t (typically 64 bits), but qHash() returns uint (typically 32 bits).
+uint Q_DECL_EXPORT qHash(unity::storage::qt::Account const& acc);

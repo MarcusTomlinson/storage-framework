@@ -69,7 +69,12 @@ AccountsJobImpl::AccountsJobImpl(AccountsJob* public_instance, StorageError cons
     assert(public_instance);
     assert(error.type() != StorageError::NoError);
 
-    emit_status_changed();
+    // We defer emission of the signal so the client gets a chance to connect to the signal
+    // after this constructor completes.
+    QMetaObject::invokeMethod(public_instance_,
+                              "statusChanged",
+                              Qt::QueuedConnection,
+                              Q_ARG(unity::storage::qt::AccountsJob::Status, status_));
 }
 
 bool AccountsJobImpl::isValid() const
@@ -114,6 +119,14 @@ void AccountsJobImpl::timeout()
     status_ = AccountsJob::Error;
     error_ = StorageErrorImpl::local_comms_error("AccountsJob(): timeout retrieving Online accounts");
     emit_status_changed();
+}
+
+void AccountsJobImpl::emit_status_changed() const
+{
+    if (status_ != AccountsJob::Status::Error)  // Once in the error state, we don't emit the signal again.
+    {
+        public_instance_->statusChanged(status_);
+    }
 }
 
 shared_ptr<RuntimeImpl> AccountsJobImpl::get_runtime(QString const& method) const
@@ -164,18 +177,6 @@ void AccountsJobImpl::initialize_accounts()
     }
     status_ = AccountsJob::Status::Finished;
     emit_status_changed();
-}
-
-void AccountsJobImpl::emit_status_changed() const
-{
-    // Defer emitting the status changed signal because we may need to emit the signal from the constructor.
-    if (status_ != AccountsJob::Status::Error)
-    {
-        QMetaObject::invokeMethod(public_instance_,
-                                  "statusChanged",
-                                  Qt::QueuedConnection,
-                                  Q_ARG(AccountsJob::Status, status_));
-    }
 }
 
 }  // namespace internal

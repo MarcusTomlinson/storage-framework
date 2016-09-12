@@ -111,8 +111,6 @@ private:
     std::shared_ptr<internal::ItemImpl> p_;
 };
 
-uint qHash(Item const& i);
-
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
@@ -120,7 +118,7 @@ uint qHash(Item const& i);
 namespace std
 {
 
-template<> struct hash<unity::storage::qt::Item>
+template<> struct Q_DECL_EXPORT hash<unity::storage::qt::Item>
 {
     std::size_t operator()(unity::storage::qt::Item const& i)
     {
@@ -128,4 +126,8 @@ template<> struct hash<unity::storage::qt::Item>
     }
 };
 
-}
+}  // namespace std
+
+// Note: qHash(Item) does *not* return the same hash value is std::hash<Item> because
+//       std:hash() returns size_t (typically 64 bits), but qHash() returns uint (typically 32 bits).
+uint Q_DECL_EXPORT qHash(unity::storage::qt::Item const& i);

@@ -23,20 +23,7 @@
 #include <MockProvider.h>
 
 #include <gtest/gtest.h>
-#if 0
-#include <QCoreApplication>
-#include <QFile>
-#include <QFutureWatcher>
 #include <QSignalSpy>
-#include <QTimer>
-#endif
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#include <glib.h>
-#pragma GCC diagnostic pop
-
-#include <fstream>
 
 using namespace unity::storage;
 using namespace unity::storage::qt;
@@ -44,39 +31,10 @@ using namespace std;
 
 // Yes, that's ridiculously long, but the builders in Jenkins and the CI Train
 // are stupifyingly slow at times.
-//static constexpr int SIGNAL_WAIT_TIME = 30000;
+static constexpr int SIGNAL_WAIT_TIME = 30000;
 
-class RemoteClientTest : public ProviderFixture
-{
-public:
-    QDBusConnection const& connection()
-    {
-        return dbus_->connection();
-    }
-
-protected:
-    void SetUp() override
-    {
-        dbus_.reset(new DBusEnvironment);
-        dbus_->add_demo_provider("google-drive-scope");
-        dbus_->start_services();
-    }
-
-    void TearDown() override
-    {
-        dbus_.reset();
-    }
-
-private:
-    unique_ptr<DBusEnvironment> dbus_;
-};
-
-class RuntimeTest : public RemoteClientTest {};
-class AccountTest : public RemoteClientTest {};
-class RootTest : public RemoteClientTest {};
-class FolderTest : public RemoteClientTest {};
-class FileTest : public RemoteClientTest {};
-class ItemTest : public RemoteClientTest {};
+class RuntimeTest : public ProviderFixture {};
+class AccountTest : public ProviderFixture {};
 
 #if 0
 class DestroyedTest : public ProviderFixture
@@ -186,7 +144,7 @@ void clear_folder(Folder::SPtr const& folder)
 }
 #endif
 
-TEST_F(RuntimeTest, lifecycle)
+TEST(Runtime, lifecycle)
 {
     Runtime runtime;
     EXPECT_TRUE(runtime.isValid());
@@ -207,7 +165,7 @@ TEST_F(RuntimeTest, init_error)
 {
     QDBusConnection conn(connection());
     EXPECT_TRUE(conn.isConnected());
-    TearDown();
+    dbus_.reset();  // Destroying the DBusEnvironment in the fixture forces disconnection.
     EXPECT_FALSE(conn.isConnected());
 
     Runtime rt(conn);
@@ -430,9 +388,53 @@ TEST_F(AccountTest, hash)
 
     Account a1;
     EXPECT_EQ(0, a1.hash());
+    EXPECT_EQ(a1.hash(), qHash(a1));
 
     auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
+    // Due to different return types (size_t vs uint), hash() and qHash() do not return the same value.
     EXPECT_NE(0, a2.hash());
+    EXPECT_NE(0, qHash(a2));
+}
+
+TEST_F(AccountTest, accounts)
+{
+    Runtime rt(connection());
+
+    AccountsJob* aj = rt.accounts();
+    EXPECT_TRUE(aj->isValid());
+    EXPECT_EQ(AccountsJob::Loading, aj->status());
+    EXPECT_EQ(StorageError::NoError, aj->error().type());
+    EXPECT_EQ(QList<Account>(), aj->accounts());  // We haven't waited for the result yet.
+
+    QSignalSpy spy(aj, &unity::storage::qt::AccountsJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(AccountsJob::Finished, qvariant_cast<unity::storage::qt::AccountsJob::Status>(arg.at(0)));
+
+    auto accounts = aj->accounts();
+    EXPECT_GT(accounts.size(), 0);
+}
+
+TEST_F(AccountTest, runtime_destroyed)
+{
+    Runtime rt(connection());
+    EXPECT_EQ(StorageError::NoError, rt.shutdown().type());  // Destroy runtime.
+
+    AccountsJob* aj = rt.accounts();
+    EXPECT_FALSE(aj->isValid());
+    EXPECT_EQ(AccountsJob::Error, aj->status());
+    EXPECT_EQ(StorageError::RuntimeDestroyed, aj->error().type());
+    EXPECT_EQ("Runtime::accounts(): Runtime was destroyed previously",
+              aj->error().message()) << aj->error().message().toStdString();
+    EXPECT_EQ(QList<Account>(), aj->accounts());
+
+    // Signal must be received.
+    QSignalSpy spy(aj, &unity::storage::qt::AccountsJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(AccountsJob::Error, qvariant_cast<unity::storage::qt::AccountsJob::Status>(arg.at(0)));
 }
 
 #if 0
