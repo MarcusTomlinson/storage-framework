@@ -46,36 +46,35 @@ class ItemListJobImpl : public QObject
 {
     Q_OBJECT
 public:
-    ItemListJobImpl(ItemListJob* public_instance, std::shared_ptr<RuntimeImpl> const& runtime);
-    ItemListJobImpl(ItemListJob* public_instance, StorageError const& error);
-    ItemListJobImpl(ItemListJobImpl const&) = default;
-    ItemListJobImpl(ItemListJobImpl&&) = delete;
     virtual ~ItemListJobImpl() = default;
-    ItemListJobImpl& operator=(ItemListJobImpl const&) = default;
-    ItemListJobImpl& operator=(ItemListJobImpl&&) = delete;
 
     bool isValid() const;
     ItemListJob::Status status() const;
     StorageError error() const;
-    QList<Account> accounts() const;
 
-    static ItemListJob* make_item_list_job(
-                std::shared_ptr<AccountImpl> const& account,
-                QString const& method,
-                std::function<QVector<Item>(QDBusPendingReply<QList<storage::internal::ItemMetadata>> const&)> const& f,
-                QObject* parent);
+    static ItemListJob* make_item_list_job(std::shared_ptr<AccountImpl> const& account,
+                                           QString const& method,
+                                           QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                           std::function<bool(storage::internal::ItemMetadata const&)> const& validate);
+    static ItemListJob* make_item_list_job(StorageError const& error);
 
 private:
-    std::shared_ptr<RuntimeImpl> get_runtime(QString const& method) const;
-    void emit_status_changed() const;
+    ItemListJobImpl(std::shared_ptr<AccountImpl> const& account,
+                    QString const& method,
+                    QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                    std::function<bool(storage::internal::ItemMetadata const&)> const& validate);
+    ItemListJobImpl(StorageError const& error);
 
-    ItemListJob* const public_instance_;
+    ItemListJob::Status emit_status_changed(ItemListJob::Status new_status) const;
+    void emit_items_ready(QList<unity::storage::qt::Item> const& items) const;
+
+    ItemListJob* public_instance_;
 
     ItemListJob::Status status_;
     StorageError error_;
-    std::weak_ptr<RuntimeImpl> const runtime_;
-
-    friend class unity::storage::qt::ItemListJob;
+    QString method_;
+    std::shared_ptr<AccountImpl> account_;
+    std::function<bool(storage::internal::ItemMetadata const&)> validate_;
 };
 
 }  // namespace internal

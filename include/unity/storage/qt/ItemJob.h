@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <unity/storage/qt/Item.h>
+
 #include <QObject>
 
 namespace unity
@@ -26,6 +28,12 @@ namespace storage
 {
 namespace qt
 {
+namespace internal
+{
+
+class ItemJobImpl;
+
+}  // namespace internal
 
 class Item;
 class StorageError;
@@ -33,13 +41,12 @@ class StorageError;
 class Q_DECL_EXPORT ItemJob final : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(bool READ isValid FINAL)
-    Q_PROPERTY(unity::Storage::ItemListJob::Status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::Storage::StorageError READ error FINAL)
-    Q_PROPERTY(unity::Storage::qt::Item READ item FINAL)
+    Q_PROPERTY(bool isValid READ isValid FINAL)
+    Q_PROPERTY(unity::storage::qt::ItemJob::Status status READ status NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError error READ error FINAL)
+    Q_PROPERTY(unity::storage::qt::Item item READ item FINAL)
 
 public:
-    ItemJob(QObject* parent = nullptr);
     virtual ~ItemJob();
 
     enum Status { Loading, Finished, Error };
@@ -52,6 +59,13 @@ public:
 
 Q_SIGNALS:
     void statusChanged(unity::storage::qt::ItemJob::Status status) const;
+
+private:
+    ItemJob(std::unique_ptr<internal::ItemJobImpl> p);
+
+    std::unique_ptr<internal::ItemJobImpl> const p_;
+
+    friend class internal::ItemJobImpl;
 };
 
 }  // namespace qt

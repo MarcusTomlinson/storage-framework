@@ -146,6 +146,12 @@ int StorageErrorImpl::errorCode() const
     return error_code_;
 }
 
+StorageError StorageErrorImpl::make_error(StorageError::Type type, QString const& msg)
+{
+    unique_ptr<StorageErrorImpl> p(new StorageErrorImpl(type, msg));
+    return StorageError(move(p));
+}
+
 StorageError StorageErrorImpl::local_comms_error(QString const& msg)
 {
     unique_ptr<StorageErrorImpl> p(new StorageErrorImpl(StorageError::Type::LocalCommsError, msg));

@@ -43,13 +43,14 @@ Account::Account(shared_ptr<internal::AccountImpl> const& p)
 }
 
 Account::Account(Account const& other)
-    : p_(make_shared<internal::AccountImpl>(*other.p_))
+    : p_(other.p_)
 {
 }
 
 Account::Account(Account&& other)
     : p_(make_shared<internal::AccountImpl>())
 {
+    p_->is_valid_ = false;
     swap(p_, other.p_);
 }
 
@@ -61,7 +62,7 @@ Account& Account::operator=(Account const& other)
     {
         return *this;
     }
-    *p_ = *other.p_;
+    p_ = other.p_;
     return *this;
 }
 

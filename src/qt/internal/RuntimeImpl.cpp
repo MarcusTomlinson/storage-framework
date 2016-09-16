@@ -22,6 +22,9 @@
 #include <unity/storage/qt/AccountsJob.h>
 #include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
+#include <unity/storage/qt/Item.h>
+#include <unity/storage/qt/ItemJob.h>
+#include <unity/storage/qt/ItemListJob.h>
 #include <unity/storage/qt/Runtime.h>
 
 #include <QDBusError>
@@ -37,13 +40,30 @@ namespace qt
 {
 namespace internal
 {
+namespace
+{
 
-RuntimeImpl::RuntimeImpl(Runtime* public_instance)
-    : public_instance_(public_instance)
-    , is_valid_(true)
+void register_meta_types()
+{
+    qRegisterMetaType<QList<unity::storage::qt::Item>>();
+    qRegisterMetaType<unity::storage::qt::AccountsJob::Status>();
+    qRegisterMetaType<unity::storage::qt::Item>();
+    qRegisterMetaType<unity::storage::qt::ItemJob::Status>();
+    qRegisterMetaType<unity::storage::qt::ItemListJob::Status>();
+
+    qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
+    qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();
+}
+
+}
+
+RuntimeImpl::RuntimeImpl()
+    : is_valid_(true)
     , conn_(QDBusConnection::sessionBus())
     , accounts_manager_(new OnlineAccounts::Manager("", conn_))
 {
+    register_meta_types();
+
     if (!conn_.isConnected())
     {
         // LCOV_EXCL_START
@@ -53,18 +73,15 @@ RuntimeImpl::RuntimeImpl(Runtime* public_instance)
         // LCOV_EXCL_STOP
     }
 
-    qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
-    qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();
-
-    qRegisterMetaType<unity::storage::qt::AccountsJob::Status>();
 }
 
-RuntimeImpl::RuntimeImpl(Runtime* public_instance, QDBusConnection const& bus)
-    : public_instance_(public_instance)
-    , is_valid_(true)
+RuntimeImpl::RuntimeImpl(QDBusConnection const& bus)
+    : is_valid_(true)
     , conn_(bus)
     , accounts_manager_(new OnlineAccounts::Manager("", conn_))
 {
+    register_meta_types();
+
     if (!conn_.isConnected())
     {
         is_valid_ = false;
@@ -98,10 +115,10 @@ AccountsJob* RuntimeImpl::accounts() const
     if (!is_valid_)
     {
         QString msg = "Runtime::accounts(): Runtime was destroyed previously";
-        return new AccountsJob(StorageErrorImpl::runtime_destroyed_error(msg), public_instance_);
+        return new AccountsJob(StorageErrorImpl::runtime_destroyed_error(msg));
     }
     auto This = const_cast<RuntimeImpl*>(this);
-    return new AccountsJob(This->shared_from_this(), public_instance_);
+    return new AccountsJob(This->shared_from_this());
 }
 
 StorageError RuntimeImpl::shutdown()
@@ -114,11 +131,6 @@ StorageError RuntimeImpl::shutdown()
     }
     error_ = StorageErrorImpl::runtime_destroyed_error("Runtime::shutdown(): Runtime was destroyed previously");
     return error_;
-}
-
-Runtime* RuntimeImpl::public_instance() const
-{
-    return public_instance_;
 }
 
 shared_ptr<OnlineAccounts::Manager> RuntimeImpl::accounts_manager() const

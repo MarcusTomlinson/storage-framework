@@ -52,6 +52,9 @@ public:
     QString itemName() const;
     int errorCode() const;
 
+    // Generic factory for errors that don't require extra arguments.
+    static StorageError make_error(StorageError::Type, QString const& msg);
+
     // Factories to make things more convenient and ensure consistency.
     static StorageError local_comms_error(QString const& msg);
     static StorageError remote_comms_error(QString const& msg);

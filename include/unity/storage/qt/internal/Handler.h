@@ -18,14 +18,14 @@
 
 #pragma once
 
-#include <unity/storage/qt/internal/dbusmarshal.h>
 #include <unity/storage/qt/internal/HandlerBase.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
+#include <unity/storage/qt/internal/unmarshal_error.h>
 
 #include <QDBusPendingReply>
+#include <QDebug>
 
 #include <cassert>
-#include <functional>
 
 namespace unity
 {
@@ -40,19 +40,9 @@ template<typename T>
 class Handler : public HandlerBase
 {
 public:
-    // TODO: HACK: The reply argument really should be passed by const reference, which also
-    //             would make the explicit conversion of the call to QDBusPendingReply<QDBusArgs...>
-    //             unnecessary. But this doesn't work with gcc 4.9: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60420
-    //             Once we get rid of Vivid, this should be changed back to
-    //
-    //             Handler<T>::Handler(QObject* parent,
-    //                                 QDBusPendingReply<DBusArgs...> const& reply,
-    //                                 std::function<void(decltype(reply) const&)> success_closure,
-    //                                 std::function<void(StorageError const&) error_closure)
-
     template<typename ... DBusArgs>
     Handler(QObject* parent,
-            QDBusPendingReply<DBusArgs...>& reply,
+            QDBusPendingReply<DBusArgs...> const& reply,
             std::function<void(decltype(reply)&)> const& success_closure,
             std::function<void(StorageError const&)> const& error_closure)
         : HandlerBase(parent,
@@ -61,15 +51,17 @@ public:
                           {
                               if (call.isError())
                               {
-                                  auto e = unmarshal_exception(call);
+                                  auto e = unmarshal_error(call);
                                   switch (e.type())
                                   {
                                       case StorageError::NoError:
                                       {
+                                          // LCOV_EXCL_START
                                           QString msg = "impossible provider exception: " + e.errorString();
                                           qCritical() << msg;
                                           e = StorageErrorImpl::local_comms_error(msg);
                                           break;
+                                          // LCOV_EXCL_STOP
                                       }
                                       case StorageError::LocalCommsError:
                                       case StorageError::RemoteCommsError:
@@ -79,16 +71,15 @@ public:
                                           qCritical() << "provider exception:" << e.errorString();
                                           break;
                                       }
-                                      // FALLTHROUGH
                                       default:
                                       {
                                           // All other errors are not logged.
+                                          break;
                                       }
                                   }
                                   error_closure(e);
                                   return;
                               }
-                              // TODO: See HACK above. Should just be success_closure(call);
                               QDBusPendingReply<DBusArgs...> r = call;
                               success_closure(call);
                           })

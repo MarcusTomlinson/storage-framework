@@ -19,6 +19,9 @@
 #include <unity/storage/qt/Item.h>
 #include <unity/storage/qt/internal/ItemImpl.h>
 
+#include <cassert>
+#include <QDebug> // TODO: remove this
+
 using namespace std;
 
 namespace unity
@@ -33,14 +36,20 @@ Item::Item()
 {
 }
 
+Item::Item(shared_ptr<internal::ItemImpl> const& p)
+    : p_(p)
+{
+    assert(p);
+}
+
 Item::Item(Item const& other)
-    : p_(make_shared<internal::ItemImpl>(*other.p_))
+    : p_(other.p_)
 {
 }
 
 Item::Item(Item&& other)
-    : p_(make_shared<internal::ItemImpl>())
 {
+    p_->is_valid_ = false;
     swap(p_, other.p_);
 }
 
@@ -52,7 +61,7 @@ Item& Item::operator=(Item const& other)
     {
         return *this;
     }
-    *p_ = *other.p_;
+    p_ = other.p_;
     return *this;
 }
 
@@ -83,11 +92,13 @@ Account Item::account() const
     return p_->account();
 }
 
+#if 0
 Item Item::root() const
 {
 
     return p_->root();
 }
+#endif
 
 QString Item::etag() const
 {

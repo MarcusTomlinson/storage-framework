@@ -16,9 +16,9 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/ItemListJob.h>
+#include <unity/storage/qt/ItemJob.h>
 
-#include <unity/storage/qt/internal/ItemListJobImpl.h>
+#include <unity/storage/qt/internal/ItemJobImpl.h>
 
 using namespace unity::storage::qt;
 using namespace std;
@@ -30,26 +30,31 @@ namespace storage
 namespace qt
 {
 
-ItemListJob::ItemListJob(unique_ptr<internal::ItemListJobImpl> p)
+ItemJob::ItemJob(unique_ptr<internal::ItemJobImpl> p)
     : p_(move(p))
 {
 }
 
-ItemListJob::~ItemListJob() = default;
+ItemJob::~ItemJob() = default;
 
-bool ItemListJob::isValid() const
+bool ItemJob::isValid() const
 {
     return p_->isValid();
 }
 
-ItemListJob::Status ItemListJob::status() const
+ItemJob::Status ItemJob::status() const
 {
     return p_->status();
 }
 
-StorageError ItemListJob::error() const
+StorageError ItemJob::error() const
 {
     return p_->error();
+}
+
+Item ItemJob::item() const
+{
+    return p_->item();
 }
 
 }  // namespace qt

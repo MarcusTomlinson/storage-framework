@@ -33,8 +33,27 @@ using namespace std;
 // are stupifyingly slow at times.
 static constexpr int SIGNAL_WAIT_TIME = 30000;
 
+class RemoteClientTest : public ProviderFixture
+{
+protected:
+    void SetUp() override
+    {
+        runtime_.reset(new Runtime(connection()));
+        acc_ = runtime_->make_test_account(service_connection_->baseService(), bus_path());
+    }
+
+    void TearDown() override
+    {
+        runtime_.reset();
+    }
+
+    unique_ptr<Runtime> runtime_;
+    Account acc_;
+};
+
 class RuntimeTest : public ProviderFixture {};
-class AccountTest : public ProviderFixture {};
+class AccountTest : public RemoteClientTest {};
+class RootsTest : public RemoteClientTest {};
 
 #if 0
 class DestroyedTest : public ProviderFixture
@@ -188,8 +207,8 @@ TEST_F(AccountTest, basic)
     }
 
     {
-        Runtime rt(connection());
-        auto acc = rt.make_test_account(service_connection_->baseService(), bus_path(), "id", "owner", "description");
+        auto acc = runtime_->make_test_account(service_connection_->baseService(), bus_path(),
+                                               "id", "owner", "description");
         EXPECT_TRUE(acc.isValid());
         EXPECT_EQ("id", acc.ownerId());
         EXPECT_EQ("owner", acc.owner());
@@ -213,7 +232,8 @@ TEST_F(AccountTest, basic)
         EXPECT_FALSE(a2.isValid());
 
         // Moved-from object must be assignable
-        auto a4 = rt.make_test_account(service_connection_->baseService(), bus_path(), "id4", "owner4", "description4");
+        auto a4 = runtime_->make_test_account(service_connection_->baseService(), bus_path(),
+                                              "id4", "owner4", "description4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ("id4", a2.ownerId());
@@ -222,9 +242,8 @@ TEST_F(AccountTest, basic)
     }
 
     {
-        Runtime rt(connection());
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "id", "owner", "description");
-        auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "id2", "owner2", "description2");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "id", "owner", "description");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "id2", "owner2", "description2");
 
         // Copy assignment
         a1 = a2;
@@ -241,7 +260,8 @@ TEST_F(AccountTest, basic)
         EXPECT_EQ("description2", a1.description());
 
         // Move assignment
-        auto a3 = rt.make_test_account(service_connection_->baseService(), bus_path(), "id3", "owner3", "description3");
+        auto a3 = runtime_->make_test_account(service_connection_->baseService(), bus_path(),
+                                              "id3", "owner3", "description3");
         a1 = move(a3);
         EXPECT_TRUE(a1.isValid());
         EXPECT_EQ("id3", a1.ownerId());
@@ -252,7 +272,8 @@ TEST_F(AccountTest, basic)
         EXPECT_FALSE(a3.isValid());
 
         // Moved-from object must be assignable
-        auto a4 = rt.make_test_account(service_connection_->baseService(), bus_path(), "id4", "owner4", "description4");
+        auto a4 = runtime_->make_test_account(service_connection_->baseService(), bus_path(),
+                                              "id4", "owner4", "description4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ("id4", a2.ownerId());
@@ -263,8 +284,6 @@ TEST_F(AccountTest, basic)
 
 TEST_F(AccountTest, comparison)
 {
-    Runtime rt(connection());
-
     {
         // Both accounts invalid.
         Account a1;
@@ -279,7 +298,7 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 valid, a2 invalid
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), bus_path());
         Account a2;
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -299,8 +318,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for owner ID
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "x", "x");
-        auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "b", "x", "x");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "x", "x");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "b", "x", "x");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -320,8 +339,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for owner
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "x");
-        auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "b", "x");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "x");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "b", "x");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -341,8 +360,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for description
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
-        auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "b");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "b");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -362,8 +381,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 == a2
-        auto a1 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
-        auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
 
         EXPECT_TRUE(a1 == a2);
         EXPECT_FALSE(a1 != a2);
@@ -384,13 +403,11 @@ TEST_F(AccountTest, comparison)
 
 TEST_F(AccountTest, hash)
 {
-    Runtime rt(connection());
-
     Account a1;
     EXPECT_EQ(0, a1.hash());
     EXPECT_EQ(a1.hash(), qHash(a1));
 
-    auto a2 = rt.make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
+    auto a2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
     // Due to different return types (size_t vs uint), hash() and qHash() do not return the same value.
     EXPECT_NE(0, a2.hash());
     EXPECT_NE(0, qHash(a2));
@@ -398,43 +415,106 @@ TEST_F(AccountTest, hash)
 
 TEST_F(AccountTest, accounts)
 {
-    Runtime rt(connection());
+    AccountsJob* j = runtime_->accounts();
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(AccountsJob::Loading, j->status());
+    EXPECT_EQ(StorageError::NoError, j->error().type());
+    EXPECT_EQ(QList<Account>(), j->accounts());  // We haven't waited for the result yet.
 
-    AccountsJob* aj = rt.accounts();
-    EXPECT_TRUE(aj->isValid());
-    EXPECT_EQ(AccountsJob::Loading, aj->status());
-    EXPECT_EQ(StorageError::NoError, aj->error().type());
-    EXPECT_EQ(QList<Account>(), aj->accounts());  // We haven't waited for the result yet.
-
-    QSignalSpy spy(aj, &unity::storage::qt::AccountsJob::statusChanged);
+    QSignalSpy spy(j, &unity::storage::qt::AccountsJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
     EXPECT_EQ(AccountsJob::Finished, qvariant_cast<unity::storage::qt::AccountsJob::Status>(arg.at(0)));
 
-    auto accounts = aj->accounts();
-    EXPECT_GT(accounts.size(), 0);
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(AccountsJob::Finished, j->status());
+    EXPECT_EQ(StorageError::NoError, j->error().type());
+
+    auto accounts = j->accounts();
+
+    // We don't check the contents of accounts here because we are using the real online accounts manager
+    // in this test. This means that the number and kind of accounts that are returned depends
+    // on what provider accounts the test user has configured.
 }
 
 TEST_F(AccountTest, runtime_destroyed)
 {
-    Runtime rt(connection());
-    EXPECT_EQ(StorageError::NoError, rt.shutdown().type());  // Destroy runtime.
+    EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime.
 
-    AccountsJob* aj = rt.accounts();
-    EXPECT_FALSE(aj->isValid());
-    EXPECT_EQ(AccountsJob::Error, aj->status());
-    EXPECT_EQ(StorageError::RuntimeDestroyed, aj->error().type());
+    AccountsJob* j = runtime_->accounts();
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(AccountsJob::Error, j->status());
+    EXPECT_EQ(StorageError::RuntimeDestroyed, j->error().type());
     EXPECT_EQ("Runtime::accounts(): Runtime was destroyed previously",
-              aj->error().message()) << aj->error().message().toStdString();
-    EXPECT_EQ(QList<Account>(), aj->accounts());
+              j->error().message()) << j->error().message().toStdString();
+    EXPECT_EQ(QList<Account>(), j->accounts());
 
     // Signal must be received.
-    QSignalSpy spy(aj, &unity::storage::qt::AccountsJob::statusChanged);
+    QSignalSpy spy(j, &unity::storage::qt::AccountsJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
     EXPECT_EQ(AccountsJob::Error, qvariant_cast<unity::storage::qt::AccountsJob::Status>(arg.at(0)));
+}
+
+TEST_F(RootsTest, roots)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider));
+
+    unique_ptr<ItemListJob> j(acc_.roots());
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(ItemListJob::Loading, j->status());
+    EXPECT_EQ(StorageError::NoError, j->error().type());
+
+    // Check that we get the statusChanged and itemsReady signals.
+    QSignalSpy ready_spy(j.get(), &unity::storage::qt::ItemListJob::itemsReady);
+    QSignalSpy status_spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+
+    ASSERT_TRUE(ready_spy.wait(SIGNAL_WAIT_TIME));
+
+    ASSERT_EQ(1, ready_spy.count());
+    auto arg = ready_spy.takeFirst();
+    auto items = qvariant_cast<QList<Item>>(arg.at(0));
+    EXPECT_EQ(1, items.size());
+
+    ASSERT_EQ(1, status_spy.count());
+    arg = status_spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Finished, qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0)));
+    EXPECT_EQ(StorageError::NoError, j->error().type());
+
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(ItemListJob::Finished, j->status());
+    EXPECT_EQ(StorageError::NoError, j->error().type());
+
+    // Check contents of returned item.
+    auto root = items[0];
+    EXPECT_TRUE(root.isValid());
+    EXPECT_EQ(Item::Root, root.type());
+    EXPECT_EQ("root_id", root.itemId());
+    EXPECT_EQ("Root", root.name());
+    EXPECT_EQ("etag", root.etag());
+    EXPECT_EQ(QVector<QString>(), root.parentIds());
+    EXPECT_FALSE(root.lastModifiedTime().isValid());
+}
+
+TEST_F(RootsTest, runtime_destroyed)
+{
+    EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime.
+
+    unique_ptr<ItemListJob> j(acc_.roots());
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(ItemListJob::Error, j->status());
+    EXPECT_EQ(StorageError::RuntimeDestroyed, j->error().type());
+    EXPECT_EQ("Account::roots(): Runtime was destroyed previously",
+              j->error().message()) << j->error().message().toStdString();
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0)));
 }
 
 #if 0

@@ -18,60 +18,59 @@
 
 #pragma once
 
-#include <unity/storage/qt/Account.h>
-#include <unity/storage/qt/StorageError.h>
+#include <unity/storage/qt/ItemJob.h>
 
-#include <QObject>
+#include <unity/storage/qt/Account.h>
+#include <unity/storage/qt/internal/Handler.h>
+#include <unity/storage/qt/StorageError.h>
 
 namespace unity
 {
 namespace storage
 {
+namespace internal
+{
+
+class ItemMetadata;
+
+}
+
 namespace qt
 {
 namespace internal
 {
 
-class AccountsJobImpl;
 class RuntimeImpl;
 
-}  // namespace internal
-
-class Account;
-class Runtime;
-class StorageError;
-
-class Q_DECL_EXPORT AccountsJob final : public QObject
+class ItemJobImpl : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(bool isValid READ isValid FINAL)
-    Q_PROPERTY(unity::storage::qt::AccountsJob::Status status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::storage::qt::StorageError error READ error FINAL)
-    Q_PROPERTY(QList<unity::storage::qt::Account> accounts READ accounts FINAL)
-
 public:
-    enum Status { Loading, Finished, Error };
-    Q_ENUM(Status)
-
-    virtual ~AccountsJob();
+    virtual ~ItemJobImpl() = default;
 
     bool isValid() const;
-    Status status() const;
+    ItemJob::Status status() const;
     StorageError error() const;
-    QList<Account> accounts() const;
-    
-Q_SIGNALS:
-    void statusChanged(unity::storage::qt::AccountsJob::Status status) const;
+    Item item() const;
+
+    static ItemJob* make_item_job(std::shared_ptr<AccountImpl> const& account,
+                                  QString const& method,
+                                  QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply);
 
 private:
-    AccountsJob(std::shared_ptr<internal::RuntimeImpl> const& runtime);
-    AccountsJob(StorageError const& error);
+    ItemJobImpl(std::shared_ptr<AccountImpl> const& account,
+                    QString const& method,
+                    QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply);
 
-    std::unique_ptr<internal::AccountsJobImpl> const p_;
+    ItemJob* public_instance_;
 
-    friend class internal::RuntimeImpl;
+    ItemJob::Status status_;
+    StorageError error_;
+    QString method_;
+    Item item_;
 };
 
+}  // namespace internal
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity

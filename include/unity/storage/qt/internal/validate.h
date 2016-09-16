@@ -18,22 +18,27 @@
 
 #pragma once
 
-#include <unity/storage/qt/StorageError.h>
-
-class QDBusPendingCallWatcher;
+#include <QString>
 
 namespace unity
 {
 namespace storage
 {
+namespace internal
+{
+
+class ItemMetadata;
+
+}  // namespace internal
+
 namespace qt
 {
 namespace internal
 {
 
-StorageError unmarshal_exception(QDBusPendingCallWatcher const& call);
+void validate(QString const& method, unity::storage::internal::ItemMetadata const& md);
 
 }  // namespace internal
-}  // qt
-}  // storage
-}  // unity
+}  // namespace qt
+}  // namespace storage
+}  // namespace unity

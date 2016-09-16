@@ -20,7 +20,9 @@
 
 #include <unity/storage/qt/ConflictPolicy.h>
 
+#include <QDateTime>
 #include <QMetaType>
+#include <QVariantMap>
 
 #include <memory>
 
@@ -50,11 +52,10 @@ class Q_DECL_EXPORT Item final
     Q_GADGET
     Q_PROPERTY(QString itemId READ itemId CONSTANT FINAL)
     Q_PROPERTY(QString name READ name CONSTANT FINAL)
-    Q_PROPERTY(QString parentId READ parentId CONSTANT FINAL)
-    Q_PROPERTY(unity::Storage::qt::Account account READ account CONSTANT FINAL)
-    Q_PROPERTY(unity::Storage::qt::Item root READ root CONSTANT FINAL)
-    Q_PROPERTY(QString eTag READ eTag CONSTANT FINAL)
-    Q_PROPERTY(unity::Storage::qt::Item::Type type READ type CONSTANT FINAL)
+    Q_PROPERTY(unity::storage::qt::Account account READ account CONSTANT FINAL)
+    //Q_PROPERTY(unity::storage::qt::Item root READ root CONSTANT FINAL)
+    Q_PROPERTY(QString etag READ etag CONSTANT FINAL)
+    Q_PROPERTY(unity::storage::qt::Item::Type type READ type CONSTANT FINAL)
     Q_PROPERTY(QVariantMap metadata READ metadata CONSTANT FINAL)
     Q_PROPERTY(QDateTime lastModifiedTime READ lastModifiedTime CONSTANT FINAL)
     Q_PROPERTY(QVector<QString> parentIds READ parentIds CONSTANT FINAL)
@@ -74,7 +75,7 @@ public:
     QString itemId() const;
     QString name() const;
     Account account() const;
-    Item root() const;
+    //Item root() const;
     QString etag() const;
     Type type() const;
     QVariantMap metadata() const;
@@ -108,7 +109,11 @@ public:
     size_t hash() const;
 
 private:
+    Item(std::shared_ptr<internal::ItemImpl> const&);
+
     std::shared_ptr<internal::ItemImpl> p_;
+
+    friend class internal::ItemImpl;
 };
 
 }  // namespace qt

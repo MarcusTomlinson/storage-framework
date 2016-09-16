@@ -60,6 +60,7 @@ public:
     {
         NoError, LocalCommsError, RemoteCommsError, Deleted, RuntimeDestroyed, NotExists,
         Exists, Conflict, PermissionDenied, Cancelled, LogicError, InvalidArgument, ResourceError,
+        QuotaExceeded,
         __LAST_STORAGE_ERROR
     };
     Q_ENUM(Type)

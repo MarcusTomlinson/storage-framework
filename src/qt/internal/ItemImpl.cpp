@@ -18,7 +18,10 @@
 
 #include <unity/storage/qt/internal/ItemImpl.h>
 
-#include <unity/storage/internal/ItemMetadata.h>
+#include <unity/storage/provider/metadata_keys.h>
+#include <unity/storage/qt/internal/validate.h>
+
+#include <cassert>
 
 using namespace std;
 
@@ -33,18 +36,27 @@ namespace internal
 
 ItemImpl::ItemImpl()
     : is_valid_(false)
-    , type_(Item::Type::File)
 {
+    md_.type = storage::ItemType::file;
+}
+
+ItemImpl::ItemImpl(storage::internal::ItemMetadata const& md,
+                   std::shared_ptr<AccountImpl> const& account)
+    : is_valid_(true)
+    , md_(md)
+    , account_(account)
+{
+    assert(account);
 }
 
 QString ItemImpl::itemId() const
 {
-    return is_valid_ ? item_id_ : "";
+    return is_valid_ ? md_.item_id : "";
 }
 
 QString ItemImpl::name() const
 {
-    return is_valid_ ? name_ : "";
+    return is_valid_ ? md_.name : "";
 }
 
 Account ItemImpl::account() const
@@ -52,34 +64,48 @@ Account ItemImpl::account() const
     return is_valid_ ? account_ : Account();
 }
 
+#if 0
 Item ItemImpl::root() const
 {
     return is_valid_ ? root_ : Item();
 }
+#endif
 
 QString ItemImpl::etag() const
 {
-    return is_valid_ ? etag_ : "";
+    return is_valid_ ? md_.etag : "";
 }
 
 Item::Type ItemImpl::type() const
 {
-    return type_;
+    switch (md_.type)
+    {
+        case storage::ItemType::file:
+            return Item::File;
+        case storage::ItemType::folder:
+            return Item::Folder;
+        case storage::ItemType::root:
+            return Item::Root;
+        default:
+            abort();  // LCOV_EXCL_LINE // Impossible
+    }
 }
 
 QVariantMap ItemImpl::metadata() const
 {
-    return is_valid_ ? metadata_ : QVariantMap();
+    // TODO: Need to agree on metadata representation.
+    return is_valid_ ? QVariantMap() : QVariantMap();
 }
 
 QDateTime ItemImpl::lastModifiedTime() const
 {
-    return is_valid_ ? last_modified_time_ : QDateTime();
+    return is_valid_ ? QDateTime::fromString(md_.metadata.value(provider::LAST_MODIFIED_TIME).toString(), Qt::ISODate)
+                     : QDateTime();
 }
 
 QVector<QString> ItemImpl::parentIds() const
 {
-    return is_valid_ ? parent_ids_ : QVector<QString>();
+    return is_valid_ ? md_.parent_ids : QVector<QString>();
 }
 
 ItemListJob* ItemImpl::parents() const
@@ -151,7 +177,7 @@ bool ItemImpl::operator==(ItemImpl const& other) const
 {
     if (is_valid_)
     {
-        return other.is_valid_ && item_id_ == other.item_id_;
+        return other.is_valid_ && md_.item_id == other.md_.item_id;
     }
     return !other.is_valid_;
 }
@@ -165,7 +191,7 @@ bool ItemImpl::operator<(ItemImpl const& other) const
 {
     if (is_valid_)
     {
-        return other.is_valid_ && item_id_ < other.item_id_;
+        return other.is_valid_ && md_.item_id < other.md_.item_id;
     }
     return other.is_valid_;
 }
@@ -191,13 +217,16 @@ size_t ItemImpl::hash() const
     {
         return 0;
     }
-    return qHash(item_id_);
+    return qHash(md_.item_id);
 }
 
-Item ItemImpl::make_item(storage::internal::ItemMetadata const& md,
-                         std::shared_ptr<AccountImpl> account)
+Item ItemImpl::make_item(QString const& method,
+                         storage::internal::ItemMetadata const& md,
+                         std::shared_ptr<AccountImpl> const& account)
 {
-    return Item();
+    validate(method, md);  // Throws if no good.
+    auto p = make_shared<ItemImpl>(md, account);
+    return Item(p);
 }
 
 }  // namespace internal

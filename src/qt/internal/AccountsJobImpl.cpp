@@ -63,18 +63,13 @@ AccountsJobImpl::AccountsJobImpl(AccountsJob* public_instance, shared_ptr<Runtim
 
 AccountsJobImpl::AccountsJobImpl(AccountsJob* public_instance, StorageError const& error)
     : public_instance_(public_instance)
-    , status_(AccountsJob::Error)
+    , status_(AccountsJob::Loading)
     , error_(error)
 {
     assert(public_instance);
     assert(error.type() != StorageError::NoError);
 
-    // We defer emission of the signal so the client gets a chance to connect to the signal
-    // after this constructor completes.
-    QMetaObject::invokeMethod(public_instance_,
-                              "statusChanged",
-                              Qt::QueuedConnection,
-                              Q_ARG(unity::storage::qt::AccountsJob::Status, status_));
+    status_ = emit_status_changed(AccountsJob::Error);
 }
 
 bool AccountsJobImpl::isValid() const
@@ -99,7 +94,7 @@ QList<Account> AccountsJobImpl::accounts() const
     {
         return QList<Account>();
     }
-    if (!isValid())
+    if (status_ != AccountsJob::Finished)
     {
         return QList<Account>();
     }
@@ -113,31 +108,37 @@ void AccountsJobImpl::manager_ready()
     initialize_accounts();
 }
 
+// LCOV_EXCL_START
 void AccountsJobImpl::timeout()
 {
     disconnect(this);
-    status_ = AccountsJob::Error;
     error_ = StorageErrorImpl::local_comms_error("AccountsJob(): timeout retrieving Online accounts");
-    emit_status_changed();
+    status_ = emit_status_changed(AccountsJob::Error);
 }
+// LCOV_EXCL_STOP
 
-void AccountsJobImpl::emit_status_changed() const
+AccountsJob::Status AccountsJobImpl::emit_status_changed(AccountsJob::Status new_status) const
 {
-    if (status_ != AccountsJob::Status::Error)  // Once in the error state, we don't emit the signal again.
+    if (status_ == AccountsJob::Loading)  // Once in a final state, we don't emit the signal again.
     {
-        public_instance_->statusChanged(status_);
+        // We defer emission of the signal so the client gets a chance to connect to the signal
+        // in case we emit the signal from the constructor.
+        QMetaObject::invokeMethod(public_instance_,
+                                  "statusChanged",
+                                  Qt::QueuedConnection,
+                                  Q_ARG(unity::storage::qt::AccountsJob::Status, new_status));
     }
+    return new_status;
 }
 
 shared_ptr<RuntimeImpl> AccountsJobImpl::get_runtime(QString const& method) const
 {
     auto runtime = runtime_.lock();
-    if (!runtime)
+    if (!runtime || !runtime->isValid())
     {
         auto This = const_cast<AccountsJobImpl*>(this);
-        This->status_ = AccountsJob::Error;
         This->error_ = StorageErrorImpl::runtime_destroyed_error(method);
-        emit_status_changed();
+        This->status_ = emit_status_changed(AccountsJob::Error);
     }
     return runtime;
 }
@@ -145,10 +146,7 @@ shared_ptr<RuntimeImpl> AccountsJobImpl::get_runtime(QString const& method) cons
 void AccountsJobImpl::initialize_accounts()
 {
     auto runtime = get_runtime("AccountsJob()");
-    if (!runtime)
-    {
-        return;
-    }
+    assert(runtime);
 
     auto manager = runtime->accounts_manager();
     if (!manager->isReady())
@@ -175,8 +173,7 @@ void AccountsJobImpl::initialize_accounts()
                                                        a->displayName()));
         }
     }
-    status_ = AccountsJob::Status::Finished;
-    emit_status_changed();
+    status_ = emit_status_changed(AccountsJob::Finished);
 }
 
 }  // namespace internal

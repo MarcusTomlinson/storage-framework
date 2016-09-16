@@ -40,8 +40,8 @@ namespace internal
 class RuntimeImpl : public std::enable_shared_from_this<RuntimeImpl>
 {
 public:
-    RuntimeImpl(Runtime* public_instance);
-    RuntimeImpl(Runtime* public_instance, QDBusConnection const& bus);
+    RuntimeImpl();
+    RuntimeImpl(QDBusConnection const& bus);
     RuntimeImpl(RuntimeImpl const&) = delete;
     RuntimeImpl(RuntimeImpl&&) = delete;
     ~RuntimeImpl();
@@ -54,7 +54,6 @@ public:
     AccountsJob* accounts() const;
     StorageError shutdown();
 
-    Runtime* public_instance() const;
     std::shared_ptr<OnlineAccounts::Manager> accounts_manager() const;
 
     Account make_test_account(QString const& bus_name,
@@ -67,8 +66,6 @@ public:
                               QString const& description);
 
 private:
-    Runtime* const public_instance_;
-
     bool is_valid_;
     StorageError error_;
     QDBusConnection conn_;

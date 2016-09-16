@@ -31,15 +31,13 @@ namespace storage
 namespace qt
 {
 
-AccountsJob::AccountsJob(shared_ptr<internal::RuntimeImpl> const& runtime, QObject* parent)
-    : QObject(parent)
-    , p_(new internal::AccountsJobImpl(this, runtime))
+AccountsJob::AccountsJob(shared_ptr<internal::RuntimeImpl> const& runtime)
+    : p_(new internal::AccountsJobImpl(this, runtime))
 {
 }
 
-AccountsJob::AccountsJob(StorageError const& error, QObject* parent)
-    : QObject(parent)
-    , p_(new internal::AccountsJobImpl(this, error))
+AccountsJob::AccountsJob(StorageError const& error)
+    : p_(new internal::AccountsJobImpl(this, error))
 {
 }
 

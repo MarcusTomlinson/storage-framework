@@ -31,13 +31,13 @@ namespace qt
 
 Runtime::Runtime(QObject* parent)
     : QObject(parent)
-    , p_(new internal::RuntimeImpl(this))
+    , p_(new internal::RuntimeImpl)
 {
 }
 
 Runtime::Runtime(QDBusConnection const& bus, QObject* parent)
     : QObject(parent)
-    , p_(new internal::RuntimeImpl(this, bus))
+    , p_(new internal::RuntimeImpl(bus))
 {
 }
 

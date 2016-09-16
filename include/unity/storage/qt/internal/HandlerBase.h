@@ -43,14 +43,8 @@ class HandlerBase : public QObject
     Q_OBJECT
 
 public:
-    // TODO: HACK: gcc 4.9 bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60420
-    //             Once we get rid of Vivid, this should be changed back to
-    //
-    //             HandlerBase(QObject* parent,
-    //                         QDBusPendingCall const& call,
-    //                         std::function<void(QDBusPendingCallWatcher const&)> const& closure);
     HandlerBase(QObject* parent,
-                QDBusPendingCall& call,
+                QDBusPendingCall const& call,
                 std::function<void(QDBusPendingCallWatcher&)> const& closure);
 
 public Q_SLOTS:

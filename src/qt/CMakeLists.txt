@@ -19,6 +19,7 @@ set(QT_CLIENT_LIB_V2_SRC
     Account.cpp
     AccountsJob.cpp
     Item.cpp
+    ItemJob.cpp
     ItemListJob.cpp
     Runtime.cpp
     StorageError.cpp
@@ -26,14 +27,21 @@ set(QT_CLIENT_LIB_V2_SRC
     internal/AccountsJobImpl.cpp
     internal/HandlerBase.cpp
     internal/ItemImpl.cpp
+    internal/ItemJobImpl.cpp
     internal/ItemListJobImpl.cpp
     internal/RuntimeImpl.cpp
     internal/StorageErrorImpl.cpp
+    internal/unmarshal_error.cpp
+    internal/validate.cpp
     ${generated_files}
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/AccountsJob.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Item.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/ItemJob.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/ItemListJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Runtime.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/AccountsJobImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/HandlerBase.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemJobImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemListJobImpl.h
 )
 

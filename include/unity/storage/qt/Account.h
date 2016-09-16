@@ -32,6 +32,7 @@ namespace internal
 {
 
 class AccountImpl;
+class ItemImpl;
 
 }
 
@@ -75,6 +76,7 @@ private:
     std::shared_ptr<internal::AccountImpl> p_;
 
     friend class internal::AccountImpl;
+    friend class internal::ItemImpl;
 };
 
 }  // namespace qt

@@ -49,3 +49,6 @@ struct ItemMetadata
 }  // namespace internal
 }  // namespace storage
 }  // namespace unity
+
+Q_DECLARE_METATYPE(unity::storage::internal::ItemMetadata)
+Q_DECLARE_METATYPE(QList<unity::storage::internal::ItemMetadata>)

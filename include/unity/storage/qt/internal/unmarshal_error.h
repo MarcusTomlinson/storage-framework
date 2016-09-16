@@ -16,12 +16,11 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/ItemListJob.h>
+#pragma once
 
-#include <unity/storage/qt/internal/ItemListJobImpl.h>
+#include <unity/storage/qt/StorageError.h>
 
-using namespace unity::storage::qt;
-using namespace std;
+class QDBusPendingCallWatcher;
 
 namespace unity
 {
@@ -29,29 +28,12 @@ namespace storage
 {
 namespace qt
 {
-
-ItemListJob::ItemListJob(unique_ptr<internal::ItemListJobImpl> p)
-    : p_(move(p))
+namespace internal
 {
-}
 
-ItemListJob::~ItemListJob() = default;
+StorageError unmarshal_error(QDBusPendingCallWatcher const& call);
 
-bool ItemListJob::isValid() const
-{
-    return p_->isValid();
-}
-
-ItemListJob::Status ItemListJob::status() const
-{
-    return p_->status();
-}
-
-StorageError ItemListJob::error() const
-{
-    return p_->error();
-}
-
+}  // namespace internal
 }  // namespace qt
-}  // namespace storage
-}  // namespace unity
+}  // storage
+}  // unity

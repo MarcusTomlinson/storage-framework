@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/Account.h>
 #include <unity/storage/qt/Item.h>
 
@@ -34,24 +35,20 @@ namespace unity
 {
 namespace storage
 {
-namespace internal
-{
-
-class ItemMetadata;
-
-}
-
 namespace qt
 {
 namespace internal
 {
 
 class AccountImpl;
+class RootImpl;
 
 class ItemImpl
 {
 public:
     ItemImpl();
+    ItemImpl(storage::internal::ItemMetadata const& md,
+             std::shared_ptr<AccountImpl> const& account);
     ItemImpl(ItemImpl const&) = default;
     ItemImpl(ItemImpl&&) = delete;
     ~ItemImpl() = default;
@@ -61,7 +58,7 @@ public:
     QString itemId() const;
     QString name() const;
     Account account() const;
-    Item root() const;
+    //Item root() const;
     QString etag() const;
     Item::Type type() const;
     QVariantMap metadata() const;
@@ -91,19 +88,15 @@ public:
 
     size_t hash() const;
 
-    static Item make_item(storage::internal::ItemMetadata const& md, std::shared_ptr<AccountImpl> account);
+    static Item make_item(QString const& method,
+                          storage::internal::ItemMetadata const& md,
+                          std::shared_ptr<AccountImpl> const& account);
 
 private:
     bool is_valid_;
-    QString item_id_;
-    QString name_;
-    Account account_;
-    Item root_;
-    QString etag_;
-    Item::Type type_;
-    QVariantMap metadata_;
-    QDateTime last_modified_time_;
-    QVector<QString> parent_ids_;
+    storage::internal::ItemMetadata md_;
+    std::shared_ptr<AccountImpl> account_;
+    //std::shared_ptr<RootImpl> root_;
 
     friend class unity::storage::qt::Item;
 };

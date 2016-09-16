@@ -82,34 +82,26 @@ QString AccountImpl::description() const
 ItemListJob* AccountImpl::roots() const
 {
     auto runtime = runtime_.lock();
-    // TODO: check if runtime destroyed here
+    if (!runtime || !runtime->isValid())
+    {
+        auto e = StorageErrorImpl::runtime_destroyed_error("Account::roots(): Runtime was destroyed previously");
+        return ItemListJobImpl::make_item_list_job(e);
+    }
+
+    auto validate = [](storage::internal::ItemMetadata const& md)
+    {
+        if (md.type != ItemType::root)
+        {
+            qCritical() << "Account::roots(): provider returned non-root item type: " << int(md.type);
+            return false;
+        }
+        return true;
+    };
 
     QString method = "Account::roots()";
     auto reply = provider_->Roots();
     auto This = const_pointer_cast<AccountImpl>(shared_from_this());
-    auto process_reply = [This, method](decltype(reply) const& r)
-    {
-        QVector<Item> roots;
-        auto metadata = r.value();
-        for (auto const& md : metadata)
-        {
-            if (md.type != ItemType::root)
-            {
-                // LCOV_EXCL_START
-                qCritical().nospace() << method << ": invalid non-root item received from provider";
-                continue;
-                // LCOV_EXCL_STOP
-            }
-            auto root = ItemImpl::make_item(md, This);
-            roots.append(root);
-        }
-        return roots;
-    };
-
-    return ItemListJobImpl::make_item_list_job(This,
-                                               method,
-                                               process_reply,
-                                               runtime->public_instance()->parent());
+    return ItemListJobImpl::make_item_list_job(This, method, reply, validate);
 }
 
 bool AccountImpl::operator==(AccountImpl const& other) const

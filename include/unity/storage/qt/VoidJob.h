@@ -37,7 +37,6 @@ class Q_DECL_EXPORT VoidJob final : public QObject
     Q_PROPERTY(unity::storage::qt::StorageError READ error FINAL)
 
 public:
-    VoidJob(QObject* parent = nullptr);
     virtual ~VoidJob();
 
     enum Status { Loading, Finished, Error };

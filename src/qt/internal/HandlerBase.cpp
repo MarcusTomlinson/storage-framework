@@ -37,7 +37,7 @@ namespace internal
 {
 
 HandlerBase::HandlerBase(QObject* parent,
-                         QDBusPendingCall& call,
+                         QDBusPendingCall const& call,
                          function<void(QDBusPendingCallWatcher&)> const& closure)
     : QObject(parent)
     , watcher_(call)

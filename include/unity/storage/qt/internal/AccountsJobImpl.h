@@ -37,11 +37,7 @@ class AccountsJobImpl : public QObject
 public:
     AccountsJobImpl(AccountsJob* public_instance, std::shared_ptr<RuntimeImpl> const& runtime);
     AccountsJobImpl(AccountsJob* public_instance, StorageError const& error);
-    AccountsJobImpl(AccountsJobImpl const&) = default;
-    AccountsJobImpl(AccountsJobImpl&&) = delete;
     virtual ~AccountsJobImpl() = default;
-    AccountsJobImpl& operator=(AccountsJobImpl const&) = default;
-    AccountsJobImpl& operator=(AccountsJobImpl&&) = delete;
 
     bool isValid() const;
     AccountsJob::Status status() const;
@@ -51,11 +47,11 @@ public:
 private Q_SLOTS:
     void manager_ready();
     void timeout();
-    void emit_status_changed() const;
 
 private:
     std::shared_ptr<RuntimeImpl> get_runtime(QString const& method) const;
     void initialize_accounts();
+    AccountsJob::Status emit_status_changed(AccountsJob::Status new_status) const;
 
     AccountsJob* const public_instance_;
 

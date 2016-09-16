@@ -20,24 +20,32 @@
 
 #include <QObject>
 
+#include <memory>
+
 namespace unity
 {
 namespace storage
 {
 namespace qt
 {
+namespace internal
+{
+
+class ItemListJobImpl;
+
+}  // namespace internal
 
 class Item;
 class StorageError;
 
 class Q_DECL_EXPORT ItemListJob final : public QObject
 {
-    Q_PROPERTY(bool READ isValid FINAL)
-    Q_PROPERTY(unity::Storage::ItemJob::Status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::Storage::StorageError READ error FINAL)
+    Q_OBJECT
+    Q_PROPERTY(bool isValid READ isValid FINAL)
+    Q_PROPERTY(unity::storage::qt::ItemListJob::Status status READ status NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError error READ error FINAL)
 
 public:
-    ItemListJob(QObject* parent = nullptr);
     virtual ~ItemListJob();
 
     enum Status { Loading, Finished, Error };
@@ -50,6 +58,13 @@ public:
 Q_SIGNALS:
     void statusChanged(unity::storage::qt::ItemListJob::Status status) const;
     void itemsReady(QList<unity::storage::qt::Item> const& items) const;
+
+private:
+    ItemListJob(std::unique_ptr<internal::ItemListJobImpl> p);
+
+    std::unique_ptr<internal::ItemListJobImpl> const p_;
+
+    friend class internal::ItemListJobImpl;
 };
 
 }  // namespace qt
