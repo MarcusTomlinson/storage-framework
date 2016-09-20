@@ -42,10 +42,10 @@ class ItemListJob;
 class Q_DECL_EXPORT Account final
 {
     Q_GADGET
-    Q_PROPERTY(bool READ isValid FINAL)
-    Q_PROPERTY(QString READ owner FINAL)
-    Q_PROPERTY(QString READ ownerId FINAL)
-    Q_PROPERTY(QString READ description FINAL)
+    Q_PROPERTY(bool READ isValid CONSTANT FINAL)
+    Q_PROPERTY(QString READ owner CONSTANT FINAL)
+    Q_PROPERTY(QString READ ownerId CONSTANT FINAL)
+    Q_PROPERTY(QString READ description CONSTANT FINAL)
 
 public:
     Account();

@@ -33,7 +33,7 @@ class StorageError;
 class Q_DECL_EXPORT Downloader final : public QIODevice
 {
     Q_OBJECT
-    Q_PROPERTY(bool isValid READ isValid FINAL)
+    Q_PROPERTY(bool isValid READ isValid FINAL) // TODO: Need notify and constant where appropriate
     Q_PROPERTY(unity::Storage::qt::Downloader::Status status READ status NOTIFY statusChanged FINAL)
     Q_PROPERTY(unity::Storage::qt::StorageError error READ error FINAL)
     Q_PROPERTY(unity::Storage::qt::Item item READ item FINAL)
@@ -50,8 +50,10 @@ public:
     StorageError error() const;
     Item item() const;
 
-    Q_INVOKABLE void finishDownload();
+    Q_INVOKABLE void finishDownload(); // TODO: finish()
     Q_INVOKABLE void cancel();
+
+    // TODO: will probably need QML invokable methods for reading and writing to/from QIODevice
     
 Q_SIGNALS:
     void statusChanged(unity::storage::qt::Downloader::Status status) const;

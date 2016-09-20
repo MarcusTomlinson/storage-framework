@@ -121,6 +121,7 @@ ItemJob* ItemJobImpl::make_item_job(StorageError const& error)
 
 ItemJob::Status ItemJobImpl::emit_status_changed(ItemJob::Status new_status) const
 {
+    // TODO: should be an assert!
     if (status_ == ItemJob::Loading)  // Once in a final state, we don't emit the signal again.
     {
         QMetaObject::invokeMethod(public_instance_,

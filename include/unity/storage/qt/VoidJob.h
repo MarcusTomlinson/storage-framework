@@ -31,6 +31,7 @@ class StorageError;
 
 class Q_DECL_EXPORT VoidJob final : public QObject
 {
+    // TODO: notify, CONSTANT where needed
     Q_OBJECT
     Q_PROPERTY(bool READ isValid FINAL)
     Q_PROPERTY(unity::storage::qt::VoidJob::Status READ status NOTIFY statusChanged FINAL)

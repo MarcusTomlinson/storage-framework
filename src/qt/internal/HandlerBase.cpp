@@ -57,5 +57,3 @@ void HandlerBase::finished(QDBusPendingCallWatcher* call)
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-#include "HandlerBase.moc"

@@ -155,7 +155,7 @@ void AccountsJobImpl::initialize_accounts()
         connect(manager.get(), &OnlineAccounts::Manager::ready, this, &AccountsJobImpl::manager_ready);
         connect(&timer_, &QTimer::timeout, this, &AccountsJobImpl::timeout);
         timer_.setSingleShot(true);
-        timer_.start(30000);
+        timer_.start(30000);  // TODO: Need config for this eventually.
         return;
     }
 

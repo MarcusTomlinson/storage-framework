@@ -57,6 +57,7 @@ void register_meta_types()
 
 }
 
+// TODO: chain the two constructors.
 RuntimeImpl::RuntimeImpl()
     : is_valid_(true)
     , conn_(QDBusConnection::sessionBus())

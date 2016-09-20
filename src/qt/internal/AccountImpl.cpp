@@ -114,6 +114,7 @@ ItemJob* AccountImpl::get(QString const& itemId) const
         return ItemJobImpl::make_item_job(e);
     }
 
+    // TODO: use defaulted param?
     auto validate = [](storage::internal::ItemMetadata const&)
     {
     };

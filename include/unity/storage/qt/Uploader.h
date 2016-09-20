@@ -35,7 +35,7 @@ class StorageError;
 class Q_DECL_EXPORT Uploader final : public QIODevice
 {
     Q_OBJECT
-    Q_PROPERTY(bool isValid READ isValid FINAL)
+    Q_PROPERTY(bool isValid READ isValid FINAL) // TODO: Need notify
     Q_PROPERTY(unity::storage::qt::Uploader::Status status READ status FINAL)
     Q_PROPERTY(unity::storage::qt::StorageError READ error FINAL)
     Q_PROPERTY(unity::storage::qt::ConflictPolicy policy READ policy FINAL)

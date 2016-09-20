@@ -121,6 +121,7 @@ ItemListJob* ItemListJobImpl::make_item_list_job(StorageError const& error)
 
 ItemListJob::Status ItemListJobImpl::emit_status_changed(ItemListJob::Status new_status) const
 {
+    // TODO: use assert
     if (status_ == ItemListJob::Loading)  // Once in a final state, we don't emit the signal again.
     {
         // We defer emission of the signal so the client gets a chance to connect to the signal
