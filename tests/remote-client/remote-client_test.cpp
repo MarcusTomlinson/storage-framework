@@ -54,114 +54,7 @@ protected:
 class RuntimeTest : public ProviderFixture {};
 class AccountTest : public RemoteClientTest {};
 class RootsTest : public RemoteClientTest {};
-
-#if 0
-class DestroyedTest : public ProviderFixture
-{
-protected:
-    void SetUp() override
-    {
-        runtime_ = Runtime::create(connection());
-        acc_ = runtime_->make_test_account(service_connection_->baseService(), bus_path());
-    }
-
-    void TearDown() override
-    {
-    }
-
-    Runtime::SPtr runtime_;
-    Account::SPtr acc_;
-};
-
-// Bunch of helper functions to reduce the amount of noise in the tests.
-
-template<typename T>
-bool wait(T fut)
-{
-    QFutureWatcher<decltype(fut.result())> w;
-    QSignalSpy spy(&w, &decltype(w)::finished);
-    w.setFuture(fut);
-    bool rc = spy.wait(SIGNAL_WAIT_TIME);
-    EXPECT_TRUE(rc);
-    return rc;
-}
-
-template<>
-bool wait(QFuture<void> fut)
-{
-    QFutureWatcher<void> w;
-    QSignalSpy spy(&w, &decltype(w)::finished);
-    w.setFuture(fut);
-    bool rc = spy.wait(SIGNAL_WAIT_TIME);
-    EXPECT_TRUE(rc);
-    return rc;
-}
-
-template <typename T>
-T call(QFuture<T> fut)
-{
-    if (!wait(fut))
-    {
-        throw runtime_error("call timed out");
-    }
-    return fut.result();
-}
-
-template <>
-void call(QFuture<void> fut)
-{
-    if (!wait(fut))
-    {
-        throw runtime_error("call timed out");
-    }
-    fut.waitForFinished();
-}
-
-Account::SPtr get_account(Runtime::SPtr const& runtime)
-{
-    auto accounts = call(runtime->accounts());
-    if (accounts.size() == 0)
-    {
-        qCritical() << "Cannot find any online account";
-        qCritical() << "Configure at least one online account for a provider in System Settings -> Online Accounts";
-        return nullptr;
-    }
-    for (auto acc : accounts)
-    {
-        if (acc->owner_id() == "google-drive-scope")
-        {
-            return acc;
-        }
-    }
-    abort();  // Impossible
-}
-
-Root::SPtr get_root(Runtime::SPtr const& runtime)
-{
-    auto acc = get_account(runtime);
-    auto roots = call(acc->roots());
-    assert(roots.size() == 1);
-    return roots[0];
-}
-
-Folder::SPtr get_parent(Item::SPtr const& item)
-{
-    assert(item->type() != ItemType::root);
-    auto parents = call(item->parents());
-    assert(parents.size() >= 1);
-    return parents[0];
-}
-
-void clear_folder(Folder::SPtr const& folder)
-{
-    auto items = call(folder->list());
-    assert(items.size() != 0);  // TODO: temporary hack for use with demo provider
-    for (auto i : items)
-    {
-        call(i->delete_item());
-    }
-}
-#endif
+class ItemTest : public RemoteClientTest {};
 
 TEST(Runtime, lifecycle)
 {
@@ -415,13 +308,13 @@ TEST_F(AccountTest, hash)
 
 TEST_F(AccountTest, accounts)
 {
-    AccountsJob* j = runtime_->accounts();
+    unique_ptr<AccountsJob> j(runtime_->accounts());
     EXPECT_TRUE(j->isValid());
     EXPECT_EQ(AccountsJob::Loading, j->status());
     EXPECT_EQ(StorageError::NoError, j->error().type());
     EXPECT_EQ(QList<Account>(), j->accounts());  // We haven't waited for the result yet.
 
-    QSignalSpy spy(j, &unity::storage::qt::AccountsJob::statusChanged);
+    QSignalSpy spy(j.get(), &unity::storage::qt::AccountsJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
@@ -496,6 +389,7 @@ TEST_F(RootsTest, roots)
     EXPECT_EQ("etag", root.etag());
     EXPECT_EQ(QVector<QString>(), root.parentIds());
     EXPECT_FALSE(root.lastModifiedTime().isValid());
+    EXPECT_EQ(acc_, root.account());
 }
 
 TEST_F(RootsTest, runtime_destroyed)
@@ -517,29 +411,130 @@ TEST_F(RootsTest, runtime_destroyed)
     EXPECT_EQ(ItemListJob::Error, qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0)));
 }
 
+TEST_F(ItemTest, comparison)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider));
+
+    {
+        // Both items invalid.
+        Item i1;
+        Item a2;
+        EXPECT_TRUE(i1 == a2);
+        EXPECT_FALSE(i1 != a2);
+        EXPECT_FALSE(i1 < a2);
+        EXPECT_TRUE(i1 <= a2);
+        EXPECT_FALSE(i1 > a2);
+        EXPECT_TRUE(i1 >= a2);
+    }
+
 #if 0
-TEST_F(RuntimeTest, basic)
-{
-    auto runtime = Runtime::create(connection());
+    {
+        // i1 valid, i2 invalid
+        auto i1 = runtime_->make_test_account(service_connection_->baseService(), bus_path());
+        Account i2;
+        EXPECT_FALSE(i1 == i2);
+        EXPECT_TRUE(i1 != i2);
+        EXPECT_FALSE(i1 < i2);
+        EXPECT_FALSE(i1 <= i2);
+        EXPECT_TRUE(i1 > i2);
+        EXPECT_TRUE(i1 >= i2);
 
-    auto acc = get_account(runtime);
-    EXPECT_EQ(runtime, acc->runtime());
-    EXPECT_EQ("", acc->owner());
-    EXPECT_EQ("google-drive-scope", acc->owner_id());
-    EXPECT_EQ("Fake google account", acc->description());
+        // And with swapped operands:
+        EXPECT_FALSE(i2 == i1);
+        EXPECT_TRUE(i2 != i1);
+        EXPECT_TRUE(i2 < i1);
+        EXPECT_TRUE(i2 <= i1);
+        EXPECT_FALSE(i2 > i1);
+        EXPECT_FALSE(i2 >= i1);
+    }
+
+    {
+        // i1 < i2 for owner ID
+        auto i1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "x", "x");
+        auto i2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "b", "x", "x");
+
+        EXPECT_FALSE(i1 == i2);
+        EXPECT_TRUE(i1 != i2);
+        EXPECT_TRUE(i1 < i2);
+        EXPECT_TRUE(i1 <= i2);
+        EXPECT_FALSE(i1 > i2);
+        EXPECT_FALSE(i1 >= i2);
+
+        // And with swapped operands:
+        EXPECT_FALSE(i2 == i1);
+        EXPECT_TRUE(i2 != i1);
+        EXPECT_FALSE(i2 < i1);
+        EXPECT_FALSE(i2 <= i1);
+        EXPECT_TRUE(i2 > i1);
+        EXPECT_TRUE(i2 >= i1);
+    }
+
+    {
+        // i1 < i2 for owner
+        auto i1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "x");
+        auto i2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "b", "x");
+
+        EXPECT_FALSE(i1 == i2);
+        EXPECT_TRUE(i1 != i2);
+        EXPECT_TRUE(i1 < i2);
+        EXPECT_TRUE(i1 <= i2);
+        EXPECT_FALSE(i1 > i2);
+        EXPECT_FALSE(i1 >= i2);
+
+        // And with swapped operands:
+        EXPECT_FALSE(i2 == i1);
+        EXPECT_TRUE(i2 != i1);
+        EXPECT_FALSE(i2 < i1);
+        EXPECT_FALSE(i2 <= i1);
+        EXPECT_TRUE(i2 > i1);
+        EXPECT_TRUE(i2 >= i1);
+    }
+
+    {
+        // i1 < i2 for description
+        auto i1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
+        auto i2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "b");
+
+        EXPECT_FALSE(i1 == i2);
+        EXPECT_TRUE(i1 != i2);
+        EXPECT_TRUE(i1 < i2);
+        EXPECT_TRUE(i1 <= i2);
+        EXPECT_FALSE(i1 > i2);
+        EXPECT_FALSE(i1 >= i2);
+
+        // And with swapped operands:
+        EXPECT_FALSE(i2 == i1);
+        EXPECT_TRUE(i2 != i1);
+        EXPECT_FALSE(i2 < i1);
+        EXPECT_FALSE(i2 <= i1);
+        EXPECT_TRUE(i2 > i1);
+        EXPECT_TRUE(i2 >= i1);
+    }
+
+    {
+        // i1 == i2
+        auto i1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
+        auto i2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
+
+        EXPECT_TRUE(i1 == i2);
+        EXPECT_FALSE(i1 != i2);
+        EXPECT_FALSE(i1 < i2);
+        EXPECT_TRUE(i1 <= i2);
+        EXPECT_FALSE(i1 > i2);
+        EXPECT_TRUE(i1 >= i2);
+
+        // And with swapped operands:
+        EXPECT_TRUE(i2 == i1);
+        EXPECT_FALSE(i2 != i1);
+        EXPECT_FALSE(i2 < i1);
+        EXPECT_TRUE(i2 <= i1);
+        EXPECT_FALSE(i2 > i1);
+        EXPECT_TRUE(i2 >= i1);
+    }
+#endif
 }
 
-TEST_F(RuntimeTest, roots)
-{
-    auto runtime = Runtime::create(connection());
-
-    auto acc = get_account(runtime);
-    ASSERT_NE(nullptr, acc);
-    auto roots = call(acc->roots());
-    ASSERT_GE(roots.size(), 0);
-    EXPECT_EQ("root_id", roots[0]->native_identity());
-}
-
+#if 0
 TEST_F(RootTest, basic)
 {
     auto runtime = Runtime::create(connection());

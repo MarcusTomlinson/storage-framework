@@ -37,7 +37,7 @@ namespace internal
 ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
                                  QString const& method,
                                  QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                                 std::function<bool(storage::internal::ItemMetadata const&)> const& validate)
+                                 std::function<void(storage::internal::ItemMetadata const&)> const& validate)
     : status_(ItemListJob::Loading)
     , method_(method)
     , account_(account)
@@ -53,18 +53,15 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
         auto metadata = r.value();
         for (auto const& md : metadata)
         {
-            if (!validate_(md))
-            {
-                continue;
-            }
             try
             {
+                validate_(md);
                 auto item = ItemImpl::make_item(method_, md, account_);
                 items.append(item);
             }
-            catch (StorageError const& e)
+            catch (StorageError const&)
             {
-                // Bad metadata received from provider, make_item() has logged it.
+                // Bad metadata received from provider, validate_() or make_item() have logged it.
             }
         }
         emit_items_ready(items);
@@ -105,7 +102,7 @@ ItemListJob* ItemListJobImpl::make_item_list_job(
                                 shared_ptr<AccountImpl> const& account,
                                 QString const& method,
                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                                std::function<bool(storage::internal::ItemMetadata const&)> const& validate)
+                                std::function<void(storage::internal::ItemMetadata const&)> const& validate)
 {
     unique_ptr<ItemListJobImpl> impl(new ItemListJobImpl(account, method, reply, validate));
     auto job = new ItemListJob(move(impl));

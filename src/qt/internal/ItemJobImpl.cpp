@@ -18,8 +18,10 @@
 
 #include <unity/storage/qt/internal/ItemJobImpl.h>
 
+#include <unity/storage/internal/dbusmarshal.h>
 #include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/internal/Handler.h>
+#include <unity/storage/qt/internal/ItemImpl.h>
 
 using namespace std;
 
@@ -33,28 +35,48 @@ namespace internal
 {
 
 ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account,
-                                 QString const& method,
-                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply)
+                         QString const& method,
+                         QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                         std::function<void(storage::internal::ItemMetadata const&)> const& validate)
     : status_(ItemJob::Loading)
     , method_(method)
+    , account_(account)
+    , validate_(validate)
 {
     assert(!method.isEmpty());
+    assert(account);
+    assert(validate);
 
     auto process_reply = [this](decltype(reply) const& r)
     {
-        qDebug() << "ItemJobImpl process_reply callback";
-        status_ = ItemJob::Finished;
-        Q_EMIT public_instance_->statusChanged(status_);
+        auto metadata = r.value();
+        try
+        {
+            validate_(metadata);
+            item_ = ItemImpl::make_item(method_, metadata, account_);
+            status_ = emit_status_changed(ItemJob::Finished);
+        }
+        catch (StorageError const& e)
+        {
+            // Bad metadata received from provider, validate_() or make_item() have logged it.
+            error_ = e;
+            status_ = emit_status_changed(ItemJob::Error);
+        }
     };
 
     auto process_error = [this](StorageError const& error)
     {
-        status_ = ItemJob::Error;
         error_ = error;
-        Q_EMIT public_instance_->statusChanged(status_);
+        status_ = emit_status_changed(ItemJob::Error);
     };
 
-    new Handler<QList<storage::internal::ItemMetadata>>(this, reply, process_reply, process_error);
+    new Handler<storage::internal::ItemMetadata>(this, reply, process_reply, process_error);
+}
+
+ItemJobImpl::ItemJobImpl(StorageError const& error)
+    : status_(ItemJob::Loading)
+    , error_(error)
+{
 }
 
 bool ItemJobImpl::isValid() const
@@ -79,12 +101,34 @@ Item ItemJobImpl::item() const
 
 ItemJob* ItemJobImpl::make_item_job(shared_ptr<AccountImpl> const& account,
                                     QString const& method,
-                                    QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply)
+                                    QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                                    std::function<void(storage::internal::ItemMetadata const&)> const& validate)
 {
-    unique_ptr<ItemJobImpl> impl(new ItemJobImpl(account, method, reply));
+    unique_ptr<ItemJobImpl> impl(new ItemJobImpl(account, method, reply, validate));
     auto job = new ItemJob(move(impl));
     job->p_->public_instance_ = job;
     return job;
+}
+
+ItemJob* ItemJobImpl::make_item_job(StorageError const& error)
+{
+    unique_ptr<ItemJobImpl> impl(new ItemJobImpl(error));
+    auto job = new ItemJob(move(impl));
+    job->p_->public_instance_ = job;
+    job->p_->status_ = job->p_->emit_status_changed(ItemJob::Error);
+    return job;
+}
+
+ItemJob::Status ItemJobImpl::emit_status_changed(ItemJob::Status new_status) const
+{
+    if (status_ == ItemJob::Loading)  // Once in a final state, we don't emit the signal again.
+    {
+        QMetaObject::invokeMethod(public_instance_,
+                                  "statusChanged",
+                                  Qt::QueuedConnection,
+                                  Q_ARG(unity::storage::qt::ItemJob::Status, new_status));
+    }
+    return new_status;
 }
 
 }  // namespace internal

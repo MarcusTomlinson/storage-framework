@@ -18,7 +18,11 @@
 
 #include <unity/storage/qt/internal/ItemImpl.h>
 
+#include "ProviderInterface.h"
 #include <unity/storage/provider/metadata_keys.h>
+#include <unity/storage/qt/internal/AccountImpl.h>
+#include <unity/storage/qt/internal/ItemJobImpl.h>
+#include <unity/storage/qt/internal/RuntimeImpl.h>
 #include <unity/storage/qt/internal/validate.h>
 
 #include <cassert>
@@ -158,11 +162,6 @@ Uploader* ItemImpl::createFile(QString const& name) const
     return nullptr;  // TODO
 }
 
-ItemJob* ItemImpl::get(QString const& itemId) const
-{
-    return nullptr;  // TODO
-}
-
 IntJob* ItemImpl::freeSpaceBytes() const
 {
     return nullptr;  // TODO
@@ -228,6 +227,20 @@ Item ItemImpl::make_item(QString const& method,
     auto p = make_shared<ItemImpl>(md, account);
     return Item(p);
 }
+
+#if 0
+shared_ptr<RuntimeImpl> ItemImpl::get_runtime(QString const& method) const
+{
+    auto runtime = account_->runtime_.lock();
+    if (!runtime || !runtime->isValid())
+    {
+        QString msg = method + ": Runtime was destroyed previously";
+        auto This = const_cast<ItemImpl*>(this);
+        This->error_ = StorageErrorImpl::runtime_destroyed_error(msg);
+    }
+    return runtime;
+}
+#endif
 
 }  // namespace internal
 }  // namespace qt

@@ -95,7 +95,6 @@ public:
     Q_INVOKABLE ItemJob* createFolder(QString const& name) const;
     Q_INVOKABLE Uploader* createFile(QString const& name) const;
 
-    Q_INVOKABLE ItemJob* get(QString const& itemId) const;
     Q_INVOKABLE IntJob* freeSpaceBytes() const;
     Q_INVOKABLE IntJob* usedSpaceBytes() const;
 

@@ -175,11 +175,6 @@ Uploader* Item::createFile(QString const& name) const
     return p_->createFile(name);
 }
 
-ItemJob* Item::get(QString const& itemId) const
-{
-    return p_->get(itemId);
-}
-
 IntJob* Item::freeSpaceBytes() const
 {
     return p_->freeSpaceBytes();

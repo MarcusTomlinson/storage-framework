@@ -136,8 +136,9 @@ shared_ptr<RuntimeImpl> AccountsJobImpl::get_runtime(QString const& method) cons
     auto runtime = runtime_.lock();
     if (!runtime || !runtime->isValid())
     {
+        QString msg = method + ": Runtime was destroyed previously";
         auto This = const_cast<AccountsJobImpl*>(this);
-        This->error_ = StorageErrorImpl::runtime_destroyed_error(method);
+        This->error_ = StorageErrorImpl::runtime_destroyed_error(msg);
         This->status_ = emit_status_changed(AccountsJob::Error);
     }
     return runtime;

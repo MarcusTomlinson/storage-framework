@@ -36,6 +36,7 @@ class ItemImpl;
 
 }
 
+class ItemJob;
 class ItemListJob;
 
 class Q_DECL_EXPORT Account final
@@ -60,6 +61,7 @@ public:
     QString description() const;
 
     Q_INVOKABLE ItemListJob* roots() const;
+    Q_INVOKABLE ItemJob* get(QString const& itemId) const;
 
     bool operator==(Account const&) const;
     bool operator!=(Account const&) const;

@@ -98,6 +98,11 @@ ItemListJob* Account::roots() const
     return p_->roots();
 }
 
+ItemJob* Account::get(QString const& itemId) const
+{
+    return p_->get(itemId);
+}
+
 bool Account::operator==(Account const& other) const
 {
     return p_->operator==(*other.p_);

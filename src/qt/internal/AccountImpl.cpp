@@ -21,6 +21,7 @@
 #include "ProviderInterface.h"
 #include <unity/storage/qt/Account.h>
 #include <unity/storage/qt/internal/ItemImpl.h>
+#include <unity/storage/qt/internal/ItemJobImpl.h>
 #include <unity/storage/qt/internal/ItemListJobImpl.h>
 #include <unity/storage/qt/internal/RuntimeImpl.h>
 #include <unity/storage/qt/Runtime.h>
@@ -92,16 +93,35 @@ ItemListJob* AccountImpl::roots() const
     {
         if (md.type != ItemType::root)
         {
-            qCritical() << "Account::roots(): provider returned non-root item type: " << int(md.type);
-            return false;
+            QString msg = "provider returned non-root item type: " + QString::number(int(md.type));
+            qCritical() << msg;
+            throw StorageErrorImpl::local_comms_error(msg);
         }
-        return true;
     };
 
     QString method = "Account::roots()";
     auto reply = provider_->Roots();
     auto This = const_pointer_cast<AccountImpl>(shared_from_this());
     return ItemListJobImpl::make_item_list_job(This, method, reply, validate);
+}
+
+ItemJob* AccountImpl::get(QString const& itemId) const
+{
+    auto runtime = runtime_.lock();
+    if (!runtime || !runtime->isValid())
+    {
+        auto e = StorageErrorImpl::runtime_destroyed_error("Account::get(): Runtime was destroyed previously");
+        return ItemJobImpl::make_item_job(e);
+    }
+
+    auto validate = [](storage::internal::ItemMetadata const&)
+    {
+    };
+
+    QString method = "Item::get()";
+    auto reply = provider_->Metadata(itemId);
+    auto This = const_pointer_cast<AccountImpl>(shared_from_this());
+    return ItemJobImpl::make_item_job(This, method, reply, validate);
 }
 
 bool AccountImpl::operator==(AccountImpl const& other) const
@@ -168,6 +188,11 @@ bool AccountImpl::operator>(AccountImpl const& other) const
 bool AccountImpl::operator>=(AccountImpl const& other) const
 {
     return !operator<(other);
+}
+
+shared_ptr<ProviderInterface> AccountImpl::provider() const
+{
+    return provider_;
 }
 
 size_t AccountImpl::hash() const

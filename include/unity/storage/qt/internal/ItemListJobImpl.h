@@ -55,14 +55,14 @@ public:
     static ItemListJob* make_item_list_job(std::shared_ptr<AccountImpl> const& account,
                                            QString const& method,
                                            QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                                           std::function<bool(storage::internal::ItemMetadata const&)> const& validate);
+                                           std::function<void(storage::internal::ItemMetadata const&)> const& validate);
     static ItemListJob* make_item_list_job(StorageError const& error);
 
 private:
     ItemListJobImpl(std::shared_ptr<AccountImpl> const& account,
                     QString const& method,
                     QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                    std::function<bool(storage::internal::ItemMetadata const&)> const& validate);
+                    std::function<void(storage::internal::ItemMetadata const&)> const& validate);
     ItemListJobImpl(StorageError const& error);
 
     ItemListJob::Status emit_status_changed(ItemListJob::Status new_status) const;
@@ -74,7 +74,7 @@ private:
     StorageError error_;
     QString method_;
     std::shared_ptr<AccountImpl> account_;
-    std::function<bool(storage::internal::ItemMetadata const&)> validate_;
+    std::function<void(storage::internal::ItemMetadata const&)> validate_;
 };
 
 }  // namespace internal

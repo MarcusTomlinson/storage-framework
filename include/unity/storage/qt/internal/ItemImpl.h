@@ -41,9 +41,9 @@ namespace internal
 {
 
 class AccountImpl;
-class RootImpl;
+class RuntimeImpl;
 
-class ItemImpl
+class ItemImpl : public std::enable_shared_from_this<ItemImpl>
 {
 public:
     ItemImpl();
@@ -75,7 +75,6 @@ public:
     ItemListJob* lookup(QString const& name) const;
     ItemJob* createFolder(QString const& name) const;
     Uploader* createFile(QString const& name) const;
-    ItemJob* get(QString const& itemId) const;
     IntJob* freeSpaceBytes() const;
     IntJob* usedSpaceBytes() const;
 
@@ -93,6 +92,8 @@ public:
                           std::shared_ptr<AccountImpl> const& account);
 
 private:
+    //std::shared_ptr<RuntimeImpl> get_runtime(QString const& method) const;
+
     bool is_valid_;
     storage::internal::ItemMetadata md_;
     std::shared_ptr<AccountImpl> account_;
