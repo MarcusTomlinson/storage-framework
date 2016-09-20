@@ -81,7 +81,7 @@ protected:
     void SetUp() override
     {
         runtime_ = Runtime::create(connection());
-        acc_ = runtime_->make_test_account(service_connection_->baseService(), bus_path());
+        acc_ = runtime_->make_test_account(service_connection_->baseService(), impossible_name());
     }
 
     void TearDown() override

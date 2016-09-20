@@ -74,7 +74,7 @@ void ProviderFixture::wait_for(QDBusPendingCall const& call)
     ASSERT_TRUE(spy.wait());
 }
 
-QString ProviderFixture::bus_path() const
+QString ProviderFixture::impossible_name() const
 {
     return BUS_PATH;
 }
