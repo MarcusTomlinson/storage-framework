@@ -18,9 +18,8 @@
 
 #include <unity/storage/qt/client-api.h>
 
-#include <utils/DBusEnvironment.h>
+#include "MockProvider.h"
 #include <utils/ProviderFixture.h>
-#include <MockProvider.h>
 
 #include <gtest/gtest.h>
 #include <QSignalSpy>
@@ -39,7 +38,7 @@ protected:
     void SetUp() override
     {
         runtime_.reset(new Runtime(connection()));
-        acc_ = runtime_->make_test_account(service_connection_->baseService(), ProviderFixture::bus_path());
+        acc_ = runtime_->make_test_account(service_connection_->baseService(), this->bus_path());
     }
 
     void TearDown() override
