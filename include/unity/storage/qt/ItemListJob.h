@@ -49,7 +49,7 @@ public:
     virtual ~ItemListJob();
 
     enum Status { Loading, Finished, Error };
-    Q_ENUM(Status)
+    Q_ENUMS(Status)
 
     bool isValid() const;
     Status status() const;
@@ -70,3 +70,5 @@ private:
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
+
+Q_DECLARE_METATYPE(unity::storage::qt::ItemListJob::Status)

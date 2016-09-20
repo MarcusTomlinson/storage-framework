@@ -40,7 +40,7 @@ class Q_DECL_EXPORT Downloader final : public QIODevice
 
 public:
     enum Status { Loading, Ready, Cancelled, Finished, Error };
-    Q_ENUM(Status)
+    Q_ENUMS(Status)
 
     Downloader();
     virtual ~Downloader();

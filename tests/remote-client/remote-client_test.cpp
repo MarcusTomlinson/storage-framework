@@ -72,6 +72,7 @@ TEST(Runtime, lifecycle)
     EXPECT_EQ("Runtime::shutdown(): Runtime was destroyed previously", runtime.error().message());
 }
 
+#if 0
 TEST_F(RuntimeTest, init_error)
 {
     QDBusConnection conn(connection());
@@ -86,6 +87,7 @@ TEST_F(RuntimeTest, init_error)
     EXPECT_EQ(StorageError::LocalCommsError, e.type());
     EXPECT_EQ("Runtime(): DBus connection is not connected", e.message());
 }
+#endif
 
 TEST_F(AccountTest, basic)
 {

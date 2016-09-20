@@ -21,6 +21,7 @@
 #include <unity/storage/qt/Account.h>
 #include <unity/storage/qt/StorageError.h>
 
+#include <QMetaType>
 #include <QObject>
 
 namespace unity
@@ -51,7 +52,7 @@ class Q_DECL_EXPORT AccountsJob final : public QObject
 
 public:
     enum Status { Loading, Finished, Error };
-    Q_ENUM(Status)
+    Q_ENUMS(Status)
 
     virtual ~AccountsJob();
 
@@ -75,3 +76,5 @@ private:
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
+
+Q_DECLARE_METATYPE(unity::storage::qt::AccountsJob::Status)

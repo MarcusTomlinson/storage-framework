@@ -41,7 +41,7 @@ public:
     virtual ~VoidJob();
 
     enum Status { Loading, Finished, Error };
-    Q_ENUM(Status)
+    Q_ENUMS(Status)
 
     bool isValid() const;
     Status status() const;

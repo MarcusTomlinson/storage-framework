@@ -22,15 +22,6 @@
 #include <unity/storage/qt/Account.h>
 #include <unity/storage/qt/Item.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#include <QDateTime>
-#include <QVariantMap>
-#include <QVector>
-#pragma GCC diagnostic pop
-
-#include <memory>
-
 namespace unity
 {
 namespace storage

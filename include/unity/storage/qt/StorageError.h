@@ -63,7 +63,7 @@ public:
         QuotaExceeded,
         __LAST_STORAGE_ERROR
     };
-    Q_ENUM(Type)
+    Q_ENUMS(Type)
 
     Type type() const;
     QString name() const;

@@ -65,6 +65,7 @@ RuntimeImpl::RuntimeImpl()
 {
     register_meta_types();
 
+#if 0
     if (!conn_.isConnected())
     {
         // LCOV_EXCL_START
@@ -73,7 +74,7 @@ RuntimeImpl::RuntimeImpl()
         error_ = StorageErrorImpl::local_comms_error(msg);
         // LCOV_EXCL_STOP
     }
-
+#endif
 }
 
 RuntimeImpl::RuntimeImpl(QDBusConnection const& bus)
@@ -83,12 +84,14 @@ RuntimeImpl::RuntimeImpl(QDBusConnection const& bus)
 {
     register_meta_types();
 
+#if 0
     if (!conn_.isConnected())
     {
         is_valid_ = false;
         QString msg = "Runtime(): DBus connection is not connected";
         error_ = StorageErrorImpl::local_comms_error(msg);
     }
+#endif
 }
 
 RuntimeImpl::~RuntimeImpl()

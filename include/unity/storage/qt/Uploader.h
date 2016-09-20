@@ -44,7 +44,7 @@ class Q_DECL_EXPORT Uploader final : public QIODevice
 
 public:
     enum Status { Loading, Cancelled, Finished, Error };
-    Q_ENUM(Status)
+    Q_ENUMS(Status)
 
     Uploader();
     virtual ~Uploader();

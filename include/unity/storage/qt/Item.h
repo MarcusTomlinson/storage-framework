@@ -20,9 +20,11 @@
 
 #include <unity/storage/qt/ConflictPolicy.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QDateTime>
-#include <QMetaType>
 #include <QVariantMap>
+#pragma GCC diagnostic pop
 
 #include <memory>
 
@@ -68,7 +70,7 @@ public:
     Item& operator=(Item&&);
 
     enum Type { File, Folder, Root };
-    Q_ENUM(Type)
+    Q_ENUMS(Type)
 
     bool isValid() const;
     QString itemId() const;
