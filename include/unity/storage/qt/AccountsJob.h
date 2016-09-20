@@ -59,7 +59,7 @@ public:
     Status status() const;
     StorageError error() const;
     QList<Account> accounts() const;
-    
+
 Q_SIGNALS:
     void statusChanged(unity::storage::qt::AccountsJob::Status status) const;
 

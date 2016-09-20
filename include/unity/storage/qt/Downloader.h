@@ -54,7 +54,7 @@ public:
     Q_INVOKABLE void cancel();
 
     // TODO: will probably need QML invokable methods for reading and writing to/from QIODevice
-    
+
 Q_SIGNALS:
     void statusChanged(unity::storage::qt::Downloader::Status status) const;
 

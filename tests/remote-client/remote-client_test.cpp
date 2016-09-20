@@ -39,7 +39,7 @@ protected:
     void SetUp() override
     {
         runtime_.reset(new Runtime(connection()));
-        acc_ = runtime_->make_test_account(service_connection_->baseService(), bus_path());
+        acc_ = runtime_->make_test_account(service_connection_->baseService(), ProviderFixture::bus_path());
     }
 
     void TearDown() override
