@@ -29,7 +29,7 @@ namespace
 {
 
 const auto SERVICE_CONNECTION_NAME = QStringLiteral("service-session-bus");
-const auto BUS_PATH = QStringLiteral("/provider");
+const auto OBJECT_PATH = QStringLiteral("/provider");
 
 }  // namespace
 
@@ -64,7 +64,7 @@ void ProviderFixture::set_provider(unique_ptr<ProviderBase>&& provider)
 
     test_server_.reset(
         new unity::storage::provider::testing::TestServer(move(provider), account,
-                                                          *service_connection_, BUS_PATH.toStdString()));
+                                                          *service_connection_, OBJECT_PATH.toStdString()));
 }
 
 void ProviderFixture::wait_for(QDBusPendingCall const& call)
@@ -74,7 +74,12 @@ void ProviderFixture::wait_for(QDBusPendingCall const& call)
     ASSERT_TRUE(spy.wait());
 }
 
-QString ProviderFixture::impossible_name() const
+QString ProviderFixture::bus_name() const
 {
-    return BUS_PATH;
+    return service_connection_->baseService();
+}
+
+QString ProviderFixture::object_path() const
+{
+    return OBJECT_PATH;
 }

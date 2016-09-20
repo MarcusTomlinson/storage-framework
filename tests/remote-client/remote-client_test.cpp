@@ -38,7 +38,7 @@ protected:
     void SetUp() override
     {
         runtime_.reset(new Runtime(connection()));
-        acc_ = runtime_->make_test_account(service_connection_->baseService(), impossible_name());
+        acc_ = runtime_->make_test_account(service_connection_->baseService(), object_path());
     }
 
     void TearDown() override
@@ -99,7 +99,7 @@ TEST_F(AccountTest, basic)
     }
 
     {
-        auto acc = runtime_->make_test_account(service_connection_->baseService(), impossible_name(),
+        auto acc = runtime_->make_test_account(service_connection_->baseService(), object_path(),
                                                "id", "owner", "description");
         EXPECT_TRUE(acc.isValid());
         EXPECT_EQ("id", acc.ownerId());
@@ -124,7 +124,7 @@ TEST_F(AccountTest, basic)
         EXPECT_FALSE(a2.isValid());
 
         // Moved-from object must be assignable
-        auto a4 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(),
+        auto a4 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
                                               "id4", "owner4", "description4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
@@ -134,8 +134,8 @@ TEST_F(AccountTest, basic)
     }
 
     {
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(), "id", "owner", "description");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(), "id2", "owner2", "description2");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "id", "owner", "description");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "id2", "owner2", "description2");
 
         // Copy assignment
         a1 = a2;
@@ -152,7 +152,7 @@ TEST_F(AccountTest, basic)
         EXPECT_EQ("description2", a1.description());
 
         // Move assignment
-        auto a3 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(),
+        auto a3 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
                                               "id3", "owner3", "description3");
         a1 = move(a3);
         EXPECT_TRUE(a1.isValid());
@@ -164,7 +164,7 @@ TEST_F(AccountTest, basic)
         EXPECT_FALSE(a3.isValid());
 
         // Moved-from object must be assignable
-        auto a4 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(),
+        auto a4 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
                                               "id4", "owner4", "description4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
@@ -190,7 +190,7 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 valid, a2 invalid
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), impossible_name());
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path());
         Account a2;
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -210,8 +210,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for owner ID
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(), "a", "x", "x");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(), "b", "x", "x");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "x", "x");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "b", "x", "x");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -231,8 +231,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for owner
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(), "a", "a", "x");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(), "a", "b", "x");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "x");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "b", "x");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -252,8 +252,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for description
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(), "a", "a", "a");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(), "a", "a", "b");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "b");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -273,8 +273,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 == a2
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(), "a", "a", "a");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(), "a", "a", "a");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
 
         EXPECT_TRUE(a1 == a2);
         EXPECT_FALSE(a1 != a2);
@@ -299,7 +299,7 @@ TEST_F(AccountTest, hash)
     EXPECT_EQ(0, a1.hash());
     EXPECT_EQ(a1.hash(), qHash(a1));
 
-    auto a2 = runtime_->make_test_account(service_connection_->baseService(), impossible_name(), "a", "a", "a");
+    auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
     // Due to different return types (size_t vs uint), hash() and qHash() do not return the same value.
     EXPECT_NE(0, a2.hash());
     EXPECT_NE(0, qHash(a2));

@@ -105,17 +105,6 @@ int DownloadJobImpl::take_read_socket()
     return sock;
 }
 
-string const& DownloadJobImpl::sender_bus_name() const
-{
-    return sender_bus_name_;
-}
-
-void DownloadJobImpl::set_sender_bus_name(string const& bus_name)
-{
-    assert(bus_name[0] == ':');
-    sender_bus_name_ = bus_name;
-}
-
 void DownloadJobImpl::report_complete()
 {
     if (write_socket_ >= 0)

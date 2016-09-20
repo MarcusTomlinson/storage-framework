@@ -96,7 +96,8 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
         }
         catch (RuntimeDestroyedException const& e)
         {
-            make_exceptional_future(qf, RuntimeDestroyedException("Account::roots()"));
+            qf.reportException(RuntimeDestroyedException("Account::roots()"));
+            qf.reportFinished();
             return;
         }
 
@@ -113,7 +114,8 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
             roots.append(root);
         }
         roots_ = roots;
-        make_ready_future(qf, roots);
+        qf.reportResult(roots);
+        qf.reportFinished();
     };
 
     auto handler = new Handler<QVector<Root::SPtr>>(this, reply, process_reply);

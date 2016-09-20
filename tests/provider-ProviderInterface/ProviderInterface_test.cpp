@@ -29,9 +29,10 @@
 #include <OnlineAccounts/Manager>
 #include <QCoreApplication>
 #include <QDBusConnection>
-#include <QDBusConnectionInterface>
+#include <QDBusServiceWatcher>
 #include <QSignalSpy>
 #include <QSocketNotifier>
+#include <QTimer>
 
 #include <unistd.h>
 #include <sys/socket.h>
@@ -48,9 +49,8 @@ using unity::storage::provider::testing::TestServer;
 
 namespace {
 
-const auto SERVICE_CONNECTION_NAME = QStringLiteral("service-session-bus");
-const auto BUS_PATH = QStringLiteral("/provider");
-const auto PROVIDER_IFACE = QStringLiteral("com.canonical.StorageFramework.Provider");
+const auto SECOND_CONNECTION_NAME = QStringLiteral("second-bus-connection");
+
 const QString PROVIDER_ERROR = unity::storage::internal::DBUS_ERROR_PREFIX;
 
 const string file_contents =
@@ -68,7 +68,7 @@ class ProviderInterfaceTest : public ProviderFixture
 protected:
     void SetUp() override
     {
-        client_.reset(new ProviderClient(service_connection_->baseService(), BUS_PATH, connection()));
+        client_.reset(new ProviderClient(bus_name(), object_path(), connection()));
     }
 
     void TearDown() override
@@ -381,6 +381,65 @@ TEST_F(ProviderInterfaceTest, cancel_upload)
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 }
 
+TEST_F(ProviderInterfaceTest, cancel_upload_wrong_connection)
+{
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    auto upload_reply = client_->Update("item_id", 100, "old_etag");
+    wait_for(upload_reply);
+    ASSERT_TRUE(upload_reply.isValid()) << upload_reply.error().message().toStdString();
+    auto upload_id = upload_reply.argumentAt<0>();
+
+    // Try to finish download using a second connection
+    QDBusConnection connection2 = QDBusConnection::connectToBus(dbus_->busAddress(), SECOND_CONNECTION_NAME);
+    QDBusConnection::disconnectFromBus(SECOND_CONNECTION_NAME);
+    ProviderClient client2(bus_name(), object_path(), connection2);
+    auto reply = client2.CancelUpload(upload_id);
+    wait_for(reply);
+    ASSERT_FALSE(reply.isValid());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_TRUE(reply.error().message().startsWith("No such upload: ")) << reply.error().message().toStdString();
+}
+
+TEST_F(ProviderInterfaceTest, cancel_upload_on_disconnect)
+{
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    QDBusServiceWatcher service_watcher;
+    service_watcher.setConnection(*service_connection_);
+    service_watcher.setWatchMode(QDBusServiceWatcher::WatchForUnregistration);
+    QSignalSpy service_spy(
+        &service_watcher, &QDBusServiceWatcher::serviceUnregistered);
+
+    QDBusUnixFileDescriptor socket;
+    {
+        QDBusConnection connection2 = QDBusConnection::connectToBus(dbus_->busAddress(), SECOND_CONNECTION_NAME);
+        QDBusConnection::disconnectFromBus(SECOND_CONNECTION_NAME);
+        service_watcher.addWatchedService(connection2.baseService());
+        ProviderClient client2(bus_name(), object_path(), connection2);
+        auto reply = client2.Update("item_id", 100, "old_etag");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+        // Store socket so it will remain open past the closing of the
+        // D-Bus connection.
+        socket = reply.argumentAt<1>();
+    }
+
+    // Wait until we're sure the fact that connection2 closed has
+    // reached the service's connection, and then a little more to
+    // ensure it is triggered.
+    if (service_spy.count() == 0)
+    {
+        ASSERT_TRUE(service_spy.wait());
+    }
+    QTimer timer;
+    timer.setSingleShot(true);
+    timer.setInterval(100);
+    timer.start();
+    QSignalSpy timer_spy(&timer, &QTimer::timeout);
+    ASSERT_TRUE(timer_spy.wait());
+}
+
 TEST_F(ProviderInterfaceTest, finish_upload_unknown)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
@@ -388,8 +447,28 @@ TEST_F(ProviderInterfaceTest, finish_upload_unknown)
     auto reply = client_->FinishUpload("no-such-upload");
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
-    EXPECT_EQ("unknown exception thrown by provider: map::at", reply.error().message());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_EQ("No such upload: no-such-upload", reply.error().message());
+}
+
+TEST_F(ProviderInterfaceTest, finish_upload_wrong_connection)
+{
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    auto upload_reply = client_->Update("item_id", 100, "old_etag");
+    wait_for(upload_reply);
+    ASSERT_TRUE(upload_reply.isValid()) << upload_reply.error().message().toStdString();
+    auto upload_id = upload_reply.argumentAt<0>();
+
+    // Try to finish download using a second connection
+    QDBusConnection connection2 = QDBusConnection::connectToBus(dbus_->busAddress(), SECOND_CONNECTION_NAME);
+    QDBusConnection::disconnectFromBus(SECOND_CONNECTION_NAME);
+    ProviderClient client2(bus_name(), object_path(), connection2);
+    auto reply = client2.FinishUpload(upload_id);
+    wait_for(reply);
+    ASSERT_FALSE(reply.isValid());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_TRUE(reply.error().message().startsWith("No such upload: ")) << reply.error().message().toStdString();
 }
 
 TEST_F(ProviderInterfaceTest, tempfile_upload)
@@ -599,8 +678,67 @@ TEST_F(ProviderInterfaceTest, finish_download_unknown)
     auto reply = client_->FinishDownload("no-such-download");
     wait_for(reply);
     ASSERT_TRUE(reply.isError());
-    EXPECT_EQ(PROVIDER_ERROR + "UnknownException", reply.error().name());
-    EXPECT_EQ("unknown exception thrown by provider: map::at", reply.error().message());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_EQ("No such download: no-such-download", reply.error().message());
+}
+
+TEST_F(ProviderInterfaceTest, finish_download_wrong_connection)
+{
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    auto download_reply = client_->Download("item_id");
+    wait_for(download_reply);
+    ASSERT_TRUE(download_reply.isValid()) << download_reply.error().message().toStdString();
+    auto download_id = download_reply.argumentAt<0>();
+
+    // Try to finish download using a second connection
+    QDBusConnection connection2 = QDBusConnection::connectToBus(dbus_->busAddress(), SECOND_CONNECTION_NAME);
+    QDBusConnection::disconnectFromBus(SECOND_CONNECTION_NAME);
+    ProviderClient client2(bus_name(), object_path(), connection2);
+    auto reply = client2.FinishDownload(download_id);
+    wait_for(reply);
+    ASSERT_FALSE(reply.isValid());
+    EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name());
+    EXPECT_TRUE(reply.error().message().startsWith("No such download: ")) << reply.error().message().toStdString();
+}
+
+TEST_F(ProviderInterfaceTest, cancel_download_on_disconnect)
+{
+    set_provider(unique_ptr<ProviderBase>(new TestProvider));
+
+    QDBusServiceWatcher service_watcher;
+    service_watcher.setConnection(*service_connection_);
+    service_watcher.setWatchMode(QDBusServiceWatcher::WatchForUnregistration);
+    QSignalSpy service_spy(
+        &service_watcher, &QDBusServiceWatcher::serviceUnregistered);
+
+    QDBusUnixFileDescriptor socket;
+    {
+        QDBusConnection connection2 = QDBusConnection::connectToBus(dbus_->busAddress(), SECOND_CONNECTION_NAME);
+        QDBusConnection::disconnectFromBus(SECOND_CONNECTION_NAME);
+        service_watcher.addWatchedService(connection2.baseService());
+        ProviderClient client2(bus_name(), object_path(), connection2);
+        auto reply = client2.Download("item_id");
+        wait_for(reply);
+        ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+        // Store socket so it will remain open past the closing of the
+        // D-Bus connection.
+        socket = reply.argumentAt<1>();
+    }
+
+    // Wait until we're sure the fact that connection2 closed has
+    // reached the service's connection, and then a little more to
+    // ensure it is triggered.
+    if (service_spy.count() == 0)
+    {
+        ASSERT_TRUE(service_spy.wait());
+    }
+    QTimer timer;
+    timer.setSingleShot(true);
+    timer.setInterval(100);
+    timer.start();
+    QSignalSpy timer_spy(&timer, &QTimer::timeout);
+    ASSERT_TRUE(timer_spy.wait());
 }
 
 TEST_F(ProviderInterfaceTest, delete_)

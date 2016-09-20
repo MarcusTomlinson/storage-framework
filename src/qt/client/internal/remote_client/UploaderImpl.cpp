@@ -53,7 +53,7 @@ UploaderImpl::UploaderImpl(QString const& upload_id,
     , old_etag_(old_etag)
     , root_(root.lock())
     , provider_(provider)
-    , write_socket_(new QLocalSocket)
+    , write_socket_(new QLocalSocket, [](QLocalSocket* s){ s->deleteLater(); })
     , state_(uploading)
 {
     assert(!upload_id.isEmpty());
@@ -92,7 +92,8 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
         }
         catch (StorageException const& e)
         {
-            make_exceptional_future(qf, e);
+            qf.reportException(e);
+            qf.reportFinished();
             return;
         }
         if (md.type != ItemType::file)
@@ -100,10 +101,12 @@ QFuture<shared_ptr<File>> UploaderImpl::finish_upload()
             // TODO: log server error here
             QString msg = "Uploader::finish_upload(): impossible item type returned by server: "
                           + QString::number(int(md.type));
-            make_exceptional_future(qf, LocalCommsException(msg));
+            qf.reportException(LocalCommsException(msg));
+            qf.reportFinished();
             return;
         }
-        make_ready_future(qf, FileImpl::make_file(md, root_));
+        qf.reportResult(FileImpl::make_file(md, root_));
+        qf.reportFinished();
     };
 
     write_socket_->disconnectFromServer();
@@ -118,7 +121,7 @@ QFuture<void> UploaderImpl::cancel() noexcept
     auto reply = provider_->CancelUpload(upload_id_);
     auto process_reply = [this](decltype(reply) const&, QFutureInterface<void>& qf)
     {
-        make_ready_future(qf);
+        qf.reportFinished();
     };
 
     write_socket_->abort();
