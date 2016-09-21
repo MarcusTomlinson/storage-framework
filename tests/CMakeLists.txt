@@ -14,6 +14,7 @@ add_subdirectory(utils)
 set(unit_test_dirs
     local-client
     remote-client
+    remote-client-v1
     provider-AccountData
     provider-DBusPeerCache
     provider-ProviderInterface

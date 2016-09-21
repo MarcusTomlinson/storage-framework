@@ -18,24 +18,22 @@
 
 #pragma once
 
-#include <unity/storage/internal/ItemMetadata.h>
+#include <unity/storage/qt/StorageError.h>
 
-#include <QDBusArgument>
-#include <QMetaType>
+class QDBusPendingCallWatcher;
 
 namespace unity
 {
 namespace storage
 {
+namespace qt
+{
 namespace internal
 {
 
-QDBusArgument& operator<<(QDBusArgument& argument, ItemMetadata const& metadata);
-QDBusArgument const& operator>>(QDBusArgument const& argument, ItemMetadata& metadata);
-
-QDBusArgument& operator<<(QDBusArgument& argument, QList<ItemMetadata> const& md_list);
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<ItemMetadata>& md_list);
+StorageError unmarshal_error(QDBusPendingCallWatcher const& call);
 
 }  // namespace internal
+}  // namespace qt
 }  // storage
 }  // unity

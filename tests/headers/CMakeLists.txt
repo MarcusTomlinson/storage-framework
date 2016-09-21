@@ -7,6 +7,7 @@ set(root_inc_dir ${CMAKE_SOURCE_DIR}/include)
 set(subdirs
     unity/storage
     unity/storage/provider
+    unity/storage/qt
     unity/storage/qt/client
     unity/storage/qt/client/internal/local_client
     unity/storage/qt/client/internal/remote_client

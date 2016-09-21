@@ -16,26 +16,47 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#pragma once
+#include <unity/storage/qt/ItemJob.h>
 
-#include <unity/storage/internal/ItemMetadata.h>
+#include <unity/storage/qt/internal/ItemJobImpl.h>
 
-#include <QDBusArgument>
-#include <QMetaType>
+using namespace unity::storage::qt;
+using namespace std;
 
 namespace unity
 {
 namespace storage
 {
-namespace internal
+namespace qt
 {
 
-QDBusArgument& operator<<(QDBusArgument& argument, ItemMetadata const& metadata);
-QDBusArgument const& operator>>(QDBusArgument const& argument, ItemMetadata& metadata);
+ItemJob::ItemJob(unique_ptr<internal::ItemJobImpl> p)
+    : p_(move(p))
+{
+}
 
-QDBusArgument& operator<<(QDBusArgument& argument, QList<ItemMetadata> const& md_list);
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<ItemMetadata>& md_list);
+ItemJob::~ItemJob() = default;
 
-}  // namespace internal
-}  // storage
-}  // unity
+bool ItemJob::isValid() const
+{
+    return p_->isValid();
+}
+
+ItemJob::Status ItemJob::status() const
+{
+    return p_->status();
+}
+
+StorageError ItemJob::error() const
+{
+    return p_->error();
+}
+
+Item ItemJob::item() const
+{
+    return p_->item();
+}
+
+}  // namespace qt
+}  // namespace storage
+}  // namespace unity

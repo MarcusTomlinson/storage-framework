@@ -18,24 +18,39 @@
 
 #pragma once
 
-#include <unity/storage/internal/ItemMetadata.h>
-
-#include <QDBusArgument>
-#include <QMetaType>
+#include <QObject>
 
 namespace unity
 {
 namespace storage
 {
-namespace internal
+namespace qt
 {
 
-QDBusArgument& operator<<(QDBusArgument& argument, ItemMetadata const& metadata);
-QDBusArgument const& operator>>(QDBusArgument const& argument, ItemMetadata& metadata);
+class StorageError;
 
-QDBusArgument& operator<<(QDBusArgument& argument, QList<ItemMetadata> const& md_list);
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<ItemMetadata>& md_list);
+class Q_DECL_EXPORT VoidJob final : public QObject
+{
+    // TODO: notify, CONSTANT where needed
+    Q_OBJECT
+    Q_PROPERTY(bool READ isValid FINAL)
+    Q_PROPERTY(unity::storage::qt::VoidJob::Status READ status NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError READ error FINAL)
 
-}  // namespace internal
-}  // storage
-}  // unity
+public:
+    virtual ~VoidJob();
+
+    enum Status { Loading, Finished, Error };
+    Q_ENUMS(Status)
+
+    bool isValid() const;
+    Status status() const;
+    StorageError error() const;
+
+Q_SIGNALS:
+    void statusChanged(unity::storage::qt::VoidJob::Status status) const;
+};
+
+}  // namespace qt
+}  // namespace storage
+}  // namespace unity

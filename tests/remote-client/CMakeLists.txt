@@ -6,7 +6,7 @@ include_directories(${GLIB_DEPS_INCLUDE_DIRS})
 
 target_link_libraries(remote-client_test
     storage-framework-provider
-    storage-framework-qt-client
+    storage-framework-qt-client-v2
     Qt5::Network
     Qt5::Test
     ${Boost_LIBRARIES}

@@ -18,24 +18,15 @@
 
 #pragma once
 
-#include <unity/storage/internal/ItemMetadata.h>
-
-#include <QDBusArgument>
-#include <QMetaType>
-
 namespace unity
 {
 namespace storage
 {
-namespace internal
+namespace qt
 {
 
-QDBusArgument& operator<<(QDBusArgument& argument, ItemMetadata const& metadata);
-QDBusArgument const& operator>>(QDBusArgument const& argument, ItemMetadata& metadata);
+enum class ConflictPolicy { ErrorIfConflict, Overwrite };
 
-QDBusArgument& operator<<(QDBusArgument& argument, QList<ItemMetadata> const& md_list);
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<ItemMetadata>& md_list);
-
-}  // namespace internal
-}  // storage
-}  // unity
+}  // namespace qt
+}  // namespace storage
+}  // namespace unity

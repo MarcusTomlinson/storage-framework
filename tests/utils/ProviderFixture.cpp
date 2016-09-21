@@ -39,6 +39,7 @@ ProviderFixture::ProviderFixture()
     dbus_->start_services();
     service_connection_.reset(new QDBusConnection(QDBusConnection::connectToBus(dbus_->busAddress(),
                                                   SERVICE_CONNECTION_NAME)));
+
     account_manager_.reset(new OnlineAccounts::Manager("", *service_connection_));
 }
 

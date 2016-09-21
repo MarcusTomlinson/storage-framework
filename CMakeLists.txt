@@ -5,13 +5,13 @@ if (NOT DEFINED CMAKE_INSTALL_PREFIX)
 endif()
 
 cmake_minimum_required(VERSION 3.0.2)
-project(storage-framework VERSION "0.1" LANGUAGES C CXX)
+project(storage-framework VERSION "0.2" LANGUAGES C CXX)
 
 # These variables should be incremented when we wish to create a new
 # source incompatible version of the the library where users of the
-# old API could will not compile against the new one.  It is not
+# old API will not compile against the new one.  It is not
 # necessary to increment this for ABI breaks that are source compatible.
-set(SF_CLIENT_API_VERSION "1")
+set(SF_CLIENT_API_VERSION "2")
 set(SF_PROVIDER_API_VERSION "1")
 
 # These two should be incremented when the ABI changes.
@@ -132,6 +132,7 @@ enable_coverage_report(
         qt-client-lib-common
         storage-framework-common-internal
         storage-framework-qt-client
+        storage-framework-qt-client-v2
         storage-framework-qt-local-client
         sf-provider-objects
         storage-framework-provider

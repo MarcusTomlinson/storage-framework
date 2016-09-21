@@ -18,24 +18,47 @@
 
 #pragma once
 
-#include <unity/storage/internal/ItemMetadata.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Wswitch-default"
+#include <QDBusPendingCallWatcher>
+#include <QObject>
+#pragma GCC diagnostic pop
 
-#include <QDBusArgument>
-#include <QMetaType>
+#include <functional>
+
+class QDBusPendingCall;
 
 namespace unity
 {
 namespace storage
 {
+namespace qt
+{
 namespace internal
 {
 
-QDBusArgument& operator<<(QDBusArgument& argument, ItemMetadata const& metadata);
-QDBusArgument const& operator>>(QDBusArgument const& argument, ItemMetadata& metadata);
+class HandlerBase : public QObject
+{
+    Q_OBJECT
 
-QDBusArgument& operator<<(QDBusArgument& argument, QList<ItemMetadata> const& md_list);
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<ItemMetadata>& md_list);
+public:
+    HandlerBase(QObject* parent,
+                QDBusPendingCall const& call,
+                std::function<void(QDBusPendingCallWatcher&)> const& closure);
+
+public Q_SLOTS:
+    void finished(QDBusPendingCallWatcher* call);
+
+protected:
+    QDBusPendingCallWatcher watcher_;
+
+private:
+    std::function<void(QDBusPendingCallWatcher&)> closure_;
+};
 
 }  // namespace internal
-}  // storage
-}  // unity
+}  // namespace qt
+}  // namespace storage
+}  // namespace unity

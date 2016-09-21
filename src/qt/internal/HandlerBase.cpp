@@ -16,26 +16,44 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#pragma once
+#include <unity/storage/qt/internal/HandlerBase.h>
 
-#include <unity/storage/internal/ItemMetadata.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#include <QFuture>
+#pragma GCC diagnostic pop
 
-#include <QDBusArgument>
-#include <QMetaType>
+#include <cassert>
+
+using namespace std;
 
 namespace unity
 {
 namespace storage
 {
+namespace qt
+{
 namespace internal
 {
 
-QDBusArgument& operator<<(QDBusArgument& argument, ItemMetadata const& metadata);
-QDBusArgument const& operator>>(QDBusArgument const& argument, ItemMetadata& metadata);
+HandlerBase::HandlerBase(QObject* parent,
+                         QDBusPendingCall const& call,
+                         function<void(QDBusPendingCallWatcher&)> const& closure)
+    : QObject(parent)
+    , watcher_(call)
+    , closure_(closure)
+{
+    assert(closure);
+    connect(&watcher_, &QDBusPendingCallWatcher::finished, this, &HandlerBase::finished);
+}
 
-QDBusArgument& operator<<(QDBusArgument& argument, QList<ItemMetadata> const& md_list);
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<ItemMetadata>& md_list);
+void HandlerBase::finished(QDBusPendingCallWatcher* call)
+{
+    deleteLater();
+    closure_(*call);
+}
 
 }  // namespace internal
-}  // storage
-}  // unity
+}  // namespace qt
+}  // namespace storage
+}  // namespace unity

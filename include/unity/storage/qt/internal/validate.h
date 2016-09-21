@@ -18,10 +18,7 @@
 
 #pragma once
 
-#include <unity/storage/internal/ItemMetadata.h>
-
-#include <QDBusArgument>
-#include <QMetaType>
+#include <QString>
 
 namespace unity
 {
@@ -30,12 +27,18 @@ namespace storage
 namespace internal
 {
 
-QDBusArgument& operator<<(QDBusArgument& argument, ItemMetadata const& metadata);
-QDBusArgument const& operator>>(QDBusArgument const& argument, ItemMetadata& metadata);
-
-QDBusArgument& operator<<(QDBusArgument& argument, QList<ItemMetadata> const& md_list);
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<ItemMetadata>& md_list);
+class ItemMetadata;
 
 }  // namespace internal
-}  // storage
-}  // unity
+
+namespace qt
+{
+namespace internal
+{
+
+void validate(QString const& method, unity::storage::internal::ItemMetadata const& md);
+
+}  // namespace internal
+}  // namespace qt
+}  // namespace storage
+}  // namespace unity

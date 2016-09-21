@@ -16,39 +16,53 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#pragma once
+#include <unity/storage/qt/AccountsJob.h>
 
-#include <unity/storage/common.h>
+#include <unity/storage/qt/Account.h>
+#include <unity/storage/qt/internal/AccountsJobImpl.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-align"
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Wswitch-default"
-#include <QMap>
-#include <QVariant>
-#include <QVector>
-#pragma GCC diagnostic pop
+using namespace unity::storage::qt;
+using namespace std;
 
 namespace unity
 {
 namespace storage
 {
-namespace internal
+namespace qt
 {
 
-struct ItemMetadata
+AccountsJob::AccountsJob(shared_ptr<internal::RuntimeImpl> const& runtime)
+    : p_(new internal::AccountsJobImpl(this, runtime))
 {
-    QString item_id;
-    QVector<QString> parent_ids;
-    QString name;
-    QString etag;
-    ItemType type;
-    QMap<QString, QVariant> metadata;
-};
+}
 
-}  // namespace internal
+AccountsJob::AccountsJob(StorageError const& error)
+    : p_(new internal::AccountsJobImpl(this, error))
+{
+}
+
+AccountsJob::~AccountsJob() = default;
+
+bool AccountsJob::isValid() const
+{
+    return p_->isValid();
+}
+
+AccountsJob::Status AccountsJob::status() const
+{
+    return p_->status();
+}
+
+StorageError AccountsJob::error() const
+{
+    return p_->error();
+}
+
+QList<Account> AccountsJob::accounts() const
+{
+    return p_->accounts();
+}
+
+}  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-Q_DECLARE_METATYPE(unity::storage::internal::ItemMetadata)
-Q_DECLARE_METATYPE(QList<unity::storage::internal::ItemMetadata>)
