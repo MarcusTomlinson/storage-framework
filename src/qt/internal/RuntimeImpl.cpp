@@ -45,9 +45,9 @@ namespace
 
 void register_meta_types()
 {
-    qRegisterMetaType<QList<unity::storage::qt::Item>>();
     qRegisterMetaType<unity::storage::qt::AccountsJob::Status>();
     qRegisterMetaType<unity::storage::qt::Item>();
+    qRegisterMetaType<QList<unity::storage::qt::Item>>();
     qRegisterMetaType<unity::storage::qt::ItemJob::Status>();
     qRegisterMetaType<unity::storage::qt::ItemListJob::Status>();
 

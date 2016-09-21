@@ -81,7 +81,7 @@ public:
     Type type() const;
     QVariantMap metadata() const;
     QDateTime lastModifiedTime() const;
-    QVector<QString> parentIds() const;
+    QVector<QString> parentIds() const;  // TODO: should be QList
 
     Q_INVOKABLE ItemListJob* parents() const;
     Q_INVOKABLE ItemJob* copy(Item const& newParent, QString const& newName) const;
@@ -121,6 +121,7 @@ private:
 }  // namespace unity
 
 Q_DECLARE_METATYPE(unity::storage::qt::Item::Type)
+Q_DECLARE_METATYPE(QList<unity::storage::qt::Item::Type>)
 
 namespace std
 {
