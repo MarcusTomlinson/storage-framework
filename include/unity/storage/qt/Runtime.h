@@ -21,7 +21,11 @@
 #include <unity/storage/qt/Account.h>
 #include <unity/storage/qt/StorageError.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QDBusConnection>
+#pragma GCC diagnostic pop
 
 #include <memory>
 

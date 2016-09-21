@@ -47,7 +47,7 @@ ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account,
     assert(account);
     assert(validate);
 
-    auto process_reply = [this](decltype(reply) const& r)
+    auto process_reply = [this](decltype(reply)& r)
     {
         auto metadata = r.value();
         try

@@ -21,6 +21,7 @@
 #include <unity/storage/qt/ConflictPolicy.h>
 
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QDateTime>
 #include <QVariantMap>

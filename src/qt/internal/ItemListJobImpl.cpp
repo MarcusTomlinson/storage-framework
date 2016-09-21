@@ -47,7 +47,7 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
     assert(account);
     assert(validate);
 
-    auto process_reply = [this](decltype(reply) const& r)
+    auto process_reply = [this](decltype(reply)& r)
     {
         QList<Item> items;
         auto metadata = r.value();

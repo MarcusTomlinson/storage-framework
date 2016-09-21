@@ -18,7 +18,10 @@
 
 #pragma once
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #include <QObject>
+#pragma GCC diagnostic pop
 
 #include <memory>
 
