@@ -69,7 +69,7 @@ install(
 )
 
 install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-local-client-1.pc
+    FILES storage-framework-qt-local-client-1.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
 
