@@ -21,11 +21,10 @@
 #include <unity/storage/qt/Account.h>
 #include <unity/storage/qt/StorageError.h>
 
-#include <OnlineAccounts/Manager>
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#include <OnlineAccounts/Manager>
 #include <QDBusConnection>
 #pragma GCC diagnostic pop
 
