@@ -120,8 +120,9 @@ private:
 }  // namespace storage
 }  // namespace unity
 
+Q_DECLARE_METATYPE(unity::storage::qt::Item)
+Q_DECLARE_METATYPE(QList<unity::storage::qt::Item>)
 Q_DECLARE_METATYPE(unity::storage::qt::Item::Type)
-Q_DECLARE_METATYPE(QList<unity::storage::qt::Item::Type>)
 
 namespace std
 {
