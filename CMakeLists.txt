@@ -5,7 +5,7 @@ if (NOT DEFINED CMAKE_INSTALL_PREFIX)
 endif()
 
 cmake_minimum_required(VERSION 3.0.2)
-project(storage-framework VERSION "0.1" LANGUAGES C CXX)
+project(storage-framework VERSION "0.2" LANGUAGES C CXX)
 
 # These variables should be incremented when we wish to create a new
 # source incompatible version of the the library where users of the

@@ -10,6 +10,5 @@ add_custom_command(
 
 add_custom_target(qt-client-all-headers-v1 ALL DEPENDS ${convenience_hdr})
 
-install(
-    FILES ${public_hdrs} ${convenience_hdr}
-    DESTINATION ${client_base_includedir}/${includeprefix})
+install(FILES ${public_hdrs} ${convenience_hdr}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/storage-framework-client-1/${includeprefix})

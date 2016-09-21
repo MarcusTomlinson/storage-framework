@@ -68,8 +68,12 @@ install(
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
+configure_file(
+    storage-framework-qt-local-client.pc.in
+    storage-framework-qt-local-client-1.pc
+)
 install(
-    FILES storage-framework-qt-local-client-1.pc
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-local-client-1.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
 
@@ -102,7 +106,7 @@ set_target_properties(storage-framework-qt-client PROPERTIES
     LINK_FLAGS "-Wl,--no-undefined"
     OUTPUT_NAME "storage-framework-qt-client-1"
     SOVERSION 0
-    VERSION 0.${PROJECT_VERSION}
+    VERSION 0.1
 )
 target_link_libraries(storage-framework-qt-client
     storage-framework-common-internal
@@ -117,7 +121,11 @@ install(
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
+configure_file(
+    storage-framework-qt-client-1.pc.in
+    storage-framework-qt-client-1.pc
+)
 install(
-    FILES ${CMAKE_CURRENT_SOURCE_DIR}/storage-framework-qt-client-1.pc
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-client-1.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )

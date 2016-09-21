@@ -49,6 +49,15 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
+Description: Client library for the Storage Framework (API v1, soon to be deprecated)
+ Runtime support for storage framework clients.
+
+Package: libstorage-framework-qt-client-2-0
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends},
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
 Description: Client library for the Storage Framework
  Runtime support for storage framework clients.
 
@@ -70,6 +79,7 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: libstorage-framework-qt-client-1-0 (= ${binary:Version}),
+         libstorage-framework-qt-client-2-0 (= ${binary:Version}),
          libstorage-framework-qt-local-client-1-0 (= ${binary:Version}),
          qtbase5-dev,
          ${misc:Depends},
