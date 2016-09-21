@@ -15,7 +15,7 @@ set(SF_CLIENT_API_VERSION "2")
 set(SF_PROVIDER_API_VERSION "1")
 
 # These two should be incremented when the ABI changes.
-set(SF_CLIENT_SOVERSION "1")
+set(SF_CLIENT_SOVERSION "0")
 execute_process(
   COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tools/get-provider-soversion.sh
   OUTPUT_VARIABLE SF_PROVIDER_SOVERSION

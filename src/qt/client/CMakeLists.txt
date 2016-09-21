@@ -52,7 +52,7 @@ set_target_properties(storage-framework-qt-local-client PROPERTIES
     LINK_FLAGS "-Wl,--no-undefined"
     OUTPUT_NAME "storage-framework-qt-local-client-1"
     SOVERSION 0
-    VERSION 0.${PROJECT_VERSION}
+    VERSION 0.0.1
 )
 target_link_libraries(storage-framework-qt-local-client
     storage-framework-common-internal
@@ -106,7 +106,7 @@ set_target_properties(storage-framework-qt-client PROPERTIES
     LINK_FLAGS "-Wl,--no-undefined"
     OUTPUT_NAME "storage-framework-qt-client-1"
     SOVERSION 0
-    VERSION 0.1
+    VERSION 0.0.1
 )
 target_link_libraries(storage-framework-qt-client
     storage-framework-common-internal
