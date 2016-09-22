@@ -68,16 +68,11 @@ AccountsJob* Runtime::accounts() const
     return p_->accounts();
 }
 
-Account Runtime::make_test_account(QString const& bus_name, QString const& object_path)
-{
-    return p_->make_test_account(bus_name, object_path);
-}
-
 Account Runtime::make_test_account(QString const& bus_name,
                                    QString const& object_path,
                                    QString const& owner_id,
                                    QString const& owner,
-                                   QString const& description)
+                                   QString const& description) const
 {
     return p_->make_test_account(bus_name, object_path, owner_id, owner, description);
 }

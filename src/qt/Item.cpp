@@ -220,11 +220,13 @@ size_t Item::hash() const
     return p_->hash();
 }
 
-}  // namespace qt
-}  // namespace storage
-}  // namespace unity
+// Due to potentially different size of size_t and uint, hash() and qhash() may not return the same value.
 
-uint qHash(unity::storage::qt::Item const& i)
+uint qHash(Item const& i)
 {
     return i.hash();
 }
+
+}  // namespace qt
+}  // namespace storage
+}  // namespace unity

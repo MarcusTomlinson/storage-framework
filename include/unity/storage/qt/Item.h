@@ -53,14 +53,14 @@ class VoidJob;
 class Q_DECL_EXPORT Item final
 {
     Q_GADGET
-    Q_PROPERTY(QString itemId READ itemId CONSTANT FINAL)
-    Q_PROPERTY(QString name READ name CONSTANT FINAL)
-    Q_PROPERTY(unity::storage::qt::Account account READ account CONSTANT FINAL)
-    Q_PROPERTY(QString etag READ etag CONSTANT FINAL)
-    Q_PROPERTY(unity::storage::qt::Item::Type type READ type CONSTANT FINAL)
-    Q_PROPERTY(QVariantMap metadata READ metadata CONSTANT FINAL)
-    Q_PROPERTY(QDateTime lastModifiedTime READ lastModifiedTime CONSTANT FINAL)
-    Q_PROPERTY(QVector<QString> parentIds READ parentIds CONSTANT FINAL)
+    Q_PROPERTY(QString itemId READ itemId FINAL)
+    Q_PROPERTY(QString name READ name FINAL)
+    Q_PROPERTY(unity::storage::qt::Account account READ account FINAL)
+    Q_PROPERTY(QString etag READ etag FINAL)
+    Q_PROPERTY(unity::storage::qt::Item::Type type READ type FINAL)
+    Q_PROPERTY(QVariantMap metadata READ metadata FINAL)
+    Q_PROPERTY(QDateTime lastModifiedTime READ lastModifiedTime FINAL)
+    Q_PROPERTY(QVector<QString> parentIds READ parentIds FINAL)
 
 public:
     Item();
@@ -116,6 +116,10 @@ private:
     friend class internal::ItemImpl;
 };
 
+// Note: qHash(Item) does *not* return the same hash value is std::hash<Item> because
+//       std:hash() returns size_t (typically 64 bits), but qHash() returns uint (typically 32 bits).
+uint Q_DECL_EXPORT qHash(unity::storage::qt::Item const& i);
+
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
@@ -136,7 +140,3 @@ template<> struct Q_DECL_EXPORT hash<unity::storage::qt::Item>
 };
 
 }  // namespace std
-
-// Note: qHash(Item) does *not* return the same hash value is std::hash<Item> because
-//       std:hash() returns size_t (typically 64 bits), but qHash() returns uint (typically 32 bits).
-uint Q_DECL_EXPORT qHash(unity::storage::qt::Item const& i);

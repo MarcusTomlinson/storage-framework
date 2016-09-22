@@ -25,6 +25,8 @@
 #include <unity/storage/qt/internal/RuntimeImpl.h>
 #include <unity/storage/qt/internal/validate.h>
 
+#include <boost/functional/hash.hpp>
+
 #include <cassert>
 
 using namespace std;
@@ -176,7 +178,9 @@ bool ItemImpl::operator==(ItemImpl const& other) const
 {
     if (is_valid_)
     {
-        return other.is_valid_ && md_.item_id == other.md_.item_id;
+        return other.is_valid_
+               && *account_ == *other.account_
+               && md_.item_id == other.md_.item_id;
     }
     return !other.is_valid_;
 }
@@ -188,11 +192,24 @@ bool ItemImpl::operator!=(ItemImpl const& other) const
 
 bool ItemImpl::operator<(ItemImpl const& other) const
 {
-    if (is_valid_)
+    if (!is_valid_)
     {
-        return other.is_valid_ && md_.item_id < other.md_.item_id;
+        return other.is_valid_;
     }
-    return other.is_valid_;
+    if (is_valid_ && !other.is_valid_)
+    {
+        return false;
+    }
+    assert(is_valid_ && other.is_valid_);
+    if (*account_ < *other.account_)
+    {
+        return true;
+    }
+    if (*account_ > *other.account_)
+    {
+        return false;
+    }
+    return md_.item_id < other.md_.item_id;
 }
 
 bool ItemImpl::operator<=(ItemImpl const& other) const
@@ -216,7 +233,10 @@ size_t ItemImpl::hash() const
     {
         return 0;
     }
-    return qHash(md_.item_id);
+    size_t hash = 0;
+    boost::hash_combine(hash, account_->hash());
+    boost::hash_combine(hash, qHash(md_.item_id));
+    return hash;
 }
 
 Item ItemImpl::make_item(QString const& method,

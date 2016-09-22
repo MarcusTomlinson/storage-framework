@@ -62,14 +62,11 @@ public:
     StorageError shutdown();
     Q_INVOKABLE AccountsJob* accounts() const;
 
-    // TODO: Get rid of two-argument version and default trailing params.
-    // TODO: can be const methods.
-    Account make_test_account(QString const& bus_name, QString const& object_path);
     Account make_test_account(QString const& bus_name,
                               QString const& object_path,
-                              QString const& owner_id,
-                              QString const& owner,
-                              QString const& description);
+                              QString const& owner_id = "",
+                              QString const& owner = "",
+                              QString const& description = "") const;
 
 private:
     std::shared_ptr<internal::RuntimeImpl> p_;

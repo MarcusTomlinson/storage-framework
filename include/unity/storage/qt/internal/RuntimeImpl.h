@@ -61,9 +61,6 @@ public:
     std::shared_ptr<OnlineAccounts::Manager> accounts_manager() const;
 
     Account make_test_account(QString const& bus_name,
-                              QString const& object_path);
-
-    Account make_test_account(QString const& bus_name,
                               QString const& object_path,
                               QString const& owner_id,
                               QString const& owner,

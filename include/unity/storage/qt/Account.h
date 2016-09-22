@@ -42,10 +42,10 @@ class ItemListJob;
 class Q_DECL_EXPORT Account final
 {
     Q_GADGET
-    Q_PROPERTY(bool READ isValid CONSTANT FINAL)
-    Q_PROPERTY(QString READ owner CONSTANT FINAL)
-    Q_PROPERTY(QString READ ownerId CONSTANT FINAL)
-    Q_PROPERTY(QString READ description CONSTANT FINAL)
+    Q_PROPERTY(bool READ isValid FINAL)
+    Q_PROPERTY(QString READ owner FINAL)
+    Q_PROPERTY(QString READ ownerId FINAL)
+    Q_PROPERTY(QString READ description FINAL)
 
 public:
     Account();
@@ -81,6 +81,8 @@ private:
     friend class internal::ItemImpl;
 };
 
+uint Q_DECL_EXPORT qHash(Account const& acc);
+
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
@@ -97,7 +99,3 @@ template<> struct Q_DECL_EXPORT hash<unity::storage::qt::Account>
 };
 
 }  // namespace std
-
-// Note: qHash(Account) does *not* return the same hash value is std::hash<Account> because
-//       std:hash() returns size_t (typically 64 bits), but qHash() returns uint (typically 32 bits).
-uint Q_DECL_EXPORT qHash(unity::storage::qt::Account const& acc);
