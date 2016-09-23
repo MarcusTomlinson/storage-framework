@@ -57,24 +57,9 @@ void register_meta_types()
 
 }
 
-// TODO: chain the two constructors.
 RuntimeImpl::RuntimeImpl()
-    : is_valid_(true)
-    , conn_(QDBusConnection::sessionBus())
-    , accounts_manager_(new OnlineAccounts::Manager("", conn_))
+    : RuntimeImpl(QDBusConnection::sessionBus())
 {
-    register_meta_types();
-
-#if 0
-    if (!conn_.isConnected())
-    {
-        // LCOV_EXCL_START
-        is_valid_ = false;
-        QString msg = "Runtime(): cannot connect to session bus: " + conn_.lastError().message();
-        error_ = StorageErrorImpl::local_comms_error(msg);
-        // LCOV_EXCL_STOP
-    }
-#endif
 }
 
 RuntimeImpl::RuntimeImpl(QDBusConnection const& bus)
@@ -83,15 +68,6 @@ RuntimeImpl::RuntimeImpl(QDBusConnection const& bus)
     , accounts_manager_(new OnlineAccounts::Manager("", conn_))
 {
     register_meta_types();
-
-#if 0
-    if (!conn_.isConnected())
-    {
-        is_valid_ = false;
-        QString msg = "Runtime(): DBus connection is not connected";
-        error_ = StorageErrorImpl::local_comms_error(msg);
-    }
-#endif
 }
 
 RuntimeImpl::~RuntimeImpl()
@@ -140,12 +116,6 @@ StorageError RuntimeImpl::shutdown()
 shared_ptr<OnlineAccounts::Manager> RuntimeImpl::accounts_manager() const
 {
     return accounts_manager_;
-}
-
-Account RuntimeImpl::make_test_account(QString const& bus_name,
-                                       QString const& object_path)
-{
-    return make_test_account(bus_name, object_path, "", "", "");
 }
 
 Account RuntimeImpl::make_test_account(QString const& bus_name,

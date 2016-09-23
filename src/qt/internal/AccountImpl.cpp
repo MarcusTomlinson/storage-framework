@@ -169,11 +169,7 @@ bool AccountImpl::operator<(AccountImpl const& other) const
     {
         return false;
     }
-    if (description_ < other.description_)
-    {
-        return true;
-    }
-    return false;
+    return description_ < other.description_;
 }
 
 bool AccountImpl::operator<=(AccountImpl const& other) const

@@ -138,11 +138,13 @@ size_t Account::hash() const
     return p_->hash();
 }
 
-}  // namespace qt
-}  // namespace storage
-}  // namespace unity
+// Due to potentially different size of size_t and uint, hash() and qhash() may not return the same value.
 
-uint qHash(unity::storage::qt::Account const& acc)
+uint qHash(Account const& acc)
 {
     return acc.hash();
 }
+
+}  // namespace qt
+}  // namespace storage
+}  // namespace unity
