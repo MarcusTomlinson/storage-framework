@@ -33,8 +33,8 @@
 class ProviderFixture : public ::testing::Test
 {
 public:
-    ProviderFixture();
-    virtual ~ProviderFixture();
+    virtual void SetUp() override;
+    virtual void TearDown() override;
 
     QDBusConnection const& connection() const;
     void set_provider(std::unique_ptr<unity::storage::provider::ProviderBase>&& provider);

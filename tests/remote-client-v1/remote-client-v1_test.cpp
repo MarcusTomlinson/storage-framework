@@ -80,6 +80,7 @@ class DestroyedTest : public ProviderFixture
 protected:
     void SetUp() override
     {
+        ProviderFixture::SetUp();
         runtime_ = Runtime::create(connection());
         //acc_ = runtime_->make_test_account(service_connection_->baseService(), impossible_name());
         acc_ = runtime_->make_test_account(bus_name(), object_path());
@@ -87,6 +88,7 @@ protected:
 
     void TearDown() override
     {
+        ProviderFixture::TearDown();
     }
 
     Runtime::SPtr runtime_;

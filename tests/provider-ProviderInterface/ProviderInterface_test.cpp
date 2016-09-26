@@ -68,12 +68,14 @@ class ProviderInterfaceTest : public ProviderFixture
 protected:
     void SetUp() override
     {
+        ProviderFixture::SetUp();
         client_.reset(new ProviderClient(bus_name(), object_path(), connection()));
     }
 
     void TearDown() override
     {
         client_.reset();
+        ProviderFixture::TearDown();
     }
 
     std::unique_ptr<ProviderClient> client_;
