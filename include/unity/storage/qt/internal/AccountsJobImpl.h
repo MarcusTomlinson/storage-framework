@@ -54,7 +54,6 @@ private:
     AccountsJob::Status emit_status_changed(AccountsJob::Status new_status) const;
 
     AccountsJob* const public_instance_;
-
     AccountsJob::Status status_;
     StorageError error_;
     QList<unity::storage::qt::Account> accounts_;

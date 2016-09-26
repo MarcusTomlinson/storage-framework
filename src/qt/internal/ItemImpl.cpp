@@ -134,7 +134,7 @@ VoidJob* ItemImpl::deleteItem() const
     return nullptr;  // TODO
 }
 
-Uploader* ItemImpl::createUploader(ConflictPolicy policy, qint64 sizeInBytes) const
+Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes) const
 {
     return nullptr;  // TODO
 }

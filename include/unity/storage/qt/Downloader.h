@@ -33,10 +33,10 @@ class StorageError;
 class Q_DECL_EXPORT Downloader final : public QIODevice
 {
     Q_OBJECT
-    Q_PROPERTY(bool isValid READ isValid FINAL) // TODO: Need notify and constant where appropriate
+    Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
     Q_PROPERTY(unity::Storage::qt::Downloader::Status status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::Storage::qt::StorageError error READ error FINAL)
-    Q_PROPERTY(unity::Storage::qt::Item item READ item FINAL)
+    Q_PROPERTY(unity::Storage::qt::StorageError error READ error NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::Storage::qt::Item item READ item NOTIFY statusChanged FINAL)
 
 public:
     enum Status { Loading, Ready, Cancelled, Finished, Error };

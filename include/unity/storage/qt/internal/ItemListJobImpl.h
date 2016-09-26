@@ -65,11 +65,7 @@ private:
                     std::function<void(storage::internal::ItemMetadata const&)> const& validate);
     ItemListJobImpl(StorageError const& error);
 
-    ItemListJob::Status emit_status_changed(ItemListJob::Status new_status) const;
-    void emit_items_ready(QList<unity::storage::qt::Item> const& items) const;
-
     ItemListJob* public_instance_;
-
     ItemListJob::Status status_;
     StorageError error_;
     QString method_;

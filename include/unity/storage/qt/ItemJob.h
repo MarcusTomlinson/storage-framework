@@ -41,10 +41,10 @@ class StorageError;
 class Q_DECL_EXPORT ItemJob final : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(bool isValid READ isValid FINAL)
+    Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
     Q_PROPERTY(unity::storage::qt::ItemJob::Status status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::storage::qt::StorageError error READ error FINAL)
-    Q_PROPERTY(unity::storage::qt::Item item READ item FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError error READ error NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::Item item READ item NOTIFY statusChanged FINAL)
 
 public:
     virtual ~ItemJob();
