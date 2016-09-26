@@ -26,6 +26,7 @@
 #include <unity/storage/qt/ItemJob.h>
 #include <unity/storage/qt/ItemListJob.h>
 #include <unity/storage/qt/Runtime.h>
+#include <unity/storage/qt/VoidJob.h>
 
 #include <QDBusError>
 #include <QDBusMetaType>
@@ -50,6 +51,7 @@ void register_meta_types()
     qRegisterMetaType<QList<unity::storage::qt::Item>>();
     qRegisterMetaType<unity::storage::qt::ItemJob::Status>();
     qRegisterMetaType<unity::storage::qt::ItemListJob::Status>();
+    qRegisterMetaType<unity::storage::qt::VoidJob::Status>();
 
     qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
     qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();

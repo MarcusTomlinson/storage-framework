@@ -94,7 +94,7 @@ namespace std
 
 template<> struct Q_DECL_EXPORT hash<unity::storage::qt::Account>
 {
-    std::size_t operator()(unity::storage::qt::Account const& a)
+    std::size_t operator()(unity::storage::qt::Account const& a) const
     {
         return a.hash();
     }

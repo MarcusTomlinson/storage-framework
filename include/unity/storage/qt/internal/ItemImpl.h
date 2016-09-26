@@ -49,7 +49,6 @@ public:
     QString itemId() const;
     QString name() const;
     Account account() const;
-    //Item root() const;
     QString etag() const;
     Item::Type type() const;
     QVariantMap metadata() const;
@@ -81,6 +80,8 @@ public:
     static Item make_item(QString const& method,
                           storage::internal::ItemMetadata const& md,
                           std::shared_ptr<AccountImpl> const& account);
+
+    std::shared_ptr<RuntimeImpl> runtime() const;
 
 private:
     //std::shared_ptr<RuntimeImpl> get_runtime(QString const& method) const;

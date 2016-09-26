@@ -20,9 +20,9 @@
 
 #include <unity/storage/qt/ItemListJob.h>
 
-#include <unity/storage/qt/Account.h>
-#include <unity/storage/qt/internal/Handler.h>
 #include <unity/storage/qt/StorageError.h>
+
+#include <QDBusPendingReply>
 
 namespace unity
 {
@@ -40,7 +40,7 @@ namespace qt
 namespace internal
 {
 
-class RuntimeImpl;
+class AccountImpl;
 
 class ItemListJobImpl : public QObject
 {

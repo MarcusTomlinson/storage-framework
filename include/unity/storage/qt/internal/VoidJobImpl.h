@@ -18,9 +18,11 @@
 
 #pragma once
 
-#include <QObject>
+#include <unity/storage/qt/VoidJob.h>
 
-#include <memory>
+#include <unity/storage/qt/StorageError.h>
+
+#include <QDBusPendingReply>
 
 namespace unity
 {
@@ -31,42 +33,37 @@ namespace qt
 namespace internal
 {
 
-class VoidJobImpl;
+class ItemImpl;
 
-}  // namespace internal
-
-class StorageError;
-
-class Q_DECL_EXPORT VoidJob final : public QObject
+class VoidJobImpl : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::storage::qt::VoidJob::Status status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::storage::qt::StorageError status READ error NOTIFY statusChanged FINAL)
-
 public:
-    virtual ~VoidJob();
-
-    enum Status { Loading, Finished, Error };
-    Q_ENUMS(Status)
+    virtual ~VoidJobImpl() = default;
 
     bool isValid() const;
-    Status status() const;
+    VoidJob::Status status() const;
     StorageError error() const;
 
-Q_SIGNALS:
-    void statusChanged(unity::storage::qt::VoidJob::Status status) const;
+    static VoidJob* make_void_job(std::shared_ptr<ItemImpl> const& item,
+                                  QString const& method, 
+                                  QDBusPendingReply<void> const& reply);
+    static VoidJob* make_void_job(StorageError const& e);
 
 private:
-    VoidJob(std::unique_ptr<internal::VoidJobImpl> p);
+    VoidJobImpl(std::shared_ptr<ItemImpl> const& item,
+                QString const& method, 
+                QDBusPendingReply<void> const& reply);
+    VoidJobImpl(StorageError const& e);
 
-    std::unique_ptr<internal::VoidJobImpl> const p_;
-
-    friend class internal::VoidJobImpl;
+    VoidJob* public_instance_;
+    VoidJob::Status status_;
+    StorageError error_;
+    QString method_;
+    std::shared_ptr<ItemImpl> item_;
 };
 
+}  // namespace internal
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
-
-Q_DECLARE_METATYPE(unity::storage::qt::VoidJob::Status)

@@ -46,7 +46,19 @@ MockProvider::MockProvider(string const& cmd)
 
 boost::future<ItemList> MockProvider::roots(Context const&)
 {
-    cerr << "roots CALLED" << endl;
+    if (cmd_ == "slow_roots")
+    {
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+    if (cmd_ == "not_a_root")
+    {
+        ItemList roots =
+        {
+            {"root_id", {}, "Root", "etag", ItemType::file, {}}
+        };
+        return make_ready_future<ItemList>(roots);
+    }
+
     ItemList roots =
     {
         {"root_id", {}, "Root", "etag", ItemType::root, {}}
@@ -103,6 +115,15 @@ boost::future<ItemList> MockProvider::lookup(
 
 boost::future<Item> MockProvider::metadata(string const& item_id, Context const&)
 {
+    if (cmd_ == "slow_metadata")
+    {
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+    if (cmd_ == "empty_id")
+    {
+        Item metadata{"", {}, "Root", "etag", ItemType::root, {}};
+        return make_ready_future<Item>(metadata);
+    }
     if (item_id == "root_id")
     {
         Item metadata{"root_id", {}, "Root", "etag", ItemType::root, {}};
@@ -168,8 +189,17 @@ boost::future<unique_ptr<DownloadJob>> MockProvider::download(
 }
 
 boost::future<void> MockProvider::delete_item(
-    string const&, Context const&)
+    string const& item_id, Context const&)
 {
+    if (cmd_ == "slow_delete")
+    {
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+    if (cmd_ == "delete_no_such_item")
+    {
+        string msg = "delete_item(): no such item: " + item_id;
+        return make_exceptional_future<void>(NotExistsException(msg, item_id));
+    }
     return make_ready_future();
 }
 

@@ -23,6 +23,7 @@ set(QT_CLIENT_LIB_V2_SRC
     ItemListJob.cpp
     Runtime.cpp
     StorageError.cpp
+    VoidJob.cpp
     internal/AccountImpl.cpp
     internal/AccountsJobImpl.cpp
     internal/HandlerBase.cpp
@@ -33,16 +34,19 @@ set(QT_CLIENT_LIB_V2_SRC
     internal/StorageErrorImpl.cpp
     internal/unmarshal_error.cpp
     internal/validate.cpp
+    internal/VoidJobImpl.cpp
     ${generated_files}
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/AccountsJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Item.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/ItemJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/ItemListJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Runtime.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/VoidJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/AccountsJobImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/HandlerBase.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemJobImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemListJobImpl.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/VoidJobImpl.h
 )
 
 add_library(storage-framework-qt-client-v2 SHARED
