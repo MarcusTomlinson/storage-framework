@@ -64,21 +64,23 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
                 // Bad metadata received from provider, validate_() or make_item() have logged it.
             }
         }
-        emit_items_ready(items);
-        status_ = emit_status_changed(ItemListJob::Finished);
+        status_ = ItemListJob::Finished;
+        Q_EMIT public_instance_->itemsReady(items);
+        Q_EMIT public_instance_->statusChanged(status_);
     };
 
     auto process_error = [this](StorageError const& error)
     {
         error_ = error;
-        status_ = emit_status_changed(ItemListJob::Error);
+        status_ = ItemListJob::Error;
+        Q_EMIT public_instance_->statusChanged(status_);
     };
 
     new Handler<QList<storage::internal::ItemMetadata>>(this, reply, process_reply, process_error);
 }
 
 ItemListJobImpl::ItemListJobImpl(StorageError const& error)
-    : status_(ItemListJob::Loading)
+    : status_(ItemListJob::Error)
     , error_(error)
 {
 }
@@ -115,31 +117,11 @@ ItemListJob* ItemListJobImpl::make_item_list_job(StorageError const& error)
     unique_ptr<ItemListJobImpl> impl(new ItemListJobImpl(error));
     auto job = new ItemListJob(move(impl));
     job->p_->public_instance_ = job;
-    job->p_->status_ = job->p_->emit_status_changed(ItemListJob::Error);
-    return job;
-}
-
-ItemListJob::Status ItemListJobImpl::emit_status_changed(ItemListJob::Status new_status) const
-{
-    // TODO: use assert
-    if (status_ == ItemListJob::Loading)  // Once in a final state, we don't emit the signal again.
-    {
-        // We defer emission of the signal so the client gets a chance to connect to the signal
-        // in case we emit the signal from the constructor.
-        QMetaObject::invokeMethod(public_instance_,
-                                  "statusChanged",
-                                  Qt::QueuedConnection,
-                                  Q_ARG(unity::storage::qt::ItemListJob::Status, new_status));
-    }
-    return new_status;
-}
-
-void ItemListJobImpl::emit_items_ready(QList<Item> const& items) const
-{
-    QMetaObject::invokeMethod(public_instance_,
-                              "itemsReady",
+    QMetaObject::invokeMethod(job,
+                              "statusChanged",
                               Qt::QueuedConnection,
-                              Q_ARG(QList<unity::storage::qt::Item>, items));
+                              Q_ARG(unity::storage::qt::ItemListJob::Status, job->p_->status_));
+    return job;
 }
 
 }  // namespace internal

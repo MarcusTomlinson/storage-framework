@@ -37,6 +37,7 @@ class RemoteClientTest : public ProviderFixture
 protected:
     void SetUp() override
     {
+        ProviderFixture::SetUp();
         runtime_.reset(new Runtime(connection()));
         acc_ = runtime_->make_test_account(service_connection_->baseService(), object_path());
     }
@@ -44,6 +45,7 @@ protected:
     void TearDown() override
     {
         runtime_.reset();
+        ProviderFixture::TearDown();
     }
 
     unique_ptr<Runtime> runtime_;

@@ -50,7 +50,8 @@ class Q_DECL_EXPORT Runtime final : public QObject
 {
     Q_PROPERTY(bool isValid READ isValid FINAL)
     Q_PROPERTY(unity::storage::StorageError error READ FINAL)
-    Q_PROPERTY(QDBusConnection connection READ connection FINAL)
+    Q_PROPERTY(QDBusConnection connection READ connection CONSTANT FINAL)
+
 public:
     Runtime(QObject* parent = nullptr);
     Runtime(QDBusConnection const& bus, QObject* parent = nullptr);

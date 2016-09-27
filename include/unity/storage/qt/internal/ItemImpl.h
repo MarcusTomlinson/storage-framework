@@ -60,7 +60,7 @@ public:
     ItemJob* copy(Item const& newParent, QString const& newName) const;
     ItemJob* move(Item const& newParent, QString const& newName) const;
     VoidJob* deleteItem() const;
-    Uploader* createUploader(ConflictPolicy policy, qint64 sizeInBytes) const;
+    Uploader* createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes) const;
     Downloader* createDownloader() const;
     ItemListJob* list() const;
     ItemListJob* lookup(QString const& name) const;

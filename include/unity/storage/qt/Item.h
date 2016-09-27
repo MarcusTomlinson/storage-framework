@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <unity/storage/qt/ConflictPolicy.h>
+#include <unity/storage/common.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
@@ -70,8 +70,20 @@ public:
     Item& operator=(Item const&);
     Item& operator=(Item&&);
 
-    enum Type { File, Folder, Root };
+    enum Type
+    {
+        File = unsigned(unity::storage::ItemType::file),
+        Folder = unsigned(unity::storage::ItemType::folder),
+        Root = unsigned(unity::storage::ItemType::root)
+    };
     Q_ENUMS(Type)
+
+    enum ConflictPolicy
+    {
+        ErrorIfConflict = unsigned(unity::storage::ConflictPolicy::error_if_conflict),
+        Overwrite = unsigned(unity::storage::ConflictPolicy::overwrite)
+    };
+    Q_ENUMS(ConflictPolicy)
 
     bool isValid() const;
     QString itemId() const;
@@ -127,6 +139,7 @@ uint Q_DECL_EXPORT qHash(unity::storage::qt::Item const& i);
 Q_DECLARE_METATYPE(unity::storage::qt::Item)
 Q_DECLARE_METATYPE(QList<unity::storage::qt::Item>)
 Q_DECLARE_METATYPE(unity::storage::qt::Item::Type)
+Q_DECLARE_METATYPE(unity::storage::qt::Item::ConflictPolicy)
 
 namespace std
 {

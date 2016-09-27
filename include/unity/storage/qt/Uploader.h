@@ -35,12 +35,12 @@ class StorageError;
 class Q_DECL_EXPORT Uploader final : public QIODevice
 {
     Q_OBJECT
-    Q_PROPERTY(bool isValid READ isValid FINAL) // TODO: Need notify
-    Q_PROPERTY(unity::storage::qt::Uploader::Status status READ status FINAL)
-    Q_PROPERTY(unity::storage::qt::StorageError READ error FINAL)
-    Q_PROPERTY(unity::storage::qt::ConflictPolicy policy READ policy FINAL)
-    Q_PROPERTY(qint64 sizeInBytes READ sizeInBytes FINAL)
-    Q_PROPERTY(unity::storage::qt::Item item READ item FINAL)
+    Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL) // TODO: Need notify
+    Q_PROPERTY(unity::storage::qt::Uploader::Status status READ status NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError READ error NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::Item::ConflictPolicy policy READ policy CONSTANT FINAL)
+    Q_PROPERTY(qint64 sizeInBytes READ sizeInBytes CONSTANT FINAL)
+    Q_PROPERTY(unity::storage::qt::Item item READ item NOTIFY statusChanged FINAL)
 
 public:
     enum Status { Loading, Cancelled, Finished, Error };

@@ -105,7 +105,6 @@ StorageError RuntimeImpl::shutdown()
 {
     if (is_valid_)
     {
-        conn_.disconnectFromBus(conn_.name());
         is_valid_ = false;
         return StorageError();
     }

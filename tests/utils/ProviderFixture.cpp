@@ -33,7 +33,7 @@ const auto OBJECT_PATH = QStringLiteral("/provider");
 
 }  // namespace
 
-ProviderFixture::ProviderFixture()
+void ProviderFixture::SetUp()
 {
     dbus_.reset(new DBusEnvironment);
     dbus_->start_services();
@@ -43,7 +43,7 @@ ProviderFixture::ProviderFixture()
     account_manager_.reset(new OnlineAccounts::Manager("", *service_connection_));
 }
 
-ProviderFixture::~ProviderFixture()
+void ProviderFixture::TearDown()
 {
     test_server_.reset();
     service_connection_.reset();

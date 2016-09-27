@@ -54,27 +54,29 @@ ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account,
         {
             validate_(metadata);
             item_ = ItemImpl::make_item(method_, metadata, account_);
-            status_ = emit_status_changed(ItemJob::Finished);
+            status_ = ItemJob::Finished;
         }
         catch (StorageError const& e)
         {
             // Bad metadata received from provider, validate_() or make_item() have logged it.
             error_ = e;
-            status_ = emit_status_changed(ItemJob::Error);
+            status_ = ItemJob::Error;
         }
+        Q_EMIT public_instance_->statusChanged(status_);
     };
 
     auto process_error = [this](StorageError const& error)
     {
         error_ = error;
-        status_ = emit_status_changed(ItemJob::Error);
+        status_ = ItemJob::Error;
+        Q_EMIT public_instance_->statusChanged(status_);
     };
 
     new Handler<storage::internal::ItemMetadata>(this, reply, process_reply, process_error);
 }
 
 ItemJobImpl::ItemJobImpl(StorageError const& error)
-    : status_(ItemJob::Loading)
+    : status_(ItemJob::Error)
     , error_(error)
 {
 }
@@ -115,21 +117,11 @@ ItemJob* ItemJobImpl::make_item_job(StorageError const& error)
     unique_ptr<ItemJobImpl> impl(new ItemJobImpl(error));
     auto job = new ItemJob(move(impl));
     job->p_->public_instance_ = job;
-    job->p_->status_ = job->p_->emit_status_changed(ItemJob::Error);
+    QMetaObject::invokeMethod(job,
+                              "statusChanged",
+                              Qt::QueuedConnection,
+                              Q_ARG(unity::storage::qt::ItemJob::Status, job->p_->status_));
     return job;
-}
-
-ItemJob::Status ItemJobImpl::emit_status_changed(ItemJob::Status new_status) const
-{
-    // TODO: should be an assert!
-    if (status_ == ItemJob::Loading)  // Once in a final state, we don't emit the signal again.
-    {
-        QMetaObject::invokeMethod(public_instance_,
-                                  "statusChanged",
-                                  Qt::QueuedConnection,
-                                  Q_ARG(unity::storage::qt::ItemJob::Status, new_status));
-    }
-    return new_status;
 }
 
 }  // namespace internal
