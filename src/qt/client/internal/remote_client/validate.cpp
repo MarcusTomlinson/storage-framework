@@ -126,9 +126,9 @@ void validate(QString const& method, ItemMetadata const& md)
     {
         throw LocalCommsException(prefix + "name cannot be empty");
     }
-    if (md.etag.isEmpty())
+    if (md.type == ItemType::file && md.etag.isEmpty())
     {
-        throw LocalCommsException(prefix + "etag cannot be empty");
+        throw LocalCommsException(prefix + "etag of file cannot be empty");
     }
 
     // Sanity check metadata to make sure only known metadata keys appear.
