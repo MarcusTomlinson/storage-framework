@@ -19,6 +19,7 @@
 #include <unity/storage/qt/ItemListJob.h>
 
 #include <unity/storage/qt/internal/ItemListJobImpl.h>
+#include <unity/storage/qt/internal/MultiItemJobImpl.h>
 
 using namespace unity::storage::qt;
 using namespace std;
@@ -30,7 +31,7 @@ namespace storage
 namespace qt
 {
 
-ItemListJob::ItemListJob(unique_ptr<internal::ItemListJobImpl> p)
+ItemListJob::ItemListJob(unique_ptr<internal::ListJobImplBase> p)
     : p_(move(p))
 {
 }

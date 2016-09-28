@@ -32,7 +32,7 @@ namespace internal
 
 class ItemMetadata;
 
-}
+}  // namespace internal
 
 namespace qt
 {
@@ -41,24 +41,25 @@ namespace internal
 
 class AccountImpl;
 
-class ItemListJobImpl : public ListJobImplBase
+class MultiItemJobImpl : public ListJobImplBase
 {
     Q_OBJECT
 public:
-    virtual ~ItemListJobImpl() = default;
+    virtual ~MultiItemJobImpl() = default;
 
     static ItemListJob* make_job(std::shared_ptr<AccountImpl> const& account,
                                  QString const& method,
-                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                 QList<QDBusPendingReply<storage::internal::ItemMetadata>> const& replies,
                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate);
-    static ItemListJob* make_job(StorageError const& error);
 
 private:
-    ItemListJobImpl() = default;
-    ItemListJobImpl(std::shared_ptr<AccountImpl> const& account,
-                    QString const& method,
-                    QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                    std::function<void(storage::internal::ItemMetadata const&)> const& validate);
+    MultiItemJobImpl() = default;
+    MultiItemJobImpl(std::shared_ptr<AccountImpl> const& account,
+                     QString const& method,
+                     QList<QDBusPendingReply<storage::internal::ItemMetadata>> const& replies,
+                     std::function<void(storage::internal::ItemMetadata const&)> const& validate);
+
+    int replies_remaining_;
 };
 
 }  // namespace internal

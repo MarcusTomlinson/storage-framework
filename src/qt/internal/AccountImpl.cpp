@@ -86,10 +86,15 @@ ItemListJob* AccountImpl::roots() const
     QString const method = "Account::roots()";
 
     auto runtime = runtime_.lock();
+    if (!is_valid_)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot create job from invalid account");
+        return ItemListJobImpl::make_job(e);
+    }
     if (!runtime || !runtime->isValid())
     {
         auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");
-        return ItemListJobImpl::make_item_list_job(e);
+        return ItemListJobImpl::make_job(e);
     }
 
     auto validate = [method](storage::internal::ItemMetadata const& md)
@@ -104,18 +109,23 @@ ItemListJob* AccountImpl::roots() const
 
     auto reply = provider_->Roots();
     auto This = const_pointer_cast<AccountImpl>(shared_from_this());
-    return ItemListJobImpl::make_item_list_job(This, method, reply, validate);
+    return ItemListJobImpl::make_job(This, method, reply, validate);
 }
 
 ItemJob* AccountImpl::get(QString const& itemId) const
 {
     QString const method = "Account::get()";
 
+    if (!is_valid_)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot create job from invalid account");
+        return ItemJobImpl::make_job(e);
+    }
     auto runtime = runtime_.lock();
     if (!runtime || !runtime->isValid())
     {
         auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");
-        return ItemJobImpl::make_item_job(e);
+        return ItemJobImpl::make_job(e);
     }
 
     // LCOV_EXCL_START
@@ -126,7 +136,7 @@ ItemJob* AccountImpl::get(QString const& itemId) const
 
     auto reply = provider_->Metadata(itemId);
     auto This = const_pointer_cast<AccountImpl>(shared_from_this());
-    return ItemJobImpl::make_item_job(This, method, reply, validate);
+    return ItemJobImpl::make_job(This, method, reply, validate);
 }
 
 bool AccountImpl::operator==(AccountImpl const& other) const

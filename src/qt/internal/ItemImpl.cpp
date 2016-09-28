@@ -22,6 +22,8 @@
 #include <unity/storage/provider/metadata_keys.h>
 #include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/ItemJobImpl.h>
+#include <unity/storage/qt/internal/ItemListJobImpl.h>
+#include <unity/storage/qt/internal/MultiItemJobImpl.h>
 #include <unity/storage/qt/internal/RuntimeImpl.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
 #include <unity/storage/qt/internal/VoidJobImpl.h>
@@ -104,14 +106,56 @@ QDateTime ItemImpl::lastModifiedTime() const
                      : QDateTime();
 }
 
-QVector<QString> ItemImpl::parentIds() const
+QList<QString> ItemImpl::parentIds() const
 {
-    return is_valid_ ? md_.parent_ids : QVector<QString>();
+    if (!is_valid_ || md_.type == storage::ItemType::root)
+    {
+        return QList<QString>();
+    }
+    return md_.parent_ids;
 }
 
 ItemListJob* ItemImpl::parents() const
 {
-    return nullptr;  // TODO
+    QString const method = "Item::parents()";
+
+    if (!is_valid_)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot create job from invalid item");
+        return ListJobImplBase::make_job(e);
+    }
+    auto runtime = account_->runtime();
+    if (!runtime || !runtime->isValid())
+    {
+        auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");
+        return ListJobImplBase::make_job(e);
+    }
+
+    if (md_.type == storage::ItemType::root)
+    {
+        return ListJobImplBase::make_empty_job();  // Root has no parents.
+    }
+
+    assert(!md_.parent_ids.isEmpty());
+
+    QList<QDBusPendingReply<storage::internal::ItemMetadata>> replies;
+    for (auto const& id : md_.parent_ids)
+    {
+        auto reply = account_->provider()->Metadata(id);
+        replies.append(reply);
+    }
+
+    auto validate = [method](storage::internal::ItemMetadata const& md)
+    {
+        if (md.type == ItemType::file)
+        {
+            QString msg = method + ": provider returned a file as a parent";
+            qCritical() << msg;
+            throw StorageErrorImpl::local_comms_error(msg);
+        }
+    };
+
+    return MultiItemJobImpl::make_job(account_, method, replies, validate);
 }
 
 ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName) const
@@ -128,23 +172,26 @@ VoidJob* ItemImpl::deleteItem() const
 {
     QString const method = "Item::deleteItem()";
 
-    assert(account_);
+    if (!is_valid_)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot create job from invalid item");
+        return VoidJobImpl::make_job(e);
+    }
     auto runtime = account_->runtime();
     if (!runtime || !runtime->isValid())
     {
         auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");
-        return VoidJobImpl::make_void_job(e);
+        return VoidJobImpl::make_job(e);
     }
-
     if (md_.type == storage::ItemType::root)
     {
         auto e = StorageErrorImpl::logic_error(method + ": cannot delete root");
-        return VoidJobImpl::make_void_job(e);
+        return VoidJobImpl::make_job(e);
     }
 
     auto reply = account_->provider()->Delete(md_.item_id);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
-    return VoidJobImpl::make_void_job(This, method, reply);
+    return VoidJobImpl::make_job(This, method, reply);
 }
 
 Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes) const

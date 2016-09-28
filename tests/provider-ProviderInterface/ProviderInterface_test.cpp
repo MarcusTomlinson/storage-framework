@@ -91,7 +91,7 @@ TEST_F(ProviderInterfaceTest, roots)
     EXPECT_EQ(1, reply.value().size());
     auto root = reply.value()[0];
     EXPECT_EQ("root_id", root.item_id);
-    EXPECT_EQ(QVector<QString>(), root.parent_ids);
+    EXPECT_EQ(QList<QString>(), root.parent_ids);
     EXPECT_EQ("Root", root.name);
     EXPECT_EQ("etag", root.etag);
     EXPECT_EQ(ItemType::root, root.type);
@@ -146,7 +146,7 @@ TEST_F(ProviderInterfaceTest, lookup)
     ASSERT_EQ(1, items.size());
     auto item = items[0];
     EXPECT_EQ("child_id", item.item_id);
-    EXPECT_EQ(QVector<QString>{ "root_id"}, item.parent_ids);
+    EXPECT_EQ(QList<QString>{ "root_id"}, item.parent_ids);
     EXPECT_EQ("Filename", item.name);
     EXPECT_EQ(ItemType::file, item.type);
 }
@@ -160,7 +160,7 @@ TEST_F(ProviderInterfaceTest, metadata)
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("root_id", item.item_id);
-    EXPECT_EQ(QVector<QString>(), item.parent_ids);
+    EXPECT_EQ(QList<QString>(), item.parent_ids);
     EXPECT_EQ("Root", item.name);
     EXPECT_EQ(ItemType::root, item.type);
 }
@@ -174,7 +174,7 @@ TEST_F(ProviderInterfaceTest, create_folder)
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("new_folder_id", item.item_id);
-    EXPECT_EQ(QVector<QString>{ "root_id" }, item.parent_ids);
+    EXPECT_EQ(QList<QString>{ "root_id" }, item.parent_ids);
     EXPECT_EQ("New Folder", item.name);
     EXPECT_EQ(ItemType::folder, item.type);
 }
@@ -224,7 +224,7 @@ TEST_F(ProviderInterfaceTest, create_file)
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("new_file_id", item.item_id);
-    EXPECT_EQ(QVector<QString>{ "parent_id" }, item.parent_ids);
+    EXPECT_EQ(QList<QString>{ "parent_id" }, item.parent_ids);
     EXPECT_EQ("file name", item.name);
 }
 
@@ -761,7 +761,7 @@ TEST_F(ProviderInterfaceTest, move)
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("child_id", item.item_id);
-    EXPECT_EQ(QVector<QString>{ "new_parent_id" }, item.parent_ids);
+    EXPECT_EQ(QList<QString>{ "new_parent_id" }, item.parent_ids);
     EXPECT_EQ("New name", item.name);
     EXPECT_EQ(ItemType::file, item.type);
 }
@@ -775,7 +775,7 @@ TEST_F(ProviderInterfaceTest, copy)
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("new_id", item.item_id);
-    EXPECT_EQ(QVector<QString>{ "new_parent_id" }, item.parent_ids);
+    EXPECT_EQ(QList<QString>{ "new_parent_id" }, item.parent_ids);
     EXPECT_EQ("New name", item.name);
     EXPECT_EQ(ItemType::file, item.type);
 }

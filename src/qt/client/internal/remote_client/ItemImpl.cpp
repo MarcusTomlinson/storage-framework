@@ -217,7 +217,14 @@ QVector<QString> ItemImpl::parent_ids() const
 {
     throw_if_destroyed("Item::parent_ids()");
     // TODO, need different metadata representation, affects xml
-    return md_.parent_ids;
+    // We changed ItemMetadata to contain a QList for the v2 API,
+    // so we copy here.
+    QVector<QString> ids;
+    for (auto const& id : md_.parent_ids)
+    {
+        ids.append(id);
+    }
+    return ids;
 }
 
 QFuture<void> ItemImpl::delete_item()

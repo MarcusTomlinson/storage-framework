@@ -104,6 +104,7 @@ StorageErrorImpl::StorageErrorImpl(StorageError::Type type,
 
 StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg, int error_code)
     : type_(type)
+    , name_(ERROR_NAMES[type_])
     , message_(msg)
     , error_code_(error_code)
 {

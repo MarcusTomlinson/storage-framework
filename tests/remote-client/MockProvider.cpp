@@ -58,6 +58,11 @@ boost::future<ItemList> MockProvider::roots(Context const&)
         };
         return make_ready_future<ItemList>(roots);
     }
+    if (cmd_ == "roots_throw")
+    {
+        string msg = "roots(): I'm sorry Dave, I'm afraid I can't do that.";
+        return make_exceptional_future<ItemList>(PermissionException(msg));
+    }
 
     ItemList roots =
     {
@@ -115,6 +120,8 @@ boost::future<ItemList> MockProvider::lookup(
 
 boost::future<Item> MockProvider::metadata(string const& item_id, Context const&)
 {
+    static int num_calls = 0;
+
     if (cmd_ == "slow_metadata")
     {
         this_thread::sleep_for(chrono::seconds(1));
@@ -124,13 +131,47 @@ boost::future<Item> MockProvider::metadata(string const& item_id, Context const&
         Item metadata{"", {}, "Root", "etag", ItemType::root, {}};
         return make_ready_future<Item>(metadata);
     }
+    if (cmd_== "two_parents_throw")
+    {
+        ++num_calls;
+        switch (num_calls)
+        {
+            case 3:
+                return make_exceptional_future<Item>(ResourceException("metadata(): weird error", 42));
+            case 4:
+                num_calls = 0;
+                return make_exceptional_future<Item>(RemoteCommsException("metadata(): HTTP broken"));
+            default:
+                break;
+        }
+    }
     if (item_id == "root_id")
     {
+        if (cmd_ == "bad_parent_metadata_from_child")
+        {
+            ++num_calls;
+            if (num_calls == 2)
+            {
+                num_calls = 0;
+                // On second call, we return type file for the root.
+                Item metadata{"root_id", {}, "Root", "etag", ItemType::file, {}};
+                return make_ready_future<Item>(metadata);
+            }
+        }
         Item metadata{"root_id", {}, "Root", "etag", ItemType::root, {}};
         return make_ready_future<Item>(metadata);
     }
-    else if (item_id == "child_id")
+    if (item_id == "child_id")
     {
+        if (cmd_ == "two_parents" || cmd_ == "two_parents_throw")
+        {
+            Item metadata
+            {
+                "child_id", { "root_id", "child_folder_id" }, "Child", "etag", ItemType::file,
+                { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+            };
+            return make_ready_future<Item>(metadata);
+        }
         Item metadata
         {
             "child_id", { "root_id" }, "Child", "etag", ItemType::file,
@@ -138,7 +179,7 @@ boost::future<Item> MockProvider::metadata(string const& item_id, Context const&
         };
         return make_ready_future<Item>(metadata);
     }
-    else if (item_id == "child_folder_id")
+    if (item_id == "child_folder_id")
     {
         Item metadata{"child_folder_id", { "root_id" }, "Child_Folder", "etag", ItemType::folder, {}};
         return make_ready_future<Item>(metadata);

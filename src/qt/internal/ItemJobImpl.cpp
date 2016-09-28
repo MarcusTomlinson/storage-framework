@@ -112,10 +112,10 @@ Item ItemJobImpl::item() const
     return item_;
 }
 
-ItemJob* ItemJobImpl::make_item_job(shared_ptr<AccountImpl> const& account,
-                                    QString const& method,
-                                    QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
-                                    std::function<void(storage::internal::ItemMetadata const&)> const& validate)
+ItemJob* ItemJobImpl::make_job(shared_ptr<AccountImpl> const& account,
+                               QString const& method,
+                               QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                               std::function<void(storage::internal::ItemMetadata const&)> const& validate)
 {
     unique_ptr<ItemJobImpl> impl(new ItemJobImpl(account, method, reply, validate));
     auto job = new ItemJob(move(impl));
@@ -123,7 +123,7 @@ ItemJob* ItemJobImpl::make_item_job(shared_ptr<AccountImpl> const& account,
     return job;
 }
 
-ItemJob* ItemJobImpl::make_item_job(StorageError const& error)
+ItemJob* ItemJobImpl::make_job(StorageError const& error)
 {
     unique_ptr<ItemJobImpl> impl(new ItemJobImpl(error));
     auto job = new ItemJob(move(impl));
