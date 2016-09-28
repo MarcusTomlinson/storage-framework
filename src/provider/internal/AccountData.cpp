@@ -132,6 +132,9 @@ void AccountData::on_authenticated()
     }
     case OnlineAccounts::AuthenticationMethodPassword:
     {
+        // Grab hostname from account settings if available
+        string host = account_->setting("host").toString().toStdString();
+
         OnlineAccounts::PasswordReply reply(*auth_watcher_);
         if (reply.hasError())
         {
@@ -142,6 +145,7 @@ void AccountData::on_authenticated()
             credentials_ = PasswordCredentials{
                 reply.username().toStdString(),
                 reply.password().toStdString(),
+                host,
             };
         }
         break;
