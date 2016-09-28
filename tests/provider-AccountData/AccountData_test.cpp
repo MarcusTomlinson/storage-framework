@@ -156,6 +156,8 @@ TEST_F(AccountDataTest, password_credentials_host)
     auto creds = boost::get<PasswordCredentials>(account.credentials());
 
     // Host extracted from account settings.
+    EXPECT_EQ("joe", creds.username);
+    EXPECT_EQ("secret", creds.password);
     EXPECT_EQ("http://www.example.com/", creds.host);
 }
 

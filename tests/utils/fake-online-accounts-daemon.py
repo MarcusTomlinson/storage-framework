@@ -80,6 +80,15 @@ class Password:
             "Password": dbus.String(self.password),
         }, signature="sv")
 
+# A version of Password that incorrectly serialises the credentials
+#   https://bugs.launchpad.net/bugs/1628473
+class Password_Bug1628473(Password):
+    def serialise(self):
+        return dbus.Dictionary({
+            "UserName": dbus.String(self.username),
+            "Secret": dbus.String(self.password),
+        }, signature="sv")
+
 class Account:
     def __init__(self, account_id, display_name, service_id, credentials, settings=None):
         self.account_id = account_id
@@ -167,7 +176,8 @@ if __name__ == "__main__":
         Account(3, "Password account", "password-service",
                 Password("user", "pass")),
         Account(4, "Password host account", "password-host-service",
-                Password("user", "pass"), {"host": "http://www.example.com/"}),
+                Password_Bug1628473("joe", "secret"),
+                {"host": "http://www.example.com/"}),
         Account(42, "Fake google account", "google-drive-scope",
                 OAuth2("fake-google-access-token", 0, [])),
         Account(99, "Fake mcloud account", "com.canonical.scopes.mcloud_mcloud_mcloud",

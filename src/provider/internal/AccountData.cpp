@@ -142,10 +142,20 @@ void AccountData::on_authenticated()
         }
         else
         {
+            QString username = reply.username();
+            QString password = reply.password();
+
+            // Work around password credentials bug in online-accounts-service
+            //   https://bugs.launchpad.net/bugs/1628473
+            if (username.isEmpty() && password.isEmpty())
+            {
+                username = reply.data()["UserName"].toString();
+                password = reply.data()["Secret"].toString();
+            }
             credentials_ = PasswordCredentials{
-                reply.username().toStdString(),
-                reply.password().toStdString(),
-                host,
+                username.toStdString(),
+                password.toStdString(),
+                move(host),
             };
         }
         break;
