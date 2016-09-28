@@ -28,6 +28,7 @@
 #include <OnlineAccounts/PendingCallWatcher>
 #include <QObject>
 #include <QDBusConnection>
+#include <QPointer>
 #pragma GCC diagnostic pop
 
 #include <string>
@@ -77,7 +78,7 @@ private:
     std::shared_ptr<DBusPeerCache> const dbus_peer_;
     std::unique_ptr<PendingJobs> const jobs_;
 
-    OnlineAccounts::Account* const account_;
+    QPointer<OnlineAccounts::Account> const account_;
     std::unique_ptr<OnlineAccounts::PendingCallWatcher> auth_watcher_;
     bool authenticating_interactively_ = false;
 
