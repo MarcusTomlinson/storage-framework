@@ -31,12 +31,12 @@ namespace storage {
 namespace provider {
 namespace internal {
 
-AccountData::AccountData(std::unique_ptr<ProviderBase>&& provider,
-                         std::shared_ptr<DBusPeerCache> const& dbus_peer,
+AccountData::AccountData(shared_ptr<ProviderBase> const& provider,
+                         shared_ptr<DBusPeerCache> const& dbus_peer,
                          QDBusConnection const& bus,
                          OnlineAccounts::Account* account,
                          QObject* parent)
-    : QObject(parent), provider_(std::move(provider)), dbus_peer_(dbus_peer),
+    : QObject(parent), provider_(provider), dbus_peer_(dbus_peer),
       jobs_(new PendingJobs(bus)), account_(account)
 {
     authenticate(false);

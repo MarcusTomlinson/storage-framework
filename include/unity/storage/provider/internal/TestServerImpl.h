@@ -43,7 +43,7 @@ class ProviderInterface;
 class TestServerImpl
 {
 public:
-    TestServerImpl(std::unique_ptr<ProviderBase>&& provider,
+    TestServerImpl(std::shared_ptr<ProviderBase> const& provider,
                    OnlineAccounts::Account* account,
                    QDBusConnection const& connection,
                    std::string const& object_path);

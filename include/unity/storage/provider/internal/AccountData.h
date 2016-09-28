@@ -51,7 +51,7 @@ class AccountData : public QObject
 {
     Q_OBJECT
 public:
-    AccountData(std::unique_ptr<ProviderBase>&& provider,
+    AccountData(std::shared_ptr<ProviderBase> const& provider,
                 std::shared_ptr<DBusPeerCache> const& dbus_peer,
                 QDBusConnection const& bus,
                 OnlineAccounts::Account* account,
@@ -73,7 +73,7 @@ private Q_SLOTS:
     void on_authenticated();
 
 private:
-    std::unique_ptr<ProviderBase> const provider_;
+    std::shared_ptr<ProviderBase> const provider_;
     std::shared_ptr<DBusPeerCache> const dbus_peer_;
     std::unique_ptr<PendingJobs> const jobs_;
 
