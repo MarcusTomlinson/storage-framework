@@ -46,7 +46,7 @@ class RuntimeImpl;
 
 class AccountsJob;
 
-class Q_DECL_EXPORT Runtime final : public QObject
+class Q_DECL_EXPORT Runtime : public QObject
 {
     Q_PROPERTY(bool isValid READ isValid FINAL)
     Q_PROPERTY(unity::storage::StorageError error READ FINAL)

@@ -113,6 +113,7 @@ find_package(Qt5Concurrent REQUIRED)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5DBus REQUIRED)
 find_package(Qt5Network REQUIRED)
+find_package(Qt5Qml REQUIRED)
 find_package(Qt5Test REQUIRED)
 
 include(FindPkgConfig)
@@ -124,6 +125,7 @@ add_definitions(-DQT_NO_KEYWORDS)
 
 add_subdirectory(include)
 add_subdirectory(src)
+add_subdirectory(plugins/Ubuntu/StorageFramework)
 add_subdirectory(tests)
 add_subdirectory(demo)
 
