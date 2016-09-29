@@ -325,11 +325,11 @@ TEST_F(AccountTest, accounts)
     EXPECT_EQ(StorageError::NoError, j->error().type());
     EXPECT_EQ(QList<Account>(), j->accounts());  // We haven't waited for the result yet.
 
-    QSignalSpy spy(j.get(), &unity::storage::qt::AccountsJob::statusChanged);
+    QSignalSpy spy(j.get(), &AccountsJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
-    EXPECT_EQ(AccountsJob::Finished, qvariant_cast<unity::storage::qt::AccountsJob::Status>(arg.at(0)));
+    EXPECT_EQ(AccountsJob::Finished, qvariant_cast<AccountsJob::Status>(arg.at(0)));
 
     EXPECT_TRUE(j->isValid());
     EXPECT_EQ(AccountsJob::Finished, j->status());
@@ -354,11 +354,11 @@ TEST_F(AccountTest, runtime_destroyed)
     EXPECT_EQ(QList<Account>(), j->accounts());
 
     // Signal must be received.
-    QSignalSpy spy(j, &unity::storage::qt::AccountsJob::statusChanged);
+    QSignalSpy spy(j, &AccountsJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
-    EXPECT_EQ(AccountsJob::Error, qvariant_cast<unity::storage::qt::AccountsJob::Status>(arg.at(0)));
+    EXPECT_EQ(AccountsJob::Error, qvariant_cast<AccountsJob::Status>(arg.at(0)));
 }
 
 TEST_F(RootsTest, roots)
@@ -371,8 +371,8 @@ TEST_F(RootsTest, roots)
     EXPECT_EQ(StorageError::NoError, j->error().type());
 
     // Check that we get the statusChanged and itemsReady signals.
-    QSignalSpy ready_spy(j.get(), &unity::storage::qt::ItemListJob::itemsReady);
-    QSignalSpy status_spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+    QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
+    QSignalSpy status_spy(j.get(), &ItemListJob::statusChanged);
 
     ASSERT_TRUE(ready_spy.wait(SIGNAL_WAIT_TIME));
 
@@ -383,7 +383,7 @@ TEST_F(RootsTest, roots)
 
     ASSERT_EQ(1, status_spy.count());
     arg = status_spy.takeFirst();
-    EXPECT_EQ(ItemListJob::Finished, qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemListJob::Finished, qvariant_cast<ItemListJob::Status>(arg.at(0)));
     EXPECT_EQ(StorageError::NoError, j->error().type());
 
     EXPECT_TRUE(j->isValid());
@@ -413,11 +413,11 @@ TEST_F(RootsTest, runtime_destroyed)
     EXPECT_EQ("Account::roots(): Runtime was destroyed previously", j->error().message());
 
     // Signal must be received.
-    QSignalSpy spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+    QSignalSpy spy(j.get(), &ItemListJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
-    EXPECT_EQ(ItemListJob::Error, qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
 }
 
 TEST_F(RootsTest, runtime_destroyed_while_item_list_job_running)
@@ -432,11 +432,11 @@ TEST_F(RootsTest, runtime_destroyed_while_item_list_job_running)
     EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime, provider still sleeping
 
     // Signal must be received.
-    QSignalSpy spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+    QSignalSpy spy(j.get(), &ItemListJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
-    EXPECT_EQ(ItemListJob::Error, qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
 
     EXPECT_EQ("Account::roots(): Runtime was destroyed previously", j->error().message());
 }
@@ -447,13 +447,13 @@ TEST_F(RootsTest, not_a_root)
 
     unique_ptr<ItemListJob> j(acc_.roots());
 
-    QSignalSpy ready_spy(j.get(), &unity::storage::qt::ItemListJob::itemsReady);
-    QSignalSpy status_spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+    QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
+    QSignalSpy status_spy(j.get(), &ItemListJob::statusChanged);
     status_spy.wait(SIGNAL_WAIT_TIME);
     auto arg = status_spy.takeFirst();
 
     // Bad metadata is ignored, so status is finished, and itemsReady was never called.
-    EXPECT_EQ(ItemListJob::Finished, qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemListJob::Finished, qvariant_cast<ItemListJob::Status>(arg.at(0)));
     EXPECT_EQ(0, status_spy.count());
 }
 
@@ -465,7 +465,7 @@ TEST_F(GetTest, basic)
     {
         unique_ptr<ItemJob> j(acc_.get("root_id"));
 
-        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         spy.wait(SIGNAL_WAIT_TIME);
 
         EXPECT_EQ("root_id", j->item().itemId());
@@ -477,7 +477,7 @@ TEST_F(GetTest, basic)
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
 
-        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         spy.wait(SIGNAL_WAIT_TIME);
 
         EXPECT_EQ("child_id", j->item().itemId());
@@ -489,7 +489,7 @@ TEST_F(GetTest, basic)
     {
         unique_ptr<ItemJob> j(acc_.get("child_folder_id"));
 
-        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         spy.wait(SIGNAL_WAIT_TIME);
 
         EXPECT_EQ("child_folder_id", j->item().itemId());
@@ -509,10 +509,10 @@ TEST_F(GetTest, runtime_destroyed)
     EXPECT_EQ("Account::get(): Runtime was destroyed previously", j->error().message());
 
     // Signal must be received.
-    QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     auto arg = spy.takeFirst();
-    EXPECT_EQ(ItemJob::Error, qvariant_cast<unity::storage::qt::ItemJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemJob::Error, qvariant_cast<ItemJob::Status>(arg.at(0)));
 
     EXPECT_EQ("Account::get(): Runtime was destroyed previously", j->error().message());
 }
@@ -526,10 +526,10 @@ TEST_F(GetTest, runtime_destroyed_while_item_job_running)
 
     EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime, provider still sleeping
 
-    QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     auto arg = spy.takeFirst();
-    EXPECT_EQ(ItemListJob::Error, qvariant_cast<unity::storage::qt::ItemJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemJob::Status>(arg.at(0)));
 
     EXPECT_EQ("Account::get(): Runtime was destroyed previously", j->error().message());
 }
@@ -541,10 +541,10 @@ TEST_F(GetTest, empty_id_from_provider)
     unique_ptr<ItemJob> j(acc_.get("child_folder_id"));
     EXPECT_TRUE(j->isValid());
 
-    QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     auto arg = spy.takeFirst();
-    EXPECT_EQ(ItemListJob::Error, qvariant_cast<unity::storage::qt::ItemJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemJob::Status>(arg.at(0)));
 
     EXPECT_EQ("Account::get(): received invalid metadata from provider: item_id cannot be empty", j->error().message());
 }
@@ -556,10 +556,10 @@ TEST_F(GetTest, no_such_id)
     unique_ptr<ItemJob> j(acc_.get("no_such_id"));
     EXPECT_TRUE(j->isValid());
 
-    QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     auto arg = spy.takeFirst();
-    EXPECT_EQ(ItemListJob::Error, qvariant_cast<unity::storage::qt::ItemJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemJob::Status>(arg.at(0)));
 
     EXPECT_EQ("metadata(): no such item: no_such_id", j->error().message()) << j->error().message().toStdString();
     EXPECT_EQ("no_such_id", j->error().itemId());
@@ -572,7 +572,7 @@ TEST_F(DeleteTest, basic)
     Item item;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
-        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
         item = j->item();
     }
@@ -584,7 +584,7 @@ TEST_F(DeleteTest, basic)
 
     EXPECT_EQ("child_id", item.itemId());
 
-    QSignalSpy spy(j.get(), &unity::storage::qt::VoidJob::statusChanged);
+    QSignalSpy spy(j.get(), &VoidJob::statusChanged);
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
     EXPECT_EQ(VoidJob::Finished, j->status());
@@ -600,7 +600,7 @@ TEST_F(DeleteTest, no_such_item)
     Item item;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
-        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
         item = j->item();
     }
@@ -612,7 +612,7 @@ TEST_F(DeleteTest, no_such_item)
 
     EXPECT_EQ("child_id", item.itemId());
 
-    QSignalSpy spy(j.get(), &unity::storage::qt::VoidJob::statusChanged);
+    QSignalSpy spy(j.get(), &VoidJob::statusChanged);
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
 
     EXPECT_EQ(VoidJob::Error, j->status());
@@ -628,7 +628,7 @@ TEST_F(DeleteTest, delete_root)
     Item item;
     {
         unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
         item = j->item();
     }
@@ -639,10 +639,10 @@ TEST_F(DeleteTest, delete_root)
     EXPECT_EQ(StorageError::LogicError, j->error().type());
 
     // Signal must be received.
-    QSignalSpy spy(j.get(), &unity::storage::qt::VoidJob::statusChanged);
+    QSignalSpy spy(j.get(), &VoidJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     auto arg = spy.takeFirst();
-    EXPECT_EQ(ItemJob::Error, qvariant_cast<unity::storage::qt::VoidJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemJob::Error, qvariant_cast<VoidJob::Status>(arg.at(0)));
 
     EXPECT_EQ("Item::deleteItem(): cannot delete root", j->error().message());
 }
@@ -654,7 +654,7 @@ TEST_F(DeleteTest, runtime_destroyed)
     Item item;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
-        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
         item = j->item();
     }
@@ -668,10 +668,10 @@ TEST_F(DeleteTest, runtime_destroyed)
     EXPECT_EQ("Item::deleteItem(): Runtime was destroyed previously", j->error().message());
 
     // Signal must be received.
-    QSignalSpy spy(j.get(), &unity::storage::qt::VoidJob::statusChanged);
+    QSignalSpy spy(j.get(), &VoidJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     auto arg = spy.takeFirst();
-    EXPECT_EQ(ItemJob::Error, qvariant_cast<unity::storage::qt::VoidJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemJob::Error, qvariant_cast<VoidJob::Status>(arg.at(0)));
 
     EXPECT_EQ("Item::deleteItem(): Runtime was destroyed previously", j->error().message());
 }
@@ -683,7 +683,7 @@ TEST_F(DeleteTest, runtime_destroyed_while_void_job_running)
     Item item;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
-        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
         item = j->item();
     }
@@ -696,10 +696,10 @@ TEST_F(DeleteTest, runtime_destroyed_while_void_job_running)
     EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime.
 
     // Signal must be received.
-    QSignalSpy spy(j.get(), &unity::storage::qt::VoidJob::statusChanged);
+    QSignalSpy spy(j.get(), &VoidJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     auto arg = spy.takeFirst();
-    EXPECT_EQ(VoidJob::Error, qvariant_cast<unity::storage::qt::VoidJob::Status>(arg.at(0)));
+    EXPECT_EQ(VoidJob::Error, qvariant_cast<VoidJob::Status>(arg.at(0)));
 
     EXPECT_EQ("Item::deleteItem(): Runtime was destroyed previously", j->error().message()) << j->error().message().toStdString();
 }
@@ -743,7 +743,7 @@ TEST_F(ItemTest, comparison_and_hash)
         // i1 valid, i2 invalid
         unique_ptr<ItemListJob> j(acc_.roots());
 
-        QSignalSpy ready_spy(j.get(), &unity::storage::qt::ItemListJob::itemsReady);
+        QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
         ASSERT_TRUE(ready_spy.wait(SIGNAL_WAIT_TIME));
 
         ASSERT_EQ(1, ready_spy.count());
@@ -783,13 +783,13 @@ TEST_F(ItemTest, comparison_and_hash)
 
         {
             unique_ptr<ItemJob> j(a1.get("root_id"));
-            QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+            QSignalSpy spy(j.get(), &ItemJob::statusChanged);
             ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
             i1 = j->item();
         }
         {
             unique_ptr<ItemJob> j(a2.get("root_id"));
-            QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+            QSignalSpy spy(j.get(), &ItemJob::statusChanged);
             ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
             i2 = j->item();
         }
@@ -820,13 +820,13 @@ TEST_F(ItemTest, comparison_and_hash)
 
         {
             unique_ptr<ItemJob> j(acc_.get("root_id"));
-            QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+            QSignalSpy spy(j.get(), &ItemJob::statusChanged);
             ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
             i1 = j->item();
         }
         {
             unique_ptr<ItemJob> j(acc_.get("root_id"));
-            QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+            QSignalSpy spy(j.get(), &ItemJob::statusChanged);
             ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
             i2 = j->item();
         }
