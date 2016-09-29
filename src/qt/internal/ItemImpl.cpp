@@ -20,12 +20,9 @@
 
 #include "ProviderInterface.h"
 #include <unity/storage/provider/metadata_keys.h>
-#include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/ItemJobImpl.h>
 #include <unity/storage/qt/internal/ItemListJobImpl.h>
 #include <unity/storage/qt/internal/MultiItemJobImpl.h>
-#include <unity/storage/qt/internal/RuntimeImpl.h>
-#include <unity/storage/qt/internal/StorageErrorImpl.h>
 #include <unity/storage/qt/internal/VoidJobImpl.h>
 #include <unity/storage/qt/internal/validate.h>
 
@@ -119,16 +116,10 @@ ItemListJob* ItemImpl::parents() const
 {
     QString const method = "Item::parents()";
 
-    if (!is_valid_)
+    auto invalid_job = check_invalid_or_destroyed<ItemListJob, ListJobImplBase>(method);
+    if (invalid_job)
     {
-        auto e = StorageErrorImpl::logic_error(method + ": cannot create job from invalid item");
-        return ListJobImplBase::make_job(e);
-    }
-    auto runtime = account_->runtime();
-    if (!runtime || !runtime->isValid())
-    {
-        auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");
-        return ListJobImplBase::make_job(e);
+        return invalid_job;
     }
 
     if (md_.type == storage::ItemType::root)
@@ -150,7 +141,7 @@ ItemListJob* ItemImpl::parents() const
         if (md.type == ItemType::file)
         {
             QString msg = method + ": provider returned a file as a parent";
-            qCritical() << msg;
+            qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
     };
@@ -160,28 +151,72 @@ ItemListJob* ItemImpl::parents() const
 
 ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName) const
 {
-    return nullptr;  // TODO
+    QString const method = "Item::copy()";
+
+    auto invalid_job = check_copy_move_precondition<ItemJob, ItemJobImpl>(method, newParent, newName);
+    if (invalid_job)
+    {
+        return invalid_job;
+    }
+
+    auto validate = [this, method](storage::internal::ItemMetadata const& md)
+    {
+        if ((md_.type == ItemType::file && md.type != ItemType::file)
+            ||
+            (md_.type != ItemType::file && md.type == ItemType::file))
+        {
+            QString msg = method + ": source and target item type differ";
+            qCritical().noquote() << msg;
+            throw StorageErrorImpl::local_comms_error(msg);
+        }
+    };
+
+    auto reply = account_->provider()->Copy(md_.item_id, newParent.itemId(), newName);
+    auto This = const_pointer_cast<ItemImpl>(shared_from_this());
+    return ItemJobImpl::make_job(This, method, reply, validate);
 }
 
 ItemJob* ItemImpl::move(Item const& newParent, QString const& newName) const
 {
-    return nullptr;  // TODO
+    QString const method = "Item::move()";
+
+    auto invalid_job = check_copy_move_precondition<ItemJob, ItemJobImpl>(method, newParent, newName);
+    if (invalid_job)
+    {
+        return invalid_job;
+    }
+
+    auto validate = [this, method](storage::internal::ItemMetadata const& md)
+    {
+        if (md.type == ItemType::root)
+        {
+            QString msg = method + ": impossible root item returned by server";
+            qCritical().noquote() << msg;
+            throw StorageErrorImpl::local_comms_error(msg);
+        }
+        if ((md_.type == ItemType::file && md.type != ItemType::file)
+            ||
+            (md_.type != ItemType::file && md.type == ItemType::file))
+        {
+            QString msg = method + ": source and target item type differ";
+            qCritical().noquote() << msg;
+            throw StorageErrorImpl::local_comms_error(msg);
+        }
+    };
+
+    auto reply = account_->provider()->Move(md_.item_id, newParent.itemId(), newName);
+    auto This = const_pointer_cast<ItemImpl>(shared_from_this());
+    return ItemJobImpl::make_job(This, method, reply, validate);
 }
 
 VoidJob* ItemImpl::deleteItem() const
 {
     QString const method = "Item::deleteItem()";
 
-    if (!is_valid_)
+    auto invalid_job = check_invalid_or_destroyed<VoidJob, VoidJobImpl>(method);
+    if (invalid_job)
     {
-        auto e = StorageErrorImpl::logic_error(method + ": cannot create job from invalid item");
-        return VoidJobImpl::make_job(e);
-    }
-    auto runtime = account_->runtime();
-    if (!runtime || !runtime->isValid())
-    {
-        auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");
-        return VoidJobImpl::make_job(e);
+        return invalid_job;
     }
     if (md_.type == storage::ItemType::root)
     {
@@ -311,6 +346,11 @@ Item ItemImpl::make_item(QString const& method,
 shared_ptr<RuntimeImpl> ItemImpl::runtime() const
 {
     return account_->runtime();
+}
+
+shared_ptr<AccountImpl> ItemImpl::account_impl() const
+{
+    return account_;
 }
 
 }  // namespace internal

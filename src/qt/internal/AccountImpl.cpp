@@ -102,7 +102,7 @@ ItemListJob* AccountImpl::roots() const
         if (md.type != ItemType::root)
         {
             QString msg = method + ": provider returned non-root item type: " + QString::number(int(md.type));
-            qCritical() << msg;
+            qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
     };
@@ -128,11 +128,9 @@ ItemJob* AccountImpl::get(QString const& itemId) const
         return ItemJobImpl::make_job(e);
     }
 
-    // LCOV_EXCL_START
     auto validate = [](storage::internal::ItemMetadata const&)
     {
     };
-    // LCOV_EXCL_STOP
 
     auto reply = provider_->Metadata(itemId);
     auto This = const_pointer_cast<AccountImpl>(shared_from_this());

@@ -86,6 +86,16 @@ ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account,
     new Handler<storage::internal::ItemMetadata>(this, reply, process_reply, process_error);
 }
 
+ItemJobImpl::ItemJobImpl(shared_ptr<ItemImpl> const& item,
+                         QString const& method,
+                         QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                         std::function<void(storage::internal::ItemMetadata const&)> const& validate)
+    : ItemJobImpl(item->account_impl(), method, reply, validate)
+{
+    assert(item);
+    item_impl_= item;
+}
+
 ItemJobImpl::ItemJobImpl(StorageError const& error)
     : status_(ItemJob::Error)
     , error_(error)
@@ -118,6 +128,17 @@ ItemJob* ItemJobImpl::make_job(shared_ptr<AccountImpl> const& account,
                                std::function<void(storage::internal::ItemMetadata const&)> const& validate)
 {
     unique_ptr<ItemJobImpl> impl(new ItemJobImpl(account, method, reply, validate));
+    auto job = new ItemJob(move(impl));
+    job->p_->public_instance_ = job;
+    return job;
+}
+
+ItemJob* ItemJobImpl::make_job(shared_ptr<ItemImpl> const& item,
+                               QString const& method,
+                               QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                               std::function<void(storage::internal::ItemMetadata const&)> const& validate)
+{
+    unique_ptr<ItemJobImpl> impl(new ItemJobImpl(item, method, reply, validate));
     auto job = new ItemJob(move(impl));
     job->p_->public_instance_ = job;
     return job;

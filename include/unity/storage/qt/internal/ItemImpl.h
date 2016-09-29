@@ -20,6 +20,9 @@
 
 #include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/Account.h>
+#include <unity/storage/qt/internal/AccountImpl.h>
+#include <unity/storage/qt/internal/RuntimeImpl.h>
+#include <unity/storage/qt/internal/StorageErrorImpl.h>
 #include <unity/storage/qt/Item.h>
 
 namespace unity
@@ -82,9 +85,14 @@ public:
                           std::shared_ptr<AccountImpl> const& account);
 
     std::shared_ptr<RuntimeImpl> runtime() const;
+    std::shared_ptr<AccountImpl> account_impl() const;
 
 private:
-    //std::shared_ptr<RuntimeImpl> get_runtime(QString const& method) const;
+    template<typename T, typename J>
+    T* check_invalid_or_destroyed(QString const& method) const;
+
+    template<typename T, typename J>
+    T* check_copy_move_precondition(QString const& method, Item const& newParent, QString const& newName) const;
 
     bool is_valid_;
     storage::internal::ItemMetadata md_;
@@ -92,6 +100,54 @@ private:
 
     friend class unity::storage::qt::Item;
 };
+
+template<typename T, typename J>
+T* ItemImpl::check_invalid_or_destroyed(QString const& method) const
+{
+    if (!is_valid_)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot create job from invalid item");
+        return J::make_job(e);
+    }
+    auto runtime = account_->runtime();
+    if (!runtime || !runtime->isValid())
+    {
+        auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");
+        return J::make_job(e);
+    }
+    return nullptr;
+}
+
+template<typename T, typename J>
+T* ItemImpl::check_copy_move_precondition(QString const& method, Item const& newParent, QString const& newName) const
+{
+    auto invalid_job = check_invalid_or_destroyed<T, J>(method);
+    if (invalid_job)
+    {
+        return invalid_job;
+    }
+    if (!newParent.isValid())
+    {
+        auto e = StorageErrorImpl::invalid_argument_error(method + ": newParent is invalid");
+        return J::make_job(e);
+    }
+    if (newName.isEmpty())
+    {
+        auto e = StorageErrorImpl::invalid_argument_error(method + ": newName cannot be empty");
+        return J::make_job(e);
+    }
+    if (account() != newParent.account())
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": source and target must belong to the same account");
+        return J::make_job(e);
+    }
+    if (newParent.type() == Item::File)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": newParent cannot be a file");
+        return J::make_job(e);
+    }
+    return nullptr;
+}
 
 }  // namespace internal
 }  // namespace qt
