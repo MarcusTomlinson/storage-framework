@@ -47,7 +47,7 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
         if (!runtime || !runtime->isValid())
         {
             error_ = StorageErrorImpl::runtime_destroyed_error(method_ + ": Runtime was destroyed previously");
-            status_ = ItemListJob::Error;
+            status_ = ItemListJob::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
             return;
         }
@@ -67,7 +67,7 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
                 // Bad metadata received from provider, validate_() or make_item() have logged it.
             }
         }
-        status_ = ItemListJob::Finished;
+        status_ = ItemListJob::Status::Finished;
         Q_EMIT public_instance_->itemsReady(items);
         Q_EMIT public_instance_->statusChanged(status_);
     };
@@ -76,7 +76,7 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
     {
         // TODO: method name is not being set this way.
         error_ = error;
-        status_ = ItemListJob::Error;
+        status_ = ItemListJob::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
     };
 

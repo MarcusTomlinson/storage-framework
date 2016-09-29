@@ -141,7 +141,7 @@ T* ItemImpl::check_copy_move_precondition(QString const& method, Item const& new
         auto e = StorageErrorImpl::logic_error(method + ": source and target must belong to the same account");
         return J::make_job(e);
     }
-    if (newParent.type() == Item::File)
+    if (newParent.type() == Item::Type::File)
     {
         auto e = StorageErrorImpl::logic_error(method + ": newParent cannot be a file");
         return J::make_job(e);

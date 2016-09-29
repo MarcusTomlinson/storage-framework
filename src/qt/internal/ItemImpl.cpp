@@ -81,11 +81,11 @@ Item::Type ItemImpl::type() const
     switch (md_.type)
     {
         case storage::ItemType::file:
-            return Item::File;
+            return Item::Type::File;
         case storage::ItemType::folder:
-            return Item::Folder;
+            return Item::Type::Folder;
         case storage::ItemType::root:
-            return Item::Root;
+            return Item::Type::Root;
         default:
             abort();  // LCOV_EXCL_LINE // Impossible
     }

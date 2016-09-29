@@ -54,7 +54,7 @@ public:
                                   auto e = unmarshal_error(call);
                                   switch (e.type())
                                   {
-                                      case StorageError::NoError:
+                                      case StorageError::Type::NoError:
                                       {
                                           // LCOV_EXCL_START
                                           QString msg = "impossible provider exception: " + e.errorString();
@@ -63,9 +63,9 @@ public:
                                           break;
                                           // LCOV_EXCL_STOP
                                       }
-                                      case StorageError::LocalCommsError:
-                                      case StorageError::RemoteCommsError:
-                                      case StorageError::ResourceError:
+                                      case StorageError::Type::LocalCommsError:
+                                      case StorageError::Type::RemoteCommsError:
+                                      case StorageError::Type::ResourceError:
                                       {
                                           // Log these errors because they are unexpected.
                                           QString msg = "provider exception: " + e.errorString();

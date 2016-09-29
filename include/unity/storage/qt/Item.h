@@ -70,7 +70,7 @@ public:
     Item& operator=(Item const&);
     Item& operator=(Item&&);
 
-    enum Type
+    enum class Type
     {
         File = unsigned(unity::storage::ItemType::file),
         Folder = unsigned(unity::storage::ItemType::folder),
@@ -78,7 +78,7 @@ public:
     };
     Q_ENUMS(Type)
 
-    enum ConflictPolicy
+    enum class ConflictPolicy
     {
         ErrorIfConflict = unsigned(unity::storage::ConflictPolicy::error_if_conflict),
         Overwrite = unsigned(unity::storage::ConflictPolicy::overwrite)

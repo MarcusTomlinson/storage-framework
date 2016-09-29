@@ -49,7 +49,7 @@ class Q_DECL_EXPORT ItemJob final : public QObject
 public:
     virtual ~ItemJob();
 
-    enum Status { Loading, Finished, Error };
+    enum class Status { Loading, Finished, Error };
     Q_ENUMS(Status)
 
     bool isValid() const;

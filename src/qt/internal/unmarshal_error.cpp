@@ -49,7 +49,7 @@ StorageError make_error(QDBusPendingCallWatcher const& call)
 }
 
 template<>
-StorageError make_error<StorageError::NotExists>(QDBusPendingCallWatcher const& call)
+StorageError make_error<StorageError::Type::NotExists>(QDBusPendingCallWatcher const& call)
 {
     QDBusPendingReply<QString, QString> reply = call;
     auto msg = reply.argumentAt<0>();
@@ -58,7 +58,7 @@ StorageError make_error<StorageError::NotExists>(QDBusPendingCallWatcher const& 
 }
 
 template<>
-StorageError make_error<StorageError::Exists>(QDBusPendingCallWatcher const& call)
+StorageError make_error<StorageError::Type::Exists>(QDBusPendingCallWatcher const& call)
 {
     QDBusPendingReply<QString, QString, QString> reply = call;
     auto msg = reply.argumentAt<0>();
@@ -68,7 +68,7 @@ StorageError make_error<StorageError::Exists>(QDBusPendingCallWatcher const& cal
 }
 
 template<>
-StorageError make_error<StorageError::ResourceError>(QDBusPendingCallWatcher const& call)
+StorageError make_error<StorageError::Type::ResourceError>(QDBusPendingCallWatcher const& call)
 {
     QDBusPendingReply<QString, int> reply = call;
     auto msg = reply.argumentAt<0>();
@@ -78,17 +78,17 @@ StorageError make_error<StorageError::ResourceError>(QDBusPendingCallWatcher con
 
 static const map<QString, function<StorageError(QDBusPendingCallWatcher const& call)>> exception_factories =
 {
-    { "RemoteCommsException",     make_error<StorageError::RemoteCommsError> },
-    { "NotExistsException",       make_error<StorageError::NotExists> },
-    { "ExistsException",          make_error<StorageError::Exists> },
-    { "ConflictException",        make_error<StorageError::Conflict> },
-    { "PermissionException",      make_error<StorageError::PermissionDenied> },
-    { "CancelledException",       make_error<StorageError::Cancelled> },
-    { "LogicException",           make_error<StorageError::LogicError> },
-    { "InvalidArgumentException", make_error<StorageError::InvalidArgument> },
-    { "ResourceException",        make_error<StorageError::ResourceError> },
-    { "QuotaException",           make_error<StorageError::QuotaExceeded> },
-    { "UnknownException",         make_error<StorageError::LocalCommsError> }  // Yes, LocalCommsError is intentional
+    { "RemoteCommsException",     make_error<StorageError::Type::RemoteCommsError> },
+    { "NotExistsException",       make_error<StorageError::Type::NotExists> },
+    { "ExistsException",          make_error<StorageError::Type::Exists> },
+    { "ConflictException",        make_error<StorageError::Type::Conflict> },
+    { "PermissionException",      make_error<StorageError::Type::PermissionDenied> },
+    { "CancelledException",       make_error<StorageError::Type::Cancelled> },
+    { "LogicException",           make_error<StorageError::Type::LogicError> },
+    { "InvalidArgumentException", make_error<StorageError::Type::InvalidArgument> },
+    { "ResourceException",        make_error<StorageError::Type::ResourceError> },
+    { "QuotaException",           make_error<StorageError::Type::QuotaExceeded> },
+    { "UnknownException",         make_error<StorageError::Type::LocalCommsError> }  // Yes, LocalCommsError is intentional
 };
 
 }  // namespace

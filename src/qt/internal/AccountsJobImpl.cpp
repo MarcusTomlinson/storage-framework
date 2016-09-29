@@ -52,7 +52,7 @@ static map<QString, QString> const BUS_NAMES =
 
 AccountsJobImpl::AccountsJobImpl(AccountsJob* public_instance, shared_ptr<RuntimeImpl> const& runtime)
     : public_instance_(public_instance)
-    , status_(AccountsJob::Loading)
+    , status_(AccountsJob::Status::Loading)
     , runtime_(runtime)
 {
     assert(public_instance);
@@ -63,13 +63,13 @@ AccountsJobImpl::AccountsJobImpl(AccountsJob* public_instance, shared_ptr<Runtim
 
 AccountsJobImpl::AccountsJobImpl(AccountsJob* public_instance, StorageError const& error)
     : public_instance_(public_instance)
-    , status_(AccountsJob::Loading)
+    , status_(AccountsJob::Status::Loading)
     , error_(error)
 {
     assert(public_instance);
-    assert(error.type() != StorageError::NoError);
+    assert(error.type() != StorageError::Type::NoError);
 
-    status_ = emit_status_changed(AccountsJob::Error);
+    status_ = emit_status_changed(AccountsJob::Status::Error);
 }
 
 bool AccountsJobImpl::isValid() const
@@ -94,7 +94,7 @@ QList<Account> AccountsJobImpl::accounts() const
     {
         return QList<Account>();
     }
-    if (status_ != AccountsJob::Finished)
+    if (status_ != AccountsJob::Status::Finished)
     {
         return QList<Account>();
     }
@@ -113,13 +113,13 @@ void AccountsJobImpl::timeout()
 {
     disconnect(this);
     error_ = StorageErrorImpl::local_comms_error("AccountsJob(): timeout retrieving Online accounts");
-    status_ = emit_status_changed(AccountsJob::Error);
+    status_ = emit_status_changed(AccountsJob::Status::Error);
 }
 // LCOV_EXCL_STOP
 
 AccountsJob::Status AccountsJobImpl::emit_status_changed(AccountsJob::Status new_status) const
 {
-    if (status_ == AccountsJob::Loading)  // Once in a final state, we don't emit the signal again.
+    if (status_ == AccountsJob::Status::Loading)  // Once in a final state, we don't emit the signal again.
     {
         // We defer emission of the signal so the client gets a chance to connect to the signal
         // in case we emit the signal from the constructor.
@@ -139,7 +139,7 @@ shared_ptr<RuntimeImpl> AccountsJobImpl::get_runtime(QString const& method) cons
         QString msg = method + ": Runtime was destroyed previously";
         auto This = const_cast<AccountsJobImpl*>(this);
         This->error_ = StorageErrorImpl::runtime_destroyed_error(msg);
-        This->status_ = emit_status_changed(AccountsJob::Error);
+        This->status_ = emit_status_changed(AccountsJob::Status::Error);
     }
     return runtime;
 }
@@ -174,7 +174,7 @@ void AccountsJobImpl::initialize_accounts()
                                                        a->displayName()));
         }
     }
-    status_ = emit_status_changed(AccountsJob::Finished);
+    status_ = emit_status_changed(AccountsJob::Status::Finished);
 }
 
 }  // namespace internal

@@ -36,7 +36,7 @@ namespace internal
 VoidJobImpl::VoidJobImpl(shared_ptr<ItemImpl> const& item,
                          QString const& method,
                          QDBusPendingReply<void> const& reply)
-    : status_(VoidJob::Loading)
+    : status_(VoidJob::Status::Loading)
     , method_(method)
     , item_(item)
 {
@@ -49,19 +49,19 @@ VoidJobImpl::VoidJobImpl(shared_ptr<ItemImpl> const& item,
         if (!runtime || !runtime->isValid())
         {
             error_ = StorageErrorImpl::runtime_destroyed_error(method_ + ": Runtime was destroyed previously");
-            status_ = VoidJob::Error;
+            status_ = VoidJob::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
             return;
         }
 
-        status_ = VoidJob::Finished;
+        status_ = VoidJob::Status::Finished;
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
     auto process_error = [this](StorageError const& error)
     {
         error_ = error;
-        status_ = VoidJob::Error;
+        status_ = VoidJob::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
@@ -69,7 +69,7 @@ VoidJobImpl::VoidJobImpl(shared_ptr<ItemImpl> const& item,
 }
 
 VoidJobImpl::VoidJobImpl(StorageError const& error)
-    : status_(VoidJob::Error)
+    : status_(VoidJob::Status::Error)
     , error_(error)
 {
 }

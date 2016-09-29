@@ -40,7 +40,7 @@ ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account,
                          QString const& method,
                          QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
                          std::function<void(storage::internal::ItemMetadata const&)> const& validate)
-    : status_(ItemJob::Loading)
+    : status_(ItemJob::Status::Loading)
     , method_(method)
     , account_(account)
     , validate_(validate)
@@ -55,7 +55,7 @@ ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account,
         if (!runtime || !runtime->isValid())
         {
             error_ = StorageErrorImpl::runtime_destroyed_error(method_ + ": Runtime was destroyed previously");
-            status_ = ItemJob::Error;
+            status_ = ItemJob::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
             return;
         }
@@ -65,13 +65,13 @@ ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account,
         {
             validate_(metadata);
             item_ = ItemImpl::make_item(method_, metadata, account_);
-            status_ = ItemJob::Finished;
+            status_ = ItemJob::Status::Finished;
         }
         catch (StorageError const& e)
         {
             // Bad metadata received from provider, validate_() or make_item() have logged it.
             error_ = e;
-            status_ = ItemJob::Error;
+            status_ = ItemJob::Status::Error;
         }
         Q_EMIT public_instance_->statusChanged(status_);
     };
@@ -79,7 +79,7 @@ ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account,
     auto process_error = [this](StorageError const& error)
     {
         error_ = error;
-        status_ = ItemJob::Error;
+        status_ = ItemJob::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
@@ -97,7 +97,7 @@ ItemJobImpl::ItemJobImpl(shared_ptr<ItemImpl> const& item,
 }
 
 ItemJobImpl::ItemJobImpl(StorageError const& error)
-    : status_(ItemJob::Error)
+    : status_(ItemJob::Status::Error)
     , error_(error)
 {
 }
