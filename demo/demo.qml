@@ -1,5 +1,8 @@
 import QtQuick 2.0
-import Ubuntu.StorageFramework 0.1
+import Ubuntu.StorageFramework 0.1 as SF
+
+// From Build dir, run with:
+//    qmlscene -I plugins $srcdir/demo/demo.qml
 
 Item {
   id: root
@@ -8,7 +11,7 @@ Item {
 
   property var accountsjob: null;
 
-  Runtime {
+  SF.Runtime {
     id: runtime
 
     Component.onCompleted: root.accountsjob = runtime.accounts()
@@ -20,8 +23,9 @@ Item {
     onStatusChanged: {
       console.log("AccountsJob status changed to " + status);
 
-      if (status == AccountsJob.Finished) {
+      if (status == SF.AccountsJob.Finished) {
         var accounts = root.accountsjob.accounts;
+        console.log("Got accounts " + accounts);
         for (var i = 0; i < accounts.length; i++) {
           console.log("Account " + i + " owner = " + accounts[i].owner);
         }
