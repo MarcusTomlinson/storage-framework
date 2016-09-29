@@ -37,8 +37,8 @@ void StorageFrameworkPlugin::registerTypes(const char* uri)
 {
     qmlRegisterType<Runtime>(uri, 0, 1, "Runtime");
     qmlRegisterUncreatableType<AccountsJob>(uri, 0, 1, "AccountsJob", "Use Runtime to create AccountsJob");
-    //qmlRegisterType<Account>(uri, 0, 1, "Account");
-    //qmlRegisterType<Item>(uri, 0, 1, "Item");
+    qmlRegisterUncreatableType<Account>(uri, 0, 1, "Account", "");
+    qmlRegisterUncreatableType<Item>(uri, 0, 1, "Item", "");
     qmlRegisterUncreatableType<ItemJob>(uri, 0, 1, "ItemJob", "Use Account or another item to access items");
     qmlRegisterUncreatableType<ItemListJob>(uri, 0, 1, "ItemListJob", "Use Account or another item to access items");
 }

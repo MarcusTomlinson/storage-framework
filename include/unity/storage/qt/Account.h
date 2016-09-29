@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QMetaType>
+#include <QString>
 
 #include <memory>
 
@@ -42,10 +43,10 @@ class ItemListJob;
 class Q_DECL_EXPORT Account final
 {
     Q_GADGET
-    Q_PROPERTY(bool READ isValid FINAL)
-    Q_PROPERTY(QString READ owner FINAL)
-    Q_PROPERTY(QString READ ownerId FINAL)
-    Q_PROPERTY(QString READ description FINAL)
+    Q_PROPERTY(bool isValid READ isValid FINAL)
+    Q_PROPERTY(QString owner READ owner FINAL)
+    Q_PROPERTY(QString ownerId READ ownerId FINAL)
+    Q_PROPERTY(QString description READ description FINAL)
 
 public:
     Account();
@@ -88,6 +89,9 @@ uint Q_DECL_EXPORT qHash(Account const& acc);
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
+
+Q_DECLARE_METATYPE(unity::storage::qt::Account)
+Q_DECLARE_METATYPE(QList<unity::storage::qt::Account>)
 
 namespace std
 {

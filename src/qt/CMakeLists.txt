@@ -34,6 +34,7 @@ set(QT_CLIENT_LIB_V2_SRC
     internal/unmarshal_error.cpp
     internal/validate.cpp
     ${generated_files}
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Account.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/AccountsJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Item.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/ItemJob.h

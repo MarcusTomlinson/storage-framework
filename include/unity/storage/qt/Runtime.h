@@ -48,8 +48,9 @@ class AccountsJob;
 
 class Q_DECL_EXPORT Runtime : public QObject
 {
+    Q_OBJECT
     Q_PROPERTY(bool isValid READ isValid FINAL)
-    Q_PROPERTY(unity::storage::StorageError error READ FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError error READ error FINAL)
     Q_PROPERTY(QDBusConnection connection READ connection CONSTANT FINAL)
 
 public:
@@ -61,7 +62,7 @@ public:
     StorageError error() const;
     QDBusConnection connection() const;
     StorageError shutdown();
-    Q_INVOKABLE AccountsJob* accounts() const;
+    Q_INVOKABLE unity::storage::qt::AccountsJob* accounts() const;
 
     Account make_test_account(QString const& bus_name,
                               QString const& object_path,
