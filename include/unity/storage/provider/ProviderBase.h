@@ -26,8 +26,9 @@
 #include <boost/variant.hpp>
 
 #include <sys/types.h>
-#include <string>
 #include <map>
+#include <memory>
+#include <string>
 #include <vector>
 
 namespace unity
@@ -65,7 +66,7 @@ struct UNITY_STORAGE_EXPORT Item
 
 typedef std::vector<Item> ItemList;
 
-class UNITY_STORAGE_EXPORT ProviderBase
+class UNITY_STORAGE_EXPORT ProviderBase : public std::enable_shared_from_this<ProviderBase>
 {
 public:
     ProviderBase();

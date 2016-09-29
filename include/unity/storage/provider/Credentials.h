@@ -53,6 +53,7 @@ struct UNITY_STORAGE_EXPORT PasswordCredentials
 {
     std::string username;
     std::string password;
+    std::string host;
 };
 
 typedef boost::variant<boost::blank,OAuth1Credentials,OAuth2Credentials,PasswordCredentials> Credentials;

@@ -33,11 +33,11 @@ namespace provider
 namespace testing
 {
 
-TestServer::TestServer(unique_ptr<ProviderBase>&& provider,
+TestServer::TestServer(shared_ptr<ProviderBase> const& provider,
                        OnlineAccounts::Account* account,
                        QDBusConnection const& connection,
                        string const& object_path)
-    : p_(new internal::TestServerImpl(move(provider), account,
+    : p_(new internal::TestServerImpl(provider, account,
                                       connection, object_path))
 {
 }
