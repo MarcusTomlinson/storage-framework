@@ -56,14 +56,18 @@ protected:
 
 class AccountTest : public RemoteClientTest {};
 class CopyTest : public RemoteClientTest {};
+class CreateFolderTest : public RemoteClientTest {};
 class DeleteTest : public RemoteClientTest {};
 class GetTest : public RemoteClientTest {};
 class ItemTest : public RemoteClientTest {};
+class ListTest : public RemoteClientTest {};
+class LookupTest : public RemoteClientTest {};
 class MoveTest : public RemoteClientTest {};
 class ParentsTest : public RemoteClientTest {};
 class RootsTest : public RemoteClientTest {};
 class RuntimeTest : public ProviderFixture {};
 
+#if 0
 TEST(Runtime, lifecycle)
 {
     Runtime runtime;
@@ -328,11 +332,11 @@ TEST_F(AccountTest, accounts)
     EXPECT_EQ(StorageError::Type::NoError, j->error().type());
     EXPECT_EQ(QList<Account>(), j->accounts());  // We haven't waited for the result yet.
 
-    QSignalSpy spy(j.get(), &unity::storage::qt::AccountsJob::statusChanged);
+    QSignalSpy spy(j.get(), &AccountsJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
-    EXPECT_EQ(AccountsJob::Status::Finished, qvariant_cast<unity::storage::qt::AccountsJob::Status>(arg.at(0)));
+    EXPECT_EQ(AccountsJob::Status::Finished, qvariant_cast<AccountsJob::Status>(arg.at(0)));
 
     EXPECT_TRUE(j->isValid());
     EXPECT_EQ(AccountsJob::Status::Finished, j->status());
@@ -357,7 +361,7 @@ TEST_F(AccountTest, runtime_destroyed)
     EXPECT_EQ(QList<Account>(), j->accounts());
 
     // Signal must be received.
-    QSignalSpy spy(j, &unity::storage::qt::AccountsJob::statusChanged);
+    QSignalSpy spy(j, &AccountsJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
@@ -1711,7 +1715,7 @@ TEST_F(MoveTest, root_returned)
     EXPECT_EQ(ItemJob::Status::Error, j->status());
     EXPECT_EQ(StorageError::Type::LocalCommsError, j->error().type());
     EXPECT_EQ("LocalCommsError", j->error().name());
-    EXPECT_EQ("LocalCommsError: Item::move(): impossible root item returned by server", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Item::move(): impossible root item returned by provider", j->error().errorString());
 }
 
 TEST_F(MoveTest, type_mismatch)
@@ -1750,931 +1754,259 @@ TEST_F(MoveTest, type_mismatch)
     EXPECT_EQ("LocalCommsError: Item::move(): source and target item type differ", j->error().errorString());
 }
 
-#if 0
-TEST_F(RootTest, basic)
-{
-    auto runtime = Runtime::create(connection());
-
-    auto acc = get_account(runtime);
-    auto root = get_root(runtime);
-    EXPECT_EQ("root_id", root->native_identity());
-    EXPECT_EQ(acc, root->account());
-    EXPECT_EQ(ItemType::root, root->type());
-    EXPECT_EQ("Root", root->name());
-    EXPECT_NE("", root->etag());
-
-    auto parents = call(root->parents());
-    EXPECT_TRUE(parents.isEmpty());
-    EXPECT_TRUE(root->parent_ids().isEmpty());
-
-    // get(<root-ID>) must return the root.
-    auto item = call(root->get(root->native_identity()));
-    EXPECT_NE(nullptr, dynamic_pointer_cast<Root>(item));
-    EXPECT_TRUE(root->equal_to(item));
-
-    // Free and used space can be anything, but must be > 0.
-    auto free_space = call(root->free_space_bytes());
-    cerr << "bytes free: " << free_space << endl;
-    EXPECT_GT(free_space, 0);
-
-    auto used_space = call(root->used_space_bytes());
-    cerr << "bytes used: " << used_space << endl;
-    EXPECT_GT(used_space, 0);
-}
-
-TEST_F(FolderTest, basic)
-{
-    auto runtime = Runtime::create(connection());
-
-    auto root = get_root(runtime);
-    clear_folder(root);
-
-    auto items = call(root->list());
-    ASSERT_EQ(1, items.size());
-
-    // Create a file and check that it was created with correct type, name, and size 0.
-    auto uploader = call(root->create_file("file1", 10));
-    EXPECT_EQ(10, uploader->size());
-    auto file = call(uploader->finish_upload());
-    EXPECT_EQ(ItemType::file, file->type());
-    EXPECT_EQ("some_upload", file->name());
-    EXPECT_EQ(10, file->size());
-    EXPECT_EQ("some_id", file->native_identity());
-
-    // For coverage: getting a file must return the correct one.
-    file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-    EXPECT_EQ("child_id", file->native_identity());
-    EXPECT_EQ("Child", file->name());
-}
-
-TEST_F(FileTest, upload)
-{
-    auto runtime = Runtime::create(connection());
-
-    auto root = get_root(runtime);
-    clear_folder(root);
-
-    // Get a file.
-    auto children = call(root->lookup("Child"));
-    ASSERT_EQ(1, children.size());
-    auto file = dynamic_pointer_cast<File>(children[0]);
-    EXPECT_EQ("child_id", file->native_identity());
-    EXPECT_EQ("Child", file->name());
-
-    auto uploader = call(file->create_uploader(ConflictPolicy::error_if_conflict, 0));
-    EXPECT_EQ(0, uploader->size());
-
-    auto uploaded_file = call(uploader->finish_upload());
-    EXPECT_EQ("some_id", uploaded_file->native_identity());
-    EXPECT_EQ("some_upload", uploaded_file->name());
-}
-
-TEST_F(RootTest, root_exceptions)
-{
-    auto runtime = Runtime::create(connection());
-
-    auto root = get_root(runtime);
-    clear_folder(root);
-
-    try
-    {
-        call(root->delete_item());
-        FAIL();
-    }
-    catch (LogicException const& e)
-    {
-        EXPECT_EQ("Item::delete_item(): cannot delete root folder", e.error_message()) << e.what();
-    }
-
-    {
-        try
-        {
-            call(root->get("no_such_file_id"));
-            FAIL();
-        }
-        catch (NotExistsException const& e)
-        {
-            EXPECT_EQ("no_such_file_id", e.key());
-        }
-    }
-}
-
-TEST_F(RuntimeTest, runtime_destroyed_exceptions)
-{
-    // Getting the runtime from an account after shutting down the runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto acc = get_account(runtime);
-        runtime->shutdown();
-        try
-        {
-            acc->runtime();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Account::runtime(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // Getting the runtime from an account after destroying the runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto acc = get_account(runtime);
-        runtime.reset();
-        try
-        {
-            acc->runtime();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Account::runtime(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // Getting accounts after shutting down the runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        runtime->shutdown();
-        try
-        {
-            call(runtime->accounts());
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Runtime::accounts(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // Getting roots from an account after shutting down the runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto acc = get_account(runtime);
-        runtime->shutdown();
-        try
-        {
-            call(acc->roots());
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Account::roots(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // Getting the account from a root with a destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        runtime.reset();
-        try
-        {
-            root->account();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Root::account(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // Getting the account from a root with a destroyed account must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto acc = get_account(runtime);
-        auto root = get_root(runtime);
-        runtime.reset();
-        acc.reset();
-        try
-        {
-            root->account();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Root::account(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // Getting the root from an item with a destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime.reset();
-        try
-        {
-            file->root();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::root(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // Getting the root from an item with a destroyed root must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto acc = get_account(runtime);
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime.reset();
-        acc.reset();
-        root.reset();
-        try
-        {
-            file->root();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::root(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // etag() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            file->etag();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::etag(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // metadata() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            file->metadata();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::metadata(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // last_modified_time() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            file->last_modified_time();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::last_modified_time(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // copy() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            call(file->copy(root, "file2"));
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::copy(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // move() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            call(file->move(root, "file2"));
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::move(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // parents() on root with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        runtime->shutdown();
-        try
-        {
-            call(root->parents());
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Root::parents(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // parents() on file with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            call(file->parents());
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::parents(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // parent_ids() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            file->parent_ids();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::parent_ids(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // parent_ids() on root with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        runtime->shutdown();
-        try
-        {
-            root->parent_ids();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Root::parent_ids(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // delete_item() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            call(file->delete_item());
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::delete_item(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // delete_item() on root with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        runtime->shutdown();
-        try
-        {
-            call(root->delete_item());
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::delete_item(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // creation_time() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            file->creation_time();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::creation_time(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // native_metadata() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            file->native_metadata();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::native_metadata(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // name() on root with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        runtime->shutdown();
-        try
-        {
-            root->name();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::name(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // name() on folder with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto folder = dynamic_pointer_cast<Folder>(call(root->get("child_folder_id")));
-        runtime->shutdown();
-        try
-        {
-            folder->name();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::name(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // name() on file with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            file->name();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Item::name(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // list() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        runtime->shutdown();
-        try
-        {
-            call(root->list());
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Folder::list(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // lookup() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        runtime->shutdown();
-        try
-        {
-            call(root->lookup("file"));
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Folder::lookup(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // create_folder() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        runtime->shutdown();
-        try
-        {
-            call(root->create_folder("folder"));
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Folder::create_folder(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // create_file() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        runtime->shutdown();
-        try
-        {
-            call(root->create_file("file", 0));
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Folder::create_file(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // size() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            file->size();
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("File::size(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // create_uploader() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            call(file->create_uploader(ConflictPolicy::overwrite, 0));
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("File::create_uploader(): runtime was destroyed previously", e.error_message()) << e.what();
-        }
-    }
-
-    // create_downloader() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-        runtime->shutdown();
-        try
-        {
-            call(file->create_downloader());
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("File::create_downloader(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // free_space_bytes() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        runtime->shutdown();
-        try
-        {
-            call(root->free_space_bytes());
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Root::free_space_bytes(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // used_space_bytes() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        runtime->shutdown();
-        try
-        {
-            call(root->used_space_bytes());
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Root::used_space_bytes(): runtime was destroyed previously", e.error_message());
-        }
-    }
-
-    // get() with destroyed runtime must fail.
-    {
-        auto runtime = Runtime::create(connection());
-        auto root = get_root(runtime);
-        clear_folder(root);
-
-        runtime->shutdown();
-        try
-        {
-            call(root->get("some_id"));
-            FAIL();
-        }
-        catch (RuntimeDestroyedException const& e)
-        {
-            EXPECT_EQ("Root::get(): runtime was destroyed previously", e.error_message());
-        }
-    }
-}
-
-TEST_F(DestroyedTest, roots_destroyed_while_reply_outstanding)
-{
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider));
-
-    auto fut = acc_->roots();
-    runtime_->shutdown();
-    try
-    {
-        ASSERT_TRUE(wait(fut));
-        fut.result();
-        FAIL();
-    }
-    catch (RuntimeDestroyedException const& e)
-    {
-        EXPECT_EQ("Account::roots(): runtime was destroyed previously", e.error_message());
-    }
-}
-
-TEST_F(DestroyedTest, get_destroyed_while_reply_outstanding)
-{
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("slow_metadata")));
-
-    auto root = call(acc_->roots())[0];
-    auto fut = root->get("root_id");
-    runtime_->shutdown();
-    try
-    {
-        ASSERT_TRUE(wait(fut));
-        fut.result();
-        FAIL();
-    }
-    catch (RuntimeDestroyedException const& e)
-    {
-        EXPECT_EQ("Root::get(): runtime was destroyed previously", e.error_message());
-    }
-}
-
-TEST_F(DestroyedTest, copy_destroyed_while_reply_outstanding)
+TEST_F(LookupTest, basic)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    auto root = call(acc_->roots())[0];
-    auto fut = root->copy(root, "new name");
-    runtime_->shutdown();
-    try
+    Item root;
     {
-        ASSERT_TRUE(wait(fut));
-        fut.result();
-        FAIL();
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
     }
-    catch (RuntimeDestroyedException const& e)
-    {
-        EXPECT_EQ("Item::copy(): runtime was destroyed previously", e.error_message());
-    }
+
+    unique_ptr<ItemListJob> j(root.lookup("Child"));
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(ItemListJob::Status::Loading, j->status());
+    EXPECT_EQ(StorageError::Type::NoError, j->error().type());
+
+    QSignalSpy ready_spy(j.get(), &unity::storage::qt::ItemListJob::itemsReady);
+    QSignalSpy status_spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+
+    status_spy.wait(SIGNAL_WAIT_TIME);
+
+    auto list_arg = ready_spy.takeFirst();
+    auto list = qvariant_cast<QList<unity::storage::qt::Item>>(list_arg.at(0));
+    ASSERT_EQ(1, list.size());
+    auto child = list[0];
+    ASSERT_EQ("child_id", child.itemId());
+    ASSERT_EQ("Child", child.name());
+
+    auto arg = status_spy.takeFirst();
+    auto status = qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0));
+    EXPECT_EQ(ItemListJob::Status::Finished, status);
+
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(ItemListJob::Status::Finished, j->status());
+    EXPECT_EQ(StorageError::Type::NoError, j->error().type());
 }
 
-TEST_F(DestroyedTest, move_destroyed_while_reply_outstanding)
+TEST_F(LookupTest, invalid)
 {
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("slow_move")));
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    auto root = call(acc_->roots())[0];
-    auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-    auto fut = file->move(root, "new name");
-    runtime_->shutdown();
-    try
-    {
-        ASSERT_TRUE(wait(fut));
-        fut.result();
-        FAIL();
-    }
-    catch (RuntimeDestroyedException const& e)
-    {
-        EXPECT_EQ("Item::move(): runtime was destroyed previously", e.error_message());
-    }
+    Item root;
+    unique_ptr<ItemListJob> j(root.lookup("Child"));
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(ItemListJob::Status::Error, j->status());
+    EXPECT_EQ(StorageError::Type::LogicError, j->error().type());
+    EXPECT_EQ("LogicError: Item::lookup(): cannot create job from invalid item", j->error().errorString());
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Status::Error, qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("LogicError: Item::lookup(): cannot create job from invalid item", j->error().errorString());
 }
 
-TEST_F(DestroyedTest, list_destroyed_while_reply_outstanding)
+TEST_F(LookupTest, wrong_type)
 {
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("list slow")));
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    auto root = call(acc_->roots())[0];
-    auto fut = root->list();
-    runtime_->shutdown();
-    try
+    Item root;
     {
-        ASSERT_TRUE(wait(fut));
-        fut.result();
-        FAIL();
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
     }
-    catch (RuntimeDestroyedException const& e)
+
+    Item child;
     {
-        EXPECT_EQ("Folder::list(): runtime was destroyed previously", e.error_message());
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
     }
+
+    unique_ptr<ItemListJob> j(child.lookup("Child"));
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(ItemListJob::Status::Error, j->status());
+    EXPECT_EQ(StorageError::Type::LogicError, j->error().type());
+    EXPECT_EQ("LogicError: Item::lookup(): cannot perform lookup on a file", j->error().errorString());
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Status::Error, qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("LogicError: Item::lookup(): cannot perform lookup on a file", j->error().errorString());
 }
 
-TEST_F(DestroyedTest, lookup_destroyed_while_reply_outstanding)
+TEST_F(CreateFolderTest, basic)
 {
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("lookup slow")));
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    auto root = call(acc_->roots())[0];
-    auto fut = root->lookup("Child");
-    runtime_->shutdown();
-    try
+    Item root;
     {
-        ASSERT_TRUE(wait(fut));
-        fut.result();
-        FAIL();
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
     }
-    catch (RuntimeDestroyedException const& e)
-    {
-        EXPECT_EQ("Folder::lookup(): runtime was destroyed previously", e.error_message());
-    }
+
+    unique_ptr<ItemJob> j(root.createFolder("new_folder"));
+    EXPECT_TRUE(j->isValid());
+
+    QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    auto status = qvariant_cast<unity::storage::qt::ItemJob::Status>(arg.at(0));
+    EXPECT_EQ(ItemJob::Status::Finished, status);
+
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(ItemJob::Status::Finished, j->status());
+    EXPECT_EQ(StorageError::Type::NoError, j->error().type());
+
+    auto new_folder = j->item();
+    EXPECT_EQ("new_folder", new_folder.name());
+    EXPECT_EQ(Item::Type::Folder, new_folder.type());
 }
 
-TEST_F(DestroyedTest, create_folder_destroyed_while_reply_outstanding)
+TEST_F(CreateFolderTest, invalid)
 {
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("create_folder slow")));
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    auto root = call(acc_->roots())[0];
-    auto fut = root->create_folder("Child");
-    runtime_->shutdown();
-    try
-    {
-        ASSERT_TRUE(wait(fut));
-        fut.result();
-        FAIL();
-    }
-    catch (RuntimeDestroyedException const& e)
-    {
-        EXPECT_EQ("Folder::create_folder(): runtime was destroyed previously", e.error_message());
-    }
+    Item root;
+    unique_ptr<ItemJob> j(root.createFolder("new_folder"));
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ(StorageError::Type::LogicError, j->error().type());
+    EXPECT_EQ("LogicError: Item::createFolder(): cannot create job from invalid item", j->error().errorString());
+
+    QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    auto status = qvariant_cast<unity::storage::qt::ItemJob::Status>(arg.at(0));
+    EXPECT_EQ(ItemJob::Status::Error, status);
+
+    EXPECT_EQ("LogicError: Item::createFolder(): cannot create job from invalid item", j->error().errorString());
 }
 
-TEST_F(DestroyedTest, create_file_destroyed_while_reply_outstanding)
+TEST_F(CreateFolderTest, wrong_type)
 {
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("create_file slow")));
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    auto root = call(acc_->roots())[0];
-    auto fut = root->create_file("Child", 0);
-    runtime_->shutdown();
-    try
+    Item root;
     {
-        ASSERT_TRUE(wait(fut));
-        fut.result();
-        FAIL();
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
     }
-    catch (RuntimeDestroyedException const& e)
+
+    Item child;
     {
-        EXPECT_EQ("Folder::create_file(): runtime was destroyed previously", e.error_message());
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
     }
+
+    unique_ptr<ItemJob> j(child.createFolder("new_folder"));
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ(StorageError::Type::LogicError, j->error().type());
+    EXPECT_EQ("LogicError: Item::createFolder(): cannot create a folder with a file as the parent",
+              j->error().errorString());
+
+    QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    auto status = qvariant_cast<unity::storage::qt::ItemJob::Status>(arg.at(0));
+    EXPECT_EQ(ItemJob::Status::Error, status);
+
+    EXPECT_EQ("LogicError: Item::createFolder(): cannot create a folder with a file as the parent",
+              j->error().errorString());
 }
 
-TEST_F(DestroyedTest, create_uploader_destroyed_while_reply_outstanding)
+TEST_F(CreateFolderTest, wrong_return_type)
 {
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("create_file slow")));
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("create_folder_returns_file")));
 
-    auto root = call(acc_->roots())[0];
-    auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-    auto fut = file->create_uploader(ConflictPolicy::overwrite, 0);
-    runtime_->shutdown();
-    try
+    Item root;
     {
-        ASSERT_TRUE(wait(fut));
-        fut.result();
-        FAIL();
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
     }
-    catch (RuntimeDestroyedException const& e)
-    {
-        EXPECT_EQ("File::create_uploader(): runtime was destroyed previously", e.error_message());
-    }
-}
 
-TEST_F(DestroyedTest, create_downloader_destroyed_while_reply_outstanding)
-{
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("create_file slow")));
+    unique_ptr<ItemJob> j(root.createFolder("new_folder"));
+    EXPECT_TRUE(j->isValid());
 
-    auto root = call(acc_->roots())[0];
-    auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));
-    auto fut = file->create_downloader();
-    runtime_->shutdown();
-    try
-    {
-        ASSERT_TRUE(wait(fut));
-        fut.result();
-        FAIL();
-    }
-    catch (RuntimeDestroyedException const& e)
-    {
-        EXPECT_EQ("File::create_downloader(): runtime was destroyed previously", e.error_message());
-    }
+    QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    auto status = qvariant_cast<unity::storage::qt::ItemJob::Status>(arg.at(0));
+    EXPECT_EQ(ItemJob::Status::Error, status);
+
+    EXPECT_EQ("LocalCommsError: Item::createFolder(): impossible file item returned by provider",
+              j->error().errorString());
 }
 #endif
+
+TEST_F(ListTest, basic)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &unity::storage::qt::ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    QList<Item> items;
+    {
+        unique_ptr<ItemListJob> j(root.list());
+        EXPECT_TRUE(j->isValid());
+        EXPECT_EQ(ItemListJob::Status::Loading, j->status());
+        EXPECT_EQ(StorageError::Type::NoError, j->error().type());
+
+        QSignalSpy ready_spy(j.get(), &unity::storage::qt::ItemListJob::itemsReady);
+        QSignalSpy status_spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+        ready_spy.wait(SIGNAL_WAIT_TIME);
+        ASSERT_EQ(1, ready_spy.count());
+        auto list_arg = ready_spy.takeFirst();
+        auto items = qvariant_cast<QList<unity::storage::qt::Item>>(list_arg.at(0));
+        ASSERT_EQ(1, items.size());
+        EXPECT_EQ("child_id", items[0].itemId());
+
+        // When the signal for the final item arrives, status must be Finished.
+        EXPECT_EQ(ItemListJob::Status::Finished, j->status());
+
+        // Finished signal must be received.
+        if (status_spy.count() == 0)
+        {
+            status_spy.wait(SIGNAL_WAIT_TIME);
+        }
+        ASSERT_EQ(1, status_spy.count());
+        auto status_arg = status_spy.takeFirst();
+        EXPECT_EQ(ItemListJob::Status::Finished, qvariant_cast<unity::storage::qt::ItemListJob::Status>(status_arg.at(0)));
+    }
+}
 
 int main(int argc, char** argv)
 {

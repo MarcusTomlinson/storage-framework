@@ -37,6 +37,7 @@ namespace internal
 class ListJobImplBase;
 class ItemListJobImpl;
 class MultiItemJobImpl;
+class MultiItemListJobImpl;
 
 }  // namespace internal
 
@@ -72,6 +73,7 @@ private:
     friend class internal::ListJobImplBase;
     friend class internal::ItemListJobImpl;
     friend class internal::MultiItemJobImpl;
+    friend class internal::MultiItemListJobImpl;
 };
 
 }  // namespace qt

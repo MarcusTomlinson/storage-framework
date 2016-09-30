@@ -191,6 +191,11 @@ boost::future<Item> MockProvider::create_folder(
     string const& parent_id, string const& name,
     Context const&)
 {
+    if (cmd_ == "create_folder_returns_file")
+    {
+        Item metadata{"new_folder_id", { parent_id }, name, "etag", ItemType::file, {}};
+        return make_ready_future<Item>(metadata);
+    }
     Item metadata{"new_folder_id", { parent_id }, name, "etag", ItemType::folder, {}};
     return make_ready_future<Item>(metadata);
 }

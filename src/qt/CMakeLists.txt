@@ -32,6 +32,7 @@ set(QT_CLIENT_LIB_V2_SRC
     internal/ItemListJobImpl.cpp
     internal/ListJobImplBase.cpp
     internal/MultiItemJobImpl.cpp
+    internal/MultiItemListJobImpl.cpp
     internal/RuntimeImpl.cpp
     internal/StorageErrorImpl.cpp
     internal/unmarshal_error.cpp
@@ -50,6 +51,7 @@ set(QT_CLIENT_LIB_V2_SRC
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemListJobImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ListJobImplBase.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/MultiItemJobImpl.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/MultiItemListJobImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/VoidJobImpl.h
 )
 

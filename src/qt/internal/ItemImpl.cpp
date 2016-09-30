@@ -23,6 +23,7 @@
 #include <unity/storage/qt/internal/ItemJobImpl.h>
 #include <unity/storage/qt/internal/ItemListJobImpl.h>
 #include <unity/storage/qt/internal/MultiItemJobImpl.h>
+#include <unity/storage/qt/internal/MultiItemListJobImpl.h>
 #include <unity/storage/qt/internal/VoidJobImpl.h>
 #include <unity/storage/qt/internal/validate.h>
 
@@ -190,7 +191,7 @@ ItemJob* ItemImpl::move(Item const& newParent, QString const& newName) const
     {
         if (md.type == ItemType::root)
         {
-            QString msg = method + ": impossible root item returned by server";
+            QString msg = method + ": impossible root item returned by provider";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
@@ -241,17 +242,89 @@ Downloader* ItemImpl::createDownloader() const
 
 ItemListJob* ItemImpl::list() const
 {
-    return nullptr;  // TODO
+    QString const method = "Item::list()";
+
+    auto invalid_job = check_invalid_or_destroyed<ItemListJob, ListJobImplBase>(method);
+    if (invalid_job)
+    {
+        return invalid_job;
+    }
+    if (md_.type == storage::ItemType::file)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot perform list on a file");
+        return ItemListJobImpl::make_job(e);
+    }
+
+    auto validate = [method](storage::internal::ItemMetadata const& md)
+    {
+        if (md.type == storage::ItemType::root)
+        {
+            throw StorageErrorImpl::local_comms_error(method + ": impossible root item returned by provider");
+        }
+    };
+
+    auto fetch_next = [this](QString const& page_token)
+    {
+        assert(!page_token.isEmpty());
+        return account_->provider()->List(md_.item_id, page_token);
+    };
+
+    auto reply = account_->provider()->List(md_.item_id, "");
+    auto This = const_pointer_cast<ItemImpl>(shared_from_this());
+    return MultiItemListJobImpl::make_job(This, method, reply, validate, fetch_next);
 }
 
 ItemListJob* ItemImpl::lookup(QString const& name) const
 {
-    return nullptr;  // TODO
+    QString const method = "Item::lookup()";
+
+    auto invalid_job = check_invalid_or_destroyed<ItemListJob, ItemListJobImpl>(method);
+    if (invalid_job)
+    {
+        return invalid_job;
+    }
+    if (md_.type == storage::ItemType::file)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot perform lookup on a file");
+        return ItemListJobImpl::make_job(e);
+    }
+
+    auto validate = [](storage::internal::ItemMetadata const&)
+    {
+    };
+
+    auto reply = account_->provider()->Lookup(md_.item_id, name);
+    auto This = const_pointer_cast<ItemImpl>(shared_from_this());
+    return ItemListJobImpl::make_job(This, method, reply, validate);
 }
 
 ItemJob* ItemImpl::createFolder(QString const& name) const
 {
-    return nullptr;  // TODO
+    QString const method = "Item::createFolder()";
+
+    auto invalid_job = check_invalid_or_destroyed<ItemJob, ItemJobImpl>(method);
+    if (invalid_job)
+    {
+        return invalid_job;
+    }
+    if (md_.type == storage::ItemType::file)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot create a folder with a file as the parent");
+        return ItemJobImpl::make_job(e);
+    }
+
+    auto validate = [method](storage::internal::ItemMetadata const& md)
+    {
+        if (md.type != storage::ItemType::file)
+        {
+            return;
+        }
+        throw StorageErrorImpl::local_comms_error(method + ": impossible file item returned by provider");
+    };
+
+    auto reply = account_->provider()->CreateFolder(md_.item_id, name);
+    auto This = const_pointer_cast<ItemImpl>(shared_from_this());
+    return ItemJobImpl::make_job(This, method, reply, validate);
 }
 
 Uploader* ItemImpl::createFile(QString const& name) const

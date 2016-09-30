@@ -40,6 +40,7 @@ namespace internal
 {
 
 class AccountImpl;
+class ItemImpl;
 
 class ItemListJobImpl : public ListJobImplBase
 {
@@ -51,6 +52,10 @@ public:
                                  QString const& method,
                                  QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate);
+    static ItemListJob* make_job(std::shared_ptr<ItemImpl> const& item,
+                                 QString const& method,
+                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                 std::function<void(storage::internal::ItemMetadata const&)> const& validate);
     static ItemListJob* make_job(StorageError const& error);
 
 private:
@@ -59,6 +64,12 @@ private:
                     QString const& method,
                     QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
                     std::function<void(storage::internal::ItemMetadata const&)> const& validate);
+    ItemListJobImpl(std::shared_ptr<ItemImpl> const& account,
+                    QString const& method,
+                    QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                    std::function<void(storage::internal::ItemMetadata const&)> const& validate);
+    
+    std::shared_ptr<ItemImpl> item_impl_;
 };
 
 }  // namespace internal

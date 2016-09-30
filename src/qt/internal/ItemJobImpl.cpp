@@ -92,7 +92,6 @@ ItemJobImpl::ItemJobImpl(shared_ptr<ItemImpl> const& item,
                          std::function<void(storage::internal::ItemMetadata const&)> const& validate)
     : ItemJobImpl(item->account_impl(), method, reply, validate)
 {
-    assert(item);
     item_impl_= item;
 }
 

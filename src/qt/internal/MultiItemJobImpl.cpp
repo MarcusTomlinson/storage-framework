@@ -37,8 +37,8 @@ namespace internal
 
 MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
                                    QString const& method,
-                                   QList<QDBusPendingReply<storage::internal::ItemMetadata>> const& replies,
-                                   std::function<void(storage::internal::ItemMetadata const&)> const& validate)
+                                   ReplyType const& replies,
+                                   ValidateFunc const& validate)
     : ListJobImplBase(account, method, validate)
     , replies_remaining_(replies.size())
 {
@@ -54,14 +54,12 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
 
     auto process_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& r)
     {
-        assert(status_ != ItemListJob::Status::Finished);
-
-        --replies_remaining_;
-
-        if (status_ == ItemListJob::Status::Error)
+        if (status_ != ItemListJob::Status::Loading)
         {
             return;
         }
+
+        --replies_remaining_;
 
         auto runtime = account_->runtime();
         if (!runtime || !runtime->isValid())
@@ -89,20 +87,20 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
         }
         QList<Item> items;
         items.append(item);
-        Q_EMIT public_instance_->itemsReady(items);
-
         if (replies_remaining_ == 0)
         {
             status_ = ItemListJob::Status::Finished;
+        }
+        Q_EMIT public_instance_->itemsReady(items);
+        if (replies_remaining_ == 0)
+        {
             Q_EMIT public_instance_->statusChanged(status_);
         }
     };
 
     auto process_error = [this](StorageError const& error)
     {
-        assert(status_ != ItemListJob::Status::Finished);
-
-        if (status_ == ItemListJob::Status::Error)
+        if (status_ != ItemListJob::Status::Loading)
         {
             return;
         }
@@ -120,8 +118,8 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
 
 ItemListJob* MultiItemJobImpl::make_job(shared_ptr<AccountImpl> const& account,
                                         QString const& method,
-                                        QList<QDBusPendingReply<storage::internal::ItemMetadata>> const& replies,
-                                        std::function<void(storage::internal::ItemMetadata const&)> const& validate)
+                                        ReplyType const& replies,
+                                        ValidateFunc const& validate)
 {
     unique_ptr<MultiItemJobImpl> impl(new MultiItemJobImpl(account, method, replies, validate));
     auto job = new ItemListJob(move(impl));

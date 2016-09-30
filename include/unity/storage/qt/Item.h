@@ -138,8 +138,8 @@ uint Q_DECL_EXPORT qHash(unity::storage::qt::Item const& i);
 
 Q_DECLARE_METATYPE(unity::storage::qt::Item)
 Q_DECLARE_METATYPE(QList<unity::storage::qt::Item>)
-Q_DECLARE_METATYPE(unity::storage::qt::Item::Type)
-Q_DECLARE_METATYPE(unity::storage::qt::Item::ConflictPolicy)
+//Q_DECLARE_METATYPE(unity::storage::qt::Item::Type)
+//Q_DECLARE_METATYPE(unity::storage::qt::Item::ConflictPolicy)
 
 namespace std
 {

@@ -32,37 +32,43 @@ namespace internal
 
 class ItemMetadata;
 
-}  // namespace internal
+}
 
 namespace qt
 {
 namespace internal
 {
 
-class AccountImpl;
+class ItemImpl;
 
-class MultiItemJobImpl : public ListJobImplBase
+class MultiItemListJobImpl : public ListJobImplBase
 {
     Q_OBJECT
 public:
-    using ReplyType = QList<QDBusPendingReply<storage::internal::ItemMetadata>>;
+    using ReplyType = QDBusPendingReply<QList<storage::internal::ItemMetadata>, QString>;
     using ValidateFunc = std::function<void(storage::internal::ItemMetadata const&)>;
+    using FetchFunc = std::function<QDBusPendingReply<QList<unity::storage::internal::ItemMetadata>,
+                                                            QString>(QString const& page_token)>;
 
-    virtual ~MultiItemJobImpl() = default;
+    virtual ~MultiItemListJobImpl() = default;
 
-    static ItemListJob* make_job(std::shared_ptr<AccountImpl> const& account,
+    static ItemListJob* make_job(std::shared_ptr<ItemImpl> const& item,
                                  QString const& method,
-                                 ReplyType const& replies,
-                                 ValidateFunc const& validate);
+                                 ReplyType const& reply,
+                                 ValidateFunc const& validate,
+                                 FetchFunc const& fetch_next);
+    static ItemListJob* make_job(StorageError const& error);
 
 private:
-    MultiItemJobImpl() = default;
-    MultiItemJobImpl(std::shared_ptr<AccountImpl> const& account,
-                     QString const& method,
-                     ReplyType const& replies,
-                     ValidateFunc const& validate);
-
-    int replies_remaining_;
+    MultiItemListJobImpl() = default;
+    MultiItemListJobImpl(std::shared_ptr<ItemImpl> const& item,
+                         QString const& method,
+                         ReplyType const& reply,
+                         ValidateFunc const& validate,
+                         FetchFunc const& fetch_next);
+    
+    std::shared_ptr<ItemImpl> item_impl_;
+    FetchFunc fetch_next_;
 };
 
 }  // namespace internal
