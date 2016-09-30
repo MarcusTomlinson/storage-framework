@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <unity/storage/qt/ItemJob.h>
+#include <unity/storage/qt/VoidJob.h>
 
 #include <unity/storage/qt/StorageError.h>
 
@@ -28,51 +28,39 @@ namespace unity
 {
 namespace storage
 {
-namespace internal
-{
-
-class ItemMetadata;
-
-}  // namespace internal
-
 namespace qt
 {
 namespace internal
 {
 
-class AccountImpl;
+class ItemImpl;
 
-class ItemJobImpl : public QObject
+class VoidJobImpl : public QObject
 {
     Q_OBJECT
 public:
-    virtual ~ItemJobImpl() = default;
+    virtual ~VoidJobImpl() = default;
 
     bool isValid() const;
-    ItemJob::Status status() const;
+    VoidJob::Status status() const;
     StorageError error() const;
-    Item item() const;
 
-    static ItemJob* make_item_job(std::shared_ptr<AccountImpl> const& account,
+    static VoidJob* make_void_job(std::shared_ptr<ItemImpl> const& item,
                                   QString const& method,
-                                  QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
-                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate);
-    static ItemJob* make_item_job(StorageError const& e);
+                                  QDBusPendingReply<void> const& reply);
+    static VoidJob* make_void_job(StorageError const& e);
 
 private:
-    ItemJobImpl(std::shared_ptr<AccountImpl> const& account,
+    VoidJobImpl(std::shared_ptr<ItemImpl> const& item,
                 QString const& method,
-                QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
-                std::function<void(storage::internal::ItemMetadata const&)> const& validate);
-    ItemJobImpl(StorageError const& e);
+                QDBusPendingReply<void> const& reply);
+    VoidJobImpl(StorageError const& e);
 
-    ItemJob* public_instance_;
-    ItemJob::Status status_;
+    VoidJob* public_instance_;
+    VoidJob::Status status_;
     StorageError error_;
     QString method_;
-    std::shared_ptr<AccountImpl> account_;
-    std::function<void(storage::internal::ItemMetadata const&)> validate_;
-    Item item_;
+    std::shared_ptr<ItemImpl> item_;
 };
 
 }  // namespace internal

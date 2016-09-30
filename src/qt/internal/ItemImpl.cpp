@@ -23,6 +23,8 @@
 #include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/ItemJobImpl.h>
 #include <unity/storage/qt/internal/RuntimeImpl.h>
+#include <unity/storage/qt/internal/StorageErrorImpl.h>
+#include <unity/storage/qt/internal/VoidJobImpl.h>
 #include <unity/storage/qt/internal/validate.h>
 
 #include <boost/functional/hash.hpp>
@@ -69,13 +71,6 @@ Account ItemImpl::account() const
 {
     return is_valid_ ? account_ : Account();
 }
-
-#if 0
-Item ItemImpl::root() const
-{
-    return is_valid_ ? root_ : Item();
-}
-#endif
 
 QString ItemImpl::etag() const
 {
@@ -131,7 +126,25 @@ ItemJob* ItemImpl::move(Item const& newParent, QString const& newName) const
 
 VoidJob* ItemImpl::deleteItem() const
 {
-    return nullptr;  // TODO
+    QString const method = "Item::deleteItem()";
+
+    assert(account_);
+    auto runtime = account_->runtime();
+    if (!runtime || !runtime->isValid())
+    {
+        auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");
+        return VoidJobImpl::make_void_job(e);
+    }
+
+    if (md_.type == storage::ItemType::root)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot delete root");
+        return VoidJobImpl::make_void_job(e);
+    }
+
+    auto reply = account_->provider()->Delete(md_.item_id);
+    auto This = const_pointer_cast<ItemImpl>(shared_from_this());
+    return VoidJobImpl::make_void_job(This, method, reply);
 }
 
 Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes) const
@@ -248,19 +261,10 @@ Item ItemImpl::make_item(QString const& method,
     return Item(p);
 }
 
-#if 0
-shared_ptr<RuntimeImpl> ItemImpl::get_runtime(QString const& method) const
+shared_ptr<RuntimeImpl> ItemImpl::runtime() const
 {
-    auto runtime = account_->runtime_.lock();
-    if (!runtime || !runtime->isValid())
-    {
-        QString msg = method + ": Runtime was destroyed previously";
-        auto This = const_cast<ItemImpl*>(this);
-        This->error_ = StorageErrorImpl::runtime_destroyed_error(msg);
-    }
-    return runtime;
+    return account_->runtime();
 }
-#endif
 
 }  // namespace internal
 }  // namespace qt

@@ -20,22 +20,29 @@
 
 #include <QObject>
 
+#include <memory>
+
 namespace unity
 {
 namespace storage
 {
 namespace qt
 {
+namespace internal
+{
+
+class VoidJobImpl;
+
+}  // namespace internal
 
 class StorageError;
 
 class Q_DECL_EXPORT VoidJob final : public QObject
 {
-    // TODO: notify, CONSTANT where needed
     Q_OBJECT
-    Q_PROPERTY(bool READ isValid FINAL)
-    Q_PROPERTY(unity::storage::qt::VoidJob::Status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::storage::qt::StorageError READ error FINAL)
+    Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::VoidJob::Status status READ status NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError error READ error NOTIFY statusChanged FINAL)
 
 public:
     virtual ~VoidJob();
@@ -49,8 +56,17 @@ public:
 
 Q_SIGNALS:
     void statusChanged(unity::storage::qt::VoidJob::Status status) const;
+
+private:
+    VoidJob(std::unique_ptr<internal::VoidJobImpl> p);
+
+    std::unique_ptr<internal::VoidJobImpl> const p_;
+
+    friend class internal::VoidJobImpl;
 };
 
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
+
+Q_DECLARE_METATYPE(unity::storage::qt::VoidJob::Status)

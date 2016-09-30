@@ -24,6 +24,8 @@
 #include <gtest/gtest.h>
 #include <QSignalSpy>
 
+#include <unordered_set>
+
 using namespace unity::storage;
 using namespace unity::storage::qt;
 using namespace std;
@@ -52,10 +54,12 @@ protected:
     Account acc_;
 };
 
-class RuntimeTest : public ProviderFixture {};
 class AccountTest : public RemoteClientTest {};
-class RootsTest : public RemoteClientTest {};
+class DeleteTest : public RemoteClientTest {};
+class GetTest : public RemoteClientTest {};
 class ItemTest : public RemoteClientTest {};
+class RootsTest : public RemoteClientTest {};
+class RuntimeTest : public ProviderFixture {};
 
 TEST(Runtime, lifecycle)
 {
@@ -75,6 +79,7 @@ TEST(Runtime, lifecycle)
 }
 
 #if 0
+// TODO, how to test this?
 TEST_F(RuntimeTest, init_error)
 {
     QDBusConnection conn(connection());
@@ -299,9 +304,12 @@ TEST_F(AccountTest, comparison)
 
 TEST_F(AccountTest, hash)
 {
+    unordered_set<Account>();  // Just to show that this works.
+
     Account a1;
+    EXPECT_EQ(0, hash<Account>()(a1));
     EXPECT_EQ(0, a1.hash());
-    EXPECT_EQ(a1.hash(), qHash(a1));
+    EXPECT_EQ(0, qHash(a1));
 
     auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
     // Due to different return types (size_t vs uint), hash() and qHash() do not return the same value.
@@ -317,11 +325,11 @@ TEST_F(AccountTest, accounts)
     EXPECT_EQ(StorageError::NoError, j->error().type());
     EXPECT_EQ(QList<Account>(), j->accounts());  // We haven't waited for the result yet.
 
-    QSignalSpy spy(j.get(), &unity::storage::qt::AccountsJob::statusChanged);
+    QSignalSpy spy(j.get(), &AccountsJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
-    EXPECT_EQ(AccountsJob::Finished, qvariant_cast<unity::storage::qt::AccountsJob::Status>(arg.at(0)));
+    EXPECT_EQ(AccountsJob::Finished, qvariant_cast<AccountsJob::Status>(arg.at(0)));
 
     EXPECT_TRUE(j->isValid());
     EXPECT_EQ(AccountsJob::Finished, j->status());
@@ -342,16 +350,15 @@ TEST_F(AccountTest, runtime_destroyed)
     EXPECT_FALSE(j->isValid());
     EXPECT_EQ(AccountsJob::Error, j->status());
     EXPECT_EQ(StorageError::RuntimeDestroyed, j->error().type());
-    EXPECT_EQ("Runtime::accounts(): Runtime was destroyed previously",
-              j->error().message()) << j->error().message().toStdString();
+    EXPECT_EQ("Runtime::accounts(): Runtime was destroyed previously", j->error().message());
     EXPECT_EQ(QList<Account>(), j->accounts());
 
     // Signal must be received.
-    QSignalSpy spy(j, &unity::storage::qt::AccountsJob::statusChanged);
+    QSignalSpy spy(j, &AccountsJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
-    EXPECT_EQ(AccountsJob::Error, qvariant_cast<unity::storage::qt::AccountsJob::Status>(arg.at(0)));
+    EXPECT_EQ(AccountsJob::Error, qvariant_cast<AccountsJob::Status>(arg.at(0)));
 }
 
 TEST_F(RootsTest, roots)
@@ -364,19 +371,19 @@ TEST_F(RootsTest, roots)
     EXPECT_EQ(StorageError::NoError, j->error().type());
 
     // Check that we get the statusChanged and itemsReady signals.
-    QSignalSpy ready_spy(j.get(), &unity::storage::qt::ItemListJob::itemsReady);
-    QSignalSpy status_spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+    QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
+    QSignalSpy status_spy(j.get(), &ItemListJob::statusChanged);
 
     ASSERT_TRUE(ready_spy.wait(SIGNAL_WAIT_TIME));
 
     ASSERT_EQ(1, ready_spy.count());
     auto arg = ready_spy.takeFirst();
     auto items = qvariant_cast<QList<Item>>(arg.at(0));
-    EXPECT_EQ(1, items.size());
+    ASSERT_EQ(1, items.size());
 
     ASSERT_EQ(1, status_spy.count());
     arg = status_spy.takeFirst();
-    EXPECT_EQ(ItemListJob::Finished, qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemListJob::Finished, qvariant_cast<ItemListJob::Status>(arg.at(0)));
     EXPECT_EQ(StorageError::NoError, j->error().type());
 
     EXPECT_TRUE(j->isValid());
@@ -403,38 +410,349 @@ TEST_F(RootsTest, runtime_destroyed)
     EXPECT_FALSE(j->isValid());
     EXPECT_EQ(ItemListJob::Error, j->status());
     EXPECT_EQ(StorageError::RuntimeDestroyed, j->error().type());
-    EXPECT_EQ("Account::roots(): Runtime was destroyed previously",
-              j->error().message()) << j->error().message().toStdString();
+    EXPECT_EQ("Account::roots(): Runtime was destroyed previously", j->error().message());
 
     // Signal must be received.
-    QSignalSpy spy(j.get(), &unity::storage::qt::ItemListJob::statusChanged);
+    QSignalSpy spy(j.get(), &ItemListJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
-    EXPECT_EQ(ItemListJob::Error, qvariant_cast<unity::storage::qt::ItemListJob::Status>(arg.at(0)));
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
 }
 
-TEST_F(ItemTest, comparison)
+TEST_F(RootsTest, runtime_destroyed_while_item_list_job_running)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("slow_roots")));
+
+    unique_ptr<ItemListJob> j(acc_.roots());
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(ItemListJob::Loading, j->status());
+    EXPECT_EQ(StorageError::NoError, j->error().type());
+
+    EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime, provider still sleeping
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &ItemListJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Account::roots(): Runtime was destroyed previously", j->error().message());
+}
+
+TEST_F(RootsTest, not_a_root)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("not_a_root")));
+
+    unique_ptr<ItemListJob> j(acc_.roots());
+
+    QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
+    QSignalSpy status_spy(j.get(), &ItemListJob::statusChanged);
+    status_spy.wait(SIGNAL_WAIT_TIME);
+    auto arg = status_spy.takeFirst();
+
+    // Bad metadata is ignored, so status is finished, and itemsReady was never called.
+    EXPECT_EQ(ItemListJob::Finished, qvariant_cast<ItemListJob::Status>(arg.at(0)));
+    EXPECT_EQ(0, status_spy.count());
+}
+
+TEST_F(GetTest, basic)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    // Get root.
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+
+        EXPECT_EQ("root_id", j->item().itemId());
+        EXPECT_EQ("Root", j->item().name());
+        EXPECT_EQ(Item::Root, j->item().type());
+    }
+
+    // Get a file.
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+
+        EXPECT_EQ("child_id", j->item().itemId());
+        EXPECT_EQ("Child", j->item().name());
+        EXPECT_EQ(Item::File, j->item().type());
+    }
+
+    // Get a folder.
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_folder_id"));
+
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+
+        EXPECT_EQ("child_folder_id", j->item().itemId());
+        EXPECT_EQ("Child_Folder", j->item().name());
+        EXPECT_EQ(Item::Folder, j->item().type());
+    }
+}
+
+TEST_F(GetTest, runtime_destroyed)
+{
+    EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime.
+
+    unique_ptr<ItemJob> j(acc_.get("root_id"));
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(ItemJob::Error, j->status());
+    EXPECT_EQ(StorageError::RuntimeDestroyed, j->error().type());
+    EXPECT_EQ("Account::get(): Runtime was destroyed previously", j->error().message());
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemJob::Error, qvariant_cast<ItemJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Account::get(): Runtime was destroyed previously", j->error().message());
+}
+
+TEST_F(GetTest, runtime_destroyed_while_item_job_running)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("slow_metadata")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_folder_id"));
+    EXPECT_TRUE(j->isValid());
+
+    EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime, provider still sleeping
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Account::get(): Runtime was destroyed previously", j->error().message());
+}
+
+TEST_F(GetTest, empty_id_from_provider)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("empty_id")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_folder_id"));
+    EXPECT_TRUE(j->isValid());
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Account::get(): received invalid metadata from provider: item_id cannot be empty", j->error().message());
+}
+
+TEST_F(GetTest, no_such_id)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    unique_ptr<ItemJob> j(acc_.get("no_such_id"));
+    EXPECT_TRUE(j->isValid());
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("metadata(): no such item: no_such_id", j->error().message()) << j->error().message().toStdString();
+    EXPECT_EQ("no_such_id", j->error().itemId());
+}
+
+TEST_F(DeleteTest, basic)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider));
+
+    Item item;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        item = j->item();
+    }
+
+    unique_ptr<VoidJob> j(item.deleteItem());
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(VoidJob::Loading, j->status());
+    EXPECT_EQ(StorageError::NoError, j->error().type());
+
+    EXPECT_EQ("child_id", item.itemId());
+
+    QSignalSpy spy(j.get(), &VoidJob::statusChanged);
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+
+    EXPECT_EQ(VoidJob::Finished, j->status());
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(StorageError::NoError, j->error().type());
+    EXPECT_EQ(VoidJob::Finished, j->status());
+}
+
+TEST_F(DeleteTest, no_such_item)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("delete_no_such_item")));
+
+    Item item;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        item = j->item();
+    }
+
+    unique_ptr<VoidJob> j(item.deleteItem());
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(VoidJob::Loading, j->status());
+    EXPECT_EQ(StorageError::NoError, j->error().type());
+
+    EXPECT_EQ("child_id", item.itemId());
+
+    QSignalSpy spy(j.get(), &VoidJob::statusChanged);
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+
+    EXPECT_EQ(VoidJob::Error, j->status());
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(StorageError::NotExists, j->error().type());
+    EXPECT_EQ("delete_item(): no such item: child_id", j->error().message());
+}
+
+TEST_F(DeleteTest, delete_root)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider));
+
+    Item item;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        item = j->item();
+    }
+
+    unique_ptr<VoidJob> j(item.deleteItem());
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(VoidJob::Error, j->status());
+    EXPECT_EQ(StorageError::LogicError, j->error().type());
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &VoidJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemJob::Error, qvariant_cast<VoidJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Item::deleteItem(): cannot delete root", j->error().message());
+}
+
+TEST_F(DeleteTest, runtime_destroyed)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider));
+
+    Item item;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        item = j->item();
+    }
+
+    EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime.
+
+    unique_ptr<VoidJob> j(item.deleteItem());
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(ItemJob::Error, j->status());
+    EXPECT_EQ(StorageError::RuntimeDestroyed, j->error().type());
+    EXPECT_EQ("Item::deleteItem(): Runtime was destroyed previously", j->error().message());
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &VoidJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemJob::Error, qvariant_cast<VoidJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Item::deleteItem(): Runtime was destroyed previously", j->error().message());
+}
+
+TEST_F(DeleteTest, runtime_destroyed_while_void_job_running)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("slow_delete")));
+
+    Item item;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        item = j->item();
+    }
+
+    unique_ptr<VoidJob> j(item.deleteItem());
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(VoidJob::Loading, j->status());
+    EXPECT_EQ(StorageError::NoError, j->error().type());
+
+    EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime.
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &VoidJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(VoidJob::Error, qvariant_cast<VoidJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Item::deleteItem(): Runtime was destroyed previously", j->error().message()) << j->error().message().toStdString();
+}
+
+#if 0
+// TODO: need to make internal symbols available for testing.
+TEST_F(ValidateTest, basic)
+{
+    using namespace unity::storage::qt::internal;
+
+    unity::storage::internal::ItemMetadata md;
+
+    validate("foo", md);
+}
+#endif
+
+
+TEST_F(ItemTest, comparison_and_hash)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider));
 
     {
         // Both items invalid.
         Item i1;
-        Item a2;
-        EXPECT_TRUE(i1 == a2);
-        EXPECT_FALSE(i1 != a2);
-        EXPECT_FALSE(i1 < a2);
-        EXPECT_TRUE(i1 <= a2);
-        EXPECT_FALSE(i1 > a2);
-        EXPECT_TRUE(i1 >= a2);
+        Item i2;
+        EXPECT_TRUE(i1 == i2);
+        EXPECT_FALSE(i1 != i2);
+        EXPECT_FALSE(i1 < i2);
+        EXPECT_TRUE(i1 <= i2);
+        EXPECT_FALSE(i1 > i2);
+        EXPECT_TRUE(i1 >= i2);
+
+        unordered_set<Item>();  // Just to show that this works.
+
+        EXPECT_EQ(0, hash<Item>()(i1));
+        EXPECT_EQ(0, i1.hash());
+        EXPECT_EQ(0, qHash(i1));
     }
 
-#if 0
     {
         // i1 valid, i2 invalid
-        auto i1 = runtime_->make_test_account(service_connection_->baseService(), bus_path());
-        Account i2;
+        unique_ptr<ItemListJob> j(acc_.roots());
+
+        QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
+        ASSERT_TRUE(ready_spy.wait(SIGNAL_WAIT_TIME));
+
+        ASSERT_EQ(1, ready_spy.count());
+        auto arg = ready_spy.takeFirst();
+        auto items = qvariant_cast<QList<Item>>(arg.at(0));
+        ASSERT_EQ(1, items.size());
+
+        auto i1 = items[0];
+        Item i2;
         EXPECT_FALSE(i1 == i2);
         EXPECT_TRUE(i1 != i2);
         EXPECT_FALSE(i1 < i2);
@@ -449,12 +767,34 @@ TEST_F(ItemTest, comparison)
         EXPECT_TRUE(i2 <= i1);
         EXPECT_FALSE(i2 > i1);
         EXPECT_FALSE(i2 >= i1);
+
+        EXPECT_NE(0, i1.hash());
+        EXPECT_NE(0, qHash(i1));
     }
 
     {
-        // i1 < i2 for owner ID
-        auto i1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "x", "x");
-        auto i2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "b", "x", "x");
+        // Both items valid with identical metadata, but different accounts (a1 < a2).
+
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "x", "x");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "b", "x", "x");
+
+        Item i1;
+        Item i2;
+
+        {
+            unique_ptr<ItemJob> j(a1.get("root_id"));
+            QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+            i1 = j->item();
+        }
+        {
+            unique_ptr<ItemJob> j(a2.get("root_id"));
+            QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+            i2 = j->item();
+        }
+
+        ASSERT_EQ(i1.itemId(), i2.itemId());
 
         EXPECT_FALSE(i1 == i2);
         EXPECT_TRUE(i1 != i2);
@@ -473,51 +813,23 @@ TEST_F(ItemTest, comparison)
     }
 
     {
-        // i1 < i2 for owner
-        auto i1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "x");
-        auto i2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "b", "x");
+        // Both items valid with identical metadata, but different instances, so we do deep comparison.
 
-        EXPECT_FALSE(i1 == i2);
-        EXPECT_TRUE(i1 != i2);
-        EXPECT_TRUE(i1 < i2);
-        EXPECT_TRUE(i1 <= i2);
-        EXPECT_FALSE(i1 > i2);
-        EXPECT_FALSE(i1 >= i2);
+        Item i1;
+        Item i2;
 
-        // And with swapped operands:
-        EXPECT_FALSE(i2 == i1);
-        EXPECT_TRUE(i2 != i1);
-        EXPECT_FALSE(i2 < i1);
-        EXPECT_FALSE(i2 <= i1);
-        EXPECT_TRUE(i2 > i1);
-        EXPECT_TRUE(i2 >= i1);
-    }
-
-    {
-        // i1 < i2 for description
-        auto i1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
-        auto i2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "b");
-
-        EXPECT_FALSE(i1 == i2);
-        EXPECT_TRUE(i1 != i2);
-        EXPECT_TRUE(i1 < i2);
-        EXPECT_TRUE(i1 <= i2);
-        EXPECT_FALSE(i1 > i2);
-        EXPECT_FALSE(i1 >= i2);
-
-        // And with swapped operands:
-        EXPECT_FALSE(i2 == i1);
-        EXPECT_TRUE(i2 != i1);
-        EXPECT_FALSE(i2 < i1);
-        EXPECT_FALSE(i2 <= i1);
-        EXPECT_TRUE(i2 > i1);
-        EXPECT_TRUE(i2 >= i1);
-    }
-
-    {
-        // i1 == i2
-        auto i1 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
-        auto i2 = runtime_->make_test_account(service_connection_->baseService(), bus_path(), "a", "a", "a");
+        {
+            unique_ptr<ItemJob> j(acc_.get("root_id"));
+            QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+            i1 = j->item();
+        }
+        {
+            unique_ptr<ItemJob> j(acc_.get("root_id"));
+            QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+            i2 = j->item();
+        }
 
         EXPECT_TRUE(i1 == i2);
         EXPECT_FALSE(i1 != i2);
@@ -533,8 +845,10 @@ TEST_F(ItemTest, comparison)
         EXPECT_TRUE(i2 <= i1);
         EXPECT_FALSE(i2 > i1);
         EXPECT_TRUE(i2 >= i1);
+
+        EXPECT_EQ(i1.hash(), i2.hash());
+        EXPECT_EQ(qHash(i1), qHash(i2));
     }
-#endif
 }
 
 #if 0
@@ -1290,7 +1604,7 @@ TEST_F(DestroyedTest, roots_destroyed_while_reply_outstanding)
 
 TEST_F(DestroyedTest, get_destroyed_while_reply_outstanding)
 {
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("metadata slow")));
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("slow_metadata")));
 
     auto root = call(acc_->roots())[0];
     auto fut = root->get("root_id");
@@ -1328,7 +1642,7 @@ TEST_F(DestroyedTest, copy_destroyed_while_reply_outstanding)
 
 TEST_F(DestroyedTest, move_destroyed_while_reply_outstanding)
 {
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("move slow")));
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("slow_move")));
 
     auto root = call(acc_->roots())[0];
     auto file = dynamic_pointer_cast<File>(call(root->get("child_id")));

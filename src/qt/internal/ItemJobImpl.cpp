@@ -20,8 +20,10 @@
 
 #include <unity/storage/internal/dbusmarshal.h>
 #include <unity/storage/internal/ItemMetadata.h>
+#include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/Handler.h>
 #include <unity/storage/qt/internal/ItemImpl.h>
+#include <unity/storage/qt/internal/RuntimeImpl.h>
 
 using namespace std;
 
@@ -49,6 +51,15 @@ ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account,
 
     auto process_reply = [this](decltype(reply)& r)
     {
+        auto runtime = account_->runtime();
+        if (!runtime || !runtime->isValid())
+        {
+            error_ = StorageErrorImpl::runtime_destroyed_error(method_ + ": Runtime was destroyed previously");
+            status_ = ItemJob::Error;
+            Q_EMIT public_instance_->statusChanged(status_);
+            return;
+        }
+
         auto metadata = r.value();
         try
         {
@@ -98,7 +109,7 @@ StorageError ItemJobImpl::error() const
 
 Item ItemJobImpl::item() const
 {
-    return Item();  // TODO
+    return item_;
 }
 
 ItemJob* ItemJobImpl::make_item_job(shared_ptr<AccountImpl> const& account,

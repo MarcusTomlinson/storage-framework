@@ -24,6 +24,7 @@
 #include <unity/storage/qt/internal/ItemJobImpl.h>
 #include <unity/storage/qt/internal/ItemListJobImpl.h>
 #include <unity/storage/qt/internal/RuntimeImpl.h>
+#include <unity/storage/qt/internal/StorageErrorImpl.h>
 #include <unity/storage/qt/Runtime.h>
 
 #include <boost/functional/hash.hpp>
@@ -82,24 +83,25 @@ QString AccountImpl::description() const
 
 ItemListJob* AccountImpl::roots() const
 {
+    QString const method = "Account::roots()";
+
     auto runtime = runtime_.lock();
     if (!runtime || !runtime->isValid())
     {
-        auto e = StorageErrorImpl::runtime_destroyed_error("Account::roots(): Runtime was destroyed previously");
+        auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");
         return ItemListJobImpl::make_item_list_job(e);
     }
 
-    auto validate = [](storage::internal::ItemMetadata const& md)
+    auto validate = [method](storage::internal::ItemMetadata const& md)
     {
         if (md.type != ItemType::root)
         {
-            QString msg = "provider returned non-root item type: " + QString::number(int(md.type));
+            QString msg = method + ": provider returned non-root item type: " + QString::number(int(md.type));
             qCritical() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
     };
 
-    QString method = "Account::roots()";
     auto reply = provider_->Roots();
     auto This = const_pointer_cast<AccountImpl>(shared_from_this());
     return ItemListJobImpl::make_item_list_job(This, method, reply, validate);
@@ -107,19 +109,21 @@ ItemListJob* AccountImpl::roots() const
 
 ItemJob* AccountImpl::get(QString const& itemId) const
 {
+    QString const method = "Account::get()";
+
     auto runtime = runtime_.lock();
     if (!runtime || !runtime->isValid())
     {
-        auto e = StorageErrorImpl::runtime_destroyed_error("Account::get(): Runtime was destroyed previously");
+        auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");
         return ItemJobImpl::make_item_job(e);
     }
 
-    // TODO: use defaulted param?
+    // LCOV_EXCL_START
     auto validate = [](storage::internal::ItemMetadata const&)
     {
     };
+    // LCOV_EXCL_STOP
 
-    QString method = "Item::get()";
     auto reply = provider_->Metadata(itemId);
     auto This = const_pointer_cast<AccountImpl>(shared_from_this());
     return ItemJobImpl::make_item_job(This, method, reply, validate);
@@ -185,6 +189,11 @@ bool AccountImpl::operator>(AccountImpl const& other) const
 bool AccountImpl::operator>=(AccountImpl const& other) const
 {
     return !operator<(other);
+}
+
+shared_ptr<RuntimeImpl> AccountImpl::runtime() const
+{
+    return runtime_.lock();
 }
 
 shared_ptr<ProviderInterface> AccountImpl::provider() const

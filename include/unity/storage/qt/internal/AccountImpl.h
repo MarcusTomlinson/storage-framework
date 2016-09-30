@@ -63,7 +63,7 @@ public:
 
     size_t hash() const;
 
-    //std::shared_ptr<RuntimeImpl> runtime() const;
+    std::shared_ptr<RuntimeImpl> runtime() const;
     std::shared_ptr<ProviderInterface> provider() const;
 
     static Account make_account(std::shared_ptr<RuntimeImpl> const& runtime,
