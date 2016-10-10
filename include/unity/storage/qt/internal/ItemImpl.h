@@ -145,7 +145,7 @@ decltype(T::make_job(StorageError())) ItemImpl::check_copy_move_precondition(QSt
         auto e = StorageErrorImpl::logic_error(method + ": source and target must belong to the same account");
         return T::make_job(e);
     }
-    if (newParent.type() == Item::File)
+    if (newParent.type() == Item::Type::File)
     {
         auto e = StorageErrorImpl::logic_error(method + ": newParent cannot be a file");
         return T::make_job(e);

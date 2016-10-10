@@ -21,7 +21,10 @@
 #include <unity/storage/qt/ItemListJob.h>
 #include <unity/storage/qt/StorageError.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QDBusPendingReply>
+#pragma GCC diagnostic pop
 
 namespace unity
 {

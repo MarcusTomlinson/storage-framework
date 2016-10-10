@@ -75,6 +75,64 @@ boost::future<tuple<ItemList,string>> MockProvider::list(
     string const& item_id, string const& page_token,
     Context const&)
 {
+    if (cmd_ == "list_slow")
+    {
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+    if (cmd_ == "list_empty")
+    {
+        boost::promise<tuple<ItemList,string>> p;
+        p.set_value(make_tuple(ItemList(), string()));
+        return p.get_future();
+    }
+    if (cmd_ == "list_no_permission")
+    {
+        string msg = string("permission denied");
+        return make_exceptional_future<tuple<ItemList,string>>(PermissionException(msg));
+    }
+    if (cmd_ == "list_return_root")
+    {
+        ItemList children =
+        {
+            {
+                "child_id", { "root_id" }, "Child", "etag", ItemType::root,
+                { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+            }
+        };
+        boost::promise<tuple<ItemList,string>> p;
+        p.set_value(make_tuple(children, string()));
+        return p.get_future();
+    }
+    if (cmd_ == "list_two_children")
+    {
+        ItemList children;
+        string next_token;
+        if (page_token == "")
+        {
+            next_token = "next";
+            children =
+            {
+                {
+                    "child_id", { "root_id" }, "Child", "etag", ItemType::file,
+                    { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+                }
+            };
+        }
+        else
+        {
+            next_token = "";
+            children =
+            {
+                {
+                    "child2_id", { "root_id" }, "Child2", "etag", ItemType::file,
+                    { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+                }
+            };
+        }
+        boost::promise<tuple<ItemList,string>> p;
+        p.set_value(make_tuple(children, next_token));
+        return p.get_future();
+    }
     if (item_id != "root_id")
     {
         string msg = string("Item::list(): no such item: \"") + item_id + "\"";
@@ -191,6 +249,11 @@ boost::future<Item> MockProvider::create_folder(
     string const& parent_id, string const& name,
     Context const&)
 {
+    if (cmd_ == "create_folder_returns_file")
+    {
+        Item metadata{"new_folder_id", { parent_id }, name, "etag", ItemType::file, {}};
+        return make_ready_future<Item>(metadata);
+    }
     Item metadata{"new_folder_id", { parent_id }, name, "etag", ItemType::folder, {}};
     return make_ready_future<Item>(metadata);
 }

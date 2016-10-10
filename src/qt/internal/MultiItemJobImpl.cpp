@@ -37,8 +37,8 @@ namespace internal
 
 MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
                                    QString const& method,
-                                   QList<QDBusPendingReply<storage::internal::ItemMetadata>> const& replies,
-                                   std::function<void(storage::internal::ItemMetadata const&)> const& validate)
+                                   ReplyType const& replies,
+                                   ValidateFunc const& validate)
     : ListJobImplBase(account, method, validate)
     , replies_remaining_(replies.size())
 {
@@ -54,20 +54,18 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
 
     auto process_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& r)
     {
-        assert(status_ != ItemListJob::Finished);
-
-        --replies_remaining_;
-
-        if (status_ == ItemListJob::Error)
+        if (status_ != ItemListJob::Status::Loading)
         {
             return;
         }
+
+        --replies_remaining_;
 
         auto runtime = account_->runtime();
         if (!runtime || !runtime->isValid())
         {
             error_ = StorageErrorImpl::runtime_destroyed_error(method_ + ": Runtime was destroyed previously");
-            status_ = ItemListJob::Error;
+            status_ = ItemListJob::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
             return;
         }
@@ -82,33 +80,33 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
         catch (StorageError const& e)
         {
             // Bad metadata received from provider, validate_() or make_item() have logged it.
-            status_ = ItemListJob::Error;
+            status_ = ItemListJob::Status::Error;
             error_ = e;
             Q_EMIT public_instance_->statusChanged(status_);
             return;
         }
         QList<Item> items;
         items.append(item);
-        Q_EMIT public_instance_->itemsReady(items);
-
         if (replies_remaining_ == 0)
         {
-            status_ = ItemListJob::Finished;
+            status_ = ItemListJob::Status::Finished;
+        }
+        Q_EMIT public_instance_->itemsReady(items);
+        if (replies_remaining_ == 0)
+        {
             Q_EMIT public_instance_->statusChanged(status_);
         }
     };
 
     auto process_error = [this](StorageError const& error)
     {
-        assert(status_ != ItemListJob::Finished);
-
-        if (status_ == ItemListJob::Error)
+        if (status_ != ItemListJob::Status::Loading)
         {
             return;
         }
         // TODO: method name is not being set this way.
         error_ = error;
-        status_ = ItemListJob::Error;
+        status_ = ItemListJob::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
@@ -120,8 +118,8 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
 
 ItemListJob* MultiItemJobImpl::make_job(shared_ptr<AccountImpl> const& account,
                                         QString const& method,
-                                        QList<QDBusPendingReply<storage::internal::ItemMetadata>> const& replies,
-                                        std::function<void(storage::internal::ItemMetadata const&)> const& validate)
+                                        ReplyType const& replies,
+                                        ValidateFunc const& validate)
 {
     unique_ptr<MultiItemJobImpl> impl(new MultiItemJobImpl(account, method, replies, validate));
     auto job = new ItemListJob(move(impl));

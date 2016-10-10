@@ -47,7 +47,7 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
         if (!runtime || !runtime->isValid())
         {
             error_ = StorageErrorImpl::runtime_destroyed_error(method_ + ": Runtime was destroyed previously");
-            status_ = ItemListJob::Error;
+            status_ = ItemListJob::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
             return;
         }
@@ -67,8 +67,11 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
                 // Bad metadata received from provider, validate_() or make_item() have logged it.
             }
         }
-        status_ = ItemListJob::Finished;
-        Q_EMIT public_instance_->itemsReady(items);
+        status_ = ItemListJob::Status::Finished;
+        if (!items.isEmpty())
+        {
+            Q_EMIT public_instance_->itemsReady(items);
+        }
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
@@ -76,11 +79,20 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
     {
         // TODO: method name is not being set this way.
         error_ = error;
-        status_ = ItemListJob::Error;
+        status_ = ItemListJob::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
     new Handler<QList<storage::internal::ItemMetadata>>(this, reply, process_reply, process_error);
+}
+
+ItemListJobImpl::ItemListJobImpl(shared_ptr<ItemImpl> const& item,
+                                 QString const& method,
+                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                 std::function<void(storage::internal::ItemMetadata const&)> const& validate)
+    : ItemListJobImpl(item->account_impl(), method, reply, validate)
+{
+    item_impl_ = item;
 }
 
 ItemListJob* ItemListJobImpl::make_job(shared_ptr<AccountImpl> const& account,
@@ -89,6 +101,17 @@ ItemListJob* ItemListJobImpl::make_job(shared_ptr<AccountImpl> const& account,
                                        std::function<void(storage::internal::ItemMetadata const&)> const& validate)
 {
     unique_ptr<ItemListJobImpl> impl(new ItemListJobImpl(account, method, reply, validate));
+    auto job = new ItemListJob(move(impl));
+    job->p_->set_public_instance(job);
+    return job;
+}
+
+ItemListJob* ItemListJobImpl::make_job(shared_ptr<ItemImpl> const& item,
+                                       QString const& method,
+                                       QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                       std::function<void(storage::internal::ItemMetadata const&)> const& validate)
+{
+    unique_ptr<ItemListJobImpl> impl(new ItemListJobImpl(item, method, reply, validate));
     auto job = new ItemListJob(move(impl));
     job->p_->set_public_instance(job);
     return job;

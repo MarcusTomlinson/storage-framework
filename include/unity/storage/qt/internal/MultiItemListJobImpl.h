@@ -39,37 +39,39 @@ namespace qt
 namespace internal
 {
 
-class AccountImpl;
 class ItemImpl;
 
-class ItemListJobImpl : public ListJobImplBase
+class MultiItemListJobImpl : public ListJobImplBase
 {
     Q_OBJECT
 public:
-    virtual ~ItemListJobImpl() = default;
+    using ReplyType = QDBusPendingReply<QList<storage::internal::ItemMetadata>, QString>;
+    using ValidateFunc = std::function<void(storage::internal::ItemMetadata const&)>;
+    using FetchFunc = std::function<QDBusPendingReply<QList<unity::storage::internal::ItemMetadata>,
+                                                            QString>(QString const& page_token)>;
 
-    static ItemListJob* make_job(std::shared_ptr<AccountImpl> const& account,
-                                 QString const& method,
-                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                                 std::function<void(storage::internal::ItemMetadata const&)> const& validate);
+    virtual ~MultiItemListJobImpl() = default;
+
     static ItemListJob* make_job(std::shared_ptr<ItemImpl> const& item,
                                  QString const& method,
-                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                                 std::function<void(storage::internal::ItemMetadata const&)> const& validate);
+                                 ReplyType const& reply,
+                                 ValidateFunc const& validate,
+                                 FetchFunc const& fetch_next);
     static ItemListJob* make_job(StorageError const& error);
 
 private:
-    ItemListJobImpl() = default;
-    ItemListJobImpl(std::shared_ptr<AccountImpl> const& account,
-                    QString const& method,
-                    QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                    std::function<void(storage::internal::ItemMetadata const&)> const& validate);
-    ItemListJobImpl(std::shared_ptr<ItemImpl> const& account,
-                    QString const& method,
-                    QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                    std::function<void(storage::internal::ItemMetadata const&)> const& validate);
+    MultiItemListJobImpl() = default;
+    MultiItemListJobImpl(std::shared_ptr<ItemImpl> const& item,
+                         QString const& method,
+                         ReplyType const& reply,
+                         ValidateFunc const& validate,
+                         FetchFunc const& fetch_next);
+
+    std::function<void(ReplyType const&)> process_reply_;
+    std::function<void(StorageError const&)> process_error_;
 
     std::shared_ptr<ItemImpl> item_impl_;
+    FetchFunc fetch_next_;
 };
 
 }  // namespace internal

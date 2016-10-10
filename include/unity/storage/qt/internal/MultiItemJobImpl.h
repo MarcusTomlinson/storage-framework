@@ -45,19 +45,22 @@ class MultiItemJobImpl : public ListJobImplBase
 {
     Q_OBJECT
 public:
+    using ReplyType = QList<QDBusPendingReply<storage::internal::ItemMetadata>>;
+    using ValidateFunc = std::function<void(storage::internal::ItemMetadata const&)>;
+
     virtual ~MultiItemJobImpl() = default;
 
     static ItemListJob* make_job(std::shared_ptr<AccountImpl> const& account,
                                  QString const& method,
-                                 QList<QDBusPendingReply<storage::internal::ItemMetadata>> const& replies,
-                                 std::function<void(storage::internal::ItemMetadata const&)> const& validate);
+                                 ReplyType const& replies,
+                                 ValidateFunc const& validate);
 
 private:
     MultiItemJobImpl() = default;
     MultiItemJobImpl(std::shared_ptr<AccountImpl> const& account,
                      QString const& method,
-                     QList<QDBusPendingReply<storage::internal::ItemMetadata>> const& replies,
-                     std::function<void(storage::internal::ItemMetadata const&)> const& validate);
+                     ReplyType const& replies,
+                     ValidateFunc const& validate);
 
     int replies_remaining_;
 };

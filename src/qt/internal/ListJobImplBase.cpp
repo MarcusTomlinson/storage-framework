@@ -37,14 +37,14 @@ namespace internal
 {
 
 ListJobImplBase::ListJobImplBase()
-    : status_(ItemListJob::Finished)
+    : status_(ItemListJob::Status::Finished)
 {
 }
 
 ListJobImplBase::ListJobImplBase(shared_ptr<AccountImpl> const& account,
                                  QString const& method,
                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate)
-    : status_(ItemListJob::Loading)
+    : status_(ItemListJob::Status::Loading)
     , method_(method)
     , account_(account)
     , validate_(validate)
@@ -55,7 +55,7 @@ ListJobImplBase::ListJobImplBase(shared_ptr<AccountImpl> const& account,
 }
 
 ListJobImplBase::ListJobImplBase(StorageError const& error)
-    : status_(ItemListJob::Error)
+    : status_(ItemListJob::Status::Error)
     , error_(error)
 {
 }
