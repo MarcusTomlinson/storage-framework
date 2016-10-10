@@ -70,6 +70,8 @@ public:
     static StorageError resource_error(QString const& msg, int error_code);
 
 private:
+    StorageErrorImpl(StorageError::Type type);
+
     StorageError::Type type_;
     QString name_;
     QString message_;
