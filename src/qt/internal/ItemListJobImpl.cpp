@@ -19,7 +19,6 @@
 #include <unity/storage/qt/internal/ItemListJobImpl.h>
 
 #include <unity/storage/internal/dbusmarshal.h>
-#include <unity/storage/internal/ItemMetadata.h>
 #include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/Handler.h>
 #include <unity/storage/qt/internal/ItemImpl.h>
@@ -40,15 +39,8 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
                                  QString const& method,
                                  QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate)
-    : status_(ItemListJob::Loading)
-    , method_(method)
-    , account_(account)
-    , validate_(validate)
+    : ListJobImplBase(account, method, validate)
 {
-    assert(!method.isEmpty());
-    assert(account);
-    assert(validate);
-
     auto process_reply = [this](decltype(reply)& r)
     {
         auto runtime = account_->runtime();
@@ -82,6 +74,7 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
 
     auto process_error = [this](StorageError const& error)
     {
+        // TODO: method name is not being set this way.
         error_ = error;
         status_ = ItemListJob::Error;
         Q_EMIT public_instance_->statusChanged(status_);
@@ -90,49 +83,20 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
     new Handler<QList<storage::internal::ItemMetadata>>(this, reply, process_reply, process_error);
 }
 
-ItemListJobImpl::ItemListJobImpl(StorageError const& error)
-    : status_(ItemListJob::Error)
-    , error_(error)
-{
-}
-
-bool ItemListJobImpl::isValid() const
-{
-    return status_ != ItemListJob::Status::Error;
-}
-
-ItemListJob::Status ItemListJobImpl::status() const
-{
-    return status_;
-}
-
-StorageError ItemListJobImpl::error() const
-{
-    return error_;
-}
-
-ItemListJob* ItemListJobImpl::make_item_list_job(
-                                shared_ptr<AccountImpl> const& account,
-                                QString const& method,
-                                QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
-                                std::function<void(storage::internal::ItemMetadata const&)> const& validate)
+ItemListJob* ItemListJobImpl::make_job(shared_ptr<AccountImpl> const& account,
+                                       QString const& method,
+                                       QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                       std::function<void(storage::internal::ItemMetadata const&)> const& validate)
 {
     unique_ptr<ItemListJobImpl> impl(new ItemListJobImpl(account, method, reply, validate));
     auto job = new ItemListJob(move(impl));
-    job->p_->public_instance_ = job;
+    job->p_->set_public_instance(job);
     return job;
 }
 
-ItemListJob* ItemListJobImpl::make_item_list_job(StorageError const& error)
+ItemListJob* ItemListJobImpl::make_job(StorageError const& error)
 {
-    unique_ptr<ItemListJobImpl> impl(new ItemListJobImpl(error));
-    auto job = new ItemListJob(move(impl));
-    job->p_->public_instance_ = job;
-    QMetaObject::invokeMethod(job,
-                              "statusChanged",
-                              Qt::QueuedConnection,
-                              Q_ARG(unity::storage::qt::ItemListJob::Status, job->p_->status_));
-    return job;
+    return ListJobImplBase::make_job(error);
 }
 
 }  // namespace internal

@@ -34,7 +34,9 @@ namespace qt
 namespace internal
 {
 
+class ListJobImplBase;
 class ItemListJobImpl;
+class MultiItemJobImpl;
 
 }  // namespace internal
 
@@ -63,11 +65,13 @@ Q_SIGNALS:
     void itemsReady(QList<unity::storage::qt::Item> const& items) const;
 
 private:
-    ItemListJob(std::unique_ptr<internal::ItemListJobImpl> p);
+    ItemListJob(std::unique_ptr<internal::ListJobImplBase> p);
 
-    std::unique_ptr<internal::ItemListJobImpl> const p_;
+    std::unique_ptr<internal::ListJobImplBase> const p_;
 
+    friend class internal::ListJobImplBase;
     friend class internal::ItemListJobImpl;
+    friend class internal::MultiItemJobImpl;
 };
 
 }  // namespace qt

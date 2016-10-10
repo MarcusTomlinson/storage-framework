@@ -53,7 +53,7 @@ public:
     Item::Type type() const;
     QVariantMap metadata() const;
     QDateTime lastModifiedTime() const;
-    QVector<QString> parentIds() const;
+    QList<QString> parentIds() const;
 
     ItemListJob* parents() const;
     ItemJob* copy(Item const& newParent, QString const& newName) const;
@@ -89,7 +89,6 @@ private:
     bool is_valid_;
     storage::internal::ItemMetadata md_;
     std::shared_ptr<AccountImpl> account_;
-    //std::shared_ptr<RootImpl> root_;
 
     friend class unity::storage::qt::Item;
 };

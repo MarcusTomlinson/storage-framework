@@ -18,8 +18,7 @@
 
 #pragma once
 
-#include <unity/storage/qt/ItemJob.h>
-
+#include <unity/storage/qt/ItemListJob.h>
 #include <unity/storage/qt/StorageError.h>
 
 #include <QDBusPendingReply>
@@ -41,38 +40,34 @@ namespace internal
 {
 
 class AccountImpl;
+class MultiItemJobImpl;
 
-class ItemJobImpl : public QObject
+class ListJobImplBase : public QObject
 {
-    Q_OBJECT
 public:
-    virtual ~ItemJobImpl() = default;
+    ListJobImplBase();  // Makes job in Finished state.
+    ListJobImplBase(std::shared_ptr<AccountImpl> const& account,
+                    QString const& method,
+                    std::function<void(storage::internal::ItemMetadata const&)> const& validate);
+    ListJobImplBase(StorageError const& error);
+    virtual ~ListJobImplBase() = default;
 
     bool isValid() const;
-    ItemJob::Status status() const;
+    ItemListJob::Status status() const;
     StorageError error() const;
-    Item item() const;
 
-    static ItemJob* make_job(std::shared_ptr<AccountImpl> const& account,
-                             QString const& method,
-                             QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
-                             std::function<void(storage::internal::ItemMetadata const&)> const& validate);
-    static ItemJob* make_job(StorageError const& e);
+    void set_public_instance(ItemListJob* p);
 
-private:
-    ItemJobImpl(std::shared_ptr<AccountImpl> const& account,
-                QString const& method,
-                QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
-                std::function<void(storage::internal::ItemMetadata const&)> const& validate);
-    ItemJobImpl(StorageError const& e);
+    static ItemListJob* make_job(StorageError const& error);
+    static ItemListJob* make_empty_job();
 
-    ItemJob* public_instance_;
-    ItemJob::Status status_;
+protected:
+    ItemListJob* public_instance_;
+    ItemListJob::Status status_;
     StorageError error_;
     QString method_;
     std::shared_ptr<AccountImpl> account_;
     std::function<void(storage::internal::ItemMetadata const&)> validate_;
-    Item item_;
 };
 
 }  // namespace internal

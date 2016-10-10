@@ -58,6 +58,7 @@ class AccountTest : public RemoteClientTest {};
 class DeleteTest : public RemoteClientTest {};
 class GetTest : public RemoteClientTest {};
 class ItemTest : public RemoteClientTest {};
+class ParentsTest : public RemoteClientTest {};
 class RootsTest : public RemoteClientTest {};
 class RuntimeTest : public ProviderFixture {};
 
@@ -397,7 +398,7 @@ TEST_F(RootsTest, roots)
     EXPECT_EQ("root_id", root.itemId());
     EXPECT_EQ("Root", root.name());
     EXPECT_EQ("etag", root.etag());
-    EXPECT_EQ(QVector<QString>(), root.parentIds());
+    EXPECT_EQ(QList<QString>(), root.parentIds());
     EXPECT_FALSE(root.lastModifiedTime().isValid());
     EXPECT_EQ(acc_, root.account());
 }
@@ -439,6 +440,46 @@ TEST_F(RootsTest, runtime_destroyed_while_item_list_job_running)
     EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
 
     EXPECT_EQ("Account::roots(): Runtime was destroyed previously", j->error().message());
+}
+
+TEST_F(RootsTest, invalid_account)
+{
+    Account a;
+    unique_ptr<ItemListJob> j(a.roots());
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(ItemListJob::Error, j->status());
+    EXPECT_EQ(StorageError::LogicError, j->error().type());
+    EXPECT_EQ("Account::roots(): cannot create job from invalid account", j->error().message());
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &ItemListJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Account::roots(): cannot create job from invalid account", j->error().message());
+}
+
+TEST_F(RootsTest, exception)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("roots_throw")));
+
+    unique_ptr<ItemListJob> j(acc_.roots());
+    EXPECT_TRUE(j->isValid());
+    EXPECT_EQ(ItemListJob::Loading, j->status());
+    EXPECT_EQ(StorageError::NoError, j->error().type());
+    EXPECT_EQ("No error", j->error().message());
+
+    QSignalSpy spy(j.get(), &ItemListJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
+
+    EXPECT_EQ(ItemListJob::Error, j->status());
+    EXPECT_EQ(StorageError::PermissionDenied, j->error().type());
+    EXPECT_EQ("PermissionDenied: roots(): I'm sorry Dave, I'm afraid I can't do that.", j->error().errorString());
 }
 
 TEST_F(RootsTest, not_a_root)
@@ -532,6 +573,25 @@ TEST_F(GetTest, runtime_destroyed_while_item_job_running)
     EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemJob::Status>(arg.at(0)));
 
     EXPECT_EQ("Account::get(): Runtime was destroyed previously", j->error().message());
+}
+
+TEST_F(GetTest, invalid_account)
+{
+    Account a;
+    unique_ptr<ItemJob> j(a.get("child_Id"));
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(ItemJob::Error, j->status());
+    EXPECT_EQ(StorageError::LogicError, j->error().type());
+    EXPECT_EQ("Account::get(): cannot create job from invalid account", j->error().message());
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemJob::Error, qvariant_cast<ItemJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Account::get(): cannot create job from invalid account", j->error().message());
 }
 
 TEST_F(GetTest, empty_id_from_provider)
@@ -704,6 +764,25 @@ TEST_F(DeleteTest, runtime_destroyed_while_void_job_running)
     EXPECT_EQ("Item::deleteItem(): Runtime was destroyed previously", j->error().message()) << j->error().message().toStdString();
 }
 
+TEST_F(DeleteTest, invalid_item)
+{
+    Item i;
+    unique_ptr<VoidJob> j(i.deleteItem());
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(VoidJob::Error, j->status());
+    EXPECT_EQ(StorageError::LogicError, j->error().type());
+    EXPECT_EQ("Item::deleteItem(): cannot create job from invalid item", j->error().message());
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &unity::storage::qt::VoidJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(VoidJob::Error, qvariant_cast<VoidJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Item::deleteItem(): cannot create job from invalid item", j->error().message());
+}
+
 #if 0
 // TODO: need to make internal symbols available for testing.
 TEST_F(ValidateTest, basic)
@@ -716,6 +795,112 @@ TEST_F(ValidateTest, basic)
 }
 #endif
 
+TEST_F(ItemTest, basic)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    {
+        // Default constructor.
+        Item i;
+        EXPECT_FALSE(i.isValid());
+        EXPECT_EQ("", i.itemId());
+        EXPECT_EQ("", i.name());
+        EXPECT_EQ("", i.etag());
+        EXPECT_EQ(Item::File, i.type());
+        auto mtime = i.lastModifiedTime();
+        EXPECT_FALSE(mtime.isValid());
+        auto pids = i.parentIds();
+        EXPECT_EQ(0, pids.size());
+    }
+
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+        {
+            QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+            spy.wait(SIGNAL_WAIT_TIME);
+        }
+        Item i = j->item();
+        EXPECT_TRUE(i.isValid());
+        EXPECT_EQ("child_id", i.itemId());
+        EXPECT_EQ("Child", i.name());
+        EXPECT_TRUE(i.account().isValid());
+        EXPECT_EQ("etag", i.etag());
+        EXPECT_EQ(Item::File, i.type());
+
+        // Copy constructor
+        Item i2(i);
+        EXPECT_EQ(i, i2);
+
+        // Move constructor
+        Item i3(move(i2));
+        EXPECT_TRUE(i3.isValid());
+        EXPECT_EQ(i, i3);
+
+        // Moved-from object must be invalid
+        EXPECT_FALSE(i2.isValid());
+
+        // Moved-from object must be assignable
+        j.reset(acc_.get("child_id"));
+        {
+            QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+            spy.wait(SIGNAL_WAIT_TIME);
+        }
+        auto i4 = j->item();
+        i2 = i4;
+        EXPECT_EQ(i4, i2);
+    }
+
+    {
+        unique_ptr<ItemJob> j1(acc_.get("child_id"));
+        unique_ptr<ItemJob> j2(acc_.get("root_id"));
+
+        QSignalSpy spy1(j1.get(), &ItemJob::statusChanged);
+        QSignalSpy spy2(j2.get(), &ItemJob::statusChanged);
+        spy2.wait(SIGNAL_WAIT_TIME);
+        ASSERT_EQ(1, spy1.count());
+
+        auto i1 = j1->item();
+        auto i2 = j2->item();
+
+        // Copy assignment
+        i1 = i2;
+        EXPECT_TRUE(i2.isValid());
+        EXPECT_EQ(i2, i1);
+
+        // Self-assignment
+        i2 = i2;
+        EXPECT_TRUE(i2.isValid());
+        EXPECT_EQ("root_id", i2.itemId());
+        EXPECT_EQ("Root", i2.name());
+        EXPECT_TRUE(i2.account().isValid());
+        EXPECT_EQ("etag", i2.etag());
+        EXPECT_EQ(Item::Root, i2.type());
+
+        // Move assignment
+        unique_ptr<ItemJob> j3(acc_.get("child_folder_id"));
+        QSignalSpy spy(j3.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        ASSERT_EQ(1, spy1.count());
+
+        auto i3 = j3->item();
+
+        i1 = move(i3);
+        EXPECT_TRUE(i1.isValid());
+        EXPECT_EQ("child_folder_id", i1.itemId());
+        EXPECT_EQ("Child_Folder", i1.name());
+        EXPECT_EQ(i1.account(), i1.account());
+        EXPECT_EQ("etag", i1.etag());
+        EXPECT_EQ(Item::Folder, i1.type());
+
+        // Moved-from object must be invalid
+        EXPECT_FALSE(i3.isValid());
+
+        // Moved-from object must be assignable
+        i3 = i2;
+        EXPECT_EQ(i2, i3);
+    }
+}
 
 TEST_F(ItemTest, comparison_and_hash)
 {
@@ -848,6 +1033,292 @@ TEST_F(ItemTest, comparison_and_hash)
 
         EXPECT_EQ(i1.hash(), i2.hash());
         EXPECT_EQ(qHash(i1), qHash(i2));
+    }
+}
+
+TEST_F(ParentsTest, basic)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    {
+        // Getting parents from root does not call the provider and returns
+        // no parents immediately.
+        unique_ptr<ItemListJob> j(root.parents());
+        EXPECT_TRUE(j->isValid());
+        EXPECT_EQ(ItemListJob::Finished, j->status());
+        EXPECT_EQ(StorageError::NoError, j->error().type());
+
+        // Signal must be received.
+        QSignalSpy spy(j.get(), &ItemListJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        ASSERT_EQ(1, spy.count());
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(ItemListJob::Finished, qvariant_cast<ItemListJob::Status>(arg.at(0)));
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QList<Item> parents;
+    {
+        unique_ptr<ItemListJob> j(child.parents());
+        EXPECT_TRUE(j->isValid());
+        EXPECT_EQ(ItemListJob::Loading, j->status());
+        EXPECT_EQ(StorageError::NoError, j->error().type());
+
+        QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
+        QSignalSpy status_spy(j.get(), &ItemListJob::statusChanged);
+        ready_spy.wait(SIGNAL_WAIT_TIME);
+        ASSERT_EQ(1, ready_spy.count());
+        auto list_arg = ready_spy.takeFirst();
+        parents = qvariant_cast<QList<Item>>(list_arg.at(0));
+
+        // When the signal for the final item arrives, status must be Finished.
+        EXPECT_EQ(ItemListJob::Finished, j->status());
+
+        // Finished signal must be received.
+        if (status_spy.count() == 0)
+        {
+            status_spy.wait(SIGNAL_WAIT_TIME);
+        }
+        ASSERT_EQ(1, status_spy.count());
+        auto status_arg = status_spy.takeFirst();
+        EXPECT_EQ(ItemListJob::Finished, qvariant_cast<ItemListJob::Status>(status_arg.at(0)));
+
+        // Child must have one parent, namely the root.
+        ASSERT_EQ(1, parents.size());
+        EXPECT_EQ(root, parents[0]);
+    }
+}
+
+TEST_F(ParentsTest, two_parents)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("two_parents")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QList<Item> parents;
+    {
+        unique_ptr<ItemListJob> j(child.parents());
+        EXPECT_TRUE(j->isValid());
+
+        QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
+        QSignalSpy status_spy(j.get(), &ItemListJob::statusChanged);
+
+        ready_spy.wait(SIGNAL_WAIT_TIME);
+        auto list_arg = ready_spy.takeFirst();
+        auto this_parent = qvariant_cast<QList<Item>>(list_arg.at(0));
+        parents.append(this_parent);
+        while (ready_spy.count() < 1)
+        {
+            ready_spy.wait(SIGNAL_WAIT_TIME);
+        }
+        list_arg = ready_spy.takeFirst();
+        this_parent = qvariant_cast<QList<Item>>(list_arg.at(0));
+        parents.append(this_parent);
+
+        // Finished signal must be received.
+        if (status_spy.count() == 0)
+        {
+            status_spy.wait(SIGNAL_WAIT_TIME);
+        }
+        ASSERT_EQ(1, status_spy.count());
+        auto status_arg = status_spy.takeFirst();
+        EXPECT_EQ(ItemListJob::Finished, qvariant_cast<ItemListJob::Status>(status_arg.at(0)));
+
+        // Child must have two parents.
+        ASSERT_EQ(2, parents.size());
+        EXPECT_EQ("root_id", parents[0].itemId());
+        EXPECT_EQ("child_folder_id", parents[1].itemId());
+    }
+}
+
+TEST_F(ParentsTest, two_parents_throw)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("two_parents_throw")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QList<Item> parents;
+    {
+        unique_ptr<ItemListJob> j(child.parents());
+        EXPECT_TRUE(j->isValid());
+
+        QSignalSpy status_spy(j.get(), &ItemListJob::statusChanged);
+        QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
+
+        status_spy.wait(SIGNAL_WAIT_TIME);
+        ASSERT_EQ(1, status_spy.count());
+        auto status_arg = status_spy.takeFirst();
+        EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(status_arg.at(0)));
+        EXPECT_EQ(StorageError::ResourceError, j->error().type());
+        EXPECT_EQ("ResourceError: metadata(): weird error", j->error().errorString());
+        EXPECT_EQ(42, j->error().errorCode());
+
+        // We wait here to allow the error return for the second parent to arrive in MultiItemJobImpl.
+        // This gives us coverage on the early return in the process_error lambda, when the job is
+        // already in the error state.
+        EXPECT_FALSE(ready_spy.wait(1000));
+    }
+}
+
+TEST_F(ParentsTest, invalid_item)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item invalid;
+    unique_ptr<ItemListJob> j(invalid.parents());
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(ItemListJob::Error, j->status());
+    EXPECT_EQ(StorageError::LogicError, j->error().type());
+    EXPECT_EQ("Item::parents(): cannot create job from invalid item", j->error().message());
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &ItemListJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
+}
+
+TEST_F(ParentsTest, runtime_destroyed)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime.
+
+    unique_ptr<ItemListJob> j(root.parents());
+    EXPECT_FALSE(j->isValid());
+    EXPECT_EQ(ItemJob::Error, j->status());
+    EXPECT_EQ(StorageError::RuntimeDestroyed, j->error().type());
+    EXPECT_EQ("Item::parents(): Runtime was destroyed previously", j->error().message());
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &ItemListJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Item::parents(): Runtime was destroyed previously", j->error().message());
+}
+
+TEST_F(ParentsTest, runtime_destroyed_while_item_list_job_running)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("slow_metadata")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<ItemListJob> j(child.parents());
+
+    EXPECT_EQ(StorageError::NoError, runtime_->shutdown().type());  // Destroy runtime, provider still sleeping
+
+    // Signal must be received.
+    QSignalSpy spy(j.get(), &ItemListJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
+
+    EXPECT_EQ("Item::parents(): Runtime was destroyed previously", j->error().message());
+}
+
+TEST_F(ParentsTest, bad_metadata)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("bad_parent_metadata_from_child")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QList<Item> parents;
+    {
+        unique_ptr<ItemListJob> j(child.parents());
+        EXPECT_TRUE(j->isValid());
+        EXPECT_EQ(ItemListJob::Loading, j->status());
+        EXPECT_EQ(StorageError::NoError, j->error().type());
+
+        QSignalSpy spy(j.get(), &ItemListJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        ASSERT_EQ(1, spy.count());
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(ItemListJob::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
+
+        EXPECT_EQ("Item::parents(): provider returned a file as a parent", j->error().message());
     }
 }
 

@@ -45,10 +45,10 @@ public:
     VoidJob::Status status() const;
     StorageError error() const;
 
-    static VoidJob* make_void_job(std::shared_ptr<ItemImpl> const& item,
-                                  QString const& method,
-                                  QDBusPendingReply<void> const& reply);
-    static VoidJob* make_void_job(StorageError const& e);
+    static VoidJob* make_job(std::shared_ptr<ItemImpl> const& item,
+                             QString const& method,
+                             QDBusPendingReply<void> const& reply);
+    static VoidJob* make_job(StorageError const& e);
 
 private:
     VoidJobImpl(std::shared_ptr<ItemImpl> const& item,

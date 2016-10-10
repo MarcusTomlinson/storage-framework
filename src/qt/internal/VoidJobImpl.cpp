@@ -89,9 +89,9 @@ StorageError VoidJobImpl::error() const
     return error_;
 }
 
-VoidJob* VoidJobImpl::make_void_job(shared_ptr<ItemImpl> const& item,
-                                    QString const& method,
-                                    QDBusPendingReply<void> const& reply)
+VoidJob* VoidJobImpl::make_job(shared_ptr<ItemImpl> const& item,
+                               QString const& method,
+                               QDBusPendingReply<void> const& reply)
 {
     unique_ptr<VoidJobImpl> impl(new VoidJobImpl(item, method, reply));
     auto job = new VoidJob(move(impl));
@@ -99,7 +99,7 @@ VoidJob* VoidJobImpl::make_void_job(shared_ptr<ItemImpl> const& item,
     return job;
 }
 
-VoidJob* VoidJobImpl::make_void_job(StorageError const& error)
+VoidJob* VoidJobImpl::make_job(StorageError const& error)
 {
     unique_ptr<VoidJobImpl> impl(new VoidJobImpl(error));
     auto job = new VoidJob(move(impl));

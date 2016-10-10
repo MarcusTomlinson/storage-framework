@@ -48,6 +48,7 @@ Item::Item(Item const& other)
 }
 
 Item::Item(Item&& other)
+    : p_(make_shared<internal::ItemImpl>())
 {
     p_->is_valid_ = false;
     swap(p_, other.p_);
@@ -92,14 +93,6 @@ Account Item::account() const
     return p_->account();
 }
 
-#if 0
-Item Item::root() const
-{
-
-    return p_->root();
-}
-#endif
-
 QString Item::etag() const
 {
     return p_->etag();
@@ -120,7 +113,7 @@ QDateTime Item::lastModifiedTime() const
     return p_->lastModifiedTime();
 }
 
-QVector<QString> Item::parentIds() const
+QList<QString> Item::parentIds() const
 {
     return p_->parentIds();
 }

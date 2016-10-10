@@ -58,7 +58,7 @@ public:
                                       {
                                           // LCOV_EXCL_START
                                           QString msg = "impossible provider exception: " + e.errorString();
-                                          qCritical() << msg;
+                                          qCritical().noquote() << msg;
                                           e = StorageErrorImpl::local_comms_error(msg);
                                           break;
                                           // LCOV_EXCL_STOP
@@ -68,7 +68,8 @@ public:
                                       case StorageError::ResourceError:
                                       {
                                           // Log these errors because they are unexpected.
-                                          qCritical() << "provider exception:" << e.errorString();
+                                          QString msg = "provider exception: " + e.errorString();
+                                          qCritical().noquote() << msg;
                                           break;
                                       }
                                       default:
