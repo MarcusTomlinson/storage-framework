@@ -28,13 +28,14 @@ Build-Depends: cmake,
                python3-gi,
                qtbase5-dev,
                qtbase5-dev-tools,
+               qtdeclarative5-dev,
 Homepage: https://launchpad.net/storage-framework
 # if you don't have have commit access to this branch but would like to upload
 # directly to Ubuntu, don't worry: your changes will be merged back into the
 # upstream branch
 Vcs-Bzr: lp:storage-framework
 
-Package: libstorage-framework-provider-1-2
+Package: libstorage-framework-provider-1-4
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
@@ -79,7 +80,6 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: libstorage-framework-qt-client-1-0 (= ${binary:Version}),
-         libstorage-framework-qt-client-2-0 (= ${binary:Version}),
          libstorage-framework-qt-local-client-1-0 (= ${binary:Version}),
          qtbase5-dev,
          ${misc:Depends},
@@ -91,7 +91,7 @@ Section: libdevel
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
-Depends: libstorage-framework-provider-1-2 (= ${binary:Version}),
+Depends: libstorage-framework-provider-1-4 (= ${binary:Version}),
          libboost-thread-dev (>= 1.58) | libboost-thread1.58-dev,
          ${misc:Depends},
 Description: Header files for the Storage Framework provider library
