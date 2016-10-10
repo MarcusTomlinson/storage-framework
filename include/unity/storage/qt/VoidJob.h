@@ -42,7 +42,7 @@ class Q_DECL_EXPORT VoidJob final : public QObject
     Q_OBJECT
     Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
     Q_PROPERTY(unity::storage::qt::VoidJob::Status status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::storage::qt::StorageError status READ error NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError error READ error NOTIFY statusChanged FINAL)
 
 public:
     virtual ~VoidJob();
