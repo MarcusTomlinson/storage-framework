@@ -116,7 +116,7 @@ ItemListJob* ItemImpl::parents() const
 {
     QString const method = "Item::parents()";
 
-    auto invalid_job = check_invalid_or_destroyed<ItemListJob, ListJobImplBase>(method);
+    auto invalid_job = check_invalid_or_destroyed<ItemListJobImpl>(method);
     if (invalid_job)
     {
         return invalid_job;
@@ -153,7 +153,7 @@ ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName) const
 {
     QString const method = "Item::copy()";
 
-    auto invalid_job = check_copy_move_precondition<ItemJob, ItemJobImpl>(method, newParent, newName);
+    auto invalid_job = check_copy_move_precondition<ItemJobImpl>(method, newParent, newName);
     if (invalid_job)
     {
         return invalid_job;
@@ -180,7 +180,7 @@ ItemJob* ItemImpl::move(Item const& newParent, QString const& newName) const
 {
     QString const method = "Item::move()";
 
-    auto invalid_job = check_copy_move_precondition<ItemJob, ItemJobImpl>(method, newParent, newName);
+    auto invalid_job = check_copy_move_precondition<ItemJobImpl>(method, newParent, newName);
     if (invalid_job)
     {
         return invalid_job;
@@ -213,7 +213,7 @@ VoidJob* ItemImpl::deleteItem() const
 {
     QString const method = "Item::deleteItem()";
 
-    auto invalid_job = check_invalid_or_destroyed<VoidJob, VoidJobImpl>(method);
+    auto invalid_job = check_invalid_or_destroyed<VoidJobImpl>(method);
     if (invalid_job)
     {
         return invalid_job;
