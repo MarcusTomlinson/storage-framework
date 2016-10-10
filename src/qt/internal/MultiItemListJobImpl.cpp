@@ -40,31 +40,14 @@ MultiItemListJobImpl::MultiItemListJobImpl(shared_ptr<ItemImpl> const& item,
                                            ReplyType const& reply,
                                            ValidateFunc const& validate,
                                            FetchFunc const& fetch_next)
-    
     : ListJobImplBase(item->account_impl(), method, validate)
     , fetch_next_(fetch_next)
 {
     assert(fetch_next);
 
-    if (status_ == ItemListJob::Status::Error)
-    {
-        return;
-    }
     item_impl_ = item;
 
-    auto process_error = [this](StorageError const& error)
-    {
-        if (status_ != ItemListJob::Status::Loading)
-        {
-            return;
-        }
-        // TODO: method name is not being set this way.
-        error_ = error;
-        status_ = ItemListJob::Status::Error;
-        Q_EMIT public_instance_->statusChanged(status_);
-    };
-
-    function<void(ReplyType const&)> process_reply = [this, &process_reply, process_error](ReplyType const& r)
+    process_reply_ = [this](ReplyType const& r)
     {
         if (status_ != ItemListJob::Status::Loading)
         {
@@ -103,25 +86,38 @@ MultiItemListJobImpl::MultiItemListJobImpl(shared_ptr<ItemImpl> const& item,
         {
             status_ = ItemListJob::Status::Finished;
         }
-        Q_EMIT public_instance_->itemsReady(items);
+        if (!items.isEmpty())
+        {
+            Q_EMIT public_instance_->itemsReady(items);
+        }
         if (token.isEmpty())
         {
             Q_EMIT public_instance_->statusChanged(status_);
         }
         else
         {
-            new Handler<QList<storage::internal::ItemMetadata>>(this, fetch_next_(token), process_reply, process_error);
+            new Handler<ReplyType>(this, fetch_next_(token), process_reply_, process_error_);
         }
     };
 
-    new Handler<QList<storage::internal::ItemMetadata>>(this, reply, process_reply, process_error);
+    process_error_ = [this](StorageError const& error)
+    {
+        assert(status_ == ItemListJob::Status::Loading);
+
+        // TODO: method name is not being set this way.
+        error_ = error;
+        status_ = ItemListJob::Status::Error;
+        Q_EMIT public_instance_->statusChanged(status_);
+    };
+
+    new Handler<ReplyType>(this, reply, process_reply_, process_error_);
 }
 
 ItemListJob* MultiItemListJobImpl::make_job(shared_ptr<ItemImpl> const& item,
-                                       QString const& method,
-                                       ReplyType const& reply,
-                                       ValidateFunc const& validate,
-                                       FetchFunc const& fetch_next)
+                                            QString const& method,
+                                            ReplyType const& reply,
+                                            ValidateFunc const& validate,
+                                            FetchFunc const& fetch_next)
 {
     unique_ptr<MultiItemListJobImpl> impl(new MultiItemListJobImpl(item, method, reply, validate, fetch_next));
     auto job = new ItemListJob(move(impl));

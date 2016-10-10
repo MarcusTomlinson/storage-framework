@@ -68,7 +68,10 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
             }
         }
         status_ = ItemListJob::Status::Finished;
-        Q_EMIT public_instance_->itemsReady(items);
+        if (!items.isEmpty())
+        {
+            Q_EMIT public_instance_->itemsReady(items);
+        }
         Q_EMIT public_instance_->statusChanged(status_);
     };
 

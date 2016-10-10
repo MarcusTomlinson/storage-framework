@@ -68,7 +68,7 @@ private:
                     QString const& method,
                     QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
                     std::function<void(storage::internal::ItemMetadata const&)> const& validate);
-    
+
     std::shared_ptr<ItemImpl> item_impl_;
 };
 

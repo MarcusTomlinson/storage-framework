@@ -265,7 +265,6 @@ ItemListJob* ItemImpl::list() const
 
     auto fetch_next = [this](QString const& page_token)
     {
-        assert(!page_token.isEmpty());
         return account_->provider()->List(md_.item_id, page_token);
     };
 

@@ -66,7 +66,10 @@ private:
                          ReplyType const& reply,
                          ValidateFunc const& validate,
                          FetchFunc const& fetch_next);
-    
+
+    std::function<void(ReplyType const&)> process_reply_;
+    std::function<void(StorageError const&)> process_error_;
+
     std::shared_ptr<ItemImpl> item_impl_;
     FetchFunc fetch_next_;
 };
