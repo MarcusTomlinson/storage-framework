@@ -51,7 +51,7 @@ class Q_DECL_EXPORT AccountsJob final : public QObject
     Q_PROPERTY(QList<unity::storage::qt::Account> accounts READ accounts NOTIFY statusChanged FINAL)
 
 public:
-    enum class Status { Loading, Finished, Error };
+    enum Status { Loading, Finished, Error };
     Q_ENUMS(Status)
 
     virtual ~AccountsJob();

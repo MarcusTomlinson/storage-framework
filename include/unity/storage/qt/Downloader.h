@@ -39,7 +39,7 @@ class Q_DECL_EXPORT Downloader final : public QIODevice
     Q_PROPERTY(unity::Storage::qt::Item item READ item NOTIFY statusChanged FINAL)
 
 public:
-    enum class Status { Loading, Ready, Cancelled, Finished, Error };
+    enum Status { Loading, Ready, Cancelled, Finished, Error };
     Q_ENUMS(Status)
 
     Downloader();

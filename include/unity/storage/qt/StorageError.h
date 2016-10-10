@@ -56,7 +56,7 @@ public:
     StorageError& operator=(StorageError const&);
     StorageError& operator=(StorageError&&);
 
-    enum class Type
+    enum Type
     {
         NoError, LocalCommsError, RemoteCommsError, Deleted, RuntimeDestroyed, NotExists,
         Exists, Conflict, PermissionDenied, Cancelled, LogicError, InvalidArgument, ResourceError,

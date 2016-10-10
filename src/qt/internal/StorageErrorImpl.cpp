@@ -35,27 +35,40 @@ namespace internal
 namespace
 {
 
-static char const * const ERROR_NAMES[int(StorageError::Type::__LAST_STORAGE_ERROR)] =
+static const QString ERROR_NAMES[StorageError::Type::__LAST_STORAGE_ERROR] =
 {
-    "NoError", "LocalCommsError", "RemoteCommsError", "Deleted", "RuntimeDestroyed", "NotExists",
-    "Exists", "Conflict", "PermissionDenied", "Cancelled", "LogicError", "InvalidArgument", "ResourceError"
+    QStringLiteral("NoError"),
+    QStringLiteral("LocalCommsError"),
+    QStringLiteral("RemoteCommsError"),
+    QStringLiteral("Deleted"),
+    QStringLiteral("RuntimeDestroyed"),
+    QStringLiteral("NotExists"),
+    QStringLiteral("Exists"),
+    QStringLiteral("Conflict"),
+    QStringLiteral("PermissionDenied"),
+    QStringLiteral("Cancelled"),
+    QStringLiteral("LogicError"),
+    QStringLiteral("InvalidArgument"),
+    QStringLiteral("ResourceError")
 };
 
 }  // namespace
 
-StorageErrorImpl::StorageErrorImpl()
-    : type_(StorageError::Type::NoError)
-    , name_(ERROR_NAMES[int(type_)])
-    , message_("No error")
+StorageErrorImpl::StorageErrorImpl(StorageError::Type type)
+    : type_(type)
+    , name_(ERROR_NAMES[type_])
     , error_code_(0)
 {
 }
 
+StorageErrorImpl::StorageErrorImpl()
+    : StorageErrorImpl(StorageError::Type::NoError)
+{
+    message_ = "No error";
+}
+
 StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg)
-    : type_(type)
-    , name_(ERROR_NAMES[int(type_)])
-    , message_(msg)
-    , error_code_(0)
+    : StorageErrorImpl(type)
 {
     assert(   type == StorageError::Type::LocalCommsError
            || type == StorageError::Type::RemoteCommsError
@@ -66,18 +79,18 @@ StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg)
            || type == StorageError::Type::LogicError
            || type == StorageError::Type::InvalidArgument);
     assert(!msg.isEmpty());
+
+    message_ = msg;
 }
 
 StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg, QString const& key)
-    : type_(type)
-    , name_(ERROR_NAMES[int(type_)])
-    , message_(msg)
-    , error_code_(0)
+    : StorageErrorImpl(type)
 {
     assert(   type == StorageError::Type::Deleted
            || type == StorageError::Type::NotExists);
     assert(!msg.isEmpty());
 
+    message_ = msg;
     item_id_ = key;
     if (type == StorageError::Type::NotExists)
     {
@@ -89,27 +102,26 @@ StorageErrorImpl::StorageErrorImpl(StorageError::Type type,
                                    QString const& msg,
                                    QString const& item_id,
                                    QString const& item_name)
-    : type_(type)
-    , name_(ERROR_NAMES[int(type_)])
-    , message_(msg)
-    , item_id_(item_id)
-    , item_name_(item_name)
-    , error_code_(0)
+    : StorageErrorImpl(type)
 {
     assert(type == StorageError::Type::Exists);
     assert(!msg.isEmpty());
     assert(!item_id.isEmpty());
     assert(!item_name.isEmpty());
+
+    message_ = msg;
+    item_id_ = item_id;
+    item_name_ = item_name;
 }
 
 StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg, int error_code)
-    : type_(type)
-    , name_(ERROR_NAMES[int(type_)])
-    , message_(msg)
-    , error_code_(error_code)
+    : StorageErrorImpl(type)
 {
     assert(type == StorageError::Type::ResourceError);
     assert(!msg.isEmpty());
+
+    message_ = msg;
+    error_code_ = error_code;
 }
 
 StorageError::Type StorageErrorImpl::type() const

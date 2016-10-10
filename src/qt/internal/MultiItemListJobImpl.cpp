@@ -125,6 +125,11 @@ ItemListJob* MultiItemListJobImpl::make_job(shared_ptr<ItemImpl> const& item,
     return job;
 }
 
+ItemListJob* MultiItemListJobImpl::make_job(StorageError const& error)
+{
+    return ListJobImplBase::make_job(error);
+}
+
 }  // namespace internal
 }  // namespace qt
 }  // namespace storage

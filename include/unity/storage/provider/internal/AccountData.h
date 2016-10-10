@@ -28,6 +28,7 @@
 #include <OnlineAccounts/PendingCallWatcher>
 #include <QObject>
 #include <QDBusConnection>
+#include <QPointer>
 #pragma GCC diagnostic pop
 
 #include <string>
@@ -51,7 +52,7 @@ class AccountData : public QObject
 {
     Q_OBJECT
 public:
-    AccountData(std::unique_ptr<ProviderBase>&& provider,
+    AccountData(std::shared_ptr<ProviderBase> const& provider,
                 std::shared_ptr<DBusPeerCache> const& dbus_peer,
                 QDBusConnection const& bus,
                 OnlineAccounts::Account* account,
@@ -73,11 +74,11 @@ private Q_SLOTS:
     void on_authenticated();
 
 private:
-    std::unique_ptr<ProviderBase> const provider_;
+    std::shared_ptr<ProviderBase> const provider_;
     std::shared_ptr<DBusPeerCache> const dbus_peer_;
     std::unique_ptr<PendingJobs> const jobs_;
 
-    OnlineAccounts::Account* const account_;
+    QPointer<OnlineAccounts::Account> const account_;
     std::unique_ptr<OnlineAccounts::PendingCallWatcher> auth_watcher_;
     bool authenticating_interactively_ = false;
 

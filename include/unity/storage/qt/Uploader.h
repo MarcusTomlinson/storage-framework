@@ -43,7 +43,7 @@ class Q_DECL_EXPORT Uploader final : public QIODevice
     Q_PROPERTY(unity::storage::qt::Item item READ item NOTIFY statusChanged FINAL)
 
 public:
-    enum class Status { Loading, Cancelled, Finished, Error };
+    enum Status { Loading, Cancelled, Finished, Error };
     Q_ENUMS(Status)
 
     Uploader();
