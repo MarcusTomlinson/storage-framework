@@ -70,6 +70,7 @@ ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account,
         catch (StorageError const& e)
         {
             // Bad metadata received from provider, validate_() or make_item() have logged it.
+            // TODO: This does not set the method.
             error_ = e;
             status_ = ItemJob::Status::Error;
         }

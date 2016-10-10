@@ -18,7 +18,10 @@
 
 #pragma once
 
-#include <QIODevice>
+#include <unity/storage/qt/Item.h>
+#include <unity/storage/qt/StorageError.h>
+
+#include <QLocalSocket>
 
 namespace unity
 {
@@ -26,17 +29,20 @@ namespace storage
 {
 namespace qt
 {
+namespace internal
+{
 
-class Item;
-class StorageError;
+class DownloaderImpl;
 
-class Q_DECL_EXPORT Downloader final : public QIODevice
+}  // namespace internal
+
+class Q_DECL_EXPORT Downloader final : public QLocalSocket
 {
     Q_OBJECT
     Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::Storage::qt::Downloader::Status status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::Storage::qt::StorageError error READ error NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::Storage::qt::Item item READ item NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::Downloader::Status status READ status NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError error READ error NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::Item item READ item NOTIFY statusChanged FINAL)
 
 public:
     enum Status { Loading, Ready, Cancelled, Finished, Error };
@@ -45,7 +51,7 @@ public:
     Downloader();
     virtual ~Downloader();
 
-    bool isValid();
+    bool isValid() const;
     Status status() const;
     StorageError error() const;
     Item item() const;
@@ -61,6 +67,13 @@ Q_SIGNALS:
 protected:
     virtual qint64 readData(char* data, qint64 maxSize) override;
     virtual qint64 writeData(char const* data, qint64 maxSize) override;
+
+private:
+    Downloader(std::unique_ptr<internal::DownloaderImpl> p);
+
+    std::unique_ptr<internal::DownloaderImpl> p_;
+
+    friend class internal::DownloaderImpl;
 };
 
 }  // namespace qt

@@ -18,6 +18,7 @@ set_source_files_properties(${generated_files} PROPERTIES
 set(QT_CLIENT_LIB_V2_SRC
     Account.cpp
     AccountsJob.cpp
+    Downloader.cpp
     Item.cpp
     ItemJob.cpp
     ItemListJob.cpp
@@ -26,6 +27,7 @@ set(QT_CLIENT_LIB_V2_SRC
     VoidJob.cpp
     internal/AccountImpl.cpp
     internal/AccountsJobImpl.cpp
+    internal/DownloaderImpl.cpp
     internal/HandlerBase.cpp
     internal/ItemImpl.cpp
     internal/ItemJobImpl.cpp
@@ -41,12 +43,14 @@ set(QT_CLIENT_LIB_V2_SRC
     ${generated_files}
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Account.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/AccountsJob.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Downloader.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Item.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/ItemJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/ItemListJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Runtime.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/VoidJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/AccountsJobImpl.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/DownloaderImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/HandlerBase.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemJobImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemListJobImpl.h

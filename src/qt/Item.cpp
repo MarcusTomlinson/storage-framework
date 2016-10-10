@@ -20,7 +20,6 @@
 #include <unity/storage/qt/internal/ItemImpl.h>
 
 #include <cassert>
-#include <QDebug> // TODO: remove this
 
 using namespace std;
 

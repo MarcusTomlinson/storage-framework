@@ -20,6 +20,7 @@
 
 #include "ProviderInterface.h"
 #include <unity/storage/provider/metadata_keys.h>
+#include <unity/storage/qt/internal/DownloaderImpl.h>
 #include <unity/storage/qt/internal/ItemJobImpl.h>
 #include <unity/storage/qt/internal/ItemListJobImpl.h>
 #include <unity/storage/qt/internal/MultiItemJobImpl.h>
@@ -237,7 +238,22 @@ Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInByt
 
 Downloader* ItemImpl::createDownloader() const
 {
-    return nullptr;  // TODO
+    QString const method = "Item::createDownloader()";
+
+    auto invalid_job = check_invalid_or_destroyed<DownloaderImpl>(method);
+    if (invalid_job)
+    {
+        return invalid_job;
+    }
+    if (md_.type != storage::ItemType::file)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot download a directory");
+        return DownloaderImpl::make_job(e);
+    }
+
+    auto reply = account_->provider()->Download(md_.item_id);
+    auto This = const_pointer_cast<ItemImpl>(shared_from_this());
+    return DownloaderImpl::make_job(This, method, reply);
 }
 
 ItemListJob* ItemImpl::list() const
