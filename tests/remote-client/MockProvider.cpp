@@ -248,7 +248,29 @@ boost::future<Item> MockProvider::move(
     string const& item_id, string const& new_parent_id,
     string const& new_name, Context const&)
 {
-    Item metadata{item_id, { new_parent_id }, new_name, "etag", ItemType::file, {}};
+    if (cmd_ == "move_returns_root")
+    {
+        Item metadata
+        {
+            "root_id", { new_parent_id }, new_name, "etag", ItemType::root,
+            { { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+        };
+        return make_ready_future(metadata);
+    }
+    if (cmd_ == "move_type_mismatch")
+    {
+        Item metadata
+        {
+            item_id, { new_parent_id }, new_name, "etag", ItemType::folder,
+            { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+        };
+        return make_ready_future(metadata);
+    }
+    Item metadata
+    {
+        item_id, { new_parent_id }, new_name, "etag", ItemType::file,
+        { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+    };
     return make_ready_future(metadata);
 }
 
@@ -256,7 +278,20 @@ boost::future<Item> MockProvider::copy(
     string const&, string const& new_parent_id,
     string const& new_name, Context const&)
 {
-    Item metadata{"new_item_id", { new_parent_id }, new_name, "etag", ItemType::file, {}};
+    if (cmd_ == "copy_type_mismatch")
+    {
+        Item metadata
+        {
+            "new_item_id", { new_parent_id }, new_name, "etag", ItemType::folder,
+            { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+        };
+        return make_ready_future(metadata);
+    }
+    Item metadata
+    {
+        "new_item_id", { new_parent_id }, new_name, "etag", ItemType::file,
+        { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+    };
     return make_ready_future(metadata);
 }
 
