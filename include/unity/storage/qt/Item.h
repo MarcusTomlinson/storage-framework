@@ -38,6 +38,7 @@ namespace qt
 namespace internal
 {
 
+class DownloaderImpl;
 class ItemImpl;
 
 }  // namespace internal
@@ -125,6 +126,7 @@ private:
 
     std::shared_ptr<internal::ItemImpl> p_;
 
+    friend class internal::DownloaderImpl;
     friend class internal::ItemImpl;
 };
 

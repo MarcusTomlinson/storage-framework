@@ -41,7 +41,7 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate)
     : ListJobImplBase(account, method, validate)
 {
-    auto process_reply = [this](decltype(reply)& r)
+    auto process_reply = [this](decltype(reply) const& r)
     {
         auto runtime = account_->runtime();
         if (!runtime || !runtime->isValid())

@@ -50,7 +50,7 @@ set(QT_CLIENT_LIB_V2_SRC
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Runtime.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/VoidJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/AccountsJobImpl.h
-    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/DownloaderImpl.h
+    //${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/DownloaderImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/HandlerBase.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemJobImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemListJobImpl.h

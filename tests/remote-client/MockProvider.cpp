@@ -46,7 +46,7 @@ MockProvider::MockProvider(string const& cmd)
 
 boost::future<ItemList> MockProvider::roots(Context const&)
 {
-    if (cmd_ == "slow_roots")
+    if (cmd_ == "roots_slow")
     {
         this_thread::sleep_for(chrono::seconds(1));
     }
@@ -280,15 +280,29 @@ boost::future<unique_ptr<UploadJob>> MockProvider::update(
 boost::future<unique_ptr<DownloadJob>> MockProvider::download(
     string const&, Context const&)
 {
-    unique_ptr<DownloadJob> job(new MockDownloadJob(make_job_id()));
+    if (cmd_ == "download_slow")
+    {
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+    if (cmd_ == "download_error")
+    {
+        unique_ptr<DownloadJob> job(new MockDownloadJob());
+        ResourceException e("test error", 42);
+        job->report_error(make_exception_ptr(e));
+        return make_exceptional_future<unique_ptr<DownloadJob>>(e);
+    }
+    unique_ptr<DownloadJob> job(new MockDownloadJob(cmd_));
     const char contents[] = "Hello world";
-    if (write(job->write_socket(), contents, sizeof(contents)) != sizeof(contents))
+    if (write(job->write_socket(), contents, strlen(contents)) != int(strlen(contents)))
     {
         ResourceException e("download(): write failed", errno);
         job->report_error(make_exception_ptr(e));
         return make_exceptional_future<unique_ptr<DownloadJob>>(e);
     }
-    job->report_complete();
+    if (cmd_ != "finish_download_error" && cmd_ != "finish_download_slow_error")
+    {
+        job->report_complete();
+    }
     return make_ready_future(std::move(job));
 }
 
@@ -402,5 +416,16 @@ boost::future<void> MockDownloadJob::cancel()
 
 boost::future<void> MockDownloadJob::finish()
 {
+    if (cmd_ == "finish_download_slow" || cmd_ == "finish_download_slow_error")
+    {
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+    if (cmd_ == "finish_download_error" || cmd_ == "finish_download_slow_error")
+    {
+        cerr << "provider: returning no such item" << endl;
+        NotExistsException e("no such item", "item_id");
+        report_error(make_exception_ptr(e));
+        return make_exceptional_future<void>(e);
+    }
     return make_ready_future();
 }

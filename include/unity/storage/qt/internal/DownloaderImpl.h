@@ -40,7 +40,7 @@ public:
                    QString const& method,
                    QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply);
     DownloaderImpl(StorageError const& e);
-    ~DownloaderImpl() = default;
+    virtual ~DownloaderImpl();
 
     bool isValid() const;
     Downloader::Status status() const;
@@ -49,9 +49,6 @@ public:
 
     void finishDownload();
     void cancel();
-
-    qint64 readData(char* data, qint64 maxSize);
-    qint64 writeData(char const* data, qint64 maxSize);
 
     static Downloader* make_job(std::shared_ptr<ItemImpl> const& item,
                                 QString const& method,
@@ -62,8 +59,10 @@ private:
     Downloader* public_instance_;
     Downloader::Status status_;
     StorageError error_;
-    QString method_;
     std::shared_ptr<ItemImpl> item_impl_;
+    QString download_id_;
+    QDBusUnixFileDescriptor fd_;
+    bool finalizing_ = false;
 };
 
 }  // namespace internal

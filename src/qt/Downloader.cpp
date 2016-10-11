@@ -36,7 +36,7 @@ Downloader::Downloader() = default;
 Downloader::Downloader(unique_ptr<internal::DownloaderImpl> p)
     : p_(move(p))
 {
-    assert(p);
+    assert(p_);
 }
 
 Downloader::~Downloader() = default;
@@ -69,16 +69,6 @@ void Downloader::finishDownload()
 void Downloader::cancel()
 {
     p_->cancel();
-}
-
-qint64 Downloader::readData(char* data, qint64 maxSize)
-{
-    return p_->readData(data, maxSize);
-}
-
-qint64 Downloader::writeData(char const* data, qint64 maxSize)
-{
-    return p_->writeData(data, maxSize);
 }
 
 }  // namespace qt

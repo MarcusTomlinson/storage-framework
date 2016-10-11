@@ -43,7 +43,7 @@ VoidJobImpl::VoidJobImpl(shared_ptr<ItemImpl> const& item,
     assert(!method_.isEmpty());
     assert(item);
 
-    auto process_reply = [this](decltype(reply)&)
+    auto process_reply = [this](decltype(reply) const&)
     {
         auto runtime = item_->runtime();
         if (!runtime || !runtime->isValid())

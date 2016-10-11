@@ -89,7 +89,7 @@ Item::Type ItemImpl::type() const
         case storage::ItemType::root:
             return Item::Type::Root;
         default:
-            abort();  // LCOV_EXCL_LINE // Impossible
+            abort();  // Impossible.  // LCOV_EXCL_LINE
     }
 }
 
