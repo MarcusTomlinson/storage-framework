@@ -1751,7 +1751,8 @@ TEST_F(MoveTest, type_mismatch)
     EXPECT_FALSE(j->isValid());
     EXPECT_EQ(ItemJob::Status::Error, j->status());
     EXPECT_EQ(StorageError::Type::LocalCommsError, j->error().type());
-    EXPECT_EQ("LocalCommsError: Item::move(): source and target item type differ", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Item::move(): provider error: source and target item type differ",
+              j->error().errorString());
 }
 
 TEST_F(LookupTest, basic)
