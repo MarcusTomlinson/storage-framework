@@ -88,7 +88,7 @@ qt5_add_dbus_interface(generated_files
     ProviderInterface
 )
 set_source_files_properties(${generated_files} PROPERTIES
-    COMPILE_FLAGS "-Wno-ctor-dtor-privacy -Wmissing-field-initializers"
+    COMPILE_FLAGS "-Wno-ctor-dtor-privacy -Wno-missing-field-initializers"
     GENERATED TRUE
 )
 
