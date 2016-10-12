@@ -225,6 +225,8 @@ void DownloaderImpl::finishDownload()
 
 void DownloaderImpl::cancel()
 {
+    static QString const method = "Downloader::cancel()";
+
     // If we are in a final state already, ignore the call.
     if (   status_ == Downloader::Status::Error
         || status_ == Downloader::Status::Finished
@@ -235,14 +237,17 @@ void DownloaderImpl::cancel()
     auto runtime = item_impl_->runtime_impl();
     if (!runtime || !runtime->isValid())
     {
-        QString msg = "Downloader::cancel(): Runtime was destroyed previously";
+        QString msg = method + ": Runtime was destroyed previously";
         error_ = StorageErrorImpl::runtime_destroyed_error(msg);
         status_ = Downloader::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
         return;
     }
 
+    QString msg = method + ": download was cancelled";
+    error_ = StorageErrorImpl::cancelled_error(msg);
     public_instance_->abort();
+    public_instance_->setErrorString(msg);
     status_ = Downloader::Status::Cancelled;
     Q_EMIT public_instance_->statusChanged(status_);
 }

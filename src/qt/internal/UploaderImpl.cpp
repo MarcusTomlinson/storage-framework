@@ -258,6 +258,8 @@ void UploaderImpl::finishUpload()
 
 void UploaderImpl::cancel()
 {
+    static QString const method = "Uploader::cancel()";
+
     // If we are in a final state already, ignore the call.
     if (   status_ == Uploader::Status::Error
         || status_ == Uploader::Status::Finished
@@ -268,7 +270,7 @@ void UploaderImpl::cancel()
     auto runtime = item_impl_->runtime_impl();
     if (!runtime || !runtime->isValid())
     {
-        QString msg = "Uploader::cancel(): Runtime was destroyed previously";
+        QString msg = method + ": Runtime was destroyed previously";
         error_ = StorageErrorImpl::runtime_destroyed_error(msg);
         status_ = Uploader::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
@@ -291,7 +293,10 @@ void UploaderImpl::cancel()
         new Handler<void>(this, reply, process_reply, process_error);
     }
 
+    QString msg = method + ": upload was cancelled";
+    error_ = StorageErrorImpl::cancelled_error(msg);
     public_instance_->abort();
+    public_instance_->setErrorString(msg);
     status_ = Uploader::Status::Cancelled;
     Q_EMIT public_instance_->statusChanged(status_);
 }

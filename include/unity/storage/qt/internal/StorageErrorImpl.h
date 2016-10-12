@@ -58,7 +58,6 @@ public:
     // Factories to make things more convenient and ensure consistency.
     static StorageError local_comms_error(QString const& msg);
     static StorageError remote_comms_error(QString const& msg);
-    static StorageError deleted_error(QString const& msg, QString const& item_id);
     static StorageError runtime_destroyed_error(QString const& msg);
     static StorageError not_exists_error(QString const& msg, QString const& key);
     static StorageError exists_error(QString const& msg, QString const& item_id, QString const& item_name);

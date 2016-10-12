@@ -40,7 +40,6 @@ static const QString ERROR_NAMES[StorageError::Type::__LAST_STORAGE_ERROR] =
     QStringLiteral("NoError"),
     QStringLiteral("LocalCommsError"),
     QStringLiteral("RemoteCommsError"),
-    QStringLiteral("Deleted"),
     QStringLiteral("RuntimeDestroyed"),
     QStringLiteral("NotExists"),
     QStringLiteral("Exists"),
@@ -86,8 +85,7 @@ StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg)
 StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg, QString const& key)
     : StorageErrorImpl(type)
 {
-    assert(   type == StorageError::Type::Deleted
-           || type == StorageError::Type::NotExists);
+    assert(type == StorageError::Type::NotExists);
     assert(!msg.isEmpty());
 
     message_ = msg;
@@ -174,12 +172,6 @@ StorageError StorageErrorImpl::local_comms_error(QString const& msg)
 StorageError StorageErrorImpl::remote_comms_error(QString const& msg)
 {
     unique_ptr<StorageErrorImpl> p(new StorageErrorImpl(StorageError::Type::RemoteCommsError, msg));
-    return StorageError(move(p));
-}
-
-StorageError StorageErrorImpl::deleted_error(QString const& msg, QString const& item_id)
-{
-    unique_ptr<StorageErrorImpl> p(new StorageErrorImpl(StorageError::Type::Deleted, msg, item_id));
     return StorageError(move(p));
 }
 

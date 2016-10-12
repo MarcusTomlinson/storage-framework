@@ -2719,6 +2719,8 @@ TEST_F(DownloadTest, cancel)
     EXPECT_EQ(Downloader::Status::Cancelled, qvariant_cast<Downloader::Status>(arg.at(0)));
 
     EXPECT_EQ(Downloader::Status::Cancelled, downloader->status());
+    EXPECT_EQ(StorageError::Type::Cancelled, downloader->error().type());
+    EXPECT_EQ("Downloader::cancel(): download was cancelled", downloader->error().message());
 
     // We wait here to get coverage for when the reply to a finishDownload() call
     // finds the downloader in a final state.
