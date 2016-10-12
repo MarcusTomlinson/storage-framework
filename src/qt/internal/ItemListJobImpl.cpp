@@ -90,7 +90,7 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<ItemImpl> const& item_impl,
                                  QString const& method,
                                  QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate)
-    : ItemListJobImpl(item_impl_->account_impl(), method, reply, validate)
+    : ItemListJobImpl(item_impl->account_impl(), method, reply, validate)
 {
     item_impl_ = item_impl;
 }

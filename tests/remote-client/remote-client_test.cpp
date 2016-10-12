@@ -2754,7 +2754,7 @@ TEST_F(DownloadTest, cancel_runtime_destroyed)
         auto arg = spy.takeFirst();
         EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
     }
-    
+
     QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
 
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime
