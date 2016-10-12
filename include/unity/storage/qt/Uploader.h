@@ -18,9 +18,10 @@
 
 #pragma once
 
-#include <unity/storage/common.h>
+#include <unity/storage/qt/Item.h>
+#include <unity/storage/qt/StorageError.h>
 
-#include <QIODevice>
+#include <QLocalSocket>
 
 namespace unity
 {
@@ -28,31 +29,37 @@ namespace storage
 {
 namespace qt
 {
+namespace internal
+{
+
+class UploaderImpl;
+
+}  // namespace internal
 
 class Item;
 class StorageError;
 
-class Q_DECL_EXPORT Uploader final : public QIODevice
+class Q_DECL_EXPORT Uploader final : public QLocalSocket
 {
     Q_OBJECT
-    Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL) // TODO: Need notify
+    Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
     Q_PROPERTY(unity::storage::qt::Uploader::Status status READ status NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::storage::qt::StorageError READ error NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::storage::qt::Item::ConflictPolicy policy READ policy CONSTANT FINAL)
-    Q_PROPERTY(qint64 sizeInBytes READ sizeInBytes CONSTANT FINAL)
+    Q_PROPERTY(unity::storage::qt::StorageError error READ error NOTIFY statusChanged FINAL)
+    Q_PROPERTY(unity::storage::qt::Item::ConflictPolicy policy READ policy NOTIFY statusChanged FINAL)
+    Q_PROPERTY(qint64 sizeInBytes READ sizeInBytes NOTIFY statusChanged FINAL)
     Q_PROPERTY(unity::storage::qt::Item item READ item NOTIFY statusChanged FINAL)
 
 public:
-    enum Status { Loading, Cancelled, Finished, Error };
+    enum Status { Loading, Ready, Cancelled, Finished, Error };
     Q_ENUMS(Status)
 
     Uploader();
     virtual ~Uploader();
 
-    bool isValid() const;
+    bool isValid() const;  // Not nice, hides QLocalSocket::isValid()
     Status status() const;
-    StorageError error() const;
-    ConflictPolicy policy() const;
+    StorageError error() const;  // Not nice, hides QLocalSocket::error()
+    Item::ConflictPolicy policy() const;
     qint64 sizeInBytes() const;
     Item item() const;
 
@@ -62,11 +69,16 @@ public:
 Q_SIGNALS:
     void statusChanged(unity::storage::qt::Uploader::Status status) const;
 
-protected:
-    virtual qint64 readData(char* data, qint64 maxSize) override;
-    virtual qint64 writeData(char const* data, qint64 maxSize) override;
+private:
+    Uploader(std::unique_ptr<internal::UploaderImpl> p);
+
+    std::unique_ptr<internal::UploaderImpl> p_;
+
+    friend class internal::UploaderImpl;
 };
 
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
+
+Q_DECLARE_METATYPE(unity::storage::qt::Uploader::Status)

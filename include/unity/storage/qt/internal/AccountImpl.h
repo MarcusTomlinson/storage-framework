@@ -63,10 +63,10 @@ public:
 
     size_t hash() const;
 
-    std::shared_ptr<RuntimeImpl> runtime() const;
+    std::shared_ptr<RuntimeImpl> runtime_impl() const;
     std::shared_ptr<ProviderInterface> provider() const;
 
-    static Account make_account(std::shared_ptr<RuntimeImpl> const& runtime,
+    static Account make_account(std::shared_ptr<RuntimeImpl> const& runtime_impl,
                                 QString const& bus_name,
                                 QString const& object_path,
                                 QString const& owner_id,
@@ -74,7 +74,7 @@ public:
                                 QString const& description);
 
 private:
-    AccountImpl(std::shared_ptr<RuntimeImpl> const& runtime,
+    AccountImpl(std::shared_ptr<RuntimeImpl> const& runtime_impl,
                 QString const& bus_name,
                 QString const& object_path,
                 QString const& owner_id,
@@ -87,7 +87,7 @@ private:
     QString owner_id_;
     QString owner_;
     QString description_;
-    std::weak_ptr<RuntimeImpl> runtime_;
+    std::weak_ptr<RuntimeImpl> runtime_impl_;
     std::shared_ptr<ProviderInterface> provider_;
 
     friend class unity::storage::qt::Account;

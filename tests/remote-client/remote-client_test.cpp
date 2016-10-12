@@ -54,10 +54,13 @@ protected:
     Account acc_;
 };
 
+class RuntimeTest : public ProviderFixture {};
+
 class AccountTest : public RemoteClientTest {};
 class CopyTest : public RemoteClientTest {};
 class CreateFolderTest : public RemoteClientTest {};
 class DeleteTest : public RemoteClientTest {};
+class DownloadTest : public RemoteClientTest {};
 class GetTest : public RemoteClientTest {};
 class ItemTest : public RemoteClientTest {};
 class ListTest : public RemoteClientTest {};
@@ -65,7 +68,7 @@ class LookupTest : public RemoteClientTest {};
 class MoveTest : public RemoteClientTest {};
 class ParentsTest : public RemoteClientTest {};
 class RootsTest : public RemoteClientTest {};
-class RuntimeTest : public ProviderFixture {};
+class UploadTest : public RemoteClientTest {};
 
 TEST(Runtime, lifecycle)
 {
@@ -428,7 +431,7 @@ TEST_F(RootsTest, runtime_destroyed)
 
 TEST_F(RootsTest, runtime_destroyed_while_item_list_job_running)
 {
-    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("slow_roots")));
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("roots_slow")));
 
     unique_ptr<ItemListJob> j(acc_.roots());
     EXPECT_TRUE(j->isValid());
@@ -767,7 +770,7 @@ TEST_F(DeleteTest, runtime_destroyed_while_void_job_running)
     auto arg = spy.takeFirst();
     EXPECT_EQ(VoidJob::Status::Error, qvariant_cast<VoidJob::Status>(arg.at(0)));
 
-    EXPECT_EQ("Item::deleteItem(): Runtime was destroyed previously", j->error().message()) << j->error().message().toStdString();
+    EXPECT_EQ("Item::deleteItem(): Runtime was destroyed previously", j->error().message());
 }
 
 TEST_F(DeleteTest, invalid_item)
@@ -1555,7 +1558,7 @@ TEST_F(CopyTest, wrong_type)
     EXPECT_FALSE(j->isValid());
     EXPECT_EQ(ItemJob::Status::Error, j->status());
     EXPECT_EQ(StorageError::Type::LogicError, j->error().type());
-    EXPECT_EQ("LogicError: Item::copy(): newParent cannot be a file", j->error().errorString()) << j->error().errorString().toStdString();
+    EXPECT_EQ("LogicError: Item::copy(): newParent cannot be a file", j->error().errorString());
 
     QSignalSpy spy(j.get(), &ItemJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
@@ -2232,6 +2235,590 @@ TEST_F(ListTest, no_permission)
 
     EXPECT_EQ("permission denied", j->error().message());
     EXPECT_EQ(StorageError::Type::PermissionDenied, j->error().type());
+}
+
+// TODO: This leaks:
+// ==4645== 1,369 (272 direct, 1,097 indirect) bytes in 1 blocks are definitely lost in loss record 193 of 203
+// ==4645==    at 0x4C2E0EF: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+// ==4645==    by 0x4FD9D0A: boost::promise<void>::promise() (future.hpp:2309)
+// ==4645==    by 0x4FDA6F2: boost::make_ready_future() (future.hpp:3935)
+// ==4645==    by 0x4FD96B0: unity::storage::provider::internal::DownloadJobImpl::cancel(unity::storage::provider::DownloadJob&) (DownloadJobImpl.cpp:161)
+// ==4645==    by 0x4FEE198: void unity::storage::provider::internal::PendingJobs::cancel_job<unity::storage::provider::DownloadJob>(std::shared_ptr<unity::storage::provider::DownloadJob> const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) (PendingJobs.cpp:181)
+// ==4645==    by 0x4FEA3BF: unity::storage::provider::internal::PendingJobs::~PendingJobs() (PendingJobs.cpp:55)
+// ==4645==    by 0x4FEA6CD: unity::storage::provider::internal::PendingJobs::~PendingJobs() (PendingJobs.cpp:61)
+// ==4645==    by 0x4F8E927: std::default_delete<unity::storage::provider::internal::PendingJobs>::operator()(unity::storage::provider::internal::PendingJobs*) const (unique_ptr.h:76)
+// ==4645==    by 0x4F8D85B: std::unique_ptr<unity::storage::provider::internal::PendingJobs, std::default_delete<unity::storage::provider::internal::PendingJobs> >::~unique_ptr() (unique_ptr.h:236)
+// ==4645==    by 0x4F89449: unity::storage::provider::internal::AccountData::~AccountData() (AccountData.h:51)
+// ==4645==    by 0x504D9A6: void __gnu_cxx::new_allocator<unity::storage::provider::internal::AccountData>::destroy<unity::storage::provider::internal::AccountData>(unity::storage::provider::internal::AccountData*) (new_allocator.h:124)
+// ==4645==    by 0x504D8AA: void std::allocator_traits<std::allocator<unity::storage::provider::internal::AccountData> >::destroy<unity::storage::provider::internal::AccountData>(std::allocator<unity::storage::provider::internal::AccountData>&, unity::storage::provider::internal::AccountData*) (alloc_traits.h:542)
+
+TEST_F(DownloadTest, memory_leak)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+    EXPECT_EQ(Downloader::Status::Loading, downloader->status());
+    EXPECT_EQ(StorageError::NoError, downloader->error().type());
+    EXPECT_EQ(child, downloader->item());
+
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+}
+
+TEST_F(DownloadTest, basic)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+    EXPECT_EQ(Downloader::Status::Loading, downloader->status());
+    EXPECT_EQ(StorageError::NoError, downloader->error().type());
+    EXPECT_EQ(child, downloader->item());
+
+    QSignalSpy status_spy(downloader.get(), &Downloader::statusChanged);
+    {
+        QSignalSpy read_spy(downloader.get(), &Downloader::readyRead);
+        ASSERT_TRUE(status_spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = status_spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
+
+        if (read_spy.count() != 1)
+        {
+            read_spy.wait(SIGNAL_WAIT_TIME);
+        }
+    }
+    auto data = downloader->readAll();
+    EXPECT_EQ(QByteArray("Hello world", -1), data);
+
+    downloader->finishDownload();
+    ASSERT_TRUE(status_spy.wait(SIGNAL_WAIT_TIME));
+    auto arg = status_spy.takeFirst();
+    EXPECT_EQ(Downloader::Status::Finished, qvariant_cast<Downloader::Status>(arg.at(0)));
+}
+
+TEST_F(DownloadTest, runtime_destroyed)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_FALSE(downloader->isValid());
+    EXPECT_EQ(Downloader::Status::Error, downloader->status());
+    EXPECT_EQ(StorageError::RuntimeDestroyed, downloader->error().type());
+    EXPECT_EQ("RuntimeDestroyed: Item::createDownloader(): Runtime was destroyed previously",
+              downloader->error().errorString());
+    EXPECT_EQ(Item(), downloader->item());
+
+    // Signal must arrive.
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Error, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+}
+
+TEST_F(DownloadTest, runtime_destroyed_while_download_running)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("download_slow")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+
+    EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime, provider still sleeping
+
+    // Signal must arrive.
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Error, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+
+    EXPECT_FALSE(downloader->isValid());
+    EXPECT_EQ(Downloader::Status::Error, downloader->status());
+    EXPECT_EQ(StorageError::RuntimeDestroyed, downloader->error().type());
+    EXPECT_EQ("RuntimeDestroyed: Item::createDownloader(): Runtime was destroyed previously",
+              downloader->error().errorString());
+    EXPECT_EQ(Item(), downloader->item());
+}
+
+TEST_F(DownloadTest, download_error)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("download_error")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+
+    // Signal must arrive.
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Error, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+
+    EXPECT_FALSE(downloader->isValid());
+    EXPECT_EQ(Downloader::Status::Error, downloader->status());
+    EXPECT_EQ(StorageError::ResourceError, downloader->error().type());
+    EXPECT_EQ("ResourceError: test error", downloader->error().errorString());
+    EXPECT_EQ(42, downloader->error().errorCode());
+    EXPECT_EQ(Item(), downloader->item());
+
+    // For coverage: call finishDownload() while in the Error state.
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        downloader->finishDownload();
+        EXPECT_FALSE(spy.wait(1000));
+    }
+}
+
+TEST_F(DownloadTest, finish_too_soon)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+
+    QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+
+    downloader->finishDownload();
+
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Downloader::Status::Error, qvariant_cast<Downloader::Status>(arg.at(0)));
+
+    EXPECT_FALSE(downloader->isValid());
+    EXPECT_EQ(Downloader::Status::Error, downloader->status());
+    EXPECT_EQ(StorageError::LogicError, downloader->error().type());
+    EXPECT_EQ("LogicError: Downloader::finishDownload(): cannot finalize while Downloader is not in the Ready state",
+              downloader->error().errorString());
+}
+
+TEST_F(DownloadTest, finish_runtime_destroyed)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+
+    QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+
+    EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime
+
+    downloader->finishDownload();
+
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Downloader::Status::Error, qvariant_cast<Downloader::Status>(arg.at(0)));
+
+    EXPECT_FALSE(downloader->isValid());
+    EXPECT_EQ(Downloader::Status::Error, downloader->status());
+    EXPECT_EQ(StorageError::RuntimeDestroyed, downloader->error().type());
+    EXPECT_EQ("Downloader::finishDownload(): Runtime was destroyed previously", downloader->error().message());
+}
+
+TEST_F(DownloadTest, finish_runtime_destroyed_while_reply_outstanding)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_download_slow")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+
+    QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+
+    downloader->finishDownload();
+
+    EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime, provider still sleeping
+
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Downloader::Status::Error, qvariant_cast<Downloader::Status>(arg.at(0)));
+
+    EXPECT_FALSE(downloader->isValid());
+    EXPECT_EQ(Downloader::Status::Error, downloader->status());
+    EXPECT_EQ(StorageError::RuntimeDestroyed, downloader->error().type());
+    EXPECT_EQ("Downloader::finishDownload(): Runtime was destroyed previously", downloader->error().message());
+}
+
+TEST_F(DownloadTest, finish_twice)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+
+    QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+
+    downloader->finishDownload();
+    downloader->finishDownload();
+
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Downloader::Status::Finished, qvariant_cast<Downloader::Status>(arg.at(0)));
+}
+
+TEST_F(DownloadTest, finish_error)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_download_error")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+
+    QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+
+    downloader->finishDownload();
+
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Downloader::Status::Error, qvariant_cast<Downloader::Status>(arg.at(0)));
+
+    EXPECT_FALSE(downloader->isValid());
+    EXPECT_EQ(Downloader::Status::Error, downloader->status());
+    EXPECT_EQ(StorageError::NotExists, downloader->error().type());
+    EXPECT_EQ("no such item", downloader->error().message());
+    EXPECT_EQ("item_id", downloader->error().itemId());
+    EXPECT_EQ("item_id", downloader->error().itemName());
+    EXPECT_EQ("NotExists", downloader->error().name());
+}
+
+TEST_F(DownloadTest, cancel)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_download_slow_error")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+
+    QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+
+    downloader->finishDownload();
+
+    downloader->cancel();
+    downloader->cancel();  // Second time for coverage
+
+    downloader->finishDownload();  // Second time for coverage
+
+    EXPECT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Downloader::Status::Cancelled, qvariant_cast<Downloader::Status>(arg.at(0)));
+
+    EXPECT_EQ(Downloader::Status::Cancelled, downloader->status());
+    EXPECT_EQ(StorageError::Type::Cancelled, downloader->error().type());
+    EXPECT_EQ("Downloader::cancel(): download was cancelled", downloader->error().message());
+
+    // We wait here to get coverage for when the reply to a finishDownload() call
+    // finds the downloader in a final state.
+    EXPECT_FALSE(spy.wait(2000));
+}
+
+TEST_F(DownloadTest, cancel_runtime_destroyed)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_download_slow_error")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+
+    QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+
+    EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime
+
+    downloader->cancel();
+
+    if (spy.count() == 0)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Downloader::Status::Error, qvariant_cast<Downloader::Status>(arg.at(0)));
+
+    EXPECT_EQ(Downloader::Status::Error, downloader->status());
+    EXPECT_EQ(StorageError::Type::RuntimeDestroyed, downloader->error().type());
+    EXPECT_EQ("Downloader::cancel(): Runtime was destroyed previously", downloader->error().message());
+}
+
+TEST_F(UploadTest, basic)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QByteArray contents("Hello world", -1);
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, contents.size()));
+    EXPECT_TRUE(uploader->isValid());
+    EXPECT_EQ(Uploader::Status::Loading, uploader->status());
+    EXPECT_EQ(StorageError::NoError, uploader->error().type());
+    EXPECT_EQ(child, uploader->item());
+
+    {
+        QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Uploader::Status::Ready, qvariant_cast<Uploader::Status>(arg.at(0)));
+    }
+
+    EXPECT_EQ(contents.size(), uploader->write(contents));
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    uploader->finishUpload();
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Uploader::Status::Finished, qvariant_cast<Uploader::Status>(arg.at(0)));
+
+    EXPECT_EQ(Uploader::Status::Finished, uploader->status());
 }
 
 int main(int argc, char** argv)

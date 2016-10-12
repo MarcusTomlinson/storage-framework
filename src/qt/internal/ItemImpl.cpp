@@ -20,10 +20,12 @@
 
 #include "ProviderInterface.h"
 #include <unity/storage/provider/metadata_keys.h>
+#include <unity/storage/qt/internal/DownloaderImpl.h>
 #include <unity/storage/qt/internal/ItemJobImpl.h>
 #include <unity/storage/qt/internal/ItemListJobImpl.h>
 #include <unity/storage/qt/internal/MultiItemJobImpl.h>
 #include <unity/storage/qt/internal/MultiItemListJobImpl.h>
+#include <unity/storage/qt/internal/UploaderImpl.h>
 #include <unity/storage/qt/internal/VoidJobImpl.h>
 #include <unity/storage/qt/internal/validate.h>
 
@@ -49,12 +51,12 @@ ItemImpl::ItemImpl()
 }
 
 ItemImpl::ItemImpl(storage::internal::ItemMetadata const& md,
-                   std::shared_ptr<AccountImpl> const& account)
+                   std::shared_ptr<AccountImpl> const& account_impl)
     : is_valid_(true)
     , md_(md)
-    , account_(account)
+    , account_impl_(account_impl)
 {
-    assert(account);
+    assert(account_impl);
 }
 
 QString ItemImpl::itemId() const
@@ -69,7 +71,7 @@ QString ItemImpl::name() const
 
 Account ItemImpl::account() const
 {
-    return is_valid_ ? account_ : Account();
+    return is_valid_ ? account_impl_ : Account();
 }
 
 QString ItemImpl::etag() const
@@ -88,7 +90,7 @@ Item::Type ItemImpl::type() const
         case storage::ItemType::root:
             return Item::Type::Root;
         default:
-            abort();  // LCOV_EXCL_LINE // Impossible
+            abort();  // Impossible.  // LCOV_EXCL_LINE
     }
 }
 
@@ -133,7 +135,7 @@ ItemListJob* ItemImpl::parents() const
     QList<QDBusPendingReply<storage::internal::ItemMetadata>> replies;
     for (auto const& id : md_.parent_ids)
     {
-        auto reply = account_->provider()->Metadata(id);
+        auto reply = account_impl_->provider()->Metadata(id);
         replies.append(reply);
     }
 
@@ -147,7 +149,7 @@ ItemListJob* ItemImpl::parents() const
         }
     };
 
-    return MultiItemJobImpl::make_job(account_, method, replies, validate);
+    return MultiItemJobImpl::make_job(account_impl_, method, replies, validate);
 }
 
 ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName) const
@@ -172,7 +174,7 @@ ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName) const
         }
     };
 
-    auto reply = account_->provider()->Copy(md_.item_id, newParent.itemId(), newName);
+    auto reply = account_impl_->provider()->Copy(md_.item_id, newParent.itemId(), newName);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return ItemJobImpl::make_job(This, method, reply, validate);
 }
@@ -205,7 +207,7 @@ ItemJob* ItemImpl::move(Item const& newParent, QString const& newName) const
         }
     };
 
-    auto reply = account_->provider()->Move(md_.item_id, newParent.itemId(), newName);
+    auto reply = account_impl_->provider()->Move(md_.item_id, newParent.itemId(), newName);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return ItemJobImpl::make_job(This, method, reply, validate);
 }
@@ -225,19 +227,63 @@ VoidJob* ItemImpl::deleteItem() const
         return VoidJobImpl::make_job(e);
     }
 
-    auto reply = account_->provider()->Delete(md_.item_id);
+    auto reply = account_impl_->provider()->Delete(md_.item_id);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return VoidJobImpl::make_job(This, method, reply);
 }
 
 Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes) const
 {
-    return nullptr;  // TODO
+    QString const method = "Item::createUploader()";
+
+    auto invalid_job = check_invalid_or_destroyed<UploaderImpl>(method);
+    if (invalid_job)
+    {
+        return invalid_job;
+    }
+    if (md_.type != storage::ItemType::file)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot upload to a directory");
+        return UploaderImpl::make_job(e);
+    }
+    if (sizeInBytes < 0)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": size must be >= 0");
+        return UploaderImpl::make_job(e);
+    }
+
+    auto validate = [method](storage::internal::ItemMetadata const& md)
+    {
+        if (md.type != storage::ItemType::file)
+        {
+            throw StorageErrorImpl::local_comms_error(method + ": impossible directory item returned by provider");
+        }
+    };
+
+    auto etag = policy == Item::ConflictPolicy::Overwrite ? "" : md_.etag;
+    auto reply = account_impl_->provider()->Update(md_.item_id, sizeInBytes, etag);
+    auto This = const_pointer_cast<ItemImpl>(shared_from_this());
+    return UploaderImpl::make_job(This, method, reply, validate, policy, sizeInBytes);
 }
 
 Downloader* ItemImpl::createDownloader() const
 {
-    return nullptr;  // TODO
+    QString const method = "Item::createDownloader()";
+
+    auto invalid_job = check_invalid_or_destroyed<DownloaderImpl>(method);
+    if (invalid_job)
+    {
+        return invalid_job;
+    }
+    if (md_.type != storage::ItemType::file)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot download a directory");
+        return DownloaderImpl::make_job(e);
+    }
+
+    auto reply = account_impl_->provider()->Download(md_.item_id);
+    auto This = const_pointer_cast<ItemImpl>(shared_from_this());
+    return DownloaderImpl::make_job(This, method, reply);
 }
 
 ItemListJob* ItemImpl::list() const
@@ -267,10 +313,10 @@ ItemListJob* ItemImpl::list() const
 
     auto fetch_next = [this](QString const& page_token)
     {
-        return account_->provider()->List(md_.item_id, page_token);
+        return account_impl_->provider()->List(md_.item_id, page_token);
     };
 
-    auto reply = account_->provider()->List(md_.item_id, "");
+    auto reply = account_impl_->provider()->List(md_.item_id, "");
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return MultiItemListJobImpl::make_job(This, method, reply, validate, fetch_next);
 }
@@ -294,7 +340,7 @@ ItemListJob* ItemImpl::lookup(QString const& name) const
     {
     };
 
-    auto reply = account_->provider()->Lookup(md_.item_id, name);
+    auto reply = account_impl_->provider()->Lookup(md_.item_id, name);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return ItemListJobImpl::make_job(This, method, reply, validate);
 }
@@ -325,7 +371,7 @@ ItemJob* ItemImpl::createFolder(QString const& name) const
         throw StorageErrorImpl::local_comms_error(msg);
     };
 
-    auto reply = account_->provider()->CreateFolder(md_.item_id, name);
+    auto reply = account_impl_->provider()->CreateFolder(md_.item_id, name);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return ItemJobImpl::make_job(This, method, reply, validate);
 }
@@ -350,7 +396,7 @@ bool ItemImpl::operator==(ItemImpl const& other) const
     if (is_valid_)
     {
         return other.is_valid_
-               && *account_ == *other.account_
+               && *account_impl_ == *other.account_impl_
                && md_.item_id == other.md_.item_id;
     }
     return !other.is_valid_;
@@ -372,11 +418,11 @@ bool ItemImpl::operator<(ItemImpl const& other) const
         return false;
     }
     assert(is_valid_ && other.is_valid_);
-    if (*account_ < *other.account_)
+    if (*account_impl_ < *other.account_impl_)
     {
         return true;
     }
-    if (*account_ > *other.account_)
+    if (*account_impl_ > *other.account_impl_)
     {
         return false;
     }
@@ -405,28 +451,28 @@ size_t ItemImpl::hash() const
         return 0;
     }
     size_t hash = 0;
-    boost::hash_combine(hash, account_->hash());
+    boost::hash_combine(hash, account_impl_->hash());
     boost::hash_combine(hash, qHash(md_.item_id));
     return hash;
 }
 
 Item ItemImpl::make_item(QString const& method,
                          storage::internal::ItemMetadata const& md,
-                         std::shared_ptr<AccountImpl> const& account)
+                         std::shared_ptr<AccountImpl> const& account_impl)
 {
     validate(method, md);  // Throws if no good.
-    auto p = make_shared<ItemImpl>(md, account);
+    auto p = make_shared<ItemImpl>(md, account_impl);
     return Item(p);
 }
 
-shared_ptr<RuntimeImpl> ItemImpl::runtime() const
+shared_ptr<RuntimeImpl> ItemImpl::runtime_impl() const
 {
-    return account_->runtime();
+    return account_impl_->runtime_impl();
 }
 
 shared_ptr<AccountImpl> ItemImpl::account_impl() const
 {
-    return account_;
+    return account_impl_;
 }
 
 }  // namespace internal

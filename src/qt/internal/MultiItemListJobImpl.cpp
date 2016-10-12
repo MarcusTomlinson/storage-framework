@@ -35,17 +35,17 @@ namespace qt
 namespace internal
 {
 
-MultiItemListJobImpl::MultiItemListJobImpl(shared_ptr<ItemImpl> const& item,
+MultiItemListJobImpl::MultiItemListJobImpl(shared_ptr<ItemImpl> const& item_impl,
                                            QString const& method,
-                                           ReplyType const& reply,
+                                           ReplyType& reply,
                                            ValidateFunc const& validate,
                                            FetchFunc const& fetch_next)
-    : ListJobImplBase(item->account_impl(), method, validate)
+    : ListJobImplBase(item_impl->account_impl(), method, validate)
     , fetch_next_(fetch_next)
 {
     assert(fetch_next);
 
-    item_impl_ = item;
+    item_impl_ = item_impl;
 
     process_reply_ = [this](ReplyType const& r)
     {
@@ -53,7 +53,7 @@ MultiItemListJobImpl::MultiItemListJobImpl(shared_ptr<ItemImpl> const& item,
         {
             return;
         }
-        auto runtime = item_impl_->account_impl()->runtime();
+        auto runtime = item_impl_->account_impl()->runtime_impl();
         if (!runtime || !runtime->isValid())
         {
             error_ = StorageErrorImpl::runtime_destroyed_error(method_ + ": Runtime was destroyed previously");
@@ -69,7 +69,7 @@ MultiItemListJobImpl::MultiItemListJobImpl(shared_ptr<ItemImpl> const& item,
             try
             {
                 validate_(md);
-                auto item = ItemImpl::make_item(method_, md, account_);
+                auto item = ItemImpl::make_item(method_, md, account_impl_);
                 items.append(item);
             }
             catch (StorageError const& e)
@@ -96,7 +96,8 @@ MultiItemListJobImpl::MultiItemListJobImpl(shared_ptr<ItemImpl> const& item,
         }
         else
         {
-            new Handler<ReplyType>(this, fetch_next_(token), process_reply_, process_error_);
+            auto reply = fetch_next_(token);
+            new Handler<ReplyType>(this, reply, process_reply_, process_error_);
         }
     };
 
@@ -115,7 +116,7 @@ MultiItemListJobImpl::MultiItemListJobImpl(shared_ptr<ItemImpl> const& item,
 
 ItemListJob* MultiItemListJobImpl::make_job(shared_ptr<ItemImpl> const& item,
                                             QString const& method,
-                                            ReplyType const& reply,
+                                            ReplyType& reply,
                                             ValidateFunc const& validate,
                                             FetchFunc const& fetch_next)
 {

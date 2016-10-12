@@ -105,7 +105,6 @@ void Handler::credentials_received()
             }
             catch (std::exception const& e)
             {
-                qDebug() << e.what();
                 marshal_exception(current_exception());
             }
             QMetaObject::invokeMethod(this, "send_reply", Qt::QueuedConnection);

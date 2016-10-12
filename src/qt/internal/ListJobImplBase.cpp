@@ -41,16 +41,16 @@ ListJobImplBase::ListJobImplBase()
 {
 }
 
-ListJobImplBase::ListJobImplBase(shared_ptr<AccountImpl> const& account,
+ListJobImplBase::ListJobImplBase(shared_ptr<AccountImpl> const& account_impl,
                                  QString const& method,
                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate)
     : status_(ItemListJob::Status::Loading)
     , method_(method)
-    , account_(account)
+    , account_impl_(account_impl)
     , validate_(validate)
 {
     assert(!method.isEmpty());
-    assert(account);
+    assert(account_impl);
     assert(validate);
 }
 

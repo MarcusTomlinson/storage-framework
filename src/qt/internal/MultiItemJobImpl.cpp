@@ -35,15 +35,15 @@ namespace qt
 namespace internal
 {
 
-MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
+MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account_impl,
                                    QString const& method,
-                                   ReplyType const& replies,
+                                   ReplyType& replies,
                                    ValidateFunc const& validate)
-    : ListJobImplBase(account, method, validate)
+    : ListJobImplBase(account_impl, method, validate)
     , replies_remaining_(replies.size())
 {
     assert(!method.isEmpty());
-    assert(account);
+    assert(account_impl);
     assert(validate);
 
     // We ask the provider for the metadata for each of this item's parents.
@@ -52,7 +52,7 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
     // If anything goes wrong at all, we report the first error and then ignore all
     // other replies.
 
-    auto process_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& r)
+    auto process_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata>& r)
     {
         if (status_ != ItemListJob::Status::Loading)
         {
@@ -61,7 +61,7 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
 
         --replies_remaining_;
 
-        auto runtime = account_->runtime();
+        auto runtime = account_impl_->runtime_impl();
         if (!runtime || !runtime->isValid())
         {
             error_ = StorageErrorImpl::runtime_destroyed_error(method_ + ": Runtime was destroyed previously");
@@ -75,7 +75,7 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
         try
         {
             validate_(metadata);
-            item = ItemImpl::make_item(method_, metadata, account_);
+            item = ItemImpl::make_item(method_, metadata, account_impl_);
         }
         catch (StorageError const& e)
         {
@@ -110,18 +110,18 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account,
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
-    for (auto const& reply : replies)
+    for (auto& reply : replies)
     {
         new Handler<storage::internal::ItemMetadata>(this, reply, process_reply, process_error);
     }
 }
 
-ItemListJob* MultiItemJobImpl::make_job(shared_ptr<AccountImpl> const& account,
+ItemListJob* MultiItemJobImpl::make_job(shared_ptr<AccountImpl> const& account_impl,
                                         QString const& method,
-                                        ReplyType const& replies,
+                                        ReplyType& replies,
                                         ValidateFunc const& validate)
 {
-    unique_ptr<MultiItemJobImpl> impl(new MultiItemJobImpl(account, method, replies, validate));
+    unique_ptr<MultiItemJobImpl> impl(new MultiItemJobImpl(account_impl, method, replies, validate));
     auto job = new ItemListJob(move(impl));
     job->p_->set_public_instance(job);
     return job;

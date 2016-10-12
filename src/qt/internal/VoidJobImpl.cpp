@@ -33,19 +33,19 @@ namespace qt
 namespace internal
 {
 
-VoidJobImpl::VoidJobImpl(shared_ptr<ItemImpl> const& item,
+VoidJobImpl::VoidJobImpl(shared_ptr<ItemImpl> const& item_impl,
                          QString const& method,
-                         QDBusPendingReply<void> const& reply)
+                         QDBusPendingReply<void>& reply)
     : status_(VoidJob::Status::Loading)
     , method_(method)
-    , item_(item)
+    , item_impl_(item_impl)
 {
     assert(!method_.isEmpty());
-    assert(item);
+    assert(item_impl);
 
     auto process_reply = [this](decltype(reply)&)
     {
-        auto runtime = item_->runtime();
+        auto runtime = item_impl_->runtime_impl();
         if (!runtime || !runtime->isValid())
         {
             error_ = StorageErrorImpl::runtime_destroyed_error(method_ + ": Runtime was destroyed previously");
@@ -91,7 +91,7 @@ StorageError VoidJobImpl::error() const
 
 VoidJob* VoidJobImpl::make_job(shared_ptr<ItemImpl> const& item,
                                QString const& method,
-                               QDBusPendingReply<void> const& reply)
+                               QDBusPendingReply<void>& reply)
 {
     unique_ptr<VoidJobImpl> impl(new VoidJobImpl(item, method, reply));
     auto job = new VoidJob(move(impl));

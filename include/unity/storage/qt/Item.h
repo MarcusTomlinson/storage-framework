@@ -39,6 +39,8 @@ namespace internal
 {
 
 class ItemImpl;
+class DownloaderImpl;
+class UploaderImpl;
 
 }  // namespace internal
 
@@ -126,6 +128,8 @@ private:
     std::shared_ptr<internal::ItemImpl> p_;
 
     friend class internal::ItemImpl;
+    friend class internal::DownloaderImpl;
+    friend class internal::UploaderImpl;
 };
 
 // Note: qHash(Item) does *not* return the same hash value is std::hash<Item> because

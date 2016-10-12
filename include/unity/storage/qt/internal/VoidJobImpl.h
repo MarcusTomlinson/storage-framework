@@ -22,7 +22,10 @@
 
 #include <unity/storage/qt/StorageError.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QDBusPendingReply>
+#pragma GCC diagnostic pop
 
 namespace unity
 {
@@ -45,22 +48,22 @@ public:
     VoidJob::Status status() const;
     StorageError error() const;
 
-    static VoidJob* make_job(std::shared_ptr<ItemImpl> const& item,
+    static VoidJob* make_job(std::shared_ptr<ItemImpl> const& item_impl,
                              QString const& method,
-                             QDBusPendingReply<void> const& reply);
+                             QDBusPendingReply<void>& reply);
     static VoidJob* make_job(StorageError const& e);
 
 private:
-    VoidJobImpl(std::shared_ptr<ItemImpl> const& item,
+    VoidJobImpl(std::shared_ptr<ItemImpl> const& item_impl,
                 QString const& method,
-                QDBusPendingReply<void> const& reply);
+                QDBusPendingReply<void>& reply);
     VoidJobImpl(StorageError const& e);
 
     VoidJob* public_instance_;
     VoidJob::Status status_;
     StorageError error_;
     QString method_;
-    std::shared_ptr<ItemImpl> item_;
+    std::shared_ptr<ItemImpl> item_impl_;
 };
 
 }  // namespace internal

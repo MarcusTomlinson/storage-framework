@@ -58,9 +58,8 @@ public:
 
     enum Type
     {
-        NoError, LocalCommsError, RemoteCommsError, Deleted, RuntimeDestroyed, NotExists,
-        Exists, Conflict, PermissionDenied, Cancelled, LogicError, InvalidArgument, ResourceError,
-        QuotaExceeded,
+        NoError, LocalCommsError, RemoteCommsError, RuntimeDestroyed, NotExists, Exists, Conflict,
+        PermissionDenied, Cancelled, LogicError, InvalidArgument, ResourceError, QuotaExceeded,
         __LAST_STORAGE_ERROR
     };
     Q_ENUMS(Type)

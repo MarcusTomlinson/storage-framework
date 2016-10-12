@@ -35,15 +35,15 @@ namespace qt
 namespace internal
 {
 
-ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
+ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account_impl,
                                  QString const& method,
-                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>>& reply,
                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate)
-    : ListJobImplBase(account, method, validate)
+    : ListJobImplBase(account_impl, method, validate)
 {
     auto process_reply = [this](decltype(reply)& r)
     {
-        auto runtime = account_->runtime();
+        auto runtime = account_impl_->runtime_impl();
         if (!runtime || !runtime->isValid())
         {
             error_ = StorageErrorImpl::runtime_destroyed_error(method_ + ": Runtime was destroyed previously");
@@ -59,7 +59,7 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
             try
             {
                 validate_(md);
-                auto item = ItemImpl::make_item(method_, md, account_);
+                auto item = ItemImpl::make_item(method_, md, account_impl_);
                 items.append(item);
             }
             catch (StorageError const&)
@@ -86,32 +86,32 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account,
     new Handler<QList<storage::internal::ItemMetadata>>(this, reply, process_reply, process_error);
 }
 
-ItemListJobImpl::ItemListJobImpl(shared_ptr<ItemImpl> const& item,
+ItemListJobImpl::ItemListJobImpl(shared_ptr<ItemImpl> const& item_impl,
                                  QString const& method,
-                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>>& reply,
                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate)
-    : ItemListJobImpl(item->account_impl(), method, reply, validate)
+    : ItemListJobImpl(item_impl->account_impl(), method, reply, validate)
 {
-    item_impl_ = item;
+    item_impl_ = item_impl;
 }
 
-ItemListJob* ItemListJobImpl::make_job(shared_ptr<AccountImpl> const& account,
+ItemListJob* ItemListJobImpl::make_job(shared_ptr<AccountImpl> const& account_impl,
                                        QString const& method,
-                                       QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                       QDBusPendingReply<QList<storage::internal::ItemMetadata>>& reply,
                                        std::function<void(storage::internal::ItemMetadata const&)> const& validate)
 {
-    unique_ptr<ItemListJobImpl> impl(new ItemListJobImpl(account, method, reply, validate));
+    unique_ptr<ItemListJobImpl> impl(new ItemListJobImpl(account_impl, method, reply, validate));
     auto job = new ItemListJob(move(impl));
     job->p_->set_public_instance(job);
     return job;
 }
 
-ItemListJob* ItemListJobImpl::make_job(shared_ptr<ItemImpl> const& item,
+ItemListJob* ItemListJobImpl::make_job(shared_ptr<ItemImpl> const& item_impl,
                                        QString const& method,
-                                       QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                       QDBusPendingReply<QList<storage::internal::ItemMetadata>>& reply,
                                        std::function<void(storage::internal::ItemMetadata const&)> const& validate)
 {
-    unique_ptr<ItemListJobImpl> impl(new ItemListJobImpl(item, method, reply, validate));
+    unique_ptr<ItemListJobImpl> impl(new ItemListJobImpl(item_impl, method, reply, validate));
     auto job = new ItemListJob(move(impl));
     job->p_->set_public_instance(job);
     return job;

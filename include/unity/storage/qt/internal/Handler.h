@@ -36,18 +36,32 @@ namespace qt
 namespace internal
 {
 
+// TODO: HACK: The reply argument really should be passed by const reference, which also
+//             would make the explicit conversion of the call to QDBusPendingReply<QDBusArgs...>
+//             unnecessary. But this doesn't work with gcc 4.9: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60420
+//             Once we get rid of Vivid, this should be changed back to
+//
+//             Handler(QObject* parent,
+//                     QDBusPendingReply<DBusArgs...> const& reply,
+//                     std::function<void(decltype(reply)&)> const& success_closure,
+//                     std::function<void(StorageError const&)> const& error_closure)
+//
+//             Unfortunately, this const error ripples through the entire call hierarchy, so
+//             the various JobImpl that process replies also need to be changed back to accept
+//             a non-const reply.
+
 template<typename T>
 class Handler : public HandlerBase
 {
 public:
     template<typename ... DBusArgs>
     Handler(QObject* parent,
-            QDBusPendingReply<DBusArgs...> const& reply,
+            QDBusPendingReply<DBusArgs...>& reply,
             std::function<void(decltype(reply)&)> const& success_closure,
             std::function<void(StorageError const&)> const& error_closure)
         : HandlerBase(parent,
                       reply,
-                      [this, success_closure, error_closure](QDBusPendingCallWatcher& call)
+                      [this, &reply, success_closure, error_closure](QDBusPendingCallWatcher& call)
                           {
                               if (call.isError())
                               {
@@ -81,8 +95,10 @@ public:
                                   error_closure(e);
                                   return;
                               }
+                              // TODO: See HACK above. Should just be success_closure(call);
+                              //       We do the assignment to get an lvalue from the reference.
                               QDBusPendingReply<DBusArgs...> r = call;
-                              success_closure(call);
+                              success_closure(r);
                           })
     {
     }
