@@ -37,7 +37,7 @@ namespace internal
 
 MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account_impl,
                                    QString const& method,
-                                   ReplyType const& replies,
+                                   ReplyType& replies,
                                    ValidateFunc const& validate)
     : ListJobImplBase(account_impl, method, validate)
     , replies_remaining_(replies.size())
@@ -52,7 +52,7 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account_impl,
     // If anything goes wrong at all, we report the first error and then ignore all
     // other replies.
 
-    auto process_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata> const& r)
+    auto process_reply = [this](QDBusPendingReply<storage::internal::ItemMetadata>& r)
     {
         if (status_ != ItemListJob::Status::Loading)
         {
@@ -110,7 +110,7 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account_impl,
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
-    for (auto const& reply : replies)
+    for (auto& reply : replies)
     {
         new Handler<storage::internal::ItemMetadata>(this, reply, process_reply, process_error);
     }
@@ -118,7 +118,7 @@ MultiItemJobImpl::MultiItemJobImpl(shared_ptr<AccountImpl> const& account_impl,
 
 ItemListJob* MultiItemJobImpl::make_job(shared_ptr<AccountImpl> const& account_impl,
                                         QString const& method,
-                                        ReplyType const& replies,
+                                        ReplyType& replies,
                                         ValidateFunc const& validate)
 {
     unique_ptr<MultiItemJobImpl> impl(new MultiItemJobImpl(account_impl, method, replies, validate));

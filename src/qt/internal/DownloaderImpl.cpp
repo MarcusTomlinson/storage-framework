@@ -39,7 +39,7 @@ namespace internal
 
 DownloaderImpl::DownloaderImpl(shared_ptr<ItemImpl> const& item_impl,
                                QString const& method,
-                               QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply)
+                               QDBusPendingReply<QString, QDBusUnixFileDescriptor>& reply)
     : status_(Downloader::Status::Loading)
     , item_impl_(item_impl)
 {
@@ -182,7 +182,7 @@ void DownloaderImpl::finishDownload()
     finalizing_ = true;
     auto reply = item_impl_->account_impl()->provider()->FinishDownload(download_id_);
 
-    auto process_reply = [this](decltype(reply) const&)
+    auto process_reply = [this](decltype(reply)&)
     {
         if (status_ == Downloader::Status::Cancelled || status_ == Downloader::Status::Error)
         {
@@ -254,7 +254,7 @@ void DownloaderImpl::cancel()
 
 Downloader* DownloaderImpl::make_job(shared_ptr<ItemImpl> const& item_impl,
                                      QString const& method,
-                                     QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply)
+                                     QDBusPendingReply<QString, QDBusUnixFileDescriptor>& reply)
 {
     unique_ptr<DownloaderImpl> impl(new DownloaderImpl(item_impl, method, reply));
     auto downloader = new Downloader(move(impl));

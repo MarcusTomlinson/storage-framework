@@ -50,11 +50,11 @@ public:
 
     static ItemListJob* make_job(std::shared_ptr<AccountImpl> const& account_impl,
                                  QString const& method,
-                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>>& reply,
                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate);
     static ItemListJob* make_job(std::shared_ptr<ItemImpl> const& item_impl,
                                  QString const& method,
-                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                                 QDBusPendingReply<QList<storage::internal::ItemMetadata>>& reply,
                                  std::function<void(storage::internal::ItemMetadata const&)> const& validate);
     static ItemListJob* make_job(StorageError const& error);
 
@@ -62,11 +62,11 @@ private:
     ItemListJobImpl() = default;
     ItemListJobImpl(std::shared_ptr<AccountImpl> const& account_impl,
                     QString const& method,
-                    QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                    QDBusPendingReply<QList<storage::internal::ItemMetadata>>& reply,
                     std::function<void(storage::internal::ItemMetadata const&)> const& validate);
     ItemListJobImpl(std::shared_ptr<ItemImpl> const& item_impl,
                     QString const& method,
-                    QDBusPendingReply<QList<storage::internal::ItemMetadata>> const& reply,
+                    QDBusPendingReply<QList<storage::internal::ItemMetadata>>& reply,
                     std::function<void(storage::internal::ItemMetadata const&)> const& validate);
 
     std::shared_ptr<ItemImpl> item_impl_;

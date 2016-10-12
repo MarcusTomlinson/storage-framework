@@ -47,13 +47,13 @@ public:
 
     static VoidJob* make_job(std::shared_ptr<ItemImpl> const& item_impl,
                              QString const& method,
-                             QDBusPendingReply<void> const& reply);
+                             QDBusPendingReply<void>& reply);
     static VoidJob* make_job(StorageError const& e);
 
 private:
     VoidJobImpl(std::shared_ptr<ItemImpl> const& item_impl,
                 QString const& method,
-                QDBusPendingReply<void> const& reply);
+                QDBusPendingReply<void>& reply);
     VoidJobImpl(StorageError const& e);
 
     VoidJob* public_instance_;

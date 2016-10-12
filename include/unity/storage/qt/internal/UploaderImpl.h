@@ -45,7 +45,7 @@ class UploaderImpl : public QObject
 public:
     UploaderImpl(std::shared_ptr<ItemImpl> const& item_impl,
                  QString const& method,
-                 QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                 QDBusPendingReply<QString, QDBusUnixFileDescriptor>& reply,
                  std::function<void(storage::internal::ItemMetadata const&)> const& validate,
                  Item::ConflictPolicy policy,
                  qint64 size_in_bytes);
@@ -64,7 +64,7 @@ public:
 
     static Uploader* make_job(std::shared_ptr<ItemImpl> const& item_impl,
                               QString const& method,
-                              QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                              QDBusPendingReply<QString, QDBusUnixFileDescriptor>& reply,
                               std::function<void(storage::internal::ItemMetadata const&)> const& validate,
                               Item::ConflictPolicy policy,
                               qint64 size_in_bytes);

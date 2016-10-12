@@ -47,14 +47,14 @@ class MultiItemListJobImpl : public ListJobImplBase
 public:
     using ReplyType = QDBusPendingReply<QList<storage::internal::ItemMetadata>, QString>;
     using ValidateFunc = std::function<void(storage::internal::ItemMetadata const&)>;
-    using FetchFunc = std::function<QDBusPendingReply<QList<unity::storage::internal::ItemMetadata>,
-                                                            QString>(QString const& page_token)>;
+    using FetchFunc = std::function
+                <QDBusPendingReply<QList<unity::storage::internal::ItemMetadata>, QString>(QString const& page_token)>;
 
     virtual ~MultiItemListJobImpl() = default;
 
     static ItemListJob* make_job(std::shared_ptr<ItemImpl> const& item_impl,
                                  QString const& method,
-                                 ReplyType const& reply,
+                                 ReplyType& reply,
                                  ValidateFunc const& validate,
                                  FetchFunc const& fetch_next);
     static ItemListJob* make_job(StorageError const& error);
@@ -63,7 +63,7 @@ private:
     MultiItemListJobImpl() = default;
     MultiItemListJobImpl(std::shared_ptr<ItemImpl> const& item_impl,
                          QString const& method,
-                         ReplyType const& reply,
+                         ReplyType& reply,
                          ValidateFunc const& validate,
                          FetchFunc const& fetch_next);
 

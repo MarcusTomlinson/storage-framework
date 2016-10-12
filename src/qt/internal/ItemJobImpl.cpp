@@ -38,7 +38,7 @@ namespace internal
 
 ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account_impl,
                          QString const& method,
-                         QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                         QDBusPendingReply<storage::internal::ItemMetadata>& reply,
                          std::function<void(storage::internal::ItemMetadata const&)> const& validate)
     : status_(ItemJob::Status::Loading)
     , method_(method)
@@ -89,7 +89,7 @@ ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account_impl,
 
 ItemJobImpl::ItemJobImpl(shared_ptr<ItemImpl> const& item,
                          QString const& method,
-                         QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                         QDBusPendingReply<storage::internal::ItemMetadata>& reply,
                          std::function<void(storage::internal::ItemMetadata const&)> const& validate)
     : ItemJobImpl(item->account_impl(), method, reply, validate)
 {
@@ -124,7 +124,7 @@ Item ItemJobImpl::item() const
 
 ItemJob* ItemJobImpl::make_job(shared_ptr<AccountImpl> const& account,
                                QString const& method,
-                               QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                               QDBusPendingReply<storage::internal::ItemMetadata>& reply,
                                std::function<void(storage::internal::ItemMetadata const&)> const& validate)
 {
     unique_ptr<ItemJobImpl> impl(new ItemJobImpl(account, method, reply, validate));
@@ -135,7 +135,7 @@ ItemJob* ItemJobImpl::make_job(shared_ptr<AccountImpl> const& account,
 
 ItemJob* ItemJobImpl::make_job(shared_ptr<ItemImpl> const& item,
                                QString const& method,
-                               QDBusPendingReply<storage::internal::ItemMetadata> const& reply,
+                               QDBusPendingReply<storage::internal::ItemMetadata>& reply,
                                std::function<void(storage::internal::ItemMetadata const&)> const& validate)
 {
     unique_ptr<ItemJobImpl> impl(new ItemJobImpl(item, method, reply, validate));
