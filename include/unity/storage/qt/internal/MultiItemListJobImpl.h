@@ -52,7 +52,7 @@ public:
 
     virtual ~MultiItemListJobImpl() = default;
 
-    static ItemListJob* make_job(std::shared_ptr<ItemImpl> const& item,
+    static ItemListJob* make_job(std::shared_ptr<ItemImpl> const& item_impl,
                                  QString const& method,
                                  ReplyType const& reply,
                                  ValidateFunc const& validate,
@@ -61,7 +61,7 @@ public:
 
 private:
     MultiItemListJobImpl() = default;
-    MultiItemListJobImpl(std::shared_ptr<ItemImpl> const& item,
+    MultiItemListJobImpl(std::shared_ptr<ItemImpl> const& item_impl,
                          QString const& method,
                          ReplyType const& reply,
                          ValidateFunc const& validate,

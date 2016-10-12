@@ -50,13 +50,13 @@ static map<QString, QString> const BUS_NAMES =
 
 }  // namespace
 
-AccountsJobImpl::AccountsJobImpl(AccountsJob* public_instance, shared_ptr<RuntimeImpl> const& runtime)
+AccountsJobImpl::AccountsJobImpl(AccountsJob* public_instance, shared_ptr<RuntimeImpl> const& runtime_impl)
     : public_instance_(public_instance)
     , status_(AccountsJob::Status::Loading)
-    , runtime_(runtime)
+    , runtime_impl_(runtime_impl)
 {
     assert(public_instance);
-    assert(runtime);
+    assert(runtime_impl);
 
     initialize_accounts();
 }
@@ -89,7 +89,7 @@ StorageError AccountsJobImpl::error() const
 
 QList<Account> AccountsJobImpl::accounts() const
 {
-    auto runtime = get_runtime("AccountsJob::accounts()");
+    auto runtime = get_runtime_impl("AccountsJob::accounts()");
     if (!runtime)
     {
         return QList<Account>();
@@ -131,9 +131,9 @@ AccountsJob::Status AccountsJobImpl::emit_status_changed(AccountsJob::Status new
     return new_status;
 }
 
-shared_ptr<RuntimeImpl> AccountsJobImpl::get_runtime(QString const& method) const
+shared_ptr<RuntimeImpl> AccountsJobImpl::get_runtime_impl(QString const& method) const
 {
-    auto runtime = runtime_.lock();
+    auto runtime = runtime_impl_.lock();
     if (!runtime || !runtime->isValid())
     {
         QString msg = method + ": Runtime was destroyed previously";
@@ -146,7 +146,7 @@ shared_ptr<RuntimeImpl> AccountsJobImpl::get_runtime(QString const& method) cons
 
 void AccountsJobImpl::initialize_accounts()
 {
-    auto runtime = get_runtime("AccountsJob()");
+    auto runtime = get_runtime_impl("AccountsJob()");
     assert(runtime);
 
     auto manager = runtime->accounts_manager();

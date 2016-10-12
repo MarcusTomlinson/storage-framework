@@ -35,7 +35,7 @@ class AccountsJobImpl : public QObject
 {
     Q_OBJECT
 public:
-    AccountsJobImpl(AccountsJob* public_instance, std::shared_ptr<RuntimeImpl> const& runtime);
+    AccountsJobImpl(AccountsJob* public_instance, std::shared_ptr<RuntimeImpl> const& runtime_impl);
     AccountsJobImpl(AccountsJob* public_instance, StorageError const& error);
     virtual ~AccountsJobImpl() = default;
 
@@ -49,7 +49,7 @@ private Q_SLOTS:
     void timeout();
 
 private:
-    std::shared_ptr<RuntimeImpl> get_runtime(QString const& method) const;
+    std::shared_ptr<RuntimeImpl> get_runtime_impl(QString const& method) const;
     void initialize_accounts();
     AccountsJob::Status emit_status_changed(AccountsJob::Status new_status) const;
 
@@ -57,7 +57,7 @@ private:
     AccountsJob::Status status_;
     StorageError error_;
     QList<unity::storage::qt::Account> accounts_;
-    std::weak_ptr<RuntimeImpl> const runtime_;
+    std::weak_ptr<RuntimeImpl> const runtime_impl_;
     QTimer timer_;
 
     friend class unity::storage::qt::AccountsJob;

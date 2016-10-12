@@ -54,6 +54,8 @@ protected:
     Account acc_;
 };
 
+class RuntimeTest : public ProviderFixture {};
+
 class AccountTest : public RemoteClientTest {};
 class CopyTest : public RemoteClientTest {};
 class CreateFolderTest : public RemoteClientTest {};
@@ -66,7 +68,7 @@ class LookupTest : public RemoteClientTest {};
 class MoveTest : public RemoteClientTest {};
 class ParentsTest : public RemoteClientTest {};
 class RootsTest : public RemoteClientTest {};
-class RuntimeTest : public ProviderFixture {};
+class UploadTest : public RemoteClientTest {};
 
 TEST(Runtime, lifecycle)
 {
@@ -2702,7 +2704,7 @@ TEST_F(DownloadTest, cancel)
         auto arg = spy.takeFirst();
         EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
     }
-    
+
     QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
 
     downloader->finishDownload();
@@ -2720,8 +2722,6 @@ TEST_F(DownloadTest, cancel)
 
     // We wait here to get coverage for when the reply to a finishDownload() call
     // finds the downloader in a final state.
-    // TODO: Waiting for 500 ms here causes a hang because the completion promise in the provider handler
-    //       is never made ready, so the handler destructor hangs. See ProviderInterface::FinishDownload().
     EXPECT_FALSE(spy.wait(2000));
 }
 
@@ -2771,6 +2771,51 @@ TEST_F(DownloadTest, cancel_runtime_destroyed)
     EXPECT_EQ(Downloader::Status::Error, downloader->status());
     EXPECT_EQ(StorageError::Type::RuntimeDestroyed, downloader->error().type());
     EXPECT_EQ("Downloader::cancel(): Runtime was destroyed previously", downloader->error().message());
+}
+
+TEST_F(UploadTest, basic)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QByteArray contents("Hello world", -1);
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, contents.size()));
+    EXPECT_TRUE(uploader->isValid());
+    EXPECT_EQ(Uploader::Status::Loading, uploader->status());
+    EXPECT_EQ(StorageError::NoError, uploader->error().type());
+    EXPECT_EQ(child, uploader->item());
+
+    {
+        QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Uploader::Status::Ready, qvariant_cast<Uploader::Status>(arg.at(0)));
+    }
+
+    EXPECT_EQ(contents.size(), uploader->write(contents));
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    uploader->finishUpload();
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Uploader::Status::Finished, qvariant_cast<Uploader::Status>(arg.at(0)));
+
+    EXPECT_EQ(Uploader::Status::Finished, uploader->status());
 }
 
 int main(int argc, char** argv)

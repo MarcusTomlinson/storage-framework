@@ -258,23 +258,17 @@ boost::future<Item> MockProvider::create_folder(
     return make_ready_future<Item>(metadata);
 }
 
-string make_job_id()
-{
-    static int last_job_id = 0;
-    return to_string(++last_job_id);
-}
-
 boost::future<unique_ptr<UploadJob>> MockProvider::create_file(
     string const&, string const&,
     int64_t, string const&, bool, Context const&)
 {
-    return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob(make_job_id()));
+    return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob());
 }
 
 boost::future<unique_ptr<UploadJob>> MockProvider::update(
     string const&, int64_t, string const&, Context const&)
 {
-    return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob(make_job_id()));
+    return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob());
 }
 
 boost::future<unique_ptr<DownloadJob>> MockProvider::download(

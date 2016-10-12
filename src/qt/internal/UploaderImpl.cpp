@@ -16,7 +16,7 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/internal/DownloaderImpl.h>
+#include <unity/storage/qt/internal/UploaderImpl.h>
 
 #include "ProviderInterface.h"
 #include <unity/storage/qt/internal/Handler.h>
@@ -37,18 +37,27 @@ namespace qt
 namespace internal
 {
 
-DownloaderImpl::DownloaderImpl(shared_ptr<ItemImpl> const& item_impl,
-                               QString const& method,
-                               QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply)
-    : status_(Downloader::Status::Loading)
+UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
+                           QString const& method,
+                           QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                           std::function<void(storage::internal::ItemMetadata const&)> const& validate,
+                           Item::ConflictPolicy policy,
+                           qint64 size_in_bytes)
+    : status_(Uploader::Status::Loading)
+    , method_(method)
     , item_impl_(item_impl)
+    , validate_(validate)
+    , policy_(policy)
+    , size_in_bytes_(size_in_bytes)
 {
     assert(item_impl);
+    assert(validate);
     assert(!method.isEmpty());
+    assert(size_in_bytes >= 0);
 
-    auto process_reply = [this, method](decltype(reply)& r)
+    auto process_reply = [this, method](decltype(reply) const& r)
     {
-        if (status_ != Downloader::Status::Loading)
+        if (status_ != Uploader::Status::Loading)
         {
             return;  // Don't transition to a final state more than once.
         }
@@ -60,12 +69,12 @@ DownloaderImpl::DownloaderImpl(shared_ptr<ItemImpl> const& item_impl,
             error_ = StorageErrorImpl::runtime_destroyed_error(msg);
             public_instance_->abort();
             public_instance_->setErrorString(msg);
-            status_ = Downloader::Status::Error;
+            status_ = Uploader::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
             return;
         }
 
-        download_id_ = r.argumentAt<0>();
+        upload_id_ = r.argumentAt<0>();
         fd_ = r.argumentAt<1>();
         if (fd_.fileDescriptor() < 0)
         {
@@ -75,14 +84,14 @@ DownloaderImpl::DownloaderImpl(shared_ptr<ItemImpl> const& item_impl,
             error_ = StorageErrorImpl::local_comms_error(msg);
             public_instance_->abort();
             public_instance_->setErrorString(msg);
-            status_ = Downloader::Status::Error;
+            status_ = Uploader::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
             return;
             // LCOV_EXCL_STOP
         }
 
-        public_instance_->setSocketDescriptor(fd_.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::ReadOnly);
-        status_ = Downloader::Status::Ready;
+        public_instance_->setSocketDescriptor(fd_.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+        status_ = Uploader::Status::Ready;
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
@@ -90,7 +99,7 @@ DownloaderImpl::DownloaderImpl(shared_ptr<ItemImpl> const& item_impl,
     {
         // TODO: This does not set the method
         error_ = error;
-        status_ = Downloader::Status::Error;
+        status_ = Uploader::Status::Error;
         public_instance_->abort();
         public_instance_->setErrorString(error.errorString());
         Q_EMIT public_instance_->statusChanged(status_);
@@ -99,22 +108,22 @@ DownloaderImpl::DownloaderImpl(shared_ptr<ItemImpl> const& item_impl,
     new Handler<storage::internal::ItemMetadata>(this, reply, process_reply, process_error);
 }
 
-DownloaderImpl::DownloaderImpl(StorageError const& e)
-    : status_(Downloader::Status::Error)
+UploaderImpl::UploaderImpl(StorageError const& e)
+    : status_(Uploader::Status::Error)
     , error_(e)
 {
 }
 
-DownloaderImpl::~DownloaderImpl()
+UploaderImpl::~UploaderImpl()
 {
     switch (status_)
     {
-        case Downloader::Status::Loading:
-        case Downloader::Status::Finished:
-        case Downloader::Status::Cancelled:
-        case Downloader::Status::Error:
+        case Uploader::Status::Loading:
+        case Uploader::Status::Finished:
+        case Uploader::Status::Cancelled:
+        case Uploader::Status::Error:
             break;
-        case Downloader::Status::Ready:
+        case Uploader::Status::Ready:
             public_instance_->abort();
             break;
         default:
@@ -122,49 +131,59 @@ DownloaderImpl::~DownloaderImpl()
     }
 }
 
-bool DownloaderImpl::isValid() const
+bool UploaderImpl::isValid() const
 {
-    return status_ != Downloader::Status::Error && status_ != Downloader::Status::Cancelled;
+    return status_ != Uploader::Status::Error && status_ != Uploader::Status::Cancelled;
 }
 
-Downloader::Status DownloaderImpl::status() const
+Uploader::Status UploaderImpl::status() const
 {
     return status_;
 }
 
-StorageError DownloaderImpl::error() const
+StorageError UploaderImpl::error() const
 {
     return error_;
 }
 
-Item DownloaderImpl::item() const
+Item::ConflictPolicy UploaderImpl::policy() const
 {
-    if (status_ == Downloader::Status::Error)
+    return policy_;
+}
+
+qint64 UploaderImpl::sizeInBytes() const
+{
+    return size_in_bytes_;
+}
+
+Item UploaderImpl::item() const
+{
+    if (status_ == Uploader::Status::Error || status_ == Uploader::Status::Cancelled)
     {
         return Item();
     }
     return Item(item_impl_);
 }
 
-void DownloaderImpl::finishDownload()
+void UploaderImpl::finishUpload()
 {
-    static QString const method = "Downloader::finishDownload()";
+    static QString const method = "Uploader::finishUpload()";
 
-    // If we encountered an error earlier or were cancelled, or if finishDownload() was
+    // If we encountered an error earlier or were cancelled, or if finishUpload() was
     // called already, we ignore the call.
-    if (status_ == Downloader::Status::Error || status_ == Downloader::Status::Cancelled || finalizing_)
+    if (status_ == Uploader::Status::Error || status_ == Uploader::Status::Cancelled || finalizing_)
     {
         return;
     }
 
     // Complain if we are asked to finalize while in the Loading or Finished state.
-    if (status_ != Downloader::Ready)
+    if (status_ != Uploader::Ready)
     {
-        QString msg = method + ": cannot finalize while Downloader is not in the Ready state";
+        QString msg = method + ": cannot finalize while Uploader is not in the Ready state";
         error_ = StorageErrorImpl::logic_error(msg);
         public_instance_->abort();
         public_instance_->setErrorString(msg);
-        status_ = Downloader::Status::Error;
+        status_ = Uploader::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
         return;
     }
@@ -174,17 +193,18 @@ void DownloaderImpl::finishDownload()
     {
         QString msg = method + ": Runtime was destroyed previously";
         error_ = StorageErrorImpl::runtime_destroyed_error(msg);
-        status_ = Downloader::Status::Error;
+        status_ = Uploader::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
         return;
     }
 
     finalizing_ = true;
-    auto reply = item_impl_->account_impl()->provider()->FinishDownload(download_id_);
+    public_instance_->disconnectFromServer();
+    auto reply = item_impl_->account_impl()->provider()->FinishUpload(upload_id_);
 
-    auto process_reply = [this](decltype(reply) const&)
+    auto process_reply = [this](decltype(reply) const& r)
     {
-        if (status_ == Downloader::Status::Cancelled || status_ == Downloader::Status::Error)
+        if (status_ == Uploader::Status::Cancelled || status_ == Uploader::Status::Error)
         {
             return;  // Don't transition to a final state more than once.
         }
@@ -196,18 +216,31 @@ void DownloaderImpl::finishDownload()
             error_ = StorageErrorImpl::runtime_destroyed_error(msg);
             public_instance_->abort();
             public_instance_->setErrorString(msg);
-            status_ = Downloader::Status::Error;
+            status_ = Uploader::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
             return;
         }
 
-        status_ = Downloader::Status::Finished;
+        auto metadata = r.value();
+        try
+        {
+            validate_(metadata);
+            item_impl_ = make_shared<ItemImpl>(metadata, item_impl_->account_impl());
+            status_ = Uploader::Status::Finished;
+        }
+        catch (StorageError const& e)
+        {
+            // Bad metadata received from provider, validate_() or make_item() have logged it.
+            // TODO: This does not set the method.
+            error_ = e;
+            status_ = Uploader::Status::Error;
+        }
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
     auto process_error = [this](StorageError const& error)
     {
-        if (status_ != Downloader::Status::Ready)
+        if (status_ != Uploader::Status::Ready)
         {
             return;  // Don't transition to a final state more than once.
         }
@@ -216,57 +249,76 @@ void DownloaderImpl::finishDownload()
         error_ = error;
         public_instance_->abort();
         public_instance_->setErrorString(error.errorString());
-        status_ = Downloader::Status::Error;
+        status_ = Uploader::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
     new Handler<void>(this, reply, process_reply, process_error);
 }
 
-void DownloaderImpl::cancel()
+void UploaderImpl::cancel()
 {
     // If we are in a final state already, ignore the call.
-    if (   status_ == Downloader::Status::Error
-        || status_ == Downloader::Status::Finished
-        || status_ == Downloader::Status::Cancelled)
+    if (   status_ == Uploader::Status::Error
+        || status_ == Uploader::Status::Finished
+        || status_ == Uploader::Status::Cancelled)
     {
         return;
     }
     auto runtime = item_impl_->runtime_impl();
     if (!runtime || !runtime->isValid())
     {
-        QString msg = "Downloader::cancel(): Runtime was destroyed previously";
+        QString msg = "Uploader::cancel(): Runtime was destroyed previously";
         error_ = StorageErrorImpl::runtime_destroyed_error(msg);
-        status_ = Downloader::Status::Error;
+        status_ = Uploader::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
         return;
     }
 
+    if (!upload_id_.isEmpty())
+    {
+        // We just send the cancel and ignore any reply because it is best-effort only.
+        auto reply = item_impl_->account_impl()->provider()->CancelUpload(upload_id_);
+
+        auto process_reply = [](decltype(reply) const&)
+        {
+        };
+
+        auto process_error = [](StorageError const&)
+        {
+        };
+
+        new Handler<void>(this, reply, process_reply, process_error);
+    }
+
     public_instance_->abort();
-    status_ = Downloader::Status::Cancelled;
+    status_ = Uploader::Status::Cancelled;
     Q_EMIT public_instance_->statusChanged(status_);
 }
 
-Downloader* DownloaderImpl::make_job(shared_ptr<ItemImpl> const& item_impl,
-                                     QString const& method,
-                                     QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply)
+Uploader* UploaderImpl::make_job(shared_ptr<ItemImpl> const& item_impl,
+                                 QString const& method,
+                                 QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
+                                 std::function<void(storage::internal::ItemMetadata const&)> const& validate,
+                                 Item::ConflictPolicy policy,
+                                 qint64 size_in_bytes)
 {
-    unique_ptr<DownloaderImpl> impl(new DownloaderImpl(item_impl, method, reply));
-    auto downloader = new Downloader(move(impl));
-    downloader->p_->public_instance_ = downloader;
-    return downloader;
+    unique_ptr<UploaderImpl> impl(new UploaderImpl(item_impl, method, reply, validate, policy, size_in_bytes));
+    auto uploader = new Uploader(move(impl));
+    uploader->p_->public_instance_ = uploader;
+    return uploader;
 }
 
-Downloader* DownloaderImpl::make_job(StorageError const& e)
+Uploader* UploaderImpl::make_job(StorageError const& e)
 {
-    unique_ptr<DownloaderImpl> impl(new DownloaderImpl(e));
-    auto downloader = new Downloader(move(impl));
-    downloader->p_->public_instance_ = downloader;
-    QMetaObject::invokeMethod(downloader,
+    unique_ptr<UploaderImpl> impl(new UploaderImpl(e));
+    auto uploader = new Uploader(move(impl));
+    uploader->p_->public_instance_ = uploader;
+    QMetaObject::invokeMethod(uploader,
                               "statusChanged",
                               Qt::QueuedConnection,
-                              Q_ARG(unity::storage::qt::Downloader::Status, downloader->p_->status_));
-    return downloader;
+                              Q_ARG(unity::storage::qt::Uploader::Status, uploader->p_->status_));
+    return uploader;
 }
 
 }  // namespace internal

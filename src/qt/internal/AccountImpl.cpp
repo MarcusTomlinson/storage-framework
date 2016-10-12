@@ -47,7 +47,7 @@ AccountImpl::AccountImpl()
 {
 }
 
-AccountImpl::AccountImpl(shared_ptr<RuntimeImpl> const& runtime,
+AccountImpl::AccountImpl(shared_ptr<RuntimeImpl> const& runtime_impl,
                          QString const& bus_name,
                          QString const& object_path,
                          QString const& owner_id,
@@ -59,8 +59,8 @@ AccountImpl::AccountImpl(shared_ptr<RuntimeImpl> const& runtime,
     , owner_id_(owner_id)
     , owner_(owner)
     , description_(description)
-    , runtime_(runtime)
-    , provider_(new ProviderInterface(bus_name, object_path, runtime->connection()))
+    , runtime_impl_(runtime_impl)
+    , provider_(new ProviderInterface(bus_name, object_path, runtime_impl->connection()))
 {
     assert(!bus_name.isEmpty());
     assert(!object_path.isEmpty());
@@ -85,7 +85,7 @@ ItemListJob* AccountImpl::roots() const
 {
     QString const method = "Account::roots()";
 
-    auto runtime = runtime_.lock();
+    auto runtime = runtime_impl_.lock();
     if (!is_valid_)
     {
         auto e = StorageErrorImpl::logic_error(method + ": cannot create job from invalid account");
@@ -121,7 +121,7 @@ ItemJob* AccountImpl::get(QString const& itemId) const
         auto e = StorageErrorImpl::logic_error(method + ": cannot create job from invalid account");
         return ItemJobImpl::make_job(e);
     }
-    auto runtime = runtime_.lock();
+    auto runtime = runtime_impl_.lock();
     if (!runtime || !runtime->isValid())
     {
         auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");
@@ -199,9 +199,9 @@ bool AccountImpl::operator>=(AccountImpl const& other) const
     return !operator<(other);
 }
 
-shared_ptr<RuntimeImpl> AccountImpl::runtime() const
+shared_ptr<RuntimeImpl> AccountImpl::runtime_impl() const
 {
-    return runtime_.lock();
+    return runtime_impl_.lock();
 }
 
 shared_ptr<ProviderInterface> AccountImpl::provider() const

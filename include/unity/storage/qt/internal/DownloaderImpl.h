@@ -36,7 +36,7 @@ class DownloaderImpl : public QObject
 {
     Q_OBJECT
 public:
-    DownloaderImpl(std::shared_ptr<ItemImpl> const& item,
+    DownloaderImpl(std::shared_ptr<ItemImpl> const& item_impl,
                    QString const& method,
                    QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply);
     DownloaderImpl(StorageError const& e);
@@ -50,7 +50,7 @@ public:
     void finishDownload();
     void cancel();
 
-    static Downloader* make_job(std::shared_ptr<ItemImpl> const& item,
+    static Downloader* make_job(std::shared_ptr<ItemImpl> const& item_impl,
                                 QString const& method,
                                 QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply);
     static Downloader* make_job(StorageError const& e);

@@ -49,7 +49,7 @@ class ListJobImplBase : public QObject
 {
 public:
     ListJobImplBase();  // Makes job in Finished state.
-    ListJobImplBase(std::shared_ptr<AccountImpl> const& account,
+    ListJobImplBase(std::shared_ptr<AccountImpl> const& account_impl,
                     QString const& method,
                     std::function<void(storage::internal::ItemMetadata const&)> const& validate);
     ListJobImplBase(StorageError const& error);
@@ -69,7 +69,7 @@ protected:
     ItemListJob::Status status_;
     StorageError error_;
     QString method_;
-    std::shared_ptr<AccountImpl> account_;
+    std::shared_ptr<AccountImpl> account_impl_;
     std::function<void(storage::internal::ItemMetadata const&)> validate_;
 };
 

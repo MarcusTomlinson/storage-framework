@@ -42,7 +42,7 @@ class ItemImpl : public std::enable_shared_from_this<ItemImpl>
 public:
     ItemImpl();
     ItemImpl(storage::internal::ItemMetadata const& md,
-             std::shared_ptr<AccountImpl> const& account);
+             std::shared_ptr<AccountImpl> const& account_impl);
     ItemImpl(ItemImpl const&) = default;
     ItemImpl(ItemImpl&&) = delete;
     ~ItemImpl() = default;
@@ -82,9 +82,9 @@ public:
 
     static Item make_item(QString const& method,
                           storage::internal::ItemMetadata const& md,
-                          std::shared_ptr<AccountImpl> const& account);
+                          std::shared_ptr<AccountImpl> const& account_impl);
 
-    std::shared_ptr<RuntimeImpl> runtime() const;
+    std::shared_ptr<RuntimeImpl> runtime_impl() const;
     std::shared_ptr<AccountImpl> account_impl() const;
 
 private:
@@ -98,7 +98,7 @@ private:
 
     bool is_valid_;
     storage::internal::ItemMetadata md_;
-    std::shared_ptr<AccountImpl> account_;
+    std::shared_ptr<AccountImpl> account_impl_;
 
     friend class unity::storage::qt::Item;
 };
@@ -111,7 +111,7 @@ decltype(T::make_job(StorageError())) ItemImpl::check_invalid_or_destroyed(QStri
         auto e = StorageErrorImpl::logic_error(method + ": cannot create job from invalid item");
         return T::make_job(e);
     }
-    auto runtime = account_->runtime();
+    auto runtime = account_impl_->runtime_impl();
     if (!runtime || !runtime->isValid())
     {
         auto e = StorageErrorImpl::runtime_destroyed_error(method + ": Runtime was destroyed previously");

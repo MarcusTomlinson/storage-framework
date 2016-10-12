@@ -24,6 +24,7 @@ set(QT_CLIENT_LIB_V2_SRC
     ItemListJob.cpp
     Runtime.cpp
     StorageError.cpp
+    Uploader.cpp
     VoidJob.cpp
     internal/AccountImpl.cpp
     internal/AccountsJobImpl.cpp
@@ -39,6 +40,7 @@ set(QT_CLIENT_LIB_V2_SRC
     internal/StorageErrorImpl.cpp
     internal/unmarshal_error.cpp
     internal/validate.cpp
+    internal/UploaderImpl.cpp
     internal/VoidJobImpl.cpp
     ${generated_files}
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Account.h
@@ -48,15 +50,17 @@ set(QT_CLIENT_LIB_V2_SRC
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/ItemJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/ItemListJob.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Runtime.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/Uploader.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/VoidJob.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/DownloaderImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/AccountsJobImpl.h
-    //${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/DownloaderImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/HandlerBase.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemJobImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ItemListJobImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/ListJobImplBase.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/MultiItemJobImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/MultiItemListJobImpl.h
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/UploaderImpl.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/VoidJobImpl.h
 )
 

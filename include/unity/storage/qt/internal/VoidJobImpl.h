@@ -45,13 +45,13 @@ public:
     VoidJob::Status status() const;
     StorageError error() const;
 
-    static VoidJob* make_job(std::shared_ptr<ItemImpl> const& item,
+    static VoidJob* make_job(std::shared_ptr<ItemImpl> const& item_impl,
                              QString const& method,
                              QDBusPendingReply<void> const& reply);
     static VoidJob* make_job(StorageError const& e);
 
 private:
-    VoidJobImpl(std::shared_ptr<ItemImpl> const& item,
+    VoidJobImpl(std::shared_ptr<ItemImpl> const& item_impl,
                 QString const& method,
                 QDBusPendingReply<void> const& reply);
     VoidJobImpl(StorageError const& e);
@@ -60,7 +60,7 @@ private:
     VoidJob::Status status_;
     StorageError error_;
     QString method_;
-    std::shared_ptr<ItemImpl> item_;
+    std::shared_ptr<ItemImpl> item_impl_;
 };
 
 }  // namespace internal

@@ -42,7 +42,7 @@ class Q_DECL_EXPORT Downloader final : public QLocalSocket
     Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
     Q_PROPERTY(unity::storage::qt::Downloader::Status status READ status NOTIFY statusChanged FINAL)
     Q_PROPERTY(unity::storage::qt::StorageError error READ error NOTIFY statusChanged FINAL)
-    Q_PROPERTY(unity::storage::qt::Item item READ item CONSTANT FINAL)
+    Q_PROPERTY(unity::storage::qt::Item item READ item NOTIFY statusChanged FINAL)
 
 public:
     enum Status { Loading, Ready, Cancelled, Finished, Error };
