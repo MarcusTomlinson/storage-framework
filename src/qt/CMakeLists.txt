@@ -9,7 +9,7 @@ qt5_add_dbus_interface(generated_files
     ${CMAKE_SOURCE_DIR}/data/provider.xml
     ProviderInterface
 )
-set_source_files_properties(${generated_files} PROPERTIES
+set_source_files_properties(${generated_files} dbusmarshal.cpp PROPERTIES
     COMPILE_FLAGS "-Wno-ctor-dtor-privacy -Wmissing-field-initializers"
     GENERATED TRUE
 )

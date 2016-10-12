@@ -49,7 +49,7 @@ ItemJobImpl::ItemJobImpl(shared_ptr<AccountImpl> const& account_impl,
     assert(account_impl);
     assert(validate);
 
-    auto process_reply = [this](decltype(reply) const& r)
+    auto process_reply = [this](decltype(reply)& r)
     {
         auto runtime = account_impl_->runtime_impl();
         if (!runtime || !runtime->isValid())

@@ -42,6 +42,11 @@ add_library(sf-provider-objects OBJECT
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/TempfileUploadJobImpl.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/UploadJobImpl.h
 )
+
+set_source_files_properties(internal/ProviderInterface.cpp PROPERTIES
+  COMPILE_FLAGS "-Wno-ctor-dtor-privacy -Wmissing-field-initializers"
+)
+
 add_dependencies(sf-provider-objects sf-provider-generated-files)
 set_target_properties(sf-provider-objects PROPERTIES
   AUTOMOC TRUE
