@@ -55,7 +55,7 @@ UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
     assert(!method.isEmpty());
     assert(size_in_bytes >= 0);
 
-    auto process_reply = [this, method](decltype(reply) const& r)
+    auto process_reply = [this, method](decltype(reply)& r)
     {
         if (status_ != Uploader::Status::Loading)
         {
@@ -202,7 +202,7 @@ void UploaderImpl::finishUpload()
     public_instance_->disconnectFromServer();
     auto reply = item_impl_->account_impl()->provider()->FinishUpload(upload_id_);
 
-    auto process_reply = [this](decltype(reply) const& r)
+    auto process_reply = [this](decltype(reply)& r)
     {
         if (status_ == Uploader::Status::Cancelled || status_ == Uploader::Status::Error)
         {
@@ -282,7 +282,7 @@ void UploaderImpl::cancel()
         // We just send the cancel and ignore any reply because it is best-effort only.
         auto reply = item_impl_->account_impl()->provider()->CancelUpload(upload_id_);
 
-        auto process_reply = [](decltype(reply) const&)
+        auto process_reply = [](decltype(reply)&)
         {
         };
 
