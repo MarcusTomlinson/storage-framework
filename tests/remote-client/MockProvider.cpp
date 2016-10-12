@@ -422,10 +422,7 @@ boost::future<void> MockDownloadJob::finish()
     }
     if (cmd_ == "finish_download_error" || cmd_ == "finish_download_slow_error")
     {
-        cerr << "provider: returning no such item" << endl;
-        NotExistsException e("no such item", "item_id");
-        report_error(make_exception_ptr(e));
-        return make_exceptional_future<void>(e);
+        return make_exceptional_future<void>(NotExistsException("no such item", "item_id"));
     }
     return make_ready_future();
 }

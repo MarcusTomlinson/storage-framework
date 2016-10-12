@@ -68,7 +68,6 @@ class ParentsTest : public RemoteClientTest {};
 class RootsTest : public RemoteClientTest {};
 class RuntimeTest : public ProviderFixture {};
 
-#if 0
 TEST(Runtime, lifecycle)
 {
     Runtime runtime;
@@ -2492,7 +2491,7 @@ TEST_F(DownloadTest, finish_too_soon)
     EXPECT_EQ(Downloader::Status::Error, downloader->status());
     EXPECT_EQ(StorageError::LogicError, downloader->error().type());
     EXPECT_EQ("LogicError: Downloader::finishDownload(): cannot finalize while Downloader is not in the Ready state",
-              downloader->error().errorString()) << downloader->error().errorString().toStdString();
+              downloader->error().errorString());
 }
 
 TEST_F(DownloadTest, finish_runtime_destroyed)
@@ -2673,7 +2672,6 @@ TEST_F(DownloadTest, finish_error)
     EXPECT_EQ("item_id", downloader->error().itemName());
     EXPECT_EQ("NotExists", downloader->error().name());
 }
-#endif
 
 TEST_F(DownloadTest, cancel)
 {
@@ -2705,29 +2703,74 @@ TEST_F(DownloadTest, cancel)
         EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
     }
     
-    qDebug() << "setting up spy";
     QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
 
-    qDebug() << "calling finish";
     downloader->finishDownload();
 
-    qDebug() << "calling cancel";
     downloader->cancel();
     downloader->cancel();  // Second time for coverage
 
-    qDebug() << "calling finish";
-    downloader->finishDownload();
+    downloader->finishDownload();  // Second time for coverage
 
-    qDebug() << "waiting, count =" << spy.count();
     EXPECT_EQ(1, spy.count());
-    //auto arg = spy.takeFirst();
-    //EXPECT_EQ(Downloader::Status::Cancelled, qvariant_cast<Downloader::Status>(arg.at(0)));
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Downloader::Status::Cancelled, qvariant_cast<Downloader::Status>(arg.at(0)));
+
+    EXPECT_EQ(Downloader::Status::Cancelled, downloader->status());
 
     // We wait here to get coverage for when the reply to a finishDownload() call
     // finds the downloader in a final state.
-    EXPECT_FALSE(spy.wait(1000));
+    // TODO: Waiting for 500 ms here causes a hang because the completion promise in the provider handler
+    //       is never made ready, so the handler destructor hangs. See ProviderInterface::FinishDownload().
+    EXPECT_FALSE(spy.wait(2000));
+}
 
-    EXPECT_EQ(Downloader::Status::Cancelled, downloader->status());
+TEST_F(DownloadTest, cancel_runtime_destroyed)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_download_slow_error")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader());
+    EXPECT_TRUE(downloader->isValid());
+
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Ready, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+    
+    QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+
+    EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime
+
+    downloader->cancel();
+
+    if (spy.count() == 0)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Downloader::Status::Error, qvariant_cast<Downloader::Status>(arg.at(0)));
+
+    EXPECT_EQ(Downloader::Status::Error, downloader->status());
+    EXPECT_EQ(StorageError::Type::RuntimeDestroyed, downloader->error().type());
+    EXPECT_EQ("Downloader::cancel(): Runtime was destroyed previously", downloader->error().message());
 }
 
 int main(int argc, char** argv)

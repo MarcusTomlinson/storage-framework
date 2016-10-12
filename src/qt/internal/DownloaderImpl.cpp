@@ -244,7 +244,6 @@ void DownloaderImpl::cancel()
 
     public_instance_->abort();
     status_ = Downloader::Status::Cancelled;
-    qDebug() << "emitting cancelled";
     Q_EMIT public_instance_->statusChanged(status_);
 }
 
