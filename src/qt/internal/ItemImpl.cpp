@@ -201,7 +201,7 @@ ItemJob* ItemImpl::move(Item const& newParent, QString const& newName) const
             ||
             (md_.type != ItemType::file && md.type == ItemType::file))
         {
-            QString msg = method + ": source and target item type differ";
+            QString msg = method + ": provider error: source and target item type differ";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
@@ -305,7 +305,9 @@ ItemListJob* ItemImpl::list() const
     {
         if (md.type == storage::ItemType::root)
         {
-            throw StorageErrorImpl::local_comms_error(method + ": impossible root item returned by provider");
+            QString msg = method + ": impossible root item returned by provider";
+            qCritical().noquote() << msg;
+            throw StorageErrorImpl::local_comms_error(msg);
         }
     };
 
@@ -364,7 +366,9 @@ ItemJob* ItemImpl::createFolder(QString const& name) const
         {
             return;
         }
-        throw StorageErrorImpl::local_comms_error(method + ": impossible file item returned by provider");
+        QString msg = method + ": impossible file item returned by provider";
+        qCritical().noquote() << msg;
+        throw StorageErrorImpl::local_comms_error(msg);
     };
 
     auto reply = account_impl_->provider()->CreateFolder(md_.item_id, name);
