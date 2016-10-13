@@ -115,7 +115,7 @@ DownloaderImpl::~DownloaderImpl()
         case Downloader::Status::Error:
             break;
         case Downloader::Status::Ready:
-            public_instance_->abort();
+            cancel();
             break;
         default:
             abort();  // Impossible.  // LCOV_EXCL_LINE

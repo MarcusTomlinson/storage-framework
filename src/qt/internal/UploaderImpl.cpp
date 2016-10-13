@@ -124,7 +124,7 @@ UploaderImpl::~UploaderImpl()
         case Uploader::Status::Error:
             break;
         case Uploader::Status::Ready:
-            public_instance_->abort();
+            cancel();
             break;
         default:
             abort();  // Impossible.  // LCOV_EXCL_LINE

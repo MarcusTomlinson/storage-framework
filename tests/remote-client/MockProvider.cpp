@@ -268,7 +268,18 @@ boost::future<unique_ptr<UploadJob>> MockProvider::create_file(
 boost::future<unique_ptr<UploadJob>> MockProvider::update(
     string const&, int64_t, string const&, Context const&)
 {
-    return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob());
+    if (cmd_ == "upload_slow")
+    {
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+    if (cmd_ == "upload_error")
+    {
+        unique_ptr<UploadJob> job(new MockUploadJob());
+        ConflictException e("version mismatch");
+        job->report_error(make_exception_ptr(e));
+        return make_exceptional_future<unique_ptr<UploadJob>>(e);
+    }
+    return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob(cmd_));
 }
 
 boost::future<unique_ptr<DownloadJob>> MockProvider::download(
@@ -384,6 +395,19 @@ boost::future<void> MockUploadJob::cancel()
 
 boost::future<Item> MockUploadJob::finish()
 {
+    if (cmd_ == "finish_upload_slow" || cmd_ == "finish_upload_slow_error")
+    {
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+    if (cmd_ == "finish_upload_error" || cmd_ == "finish_upload_slow_error")
+    {
+        return make_exceptional_future<Item>(ResourceException("out of memory", 99));
+    }
+    if (cmd_ == "upload_returns_dir")
+    {
+        Item metadata{"some_id", { "root_id" }, "some_upload", "etag", ItemType::folder, {}};
+        return make_ready_future<Item>(metadata);
+    }
     Item metadata
     {
         "some_id", { "root_id" }, "some_upload", "etag", ItemType::file,

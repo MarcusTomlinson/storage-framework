@@ -248,7 +248,7 @@ Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInByt
     }
     if (sizeInBytes < 0)
     {
-        auto e = StorageErrorImpl::logic_error(method + ": size must be >= 0");
+        auto e = StorageErrorImpl::invalid_argument_error(method + ": size must be >= 0");
         return UploaderImpl::make_job(e);
     }
 
@@ -256,7 +256,9 @@ Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInByt
     {
         if (md.type != storage::ItemType::file)
         {
-            throw StorageErrorImpl::local_comms_error(method + ": impossible directory item returned by provider");
+            QString msg = method + ": impossible directory item returned by provider";
+            qCritical().noquote() << msg;
+            throw StorageErrorImpl::local_comms_error(msg);
         }
     };
 
