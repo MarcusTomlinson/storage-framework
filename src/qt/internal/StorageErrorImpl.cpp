@@ -169,12 +169,6 @@ StorageError StorageErrorImpl::local_comms_error(QString const& msg)
     return StorageError(move(p));
 }
 
-StorageError StorageErrorImpl::remote_comms_error(QString const& msg)
-{
-    unique_ptr<StorageErrorImpl> p(new StorageErrorImpl(StorageError::Type::RemoteCommsError, msg));
-    return StorageError(move(p));
-}
-
 StorageError StorageErrorImpl::runtime_destroyed_error(QString const& msg)
 {
     unique_ptr<StorageErrorImpl> p(new StorageErrorImpl(StorageError::Type::RuntimeDestroyed, msg));
@@ -190,18 +184,6 @@ StorageError StorageErrorImpl::not_exists_error(QString const& msg, QString cons
 StorageError StorageErrorImpl::exists_error(QString const& msg, QString const& item_id, QString const& item_name)
 {
     unique_ptr<StorageErrorImpl> p(new StorageErrorImpl(StorageError::Type::Exists, msg, item_id, item_name));
-    return StorageError(move(p));
-}
-
-StorageError StorageErrorImpl::conflict_error(QString const& msg)
-{
-    unique_ptr<StorageErrorImpl> p(new StorageErrorImpl(StorageError::Type::Conflict, msg));
-    return StorageError(move(p));
-}
-
-StorageError StorageErrorImpl::permission_error(QString const& msg)
-{
-    unique_ptr<StorageErrorImpl> p(new StorageErrorImpl(StorageError::Type::PermissionDenied, msg));
     return StorageError(move(p));
 }
 

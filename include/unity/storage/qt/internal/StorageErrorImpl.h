@@ -56,13 +56,12 @@ public:
     static StorageError make_error(StorageError::Type, QString const& msg);
 
     // Factories to make things more convenient and ensure consistency.
+    // Note that we deliberately have no factories for errors that are
+    // never created locally and can only come from the server.
     static StorageError local_comms_error(QString const& msg);
-    static StorageError remote_comms_error(QString const& msg);
     static StorageError runtime_destroyed_error(QString const& msg);
     static StorageError not_exists_error(QString const& msg, QString const& key);
     static StorageError exists_error(QString const& msg, QString const& item_id, QString const& item_name);
-    static StorageError conflict_error(QString const& msg);
-    static StorageError permission_error(QString const& msg);
     static StorageError cancelled_error(QString const& msg);
     static StorageError logic_error(QString const& msg);
     static StorageError invalid_argument_error(QString const& msg);
