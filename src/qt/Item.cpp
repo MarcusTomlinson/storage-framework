@@ -162,9 +162,12 @@ ItemJob* Item::createFolder(QString const& name) const
     return p_->createFolder(name);
 }
 
-Uploader* Item::createFile(QString const& name) const
+Uploader* Item::createFile(QString const& name,
+                           ConflictPolicy policy,
+                           qint64 sizeInBytes,
+                           QString const& contentType) const
 {
-    return p_->createFile(name);
+    return p_->createFile(name, policy, sizeInBytes, contentType);
 }
 
 IntJob* Item::freeSpaceBytes() const

@@ -108,7 +108,10 @@ public:
     Q_INVOKABLE ItemListJob* list() const;
     Q_INVOKABLE ItemListJob* lookup(QString const& name) const;
     Q_INVOKABLE ItemJob* createFolder(QString const& name) const;
-    Q_INVOKABLE Uploader* createFile(QString const& name) const;
+    Q_INVOKABLE Uploader* createFile(QString const& name,
+                                     ConflictPolicy policy,
+                                     qint64 sizeInBytes,
+                                     QString const& contentType) const;
 
     Q_INVOKABLE IntJob* freeSpaceBytes() const;
     Q_INVOKABLE IntJob* usedSpaceBytes() const;

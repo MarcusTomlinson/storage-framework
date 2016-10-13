@@ -2826,7 +2826,7 @@ TEST_F(UploadTest, basic)
     EXPECT_TRUE(uploader->isValid());
     EXPECT_EQ(Uploader::Status::Loading, uploader->status());
     EXPECT_EQ(StorageError::NoError, uploader->error().type());
-    EXPECT_EQ(child, uploader->item());
+    EXPECT_EQ(Item(), uploader->item());
     EXPECT_EQ(Item::ConflictPolicy::Overwrite, uploader->policy());
     EXPECT_EQ(contents.size(), uploader->sizeInBytes());
 
@@ -2846,6 +2846,7 @@ TEST_F(UploadTest, basic)
     EXPECT_EQ(Uploader::Status::Finished, qvariant_cast<Uploader::Status>(arg.at(0)));
 
     EXPECT_EQ(Uploader::Status::Finished, uploader->status());
+    EXPECT_EQ(child, uploader->item());
 }
 
 TEST_F(UploadTest, abandoned)

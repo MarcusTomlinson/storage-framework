@@ -158,7 +158,7 @@ qint64 UploaderImpl::sizeInBytes() const
 
 Item UploaderImpl::item() const
 {
-    if (status_ == Uploader::Status::Error || status_ == Uploader::Status::Cancelled)
+    if (status_ != Uploader::Status::Finished)
     {
         return Item();
     }

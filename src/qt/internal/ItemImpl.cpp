@@ -378,9 +378,49 @@ ItemJob* ItemImpl::createFolder(QString const& name) const
     return ItemJobImpl::make_job(This, method, reply, validate);
 }
 
-Uploader* ItemImpl::createFile(QString const& name) const
+Uploader* ItemImpl::createFile(QString const& name,
+                               Item::ConflictPolicy policy,
+                               qint64 sizeInBytes,
+                               QString const& contentType) const
 {
-    return nullptr;  // TODO
+    QString const method = "Item::createFile()";
+
+    auto invalid_job = check_invalid_or_destroyed<UploaderImpl>(method);
+    if (invalid_job)
+    {
+        return invalid_job;
+    }
+    if (md_.type == storage::ItemType::file)
+    {
+        auto e = StorageErrorImpl::logic_error(method + ": cannot create a file with a file as the parent");
+        return UploaderImpl::make_job(e);
+    }
+    if (sizeInBytes < 0)
+    {
+        auto e = StorageErrorImpl::invalid_argument_error(method + ": size must be >= 0");
+        return UploaderImpl::make_job(e);
+    }
+    if (name.isEmpty())
+    {
+        auto e = StorageErrorImpl::invalid_argument_error(method + ": name cannot be empty");
+        return UploaderImpl::make_job(e);
+    }
+    // TODO: Is contentType allowed to be empty?
+
+    auto validate = [method](storage::internal::ItemMetadata const& md)
+    {
+        if (md.type == storage::ItemType::file)
+        {
+            QString msg = method + ": impossible file item returned by provider";
+            qCritical().noquote() << msg;
+            throw StorageErrorImpl::local_comms_error(msg);
+        }
+    };
+
+    bool allow_overwrite = policy == Item::ConflictPolicy::Overwrite;
+    auto reply = account_impl_->provider()->CreateFile(md_.item_id, name, sizeInBytes, contentType, allow_overwrite);
+    auto This = const_pointer_cast<ItemImpl>(shared_from_this());
+    return UploaderImpl::make_job(This, method, reply, validate, policy, sizeInBytes);
 }
 
 IntJob* ItemImpl::freeSpaceBytes() const

@@ -410,7 +410,7 @@ boost::future<Item> MockUploadJob::finish()
     }
     Item metadata
     {
-        "some_id", { "root_id" }, "some_upload", "etag", ItemType::file,
+        "child_id", { "root_id" }, "some_upload", "etag", ItemType::file,
         { { SIZE_IN_BYTES, 10 }, { LAST_MODIFIED_TIME, "2011-04-05T14:30:10.005Z" } }
     };
     return make_ready_future(metadata);

@@ -68,6 +68,10 @@ public:
     ItemListJob* lookup(QString const& name) const;
     ItemJob* createFolder(QString const& name) const;
     Uploader* createFile(QString const& name) const;
+    Uploader* createFile(QString const& name,
+                         Item::ConflictPolicy policy,
+                         qint64 sizeInBytes,
+                         QString const& contentType) const;
     IntJob* freeSpaceBytes() const;
     IntJob* usedSpaceBytes() const;
 
