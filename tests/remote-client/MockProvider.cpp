@@ -403,6 +403,11 @@ boost::future<Item> MockUploadJob::finish()
     {
         return make_exceptional_future<Item>(ResourceException("out of memory", 99));
     }
+    if (cmd_ == "create_file_exists")
+    {
+        ExistsException e("file exists", "child_id", "Child");
+        return make_exceptional_future<Item>(e);
+    }
     if (cmd_ == "upload_returns_dir")
     {
         Item metadata{"some_id", { "root_id" }, "some_upload", "etag", ItemType::folder, {}};
