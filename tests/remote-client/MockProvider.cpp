@@ -262,7 +262,7 @@ boost::future<unique_ptr<UploadJob>> MockProvider::create_file(
     string const&, string const&,
     int64_t, string const&, bool, Context const&)
 {
-    return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob());
+    return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob(cmd_));
 }
 
 boost::future<unique_ptr<UploadJob>> MockProvider::update(

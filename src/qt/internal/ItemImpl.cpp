@@ -243,7 +243,7 @@ Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInByt
     }
     if (md_.type != storage::ItemType::file)
     {
-        auto e = StorageErrorImpl::logic_error(method + ": cannot upload to a directory");
+        auto e = StorageErrorImpl::logic_error(method + ": cannot upload to a folder");
         return UploaderImpl::make_job(e);
     }
     if (sizeInBytes < 0)
@@ -256,7 +256,7 @@ Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInByt
     {
         if (md.type != storage::ItemType::file)
         {
-            QString msg = method + ": impossible directory item returned by provider";
+            QString msg = method + ": impossible folder item returned by provider";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
@@ -279,7 +279,7 @@ Downloader* ItemImpl::createDownloader() const
     }
     if (md_.type != storage::ItemType::file)
     {
-        auto e = StorageErrorImpl::logic_error(method + ": cannot download a directory");
+        auto e = StorageErrorImpl::logic_error(method + ": cannot download a folder");
         return DownloaderImpl::make_job(e);
     }
 
@@ -405,13 +405,13 @@ Uploader* ItemImpl::createFile(QString const& name,
         auto e = StorageErrorImpl::invalid_argument_error(method + ": name cannot be empty");
         return UploaderImpl::make_job(e);
     }
-    // TODO: Is contentType allowed to be empty?
+    // contentType can be empty, so not checked here.
 
     auto validate = [method](storage::internal::ItemMetadata const& md)
     {
-        if (md.type == storage::ItemType::file)
+        if (md.type != storage::ItemType::file)
         {
-            QString msg = method + ": impossible file item returned by provider";
+            QString msg = method + ": impossible folder item returned by provider";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
