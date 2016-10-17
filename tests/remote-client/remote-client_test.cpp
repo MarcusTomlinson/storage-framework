@@ -3734,7 +3734,7 @@ TEST_F(CreateFileTest, exists)
 
     QByteArray contents("Hello world", -1);
     unique_ptr<Uploader> uploader(root.createFile("Child",
-                                                   Item::ConflictPolicy::Overwrite,
+                                                   Item::ConflictPolicy::ErrorIfConflict,
                                                    contents.size(),
                                                    ""));
     EXPECT_TRUE(uploader->isValid());
@@ -3758,6 +3758,7 @@ TEST_F(CreateFileTest, exists)
     EXPECT_EQ("file exists", uploader->error().message());
     EXPECT_EQ("child_id", uploader->error().itemId());
     EXPECT_EQ("Child", uploader->error().itemName());
+    EXPECT_EQ(Item::ConflictPolicy::ErrorIfConflict, uploader->policy());
 }
 
 int main(int argc, char** argv)
