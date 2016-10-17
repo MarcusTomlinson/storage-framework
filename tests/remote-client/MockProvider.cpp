@@ -262,7 +262,7 @@ boost::future<unique_ptr<UploadJob>> MockProvider::create_file(
     string const&, string const&,
     int64_t, string const&, bool, Context const&)
 {
-    return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob());
+    return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob(cmd_));
 }
 
 boost::future<unique_ptr<UploadJob>> MockProvider::update(
@@ -403,6 +403,11 @@ boost::future<Item> MockUploadJob::finish()
     {
         return make_exceptional_future<Item>(ResourceException("out of memory", 99));
     }
+    if (cmd_ == "create_file_exists")
+    {
+        ExistsException e("file exists", "child_id", "Child");
+        return make_exceptional_future<Item>(e);
+    }
     if (cmd_ == "upload_returns_dir")
     {
         Item metadata{"some_id", { "root_id" }, "some_upload", "etag", ItemType::folder, {}};
@@ -410,7 +415,7 @@ boost::future<Item> MockUploadJob::finish()
     }
     Item metadata
     {
-        "some_id", { "root_id" }, "some_upload", "etag", ItemType::file,
+        "child_id", { "root_id" }, "some_upload", "etag", ItemType::file,
         { { SIZE_IN_BYTES, 10 }, { LAST_MODIFIED_TIME, "2011-04-05T14:30:10.005Z" } }
     };
     return make_ready_future(metadata);

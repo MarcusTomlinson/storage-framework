@@ -58,6 +58,7 @@ class RuntimeTest : public ProviderFixture {};
 
 class AccountTest : public RemoteClientTest {};
 class CopyTest : public RemoteClientTest {};
+class CreateFileTest : public RemoteClientTest {};
 class CreateFolderTest : public RemoteClientTest {};
 class DeleteTest : public RemoteClientTest {};
 class DownloadTest : public RemoteClientTest {};
@@ -2691,7 +2692,7 @@ TEST_F(DownloadTest, wrong_type)
     EXPECT_FALSE(downloader->isValid());
     EXPECT_EQ(Downloader::Status::Error, downloader->status());
     EXPECT_EQ(StorageError::Type::LogicError, downloader->error().type());
-    EXPECT_EQ("Item::createDownloader(): cannot download a directory", downloader->error().message());
+    EXPECT_EQ("Item::createDownloader(): cannot download a folder", downloader->error().message());
 
     {
         QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
@@ -2826,7 +2827,7 @@ TEST_F(UploadTest, basic)
     EXPECT_TRUE(uploader->isValid());
     EXPECT_EQ(Uploader::Status::Loading, uploader->status());
     EXPECT_EQ(StorageError::NoError, uploader->error().type());
-    EXPECT_EQ(child, uploader->item());
+    EXPECT_EQ(Item(), uploader->item());
     EXPECT_EQ(Item::ConflictPolicy::Overwrite, uploader->policy());
     EXPECT_EQ(contents.size(), uploader->sizeInBytes());
 
@@ -2846,6 +2847,7 @@ TEST_F(UploadTest, basic)
     EXPECT_EQ(Uploader::Status::Finished, qvariant_cast<Uploader::Status>(arg.at(0)));
 
     EXPECT_EQ(Uploader::Status::Finished, uploader->status());
+    EXPECT_EQ(child, uploader->item());
 }
 
 TEST_F(UploadTest, abandoned)
@@ -3237,7 +3239,7 @@ TEST_F(UploadTest, wrong_type)
     EXPECT_FALSE(uploader->isValid());
     EXPECT_EQ(Uploader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::Type::LogicError, uploader->error().type());
-    EXPECT_EQ("Item::createUploader(): cannot upload to a directory", uploader->error().message());
+    EXPECT_EQ("Item::createUploader(): cannot upload to a folder", uploader->error().message());
 
     {
         QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
@@ -3319,7 +3321,7 @@ TEST_F(UploadTest, wrong_return_type)
 
     EXPECT_EQ(Uploader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::Type::LocalCommsError, uploader->error().type());
-    EXPECT_EQ("Item::createUploader(): impossible directory item returned by provider", uploader->error().message());
+    EXPECT_EQ("Item::createUploader(): impossible folder item returned by provider", uploader->error().message());
 }
 
 TEST_F(UploadTest, cancel_success)
@@ -3465,6 +3467,298 @@ TEST_F(UploadTest, cancel_runtime_destroyed)
     EXPECT_EQ(Uploader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::Type::RuntimeDestroyed, uploader->error().type());
     EXPECT_EQ("Uploader::cancel(): Runtime was destroyed previously", uploader->error().message());
+}
+
+TEST_F(CreateFileTest, basic)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QByteArray contents("Hello world", -1);
+    unique_ptr<Uploader> uploader(root.createFile("Child",
+                                                  Item::ConflictPolicy::Overwrite,
+                                                  contents.size(),
+                                                  ""));
+    EXPECT_TRUE(uploader->isValid());
+    EXPECT_EQ(Uploader::Status::Loading, uploader->status());
+    EXPECT_EQ(StorageError::NoError, uploader->error().type());
+    EXPECT_EQ(Item(), uploader->item());
+    EXPECT_EQ(Item::ConflictPolicy::Overwrite, uploader->policy());
+    EXPECT_EQ(contents.size(), uploader->sizeInBytes());
+
+    {
+        QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Uploader::Status::Ready, qvariant_cast<Uploader::Status>(arg.at(0)));
+    }
+
+    EXPECT_EQ(contents.size(), uploader->write(contents));
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    uploader->finishUpload();
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Uploader::Status::Finished, qvariant_cast<Uploader::Status>(arg.at(0)));
+
+    EXPECT_EQ(Uploader::Status::Finished, uploader->status());
+    EXPECT_EQ(child, uploader->item());
+}
+
+TEST_F(CreateFileTest, runtime_destroyed)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime
+
+    QByteArray contents("Hello world", -1);
+    unique_ptr<Uploader> uploader(root.createFile("Child",
+                                                  Item::ConflictPolicy::Overwrite,
+                                                  contents.size(),
+                                                  ""));
+    EXPECT_FALSE(uploader->isValid());
+    EXPECT_EQ(Uploader::Status::Error, uploader->status());
+    EXPECT_EQ(StorageError::Type::RuntimeDestroyed, uploader->error().type());
+    EXPECT_EQ("Item::createFile(): Runtime was destroyed previously", uploader->error().message());
+
+    // Signal must be received.
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Uploader::Status::Error, qvariant_cast<Uploader::Status>(arg.at(0)));
+}
+
+TEST_F(CreateFileTest, wrong_type)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QByteArray contents("Hello world", -1);
+    unique_ptr<Uploader> uploader(child.createFile("somefile",
+                                                   Item::ConflictPolicy::Overwrite,
+                                                   contents.size(),
+                                                   ""));
+    EXPECT_FALSE(uploader->isValid());
+    EXPECT_EQ(Uploader::Status::Error, uploader->status());
+    EXPECT_EQ(StorageError::Type::LogicError, uploader->error().type());
+    EXPECT_EQ("Item::createFile(): cannot create a file with a file as the parent", uploader->error().message());
+
+    // Signal must be received.
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Uploader::Status::Error, qvariant_cast<Uploader::Status>(arg.at(0)));
+}
+
+TEST_F(CreateFileTest, bad_name)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QByteArray contents("Hello world", -1);
+    unique_ptr<Uploader> uploader(root.createFile("",
+                                                   Item::ConflictPolicy::Overwrite,
+                                                   contents.size(),
+                                                   ""));
+    EXPECT_FALSE(uploader->isValid());
+    EXPECT_EQ(Uploader::Status::Error, uploader->status());
+    EXPECT_EQ(StorageError::Type::InvalidArgument, uploader->error().type());
+    EXPECT_EQ("Item::createFile(): name cannot be empty", uploader->error().message());
+
+    // Signal must be received.
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Uploader::Status::Error, qvariant_cast<Uploader::Status>(arg.at(0)));
+}
+
+TEST_F(CreateFileTest, bad_size)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QByteArray contents("Hello world", -1);
+    unique_ptr<Uploader> uploader(root.createFile("some_file",
+                                                   Item::ConflictPolicy::Overwrite,
+                                                   -1,
+                                                   ""));
+    EXPECT_FALSE(uploader->isValid());
+    EXPECT_EQ(Uploader::Status::Error, uploader->status());
+    EXPECT_EQ(StorageError::Type::InvalidArgument, uploader->error().type());
+    EXPECT_EQ("Item::createFile(): size must be >= 0", uploader->error().message());
+
+    // Signal must be received.
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+    ASSERT_EQ(1, spy.count());
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Uploader::Status::Error, qvariant_cast<Uploader::Status>(arg.at(0)));
+}
+
+TEST_F(CreateFileTest, bad_return_type)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("upload_returns_dir")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QByteArray contents("Hello world", -1);
+    unique_ptr<Uploader> uploader(root.createFile("some_file",
+                                                   Item::ConflictPolicy::Overwrite,
+                                                   contents.size(),
+                                                   ""));
+    EXPECT_TRUE(uploader->isValid());
+
+    {
+        QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Uploader::Status::Ready, qvariant_cast<Uploader::Status>(arg.at(0)));
+    }
+
+    EXPECT_EQ(contents.size(), uploader->write(contents));
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    uploader->finishUpload();
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Uploader::Status::Error, qvariant_cast<Uploader::Status>(arg.at(0)));
+
+    EXPECT_EQ(StorageError::Type::LocalCommsError, uploader->error().type());
+    EXPECT_EQ("Item::createFile(): impossible folder item returned by provider", uploader->error().message());
+}
+
+TEST_F(CreateFileTest, exists)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("create_file_exists")));
+
+    Item root;
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        root = j->item();
+    }
+
+    QByteArray contents("Hello world", -1);
+    unique_ptr<Uploader> uploader(root.createFile("Child",
+                                                   Item::ConflictPolicy::ErrorIfConflict,
+                                                   contents.size(),
+                                                   ""));
+    EXPECT_TRUE(uploader->isValid());
+
+    {
+        QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Uploader::Status::Ready, qvariant_cast<Uploader::Status>(arg.at(0)));
+    }
+
+    EXPECT_EQ(contents.size(), uploader->write(contents));
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    uploader->finishUpload();
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Uploader::Status::Error, qvariant_cast<Uploader::Status>(arg.at(0)));
+
+    EXPECT_EQ(StorageError::Type::Exists, uploader->error().type());
+    EXPECT_EQ("file exists", uploader->error().message());
+    EXPECT_EQ("child_id", uploader->error().itemId());
+    EXPECT_EQ("Child", uploader->error().itemName());
+    EXPECT_EQ(Item::ConflictPolicy::ErrorIfConflict, uploader->policy());
 }
 
 int main(int argc, char** argv)
