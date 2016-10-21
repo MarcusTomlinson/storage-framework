@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <unity/storage/qt/MetadataKeys.h>
 #include <unity/storage/visibility.h>
 
 #pragma GCC diagnostic push

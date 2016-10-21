@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <unity/storage/qt/MetadataKeys.h>
+
 #include <QList>
 #include <QMetaType>
 #include <QString>
@@ -62,8 +64,8 @@ public:
     QString ownerId() const;
     QString description() const;
 
-    Q_INVOKABLE ItemListJob* roots() const;
-    Q_INVOKABLE ItemJob* get(QString const& itemId) const;
+    Q_INVOKABLE ItemListJob* roots(MetadataKeys const& keys = MetadataKeys()) const;
+    Q_INVOKABLE ItemJob* get(QString const& itemId, MetadataKeys const& keys = MetadataKeys()) const;
 
     bool operator==(Account const&) const;
     bool operator!=(Account const&) const;

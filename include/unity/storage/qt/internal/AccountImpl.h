@@ -51,8 +51,8 @@ public:
     QString owner() const;
     QString description() const;
 
-    ItemListJob* roots() const;
-    ItemJob* get(QString const& itemId) const;
+    ItemListJob* roots(MetadataKeys const& keys) const;
+    ItemJob* get(QString const& itemId, MetadataKeys const& keys) const;
 
     bool operator==(AccountImpl const&) const;
     bool operator!=(AccountImpl const&) const;

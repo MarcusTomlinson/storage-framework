@@ -95,7 +95,7 @@ QFuture<shared_ptr<Item>> ItemImpl::copy(shared_ptr<Folder> const& new_parent, Q
     }
 
     auto prov = provider();
-    auto reply = prov->Copy(md_.item_id, new_parent->native_identity(), new_name);
+    auto reply = prov->Copy(md_.item_id, new_parent->native_identity(), new_name, QList<QString>());
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Item>>& qf)
     {
@@ -160,7 +160,7 @@ QFuture<shared_ptr<Item>> ItemImpl::move(shared_ptr<Folder> const& new_parent, Q
     {
         return make_exceptional_future<shared_ptr<Item>>(RuntimeDestroyedException("Item::move()"));
     }
-    auto reply = prov->Move(md_.item_id, new_parent->native_identity(), new_name);
+    auto reply = prov->Move(md_.item_id, new_parent->native_identity(), new_name, QList<QString>());
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<std::shared_ptr<Item>>& qf)
     {

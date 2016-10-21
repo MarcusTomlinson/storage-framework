@@ -19,6 +19,7 @@
 #pragma once
 
 #include <unity/storage/common.h>
+#include <unity/storage/qt/MetadataKeys.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
@@ -97,21 +98,28 @@ public:
     QDateTime lastModifiedTime() const;
     QList<QString> parentIds() const;
 
-    Q_INVOKABLE ItemListJob* parents() const;
-    Q_INVOKABLE ItemJob* copy(Item const& newParent, QString const& newName) const;
-    Q_INVOKABLE ItemJob* move(Item const& newParent, QString const& newName) const;
+    Q_INVOKABLE ItemListJob* parents(MetadataKeys const& keys = MetadataKeys()) const;
+    Q_INVOKABLE ItemJob* copy(Item const& newParent,
+                              QString const& newName,
+                              MetadataKeys const& keys = MetadataKeys()) const;
+    Q_INVOKABLE ItemJob* move(Item const& newParent,
+                              QString const& newName,
+                              MetadataKeys const& keys = MetadataKeys()) const;
     Q_INVOKABLE VoidJob* deleteItem() const;
 
-    Q_INVOKABLE Uploader* createUploader(ConflictPolicy policy, qint64 sizeInBytes) const;
+    Q_INVOKABLE Uploader* createUploader(ConflictPolicy policy,
+                                         qint64 sizeInBytes,
+                                         MetadataKeys const& keys = MetadataKeys()) const;
     Q_INVOKABLE Downloader* createDownloader() const;
 
-    Q_INVOKABLE ItemListJob* list() const;
-    Q_INVOKABLE ItemListJob* lookup(QString const& name) const;
-    Q_INVOKABLE ItemJob* createFolder(QString const& name) const;
+    Q_INVOKABLE ItemListJob* list(MetadataKeys const& keys = MetadataKeys()) const;
+    Q_INVOKABLE ItemListJob* lookup(QString const& name, MetadataKeys const& = MetadataKeys()) const;
+    Q_INVOKABLE ItemJob* createFolder(QString const& name, MetadataKeys const& = MetadataKeys()) const;
     Q_INVOKABLE Uploader* createFile(QString const& name,
                                      ConflictPolicy policy,
                                      qint64 sizeInBytes,
-                                     QString const& contentType) const;
+                                     QString const& contentType,
+                                     MetadataKeys const& keys = MetadataKeys()) const;
 
     Q_INVOKABLE IntJob* freeSpaceBytes() const;
     Q_INVOKABLE IntJob* usedSpaceBytes() const;

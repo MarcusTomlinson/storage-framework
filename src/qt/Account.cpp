@@ -93,14 +93,14 @@ QString Account::description() const
     return p_->description();
 }
 
-ItemListJob* Account::roots() const
+ItemListJob* Account::roots(MetadataKeys const& keys) const
 {
-    return p_->roots();
+    return p_->roots(keys);
 }
 
-ItemJob* Account::get(QString const& itemId) const
+ItemJob* Account::get(QString const& itemId, MetadataKeys const& keys) const
 {
-    return p_->get(itemId);
+    return p_->get(itemId, keys);
 }
 
 bool Account::operator==(Account const& other) const
