@@ -2,6 +2,7 @@ storage-framework (0.2) UNRELEASED; urgency=medium
 
   [ Michi Henning ]
   * Added v2 of the client-side API.
+  * Updated server-side API to tell the provider which metadata to return. Bumped API version.
 
  -- Michi Henning <michi.henning@canonical.com>  Wed, 21 Sep 2016 14:36:15 +1000
 

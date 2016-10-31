@@ -8,11 +8,11 @@ cmake_minimum_required(VERSION 3.0.2)
 project(storage-framework VERSION "0.2" LANGUAGES C CXX)
 
 # These variables should be incremented when we wish to create a new
-# source incompatible version of the the library where users of the
+# source incompatible version of the library where users of the
 # old API will not compile against the new one.  It is not
 # necessary to increment this for ABI breaks that are source compatible.
 set(SF_CLIENT_API_VERSION "2")
-set(SF_PROVIDER_API_VERSION "1")
+set(SF_PROVIDER_API_VERSION "2")
 
 # These two should be incremented when the ABI changes.
 set(SF_CLIENT_SOVERSION "0")
