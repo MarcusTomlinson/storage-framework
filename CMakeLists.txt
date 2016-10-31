@@ -12,7 +12,7 @@ project(storage-framework VERSION "0.2" LANGUAGES C CXX)
 # old API will not compile against the new one.  It is not
 # necessary to increment this for ABI breaks that are source compatible.
 set(SF_CLIENT_API_VERSION "2")
-set(SF_PROVIDER_API_VERSION "2")
+set(SF_PROVIDER_API_VERSION "1")
 
 # These two should be incremented when the ABI changes.
 set(SF_CLIENT_SOVERSION "0")
