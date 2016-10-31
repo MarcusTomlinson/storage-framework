@@ -19,7 +19,7 @@
 #include <unity/storage/qt/internal/ItemImpl.h>
 
 #include "ProviderInterface.h"
-#include <unity/storage/provider/metadata_keys.h>
+#include <unity/storage/common.h>
 #include <unity/storage/qt/internal/DownloaderImpl.h>
 #include <unity/storage/qt/internal/ItemJobImpl.h>
 #include <unity/storage/qt/internal/ItemListJobImpl.h>
@@ -102,7 +102,7 @@ QVariantMap ItemImpl::metadata() const
 
 QDateTime ItemImpl::lastModifiedTime() const
 {
-    return is_valid_ ? QDateTime::fromString(md_.metadata.value(provider::LAST_MODIFIED_TIME).toString(), Qt::ISODate)
+    return is_valid_ ? QDateTime::fromString(md_.metadata.value(metadata::LAST_MODIFIED_TIME).toString(), Qt::ISODate)
                      : QDateTime();
 }
 

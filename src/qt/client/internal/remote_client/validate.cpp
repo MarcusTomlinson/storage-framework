@@ -18,7 +18,7 @@
 
 #include <unity/storage/internal/ItemMetadata.h>
 
-#include <unity/storage/provider/metadata_keys.h>
+#include <unity/storage/internal/metadata_keys.h>
 #include <unity/storage/qt/client/Exceptions.h>
 
 #include <QDateTime>
@@ -48,9 +48,9 @@ namespace
 
 void validate_type_and_value(QString const& prefix,
                              QMapIterator<QString, QVariant> actual,
-                             unordered_map<string, provider::MetadataType>::const_iterator known)
+                             unordered_map<string, metadata::MetadataType>::const_iterator known)
 {
-    using namespace unity::storage::provider;
+    using namespace unity::storage::metadata;
 
     switch (known->second)
     {
@@ -95,7 +95,7 @@ void validate_type_and_value(QString const& prefix,
 
 void validate(QString const& method, ItemMetadata const& md)
 {
-    using namespace unity::storage::provider;
+    using namespace unity::storage::metadata;
 
     QString prefix = method + ": received invalid metadata from server: ";
 
@@ -150,13 +150,13 @@ void validate(QString const& method, ItemMetadata const& md)
     // Sanity check metadata to make sure that mandatory fields are present.
     if (md.type == ItemType::file)
     {
-        if (!md.metadata.contains(SIZE_IN_BYTES))
+        if (!md.metadata.contains(metadata::SIZE_IN_BYTES))
         {
-            throw LocalCommsException(prefix + "missing key " + SIZE_IN_BYTES + " in metadata for " + md.item_id);
+            throw LocalCommsException(prefix + "missing key " + metadata::SIZE_IN_BYTES + " in metadata for " + md.item_id);
         }
-        if (!md.metadata.contains(LAST_MODIFIED_TIME))
+        if (!md.metadata.contains(metadata::LAST_MODIFIED_TIME))
         {
-            throw LocalCommsException(prefix + "missing key " + LAST_MODIFIED_TIME + " in metadata for " + md.item_id);
+            throw LocalCommsException(prefix + "missing key " + metadata::LAST_MODIFIED_TIME + " in metadata for " + md.item_id);
         }
     }
 }

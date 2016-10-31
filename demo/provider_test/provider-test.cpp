@@ -16,9 +16,9 @@
  * Authors: James Henstridge <james.henstridge@canonical.com>
  */
 
+#include <unity/storage/common.h>
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/Exceptions.h>
-#include <unity/storage/provider/metadata_keys.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/Server.h>
 #include <unity/storage/provider/TempfileUploadJob.h>
@@ -128,7 +128,7 @@ boost::future<tuple<ItemList,string>> MyProvider::list(
     {
         {
             "child_id", { "root_id" }, "Child", "etag", ItemType::file,
-            { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+            { { metadata::SIZE_IN_BYTES, 0 }, { metadata::LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
         }
     };
     boost::promise<tuple<ItemList,string>> p;
@@ -154,7 +154,7 @@ boost::future<ItemList> MyProvider::lookup(
     ItemList children =
     {
         { "child_id", { "root_id" }, "Child", "etag", ItemType::file,
-          { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } } }
+          { { metadata::SIZE_IN_BYTES, 0 }, { metadata::LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } } }
     };
     return make_ready_future<ItemList>(children);
 }
@@ -175,7 +175,7 @@ boost::future<Item> MyProvider::metadata(string const& item_id,
         Item metadata
         {
             "child_id", { "root_id" }, "Child", "etag", ItemType::file,
-            { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+            { { metadata::SIZE_IN_BYTES, 0 }, { metadata::LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
         };
         return make_ready_future<Item>(metadata);
     }
@@ -289,7 +289,7 @@ boost::future<Item> MyUploadJob::finish()
     Item metadata
     {
         "some_id", { "root_id" }, "some_upload", "etag", ItemType::file,
-        { { SIZE_IN_BYTES, 10 }, { LAST_MODIFIED_TIME, "2011-04-05T14:30:10.005Z" } }
+        { { metadata::SIZE_IN_BYTES, 10 }, { metadata::LAST_MODIFIED_TIME, "2011-04-05T14:30:10.005Z" } }
     };
     return make_ready_future(metadata);
 }

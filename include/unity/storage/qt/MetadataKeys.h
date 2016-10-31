@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <unity/storage/common.h>
+
 #include <QList>
 #include <QString>
 
@@ -29,6 +31,8 @@ namespace qt
 {
 
 typedef QList<QString> MetadataKeys;
+
+static MetadataKeys const ALL_METADATA = { metadata::ALL };
 
 }  // namespace qt
 }  // namespace storage
