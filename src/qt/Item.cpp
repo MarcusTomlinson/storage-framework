@@ -171,16 +171,6 @@ Uploader* Item::createFile(QString const& name,
     return p_->createFile(name, policy, sizeInBytes, contentType, keys);
 }
 
-IntJob* Item::freeSpaceBytes() const
-{
-    return p_->freeSpaceBytes();
-}
-
-IntJob* Item::usedSpaceBytes() const
-{
-    return p_->usedSpaceBytes();
-}
-
 bool Item::operator==(Item const& other) const
 {
     return p_->operator==(*other.p_);

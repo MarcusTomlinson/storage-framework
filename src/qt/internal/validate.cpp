@@ -123,13 +123,16 @@ void validate(QString const& method, ItemMetadata const& md)
     {
         throw StorageErrorImpl::local_comms_error(prefix + "metadata: parent_ids of root must be empty");
     }
-    if (md.name.isEmpty())
+    if (md.type != ItemType::root)  // Dropbox does not support metadata for roots.
     {
-        throw StorageErrorImpl::local_comms_error(prefix + "name cannot be empty");
-    }
-    if (md.etag.isEmpty())
-    {
-        throw StorageErrorImpl::local_comms_error(prefix + "etag cannot be empty");
+        if (md.name.isEmpty())
+        {
+            throw StorageErrorImpl::local_comms_error(prefix + "name cannot be empty");
+        }
+        if (md.etag.isEmpty())
+        {
+            throw StorageErrorImpl::local_comms_error(prefix + "etag cannot be empty");
+        }
     }
 
     // Sanity check metadata to make sure only known metadata keys appear.

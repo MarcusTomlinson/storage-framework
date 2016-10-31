@@ -121,9 +121,6 @@ public:
                                      QString const& contentType,
                                      MetadataKeys const& keys = MetadataKeys()) const;
 
-    Q_INVOKABLE IntJob* freeSpaceBytes() const;
-    Q_INVOKABLE IntJob* usedSpaceBytes() const;
-
     bool operator==(Item const&) const;
     bool operator!=(Item const&) const;
     bool operator<(Item const&) const;
