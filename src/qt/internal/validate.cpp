@@ -75,14 +75,25 @@ void validate_type_and_value(QString const& prefix,
             }
             break;
         }
-        case MetadataType::int64:
+        case MetadataType::non_zero_pos_int64:
         {
-            if (actual.value().type() != QVariant::LongLong)
+            auto variant = actual.value();
+            if (variant.type() != QVariant::LongLong)
             {
                 QString msg = prefix + actual.key() + ": expected value of type LongLong, but received value of type "
-                              + actual.value().typeName();
+                              + variant.typeName();
                 throw StorageErrorImpl::local_comms_error(msg);
             }
+            qint64 val = variant.toLongLong();
+            if (val < 0)
+            {
+                QString msg = prefix + actual.key() + ": expected value >= 0, but received " + val;
+            }
+            break;
+        }
+        case MetadataType::string:
+        case MetadataType::boolean:
+        {
             break;
         }
         default:

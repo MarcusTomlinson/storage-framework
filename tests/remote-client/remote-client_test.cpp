@@ -66,6 +66,7 @@ class GetTest : public RemoteClientTest {};
 class ItemTest : public RemoteClientTest {};
 class ListTest : public RemoteClientTest {};
 class LookupTest : public RemoteClientTest {};
+class MetadataTest : public RemoteClientTest {};
 class MoveTest : public RemoteClientTest {};
 class ParentsTest : public RemoteClientTest {};
 class RootsTest : public RemoteClientTest {};
@@ -635,6 +636,37 @@ TEST_F(GetTest, no_such_id)
     EXPECT_EQ("no_such_id", j->error().itemId());
 }
 
+TEST_F(MetadataTest, basic)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    {
+        Item i;
+        EXPECT_EQ(0, i.metadata().size());
+    }
+
+    {
+        unique_ptr<ItemJob> j(acc_.get("root_id"));
+
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+
+        EXPECT_EQ(0, j->item().sizeInBytes());
+        EXPECT_EQ(0, j->item().metadata().size());
+    }
+
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+
+        EXPECT_EQ(10, j->item().sizeInBytes());
+        EXPECT_EQ(2, j->item().metadata().size());
+    }
+    // TODO: need more tests for invalid metadata
+}
+
 TEST_F(DeleteTest, basic)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider));
@@ -817,6 +849,8 @@ TEST_F(ItemTest, basic)
         EXPECT_EQ("", i.name());
         EXPECT_EQ("", i.etag());
         EXPECT_EQ(Item::Type::File, i.type());
+        EXPECT_EQ(0, i.metadata().size());
+        EXPECT_EQ(0, i.sizeInBytes());
         auto mtime = i.lastModifiedTime();
         EXPECT_FALSE(mtime.isValid());
         auto pids = i.parentIds();
@@ -834,6 +868,7 @@ TEST_F(ItemTest, basic)
         EXPECT_TRUE(i.isValid());
         EXPECT_EQ("child_id", i.itemId());
         EXPECT_EQ("Child", i.name());
+        EXPECT_EQ(10, i.sizeInBytes());
         EXPECT_TRUE(i.account().isValid());
         EXPECT_EQ("etag", i.etag());
         EXPECT_EQ(Item::Type::File, i.type());

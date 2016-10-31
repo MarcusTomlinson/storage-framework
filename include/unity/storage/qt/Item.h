@@ -95,6 +95,7 @@ public:
     QString etag() const;
     Type type() const;
     QVariantMap metadata() const;
+    qint64 sizeInBytes() const;
     QDateTime lastModifiedTime() const;
     QList<QString> parentIds() const;
 

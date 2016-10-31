@@ -75,13 +75,18 @@ void validate_type_and_value(QString const& prefix,
             }
             break;
         }
-        case MetadataType::int64:
+        case MetadataType::non_zero_pos_int64:
         {
             if (actual.value().type() != QVariant::LongLong)
             {
                 throw LocalCommsException(prefix + actual.key() + ": expected value of type LongLong, "
                                           " but received value of type " + actual.value().typeName());
             }
+            break;
+        }
+        case MetadataType::string:
+        case MetadataType::boolean:
+        {
             break;
         }
         default:
