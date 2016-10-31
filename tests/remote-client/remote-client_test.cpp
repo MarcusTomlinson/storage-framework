@@ -346,6 +346,8 @@ TEST_F(AccountTest, accounts)
     EXPECT_EQ(AccountsJob::Status::Finished, j->status());
     EXPECT_EQ(StorageError::Type::NoError, j->error().type());
 
+    EXPECT_TRUE(runtime_->connection().isConnected());  // Just for coverage.
+
     auto accounts = j->accounts();
 
     // We don't check the contents of accounts here because we are using the real online accounts manager
@@ -664,7 +666,173 @@ TEST_F(MetadataTest, basic)
         EXPECT_EQ(10, j->item().sizeInBytes());
         EXPECT_EQ(2, j->item().metadata().size());
     }
-    // TODO: need more tests for invalid metadata
+}
+
+TEST_F(MetadataTest, no_parents)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("no_parents")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
+              "file or folder must have at least one parent ID", j->error().errorString());
+}
+
+TEST_F(MetadataTest, empty_parent)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("empty_parent")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
+              "parent_id of file or folder cannot be empty", j->error().errorString());
+}
+
+TEST_F(MetadataTest, root_with_parent)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("root_with_parent")));
+
+    unique_ptr<ItemJob> j(acc_.get("root_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
+              "parent_ids of root must be empty", j->error().errorString());
+}
+
+TEST_F(MetadataTest, empty_name)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("empty_name")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
+              "name cannot be empty", j->error().errorString());
+}
+
+TEST_F(MetadataTest, empty_etag)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("empty_etag")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
+              "etag cannot be empty", j->error().errorString());
+}
+
+TEST_F(MetadataTest, unknown_key)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("unknown_key")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    // We only emit a warning for unknown keys.
+    EXPECT_EQ(ItemJob::Status::Finished, j->status());
+}
+
+TEST_F(MetadataTest, missing_size)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("missing_key")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
+              "missing key \"size_in_bytes\" in metadata for \"child_id\"", j->error().errorString());
+}
+
+TEST_F(MetadataTest, wrong_type_for_time)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("wrong_type_for_time")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: last_modified_time: "
+              "expected value of type QString, but received value of type qlonglong", j->error().errorString());
+}
+
+TEST_F(MetadataTest, bad_parse_for_time)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("bad_parse_for_time")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: last_modified_time: "
+              "value \"xyz\" does not parse as ISO-8601 date", j->error().errorString());
+}
+
+TEST_F(MetadataTest, missing_timezone)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("missing_timezone")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: last_modified_time: "
+              "value \"2007-04-05T14:30\" lacks a time zone specification", j->error().errorString());
+}
+
+TEST_F(MetadataTest, wrong_type_for_size)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("wrong_type_for_size")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: size_in_bytes: "
+              "expected value of type qlonglong, but received value of type QString", j->error().errorString());
+}
+
+TEST_F(MetadataTest, negative_size)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("negative_size")));
+
+    unique_ptr<ItemJob> j(acc_.get("child_id"));
+
+    QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+    spy.wait(SIGNAL_WAIT_TIME);
+
+    EXPECT_EQ(ItemJob::Status::Error, j->status());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: size_in_bytes: "
+              "expected value >= 0, but received -1", j->error().errorString());
 }
 
 TEST_F(DeleteTest, basic)

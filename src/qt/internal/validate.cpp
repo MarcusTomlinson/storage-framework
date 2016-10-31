@@ -55,7 +55,7 @@ void validate_type_and_value(QString const& prefix,
         {
             if (actual.value().type() != QVariant::String)
             {
-                QString msg = prefix + actual.key() + ": expected value of type String, but received value of type "
+                QString msg = prefix + actual.key() + ": expected value of type QString, but received value of type "
                               + actual.value().typeName();
                 throw StorageErrorImpl::local_comms_error(msg);
             }
@@ -80,14 +80,15 @@ void validate_type_and_value(QString const& prefix,
             auto variant = actual.value();
             if (variant.type() != QVariant::LongLong)
             {
-                QString msg = prefix + actual.key() + ": expected value of type LongLong, but received value of type "
+                QString msg = prefix + actual.key() + ": expected value of type qlonglong, but received value of type "
                               + variant.typeName();
                 throw StorageErrorImpl::local_comms_error(msg);
             }
             qint64 val = variant.toLongLong();
             if (val < 0)
             {
-                QString msg = prefix + actual.key() + ": expected value >= 0, but received " + val;
+                QString msg = prefix + actual.key() + ": expected value >= 0, but received " + QString::number(val);
+                throw StorageErrorImpl::local_comms_error(msg);
             }
             break;
         }
@@ -132,7 +133,7 @@ void validate(QString const& method, ItemMetadata const& md)
     }
     if (md.type == ItemType::root && !md.parent_ids.isEmpty())
     {
-        throw StorageErrorImpl::local_comms_error(prefix + "metadata: parent_ids of root must be empty");
+        throw StorageErrorImpl::local_comms_error(prefix + "parent_ids of root must be empty");
     }
     if (md.type != ItemType::root)  // Dropbox does not support metadata for roots.
     {
@@ -154,7 +155,7 @@ void validate(QString const& method, ItemMetadata const& md)
         auto known = known_metadata.find(actual.key().toStdString());
         if (known == known_metadata.end())
         {
-            qWarning() << prefix << "unknown metadata key:" << actual.key();
+            qWarning().noquote().nospace() << prefix << "unknown metadata key: \"" << actual.key() << "\"";
         }
         else
         {
@@ -165,14 +166,11 @@ void validate(QString const& method, ItemMetadata const& md)
     // Sanity check metadata to make sure that mandatory fields are present.
     if (md.type == ItemType::file)
     {
-        if (!md.metadata.contains(metadata::SIZE_IN_BYTES))
+        if (!md.metadata.contains(metadata::SIZE_IN_BYTES) ||
+            !md.metadata.contains(metadata::LAST_MODIFIED_TIME))
         {
-            QString msg = prefix + "missing key " + metadata::SIZE_IN_BYTES + " in metadata for " + md.item_id;
-            throw StorageErrorImpl::local_comms_error(msg);
-        }
-        if (!md.metadata.contains(metadata::LAST_MODIFIED_TIME))
-        {
-            QString msg = prefix + "missing key " + metadata::LAST_MODIFIED_TIME + " in metadata for " + md.item_id;
+            QString msg = prefix + "missing key \"" + metadata::SIZE_IN_BYTES + "\" "
+                          "in metadata for \"" + md.item_id + "\"";
             throw StorageErrorImpl::local_comms_error(msg);
         }
     }
