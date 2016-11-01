@@ -20,8 +20,11 @@
 
 #include <unity/storage/common.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
 #include <QList>
 #include <QString>
+#pragma GCC diagnostic pop
 
 namespace unity
 {
