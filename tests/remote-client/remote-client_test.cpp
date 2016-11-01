@@ -19,6 +19,7 @@
 #include <unity/storage/qt/client-api.h>
 
 #include "MockProvider.h"
+#include <utils/gtest_printer.h>
 #include <utils/ProviderFixture.h>
 
 #include <gtest/gtest.h>
