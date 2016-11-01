@@ -70,10 +70,10 @@ Q_SIGNALS:
     void statusChanged(unity::storage::qt::Downloader::Status status) const;
 
 private:
+    Downloader(std::unique_ptr<internal::DownloaderImpl> p);
+
     Q_INVOKABLE qint64 readData(char* data, qint64 c);
     Q_INVOKABLE qint64 writeData(char const* data, qint64 c);
-
-    Downloader(std::unique_ptr<internal::DownloaderImpl> p);
 
     std::unique_ptr<internal::DownloaderImpl> p_;
 

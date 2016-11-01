@@ -67,7 +67,7 @@ UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
         {
             QString msg = method + ": Runtime was destroyed previously";
             error_ = StorageErrorImpl::runtime_destroyed_error(msg);
-            public_instance_->abort();
+            socket_.abort();
             public_instance_->setErrorString(msg);
             status_ = Uploader::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
@@ -82,7 +82,7 @@ UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
             QString msg = method + ": invalid file descriptor returned by provider";
             qCritical().noquote() << msg;
             error_ = StorageErrorImpl::local_comms_error(msg);
-            public_instance_->abort();
+            socket_.abort();
             public_instance_->setErrorString(msg);
             status_ = Uploader::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
@@ -90,7 +90,18 @@ UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
             // LCOV_EXCL_STOP
         }
 
-        public_instance_->setSocketDescriptor(fd_.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+        // We forward any QIODevice signals emitted by the socket to the public instance.
+        connect(&socket_, &QIODevice::aboutToClose, public_instance_, &QIODevice::aboutToClose);
+        connect(&socket_, &QIODevice::bytesWritten, public_instance_, &QIODevice::bytesWritten);
+        connect(&socket_, &QIODevice::readChannelFinished, public_instance_, &QIODevice::readChannelFinished);
+        connect(&socket_, &QIODevice::readyRead, public_instance_, &QIODevice::readyRead);
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 7, 0)
+        connect(&socket_, &QIODevice::channelBytesWritten, public_instance_, &QIODevice::channelBytesWritten);
+        connect(&socket_, &QIODevice::channelReadyRead, public_instance_, &QIODevice::channelReadyRead);
+#endif
+
+        socket_.setSocketDescriptor(fd_.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::WriteOnly);
         status_ = Uploader::Status::Ready;
         Q_EMIT public_instance_->statusChanged(status_);
     };
@@ -100,7 +111,7 @@ UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
         // TODO: This does not set the method
         error_ = error;
         status_ = Uploader::Status::Error;
-        public_instance_->abort();
+        socket_.abort();
         public_instance_->setErrorString(error.errorString());
         Q_EMIT public_instance_->statusChanged(status_);
     };
@@ -181,7 +192,7 @@ void UploaderImpl::finishUpload()
     {
         QString msg = method + ": cannot finalize while Uploader is not in the Ready state";
         error_ = StorageErrorImpl::logic_error(msg);
-        public_instance_->abort();
+        socket_.abort();
         public_instance_->setErrorString(msg);
         status_ = Uploader::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
@@ -199,7 +210,7 @@ void UploaderImpl::finishUpload()
     }
 
     finalizing_ = true;
-    public_instance_->disconnectFromServer();
+    socket_.disconnectFromServer();
     auto reply = item_impl_->account_impl()->provider()->FinishUpload(upload_id_);
 
     auto process_reply = [this](decltype(reply)& r)
@@ -214,7 +225,7 @@ void UploaderImpl::finishUpload()
         {
             QString msg = method + ": Runtime was destroyed previously";
             error_ = StorageErrorImpl::runtime_destroyed_error(msg);
-            public_instance_->abort();
+            socket_.abort();
             public_instance_->setErrorString(msg);
             status_ = Uploader::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
@@ -247,7 +258,7 @@ void UploaderImpl::finishUpload()
 
         // TODO: this doesn't set the method
         error_ = error;
-        public_instance_->abort();
+        socket_.abort();
         public_instance_->setErrorString(error.errorString());
         status_ = Uploader::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
@@ -295,10 +306,45 @@ void UploaderImpl::cancel()
 
     QString msg = method + ": upload was cancelled";
     error_ = StorageErrorImpl::cancelled_error(msg);
-    public_instance_->abort();
+    socket_.abort();
     public_instance_->setErrorString(msg);
     status_ = Uploader::Status::Cancelled;
     Q_EMIT public_instance_->statusChanged(status_);
+}
+
+qint64 UploaderImpl::bytesAvailable() const
+{
+    return socket_.bytesAvailable();
+}
+
+qint64 UploaderImpl::bytesToWrite() const
+{
+    return socket_.bytesToWrite();
+}
+
+bool UploaderImpl::isSequential() const
+{
+    return socket_.isSequential();
+}
+
+bool UploaderImpl::waitForBytesWritten(int msecs)
+{
+    return socket_.waitForBytesWritten(msecs);
+}
+
+bool UploaderImpl::waitForReadyRead(int msecs)
+{
+    return socket_.waitForReadyRead(msecs);
+}
+
+qint64 UploaderImpl::readData(char* data, qint64 c)
+{
+    return socket_.read(data, c);
+}
+
+qint64 UploaderImpl::writeData(char const* data, qint64 c)
+{
+    return socket_.write(data, c);
 }
 
 Uploader* UploaderImpl::make_job(shared_ptr<ItemImpl> const& item_impl,
@@ -310,6 +356,7 @@ Uploader* UploaderImpl::make_job(shared_ptr<ItemImpl> const& item_impl,
 {
     unique_ptr<UploaderImpl> impl(new UploaderImpl(item_impl, method, reply, validate, policy, size_in_bytes));
     auto uploader = new Uploader(move(impl));
+    uploader->open(QIODevice::WriteOnly);
     uploader->p_->public_instance_ = uploader;
     return uploader;
 }
@@ -318,6 +365,7 @@ Uploader* UploaderImpl::make_job(StorageError const& e)
 {
     unique_ptr<UploaderImpl> impl(new UploaderImpl(e));
     auto uploader = new Uploader(move(impl));
+    uploader->open(QIODevice::WriteOnly);
     uploader->p_->public_instance_ = uploader;
     QMetaObject::invokeMethod(uploader,
                               "statusChanged",

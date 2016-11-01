@@ -62,6 +62,15 @@ public:
     void finishUpload();
     void cancel();
 
+    // From QLocalSocket interface.
+    qint64 bytesAvailable() const;
+    qint64 bytesToWrite() const;
+    bool isSequential() const;
+    bool waitForBytesWritten(int msecs);
+    bool waitForReadyRead(int msecs);
+    qint64 readData(char* data, qint64 c);
+    qint64 writeData(char const* data, qint64 c);
+
     static Uploader* make_job(std::shared_ptr<ItemImpl> const& item_impl,
                               QString const& method,
                               QDBusPendingReply<QString, QDBusUnixFileDescriptor>& reply,
@@ -81,6 +90,7 @@ private:
     qint64 size_in_bytes_ = 0;
     QString upload_id_;
     QDBusUnixFileDescriptor fd_;
+    QLocalSocket socket_;
     bool finalizing_ = false;
 };
 

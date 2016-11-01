@@ -39,7 +39,7 @@ class UploaderImpl;
 class Item;
 class StorageError;
 
-class Q_DECL_EXPORT Uploader final : public QLocalSocket
+class Q_DECL_EXPORT Uploader final : public QIODevice
 {
     Q_OBJECT
     Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
@@ -56,9 +56,9 @@ public:
     Uploader();
     virtual ~Uploader();
 
-    bool isValid() const;  // Not nice, hides QLocalSocket::isValid()
+    bool isValid() const;
     Status status() const;
-    StorageError error() const;  // Not nice, hides QLocalSocket::error()
+    StorageError error() const;
     Item::ConflictPolicy policy() const;
     qint64 sizeInBytes() const;
     Item item() const;
@@ -66,11 +66,21 @@ public:
     Q_INVOKABLE void finishUpload();
     Q_INVOKABLE void cancel();
 
+    // From QLocalSocket interface.
+    Q_INVOKABLE qint64 bytesAvailable() const override;
+    Q_INVOKABLE qint64 bytesToWrite() const override;
+    Q_INVOKABLE bool isSequential() const override;
+    Q_INVOKABLE bool waitForBytesWritten(int msecs = 30000) override;
+    Q_INVOKABLE bool waitForReadyRead(int msecs = 30000) override;
+
 Q_SIGNALS:
     void statusChanged(unity::storage::qt::Uploader::Status status) const;
 
 private:
     Uploader(std::unique_ptr<internal::UploaderImpl> p);
+
+    Q_INVOKABLE qint64 readData(char* data, qint64 c);
+    Q_INVOKABLE qint64 writeData(char const* data, qint64 c);
 
     std::unique_ptr<internal::UploaderImpl> p_;
 

@@ -81,6 +81,41 @@ void Uploader::cancel()
     p_->cancel();
 }
 
+qint64 Uploader::bytesAvailable() const
+{
+    return p_->bytesAvailable();
+}
+
+qint64 Uploader::bytesToWrite() const
+{
+    return p_->bytesToWrite();
+}
+
+bool Uploader::isSequential() const
+{
+    return p_->isSequential();
+}
+
+bool Uploader::waitForBytesWritten(int msecs)
+{
+    return p_->waitForBytesWritten(msecs);
+}
+
+bool Uploader::waitForReadyRead(int msecs)
+{
+    return p_->waitForReadyRead(msecs);
+}
+
+qint64 Uploader::readData(char* data, qint64 c)
+{
+    return p_->readData(data, c);
+}
+
+qint64 Uploader::writeData(char const* data, qint64 c)
+{
+    return p_->writeData(data, c);
+}
+
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
