@@ -29,13 +29,22 @@ namespace storage
 namespace metadata
 {
 
-enum class MetadataType { int64, iso_8601_date_time };
+enum class MetadataType { non_zero_pos_int64, iso_8601_date_time, string, boolean };
 
 static std::unordered_map<std::string, MetadataType> const known_metadata =
 {
-    { metadata::SIZE_IN_BYTES, MetadataType::int64 },
+    { metadata::SIZE_IN_BYTES, MetadataType::non_zero_pos_int64 },
     { metadata::CREATION_TIME, MetadataType::iso_8601_date_time },
-    { metadata::LAST_MODIFIED_TIME, MetadataType::iso_8601_date_time }
+    { metadata::LAST_MODIFIED_TIME, MetadataType::iso_8601_date_time },
+    { metadata::CHILD_COUNT, MetadataType::non_zero_pos_int64 },
+    { metadata::DESCRIPTION, MetadataType::string },
+    { metadata::DISPLAY_NAME, MetadataType::string },
+    { metadata::FREE_SPACE_BYTES, MetadataType::non_zero_pos_int64 },
+    { metadata::USED_SPACE_BYTES, MetadataType::non_zero_pos_int64 },
+    { metadata::CONTENT_TYPE, MetadataType::string },
+    { metadata::WRITABLE, MetadataType::boolean },
+    { metadata::MD5, MetadataType::string },
+    { metadata::DOWNLOAD_URL, MetadataType::string }
 };
 
 }  // namespace metadata

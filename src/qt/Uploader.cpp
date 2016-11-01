@@ -106,10 +106,13 @@ bool Uploader::waitForReadyRead(int msecs)
     return p_->waitForReadyRead(msecs);
 }
 
+// LCOV_EXCL_START
+// Never called by QIODevice because device is opened write-only.
 qint64 Uploader::readData(char* data, qint64 c)
 {
     return p_->readData(data, c);
 }
+// LCOV_EXCL_STOP
 
 qint64 Uploader::writeData(char const* data, qint64 c)
 {

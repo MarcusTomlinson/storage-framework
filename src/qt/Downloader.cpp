@@ -101,10 +101,13 @@ qint64 Downloader::readData(char* data, qint64 c)
     return p_->readData(data, c);
 }
 
+// LCOV_EXCL_START
+// Never called by QIODevice because device is opened read-only.
 qint64 Downloader::writeData(char const* data, qint64 c)
 {
     return p_->writeData(data, c);
 }
+// LCOV_EXCL_STOP
 
 }  // namespace qt
 }  // namespace storage

@@ -293,10 +293,13 @@ qint64 DownloaderImpl::readData(char* data, qint64 c)
     return socket_.read(data, c);
 }
 
+// LCOV_EXCL_START
+// Never called by QIODevice because device is opened read-only.
 qint64 DownloaderImpl::writeData(char const* data, qint64 c)
 {
     return socket_.write(data, c);
 }
+// LCOV_EXCL_STOP
 
 Downloader* DownloaderImpl::make_job(shared_ptr<ItemImpl> const& item_impl,
                                      QString const& method,

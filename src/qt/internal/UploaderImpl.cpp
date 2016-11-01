@@ -337,10 +337,13 @@ bool UploaderImpl::waitForReadyRead(int msecs)
     return socket_.waitForReadyRead(msecs);
 }
 
+// LCOV_EXCL_START
+// Never called by QIODevice because device is opened write-only.
 qint64 UploaderImpl::readData(char* data, qint64 c)
 {
     return socket_.read(data, c);
 }
+// LCOV_EXCL_STOP
 
 qint64 UploaderImpl::writeData(char const* data, qint64 c)
 {

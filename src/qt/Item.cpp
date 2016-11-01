@@ -107,6 +107,11 @@ QVariantMap Item::metadata() const
     return p_->metadata();
 }
 
+qint64 Item::sizeInBytes() const
+{
+    return p_->sizeInBytes();
+}
+
 QDateTime Item::lastModifiedTime() const
 {
     return p_->lastModifiedTime();
