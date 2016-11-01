@@ -36,7 +36,7 @@ class DownloaderImpl;
 
 }  // namespace internal
 
-class Q_DECL_EXPORT Downloader final : public QLocalSocket
+class Q_DECL_EXPORT Downloader final : public QIODevice
 {
     Q_OBJECT
     Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
@@ -51,20 +51,28 @@ public:
     Downloader();
     virtual ~Downloader();
 
-    bool isValid() const;        // Not nice, hides QLocalSocket::isValid()
+    bool isValid() const;
     Status status() const;
-    StorageError error() const;  // Not nice, hides QLocalSocket::error()
+    StorageError error() const;
     Item item() const;
 
     Q_INVOKABLE void finishDownload();
     Q_INVOKABLE void cancel();
 
-    // TODO: will probably need QML invokable methods for reading and writing to/from QIODevice
+    // From QLocalSocket interface.
+    Q_INVOKABLE qint64 bytesAvailable() const override;
+    Q_INVOKABLE qint64 bytesToWrite() const override;
+    Q_INVOKABLE bool isSequential() const override;
+    Q_INVOKABLE bool waitForBytesWritten(int msecs = 30000) override;
+    Q_INVOKABLE bool waitForReadyRead(int msecs = 30000) override;
 
 Q_SIGNALS:
     void statusChanged(unity::storage::qt::Downloader::Status status) const;
 
 private:
+    Q_INVOKABLE qint64 readData(char* data, qint64 c);
+    Q_INVOKABLE qint64 writeData(char const* data, qint64 c);
+
     Downloader(std::unique_ptr<internal::DownloaderImpl> p);
 
     std::unique_ptr<internal::DownloaderImpl> p_;

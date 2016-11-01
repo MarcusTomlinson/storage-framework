@@ -58,7 +58,7 @@ DownloaderImpl::DownloaderImpl(shared_ptr<ItemImpl> const& item_impl,
         {
             QString msg = method + ": Runtime was destroyed previously";
             error_ = StorageErrorImpl::runtime_destroyed_error(msg);
-            public_instance_->abort();
+            socket_.abort();
             public_instance_->setErrorString(msg);
             status_ = Downloader::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
@@ -73,7 +73,7 @@ DownloaderImpl::DownloaderImpl(shared_ptr<ItemImpl> const& item_impl,
             QString msg = method + ": invalid file descriptor returned by provider";
             qCritical().noquote() << msg;
             error_ = StorageErrorImpl::local_comms_error(msg);
-            public_instance_->abort();
+            socket_.abort();
             public_instance_->setErrorString(msg);
             status_ = Downloader::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
@@ -81,7 +81,18 @@ DownloaderImpl::DownloaderImpl(shared_ptr<ItemImpl> const& item_impl,
             // LCOV_EXCL_STOP
         }
 
-        public_instance_->setSocketDescriptor(fd_.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::ReadOnly);
+        // We forward any QIODevice signals emitted by the socket to the public instance.
+        connect(&socket_, &QIODevice::aboutToClose, public_instance_, &QIODevice::aboutToClose);
+        connect(&socket_, &QIODevice::bytesWritten, public_instance_, &QIODevice::bytesWritten);
+        connect(&socket_, &QIODevice::readChannelFinished, public_instance_, &QIODevice::readChannelFinished);
+        connect(&socket_, &QIODevice::readyRead, public_instance_, &QIODevice::readyRead);
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 7, 0)
+        connect(&socket_, &QIODevice::channelBytesWritten, public_instance_, &QIODevice::channelBytesWritten);
+        connect(&socket_, &QIODevice::channelReadyRead, public_instance_, &QIODevice::channelReadyRead);
+#endif
+
+        socket_.setSocketDescriptor(fd_.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::ReadOnly);
         status_ = Downloader::Status::Ready;
         Q_EMIT public_instance_->statusChanged(status_);
     };
@@ -91,7 +102,7 @@ DownloaderImpl::DownloaderImpl(shared_ptr<ItemImpl> const& item_impl,
         // TODO: This does not set the method
         error_ = error;
         status_ = Downloader::Status::Error;
-        public_instance_->abort();
+        socket_.abort();
         public_instance_->setErrorString(error.errorString());
         Q_EMIT public_instance_->statusChanged(status_);
     };
@@ -162,7 +173,7 @@ void DownloaderImpl::finishDownload()
     {
         QString msg = method + ": cannot finalize while Downloader is not in the Ready state";
         error_ = StorageErrorImpl::logic_error(msg);
-        public_instance_->abort();
+        socket_.abort();
         public_instance_->setErrorString(msg);
         status_ = Downloader::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
@@ -194,7 +205,7 @@ void DownloaderImpl::finishDownload()
         {
             QString msg = method + ": Runtime was destroyed previously";
             error_ = StorageErrorImpl::runtime_destroyed_error(msg);
-            public_instance_->abort();
+            socket_.abort();
             public_instance_->setErrorString(msg);
             status_ = Downloader::Status::Error;
             Q_EMIT public_instance_->statusChanged(status_);
@@ -214,7 +225,7 @@ void DownloaderImpl::finishDownload()
 
         // TODO: this doesn't set the method
         error_ = error;
-        public_instance_->abort();
+        socket_.abort();
         public_instance_->setErrorString(error.errorString());
         status_ = Downloader::Status::Error;
         Q_EMIT public_instance_->statusChanged(status_);
@@ -246,10 +257,45 @@ void DownloaderImpl::cancel()
 
     QString msg = method + ": download was cancelled";
     error_ = StorageErrorImpl::cancelled_error(msg);
-    public_instance_->abort();
+    socket_.abort();
     public_instance_->setErrorString(msg);
     status_ = Downloader::Status::Cancelled;
     Q_EMIT public_instance_->statusChanged(status_);
+}
+
+qint64 DownloaderImpl::bytesAvailable() const
+{
+    return socket_.bytesAvailable();
+}
+
+qint64 DownloaderImpl::bytesToWrite() const
+{
+    return socket_.bytesToWrite();
+}
+
+bool DownloaderImpl::isSequential() const
+{
+    return socket_.isSequential();
+}
+
+bool DownloaderImpl::waitForBytesWritten(int msecs)
+{
+    return socket_.waitForBytesWritten(msecs);
+}
+
+bool DownloaderImpl::waitForReadyRead(int msecs)
+{
+    return socket_.waitForReadyRead(msecs);
+}
+
+qint64 DownloaderImpl::readData(char* data, qint64 c)
+{
+    return socket_.read(data, c);
+}
+
+qint64 DownloaderImpl::writeData(char const* data, qint64 c)
+{
+    return socket_.write(data, c);
 }
 
 Downloader* DownloaderImpl::make_job(shared_ptr<ItemImpl> const& item_impl,
@@ -258,6 +304,7 @@ Downloader* DownloaderImpl::make_job(shared_ptr<ItemImpl> const& item_impl,
 {
     unique_ptr<DownloaderImpl> impl(new DownloaderImpl(item_impl, method, reply));
     auto downloader = new Downloader(move(impl));
+    downloader->open(QIODevice::ReadOnly);
     downloader->p_->public_instance_ = downloader;
     return downloader;
 }
@@ -266,6 +313,7 @@ Downloader* DownloaderImpl::make_job(StorageError const& e)
 {
     unique_ptr<DownloaderImpl> impl(new DownloaderImpl(e));
     auto downloader = new Downloader(move(impl));
+    downloader->open(QIODevice::ReadOnly);
     downloader->p_->public_instance_ = downloader;
     QMetaObject::invokeMethod(downloader,
                               "statusChanged",

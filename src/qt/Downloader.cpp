@@ -71,6 +71,41 @@ void Downloader::cancel()
     p_->cancel();
 }
 
+qint64 Downloader::bytesAvailable() const
+{
+    return p_->bytesAvailable();
+}
+
+qint64 Downloader::bytesToWrite() const
+{
+    return p_->bytesToWrite();
+}
+
+bool Downloader::isSequential() const
+{
+    return p_->isSequential();
+}
+
+bool Downloader::waitForBytesWritten(int msecs)
+{
+    return p_->waitForBytesWritten(msecs);
+}
+
+bool Downloader::waitForReadyRead(int msecs)
+{
+    return p_->waitForReadyRead(msecs);
+}
+
+qint64 Downloader::readData(char* data, qint64 c)
+{
+    return p_->readData(data, c);
+}
+
+qint64 Downloader::writeData(char const* data, qint64 c)
+{
+    return p_->writeData(data, c);
+}
+
 }  // namespace qt
 }  // namespace storage
 }  // namespace unity
