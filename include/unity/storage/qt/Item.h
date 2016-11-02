@@ -62,7 +62,7 @@ class Q_DECL_EXPORT Item final
     Q_PROPERTY(unity::storage::qt::Item::Type type READ type FINAL)
     Q_PROPERTY(QVariantMap metadata READ metadata FINAL)
     Q_PROPERTY(QDateTime lastModifiedTime READ lastModifiedTime FINAL)
-    Q_PROPERTY(QList<QString> parentIds READ parentIds FINAL)
+    Q_PROPERTY(QStringList parentIds READ parentIds FINAL)
 
 public:
     Item();
@@ -96,7 +96,7 @@ public:
     QVariantMap metadata() const;
     qint64 sizeInBytes() const;
     QDateTime lastModifiedTime() const;
-    QList<QString> parentIds() const;
+    QStringList parentIds() const;
 
     Q_INVOKABLE ItemListJob* parents(QStringList const& keys = QStringList()) const;
     Q_INVOKABLE ItemJob* copy(Item const& newParent,
