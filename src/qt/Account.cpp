@@ -93,12 +93,12 @@ QString Account::description() const
     return p_->description();
 }
 
-ItemListJob* Account::roots(MetadataKeys const& keys) const
+ItemListJob* Account::roots(QStringList const& keys) const
 {
     return p_->roots(keys);
 }
 
-ItemJob* Account::get(QString const& itemId, MetadataKeys const& keys) const
+ItemJob* Account::get(QString const& itemId, QStringList const& keys) const
 {
     return p_->get(itemId, keys);
 }

@@ -33,9 +33,7 @@ namespace storage
 namespace qt
 {
 
-typedef QList<QString> MetadataKeys;
-
-static MetadataKeys const ALL_METADATA = { metadata::ALL };
+static QStringList const ALL_METADATA = { metadata::ALL };
 
 }  // namespace qt
 }  // namespace storage

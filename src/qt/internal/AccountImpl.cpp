@@ -81,7 +81,7 @@ QString AccountImpl::description() const
     return is_valid_ ? description_ : "";
 }
 
-ItemListJob* AccountImpl::roots(MetadataKeys const& keys) const
+ItemListJob* AccountImpl::roots(QStringList const& keys) const
 {
     QString const method = "Account::roots()";
 
@@ -112,7 +112,7 @@ ItemListJob* AccountImpl::roots(MetadataKeys const& keys) const
     return ItemListJobImpl::make_job(This, method, reply, validate);
 }
 
-ItemJob* AccountImpl::get(QString const& itemId, MetadataKeys const& keys) const
+ItemJob* AccountImpl::get(QString const& itemId, QStringList const& keys) const
 {
     QString const method = "Account::get()";
 
