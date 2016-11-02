@@ -97,24 +97,24 @@ public:
     QDateTime lastModifiedTime() const;
     QList<QString> parentIds() const;
 
-    Q_INVOKABLE ItemListJob* parents() const;
-    Q_INVOKABLE ItemJob* copy(Item const& newParent, QString const& newName) const;
-    Q_INVOKABLE ItemJob* move(Item const& newParent, QString const& newName) const;
-    Q_INVOKABLE VoidJob* deleteItem() const;
+    Q_INVOKABLE unity::storage::qt::ItemListJob* parents() const;
+    Q_INVOKABLE unity::storage::qt::ItemJob* copy(Item const& newParent, QString const& newName) const;
+    Q_INVOKABLE unity::storage::qt::ItemJob* move(Item const& newParent, QString const& newName) const;
+    Q_INVOKABLE unity::storage::qt::VoidJob* deleteItem() const;
 
-    Q_INVOKABLE Uploader* createUploader(ConflictPolicy policy, qint64 sizeInBytes) const;
-    Q_INVOKABLE Downloader* createDownloader() const;
+    Q_INVOKABLE unity::storage::qt::Uploader* createUploader(ConflictPolicy policy, qint64 sizeInBytes) const;
+    Q_INVOKABLE unity::storage::qt::Downloader* createDownloader() const;
 
-    Q_INVOKABLE ItemListJob* list() const;
-    Q_INVOKABLE ItemListJob* lookup(QString const& name) const;
-    Q_INVOKABLE ItemJob* createFolder(QString const& name) const;
-    Q_INVOKABLE Uploader* createFile(QString const& name,
-                                     ConflictPolicy policy,
-                                     qint64 sizeInBytes,
-                                     QString const& contentType) const;
+    Q_INVOKABLE unity::storage::qt::ItemListJob* list() const;
+    Q_INVOKABLE unity::storage::qt::ItemListJob* lookup(QString const& name) const;
+    Q_INVOKABLE unity::storage::qt::ItemJob* createFolder(QString const& name) const;
+    Q_INVOKABLE unity::storage::qt::Uploader* createFile(QString const& name,
+                                                         ConflictPolicy policy,
+                                                         qint64 sizeInBytes,
+                                                         QString const& contentType) const;
 
-    Q_INVOKABLE IntJob* freeSpaceBytes() const;
-    Q_INVOKABLE IntJob* usedSpaceBytes() const;
+    Q_INVOKABLE unity::storage::qt::IntJob* freeSpaceBytes() const;
+    Q_INVOKABLE unity::storage::qt::IntJob* usedSpaceBytes() const;
 
     bool operator==(Item const&) const;
     bool operator!=(Item const&) const;

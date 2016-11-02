@@ -48,7 +48,7 @@ class Q_DECL_EXPORT AccountsJob final : public QObject
     Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
     Q_PROPERTY(unity::storage::qt::AccountsJob::Status status READ status NOTIFY statusChanged FINAL)
     Q_PROPERTY(unity::storage::qt::StorageError error READ error NOTIFY statusChanged FINAL)
-    Q_PROPERTY(QList<unity::storage::qt::Account> accounts READ accounts NOTIFY statusChanged FINAL)
+    Q_PROPERTY(QVariantList accounts READ accountsAsVariantList NOTIFY statusChanged FINAL)
 
 public:
     enum Status { Loading, Finished, Error };
@@ -67,6 +67,8 @@ Q_SIGNALS:
 private:
     AccountsJob(std::shared_ptr<internal::RuntimeImpl> const& runtime);
     AccountsJob(StorageError const& error);
+
+    QVariantList accountsAsVariantList() const;
 
     std::unique_ptr<internal::AccountsJobImpl> const p_;
 

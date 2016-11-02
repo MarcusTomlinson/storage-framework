@@ -78,19 +78,19 @@ bool Account::isValid() const
     return p_->is_valid_;
 }
 
-QString Account::owner() const
+QString Account::id() const
 {
-    return p_->owner();
+    return p_->id();
 }
 
-QString Account::ownerId() const
+QString Account::serviceId() const
 {
-    return p_->ownerId();
+    return p_->serviceId();
 }
 
-QString Account::description() const
+QString Account::displayName() const
 {
-    return p_->description();
+    return p_->displayName();
 }
 
 ItemListJob* Account::roots() const

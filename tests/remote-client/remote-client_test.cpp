@@ -112,84 +112,84 @@ TEST_F(AccountTest, basic)
         // Default constructor.
         Account a;
         EXPECT_FALSE(a.isValid());
-        EXPECT_EQ("", a.ownerId());
-        EXPECT_EQ("", a.owner());
-        EXPECT_EQ("", a.description());
+        EXPECT_EQ("", a.id());
+        EXPECT_EQ("", a.serviceId());
+        EXPECT_EQ("", a.displayName());
     }
 
     {
         auto acc = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                               "id", "owner", "description");
+                                               "id", "sid", "displayName");
         EXPECT_TRUE(acc.isValid());
-        EXPECT_EQ("id", acc.ownerId());
-        EXPECT_EQ("owner", acc.owner());
-        EXPECT_EQ("description", acc.description());
+        EXPECT_EQ("id", acc.id());
+        EXPECT_EQ("sid", acc.serviceId());
+        EXPECT_EQ("displayName", acc.displayName());
 
         // Copy constructor
         Account a2(acc);
         EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id", a2.ownerId());
-        EXPECT_EQ("owner", a2.owner());
-        EXPECT_EQ("description", a2.description());
+        EXPECT_EQ("id", a2.id());
+        EXPECT_EQ("sid", a2.serviceId());
+        EXPECT_EQ("displayName", a2.displayName());
 
         // Move constructor
         Account a3(move(a2));
         EXPECT_TRUE(a3.isValid());
-        EXPECT_EQ("id", a3.ownerId());
-        EXPECT_EQ("owner", a3.owner());
-        EXPECT_EQ("description", a3.description());
+        EXPECT_EQ("id", a3.id());
+        EXPECT_EQ("sid", a3.serviceId());
+        EXPECT_EQ("displayName", a3.displayName());
 
         // Moved-from object must be invalid
         EXPECT_FALSE(a2.isValid());
 
         // Moved-from object must be assignable
         auto a4 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              "id4", "owner4", "description4");
+                                              "id4", "sid4", "displayName4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id4", a2.ownerId());
-        EXPECT_EQ("owner4", a2.owner());
-        EXPECT_EQ("description4", a2.description());
+        EXPECT_EQ("id4", a2.id());
+        EXPECT_EQ("sid4", a2.serviceId());
+        EXPECT_EQ("displayName4", a2.displayName());
     }
 
     {
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "id", "owner", "description");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "id2", "owner2", "description2");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "id", "sid", "dn");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "id2", "sid2", "dn2");
 
         // Copy assignment
         a1 = a2;
         EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id2", a1.ownerId());
-        EXPECT_EQ("owner2", a2.owner());
-        EXPECT_EQ("description2", a1.description());
+        EXPECT_EQ("id2", a1.id());
+        EXPECT_EQ("sid2", a2.serviceId());
+        EXPECT_EQ("dn2", a1.displayName());
 
         // Self-assignment
         a2 = a2;
         EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id2", a1.ownerId());
-        EXPECT_EQ("owner2", a2.owner());
-        EXPECT_EQ("description2", a1.description());
+        EXPECT_EQ("id2", a1.id());
+        EXPECT_EQ("sid2", a2.serviceId());
+        EXPECT_EQ("dn2", a1.displayName());
 
         // Move assignment
         auto a3 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              "id3", "owner3", "description3");
+                                              "id3", "sid3", "dn3");
         a1 = move(a3);
         EXPECT_TRUE(a1.isValid());
-        EXPECT_EQ("id3", a1.ownerId());
-        EXPECT_EQ("owner3", a1.owner());
-        EXPECT_EQ("description3", a1.description());
+        EXPECT_EQ("id3", a1.id());
+        EXPECT_EQ("sid3", a1.serviceId());
+        EXPECT_EQ("dn3", a1.displayName());
 
         // Moved-from object must be invalid
         EXPECT_FALSE(a3.isValid());
 
         // Moved-from object must be assignable
         auto a4 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              "id4", "owner4", "description4");
+                                              "id4", "sid4", "dn4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id4", a2.ownerId());
-        EXPECT_EQ("owner4", a2.owner());
-        EXPECT_EQ("description4", a2.description());
+        EXPECT_EQ("id4", a2.id());
+        EXPECT_EQ("sid4", a2.serviceId());
+        EXPECT_EQ("dn4", a2.displayName());
     }
 }
 
@@ -228,7 +228,7 @@ TEST_F(AccountTest, comparison)
     }
 
     {
-        // a1 < a2 for owner ID
+        // a1 < a2 for ID
         auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "x", "x");
         auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "b", "x", "x");
 
@@ -249,7 +249,7 @@ TEST_F(AccountTest, comparison)
     }
 
     {
-        // a1 < a2 for owner
+        // a1 < a2 for service ID
         auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "x");
         auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "b", "x");
 
@@ -270,7 +270,7 @@ TEST_F(AccountTest, comparison)
     }
 
     {
-        // a1 < a2 for description
+        // a1 < a2 for display name
         auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
         auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "b");
 
@@ -792,18 +792,6 @@ TEST_F(DeleteTest, invalid_item)
 
     EXPECT_EQ("Item::deleteItem(): cannot create job from invalid item", j->error().message());
 }
-
-#if 0
-// TODO: need to make internal symbols available for testing.
-TEST_F(ValidateTest, basic)
-{
-    using namespace unity::storage::qt::internal;
-
-    unity::storage::internal::ItemMetadata md;
-
-    validate("foo", md);
-}
-#endif
 
 TEST_F(ItemTest, basic)
 {
