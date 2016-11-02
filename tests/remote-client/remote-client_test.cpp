@@ -735,7 +735,7 @@ TEST_F(MetadataTest, empty_etag)
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
     EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
-              "etag cannot be empty", j->error().errorString());
+              "etag of a file cannot be empty", j->error().errorString());
 }
 
 TEST_F(MetadataTest, unknown_key)
