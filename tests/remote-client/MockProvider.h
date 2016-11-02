@@ -28,25 +28,27 @@ public:
     MockProvider();
     MockProvider(std::string const& cmd);
 
-    boost::future<unity::storage::provider::ItemList> roots(unity::storage::provider::Context const& ctx) override;
+    boost::future<unity::storage::provider::ItemList> roots(std::vector<std::string> const& keys,
+                                                            unity::storage::provider::Context const& ctx) override;
     boost::future<std::tuple<unity::storage::provider::ItemList, std::string>> list(
-        std::string const& item_id,  std::string const& page_token,
+        std::string const& item_id,  std::string const& page_token, std::vector<std::string> const& keys,
         unity::storage::provider::Context const& ctx) override;
     boost::future<unity::storage::provider::ItemList> lookup(
-        std::string const& parent_id,  std::string const& name,
+        std::string const& parent_id,  std::string const& name, std::vector<std::string> const& keys,
         unity::storage::provider::Context const& ctx) override;
     boost::future<unity::storage::provider::Item> metadata(
-        std::string const& item_id, unity::storage::provider::Context const& ctx) override;
+        std::string const& item_id, std::vector<std::string> const& keys,
+        unity::storage::provider::Context const& ctx) override;
     boost::future<unity::storage::provider::Item> create_folder(
-        std::string const& parent_id,  std::string const& name,
+        std::string const& parent_id,  std::string const& name, std::vector<std::string> const& keys,
         unity::storage::provider::Context const& ctx) override;
 
     boost::future<std::unique_ptr<unity::storage::provider::UploadJob>> create_file(
         std::string const& parent_id, std::string const& name,
-        int64_t size, std::string const& content_type, bool allow_overwrite,
+        int64_t size, std::string const& content_type, bool allow_overwrite, std::vector<std::string> const& keys,
         unity::storage::provider::Context const& ctx) override;
     boost::future<std::unique_ptr<unity::storage::provider::UploadJob>> update(
-        std::string const& item_id, int64_t size, std::string const& old_etag,
+        std::string const& item_id, int64_t size, std::string const& old_etag, std::vector<std::string> const& keys,
         unity::storage::provider::Context const& ctx) override;
 
     boost::future<std::unique_ptr<unity::storage::provider::DownloadJob>> download(
@@ -56,10 +58,12 @@ public:
         std::string const& item_id, unity::storage::provider::Context const& ctx) override;
     boost::future<unity::storage::provider::Item> move(
         std::string const& item_id, std::string const& new_parent_id,
-        std::string const& new_name, unity::storage::provider::Context const& ctx) override;
+        std::string const& new_name, std::vector<std::string> const& keys,
+        unity::storage::provider::Context const& ctx) override;
     boost::future<unity::storage::provider::Item> copy(
         std::string const& item_id, std::string const& new_parent_id,
-        std::string const& new_name, unity::storage::provider::Context const& ctx) override;
+        std::string const& new_name, std::vector<std::string> const& keys,
+        unity::storage::provider::Context const& ctx) override;
 
 private:
     std::string cmd_;

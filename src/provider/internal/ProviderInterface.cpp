@@ -33,6 +33,21 @@
 
 using namespace std;
 
+namespace
+{
+
+vector<string> to_vector(QList<QString> const& l)
+{
+    vector<string> v;
+    for (auto const& s : l)
+    {
+        v.push_back(s.toStdString());
+    }
+    return v;
+}
+
+}
+
 namespace unity {
 namespace storage {
 namespace provider {
@@ -86,10 +101,10 @@ void ProviderInterface::request_finished()
     handler->deleteLater();
 }
 
-QList<ProviderInterface::IMD> ProviderInterface::Roots()
+QList<ProviderInterface::IMD> ProviderInterface::Roots(QList<QString> const& keys)
 {
-    queue_request([](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
-            auto f = account->provider().roots(ctx);
+    queue_request([keys](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+            auto f = account->provider().roots(to_vector(keys), ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
@@ -100,10 +115,15 @@ QList<ProviderInterface::IMD> ProviderInterface::Roots()
     return {};
 }
 
-QList<ProviderInterface::IMD> ProviderInterface::List(QString const& item_id, QString const& page_token, QString& /*next_token*/)
+QList<ProviderInterface::IMD> ProviderInterface::List(QString const& item_id,
+                                                      QString const& page_token,
+                                                      QList<QString> const& keys,
+                                                      QString& /*next_token*/)
 {
-    queue_request([item_id, page_token](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
-            auto f = account->provider().list(item_id.toStdString(), page_token.toStdString(), ctx);
+    queue_request([item_id, page_token, keys](shared_ptr<AccountData> const& account,
+                                              Context const& ctx,
+                                              QDBusMessage const& message) {
+            auto f = account->provider().list(item_id.toStdString(), page_token.toStdString(), to_vector(keys), ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
@@ -119,10 +139,14 @@ QList<ProviderInterface::IMD> ProviderInterface::List(QString const& item_id, QS
     return {};
 }
 
-QList<ProviderInterface::IMD> ProviderInterface::Lookup(QString const& parent_id, QString const& name)
+QList<ProviderInterface::IMD> ProviderInterface::Lookup(QString const& parent_id,
+                                                        QString const& name,
+                                                        QList<QString> const& keys)
 {
-    queue_request([parent_id, name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
-            auto f = account->provider().lookup(parent_id.toStdString(), name.toStdString(), ctx);
+    queue_request([parent_id, name, keys](shared_ptr<AccountData> const& account,
+                                          Context const& ctx,
+                                          QDBusMessage const& message) {
+            auto f = account->provider().lookup(parent_id.toStdString(), name.toStdString(), to_vector(keys), ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
@@ -133,10 +157,12 @@ QList<ProviderInterface::IMD> ProviderInterface::Lookup(QString const& parent_id
     return {};
 }
 
-ProviderInterface::IMD ProviderInterface::Metadata(QString const& item_id)
+ProviderInterface::IMD ProviderInterface::Metadata(QString const& item_id, QList<QString> const& keys)
 {
-    queue_request([item_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
-            auto f = account->provider().metadata(item_id.toStdString(), ctx);
+    queue_request([item_id, keys](shared_ptr<AccountData> const& account,
+                                  Context const& ctx,
+                                  QDBusMessage const& message) {
+            auto f = account->provider().metadata(item_id.toStdString(), to_vector(keys), ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
@@ -147,11 +173,15 @@ ProviderInterface::IMD ProviderInterface::Metadata(QString const& item_id)
     return {};
 }
 
-ProviderInterface::IMD ProviderInterface::CreateFolder(QString const& parent_id, QString const& name)
+ProviderInterface::IMD ProviderInterface::CreateFolder(QString const& parent_id,
+                                                       QString const& name,
+                                                       QList<QString> const& keys)
 {
-    queue_request([parent_id, name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+    queue_request([parent_id, name, keys](shared_ptr<AccountData> const& account,
+                                          Context const& ctx,
+                                          QDBusMessage const& message) {
             auto f = account->provider().create_folder(
-                parent_id.toStdString(), name.toStdString(), ctx);
+                parent_id.toStdString(), name.toStdString(), to_vector(keys), ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
@@ -162,12 +192,20 @@ ProviderInterface::IMD ProviderInterface::CreateFolder(QString const& parent_id,
     return {};
 }
 
-QString ProviderInterface::CreateFile(QString const& parent_id, QString const& name, int64_t size, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& /*file_descriptor*/)
+QString ProviderInterface::CreateFile(QString const& parent_id,
+                                      QString const& name,
+                                      int64_t size,
+                                      QString const& content_type,
+                                      bool allow_overwrite,
+                                      QList<QString> const& keys,
+                                      QDBusUnixFileDescriptor& /*file_descriptor*/)
 {
-    queue_request([parent_id, name, size, content_type, allow_overwrite](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+    queue_request([parent_id, name, size, content_type, allow_overwrite, keys](shared_ptr<AccountData> const& account,
+                                                                               Context const& ctx,
+                                                                               QDBusMessage const& message) {
             auto f = account->provider().create_file(
                 parent_id.toStdString(), name.toStdString(),
-                size, content_type.toStdString(), allow_overwrite, ctx);
+                size, content_type.toStdString(), allow_overwrite, to_vector(keys), ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
@@ -188,11 +226,17 @@ QString ProviderInterface::CreateFile(QString const& parent_id, QString const& n
     return "";
 }
 
-QString ProviderInterface::Update(QString const& item_id, int64_t size, QString const& old_etag, QDBusUnixFileDescriptor& /*file_descriptor*/)
+QString ProviderInterface::Update(QString const& item_id,
+                                  int64_t size,
+                                  QString const& old_etag,
+                                  QList<QString> const& keys,
+                                  QDBusUnixFileDescriptor& /*file_descriptor*/)
 {
-    queue_request([item_id, size, old_etag](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+    queue_request([item_id, size, old_etag, keys](shared_ptr<AccountData> const& account,
+                                                  Context const& ctx,
+                                                  QDBusMessage const& message) {
             auto f = account->provider().update(
-                item_id.toStdString(), size, old_etag.toStdString(), ctx);
+                item_id.toStdString(), size, old_etag.toStdString(), to_vector(keys), ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
@@ -215,7 +259,9 @@ QString ProviderInterface::Update(QString const& item_id, int64_t size, QString 
 
 ProviderInterface::IMD ProviderInterface::FinishUpload(QString const& upload_id)
 {
-    queue_request([upload_id](shared_ptr<AccountData> const& account, Context const& /*ctx*/, QDBusMessage const& message) {
+    queue_request([upload_id](shared_ptr<AccountData> const& account,
+                              Context const& /*ctx*/,
+                              QDBusMessage const& message) {
             // FIXME: removing the job at this point means we can't
             // cancel during finish().
             // Throws if job is not available
@@ -233,7 +279,9 @@ ProviderInterface::IMD ProviderInterface::FinishUpload(QString const& upload_id)
 
 void ProviderInterface::CancelUpload(QString const& upload_id)
 {
-    queue_request([upload_id](shared_ptr<AccountData> const& account, Context const& /*ctx*/, QDBusMessage const& message) {
+    queue_request([upload_id](shared_ptr<AccountData> const& account,
+                              Context const& /*ctx*/,
+                              QDBusMessage const& message) {
             // Throws if job is not available
             auto job = account->jobs().remove_upload(message.service(), upload_id.toStdString());
             auto f = job->p_->cancel(*job);
@@ -273,7 +321,9 @@ QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescrip
 
 void ProviderInterface::FinishDownload(QString const& download_id)
 {
-    queue_request([download_id](shared_ptr<AccountData> const& account, Context const& /*ctx*/, QDBusMessage const& message) {
+    queue_request([download_id](shared_ptr<AccountData> const& account,
+                                Context const& /*ctx*/,
+                                QDBusMessage const& message) {
             // FIXME: removing the job at this point means we can't
             // cancel during finish().
             // Throws if job is not available
@@ -302,12 +352,17 @@ void ProviderInterface::Delete(QString const& item_id)
         });
 }
 
-ProviderInterface::IMD ProviderInterface::Move(QString const& item_id, QString const& new_parent_id, QString const& new_name)
+ProviderInterface::IMD ProviderInterface::Move(QString const& item_id,
+                                               QString const& new_parent_id,
+                                               QString const& new_name,
+                                               QList<QString> const& keys)
 {
-    queue_request([item_id, new_parent_id, new_name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+    queue_request([item_id, new_parent_id, new_name, keys](shared_ptr<AccountData> const& account,
+                                                           Context const& ctx,
+                                                           QDBusMessage const& message) {
             auto f = account->provider().move(
                 item_id.toStdString(), new_parent_id.toStdString(),
-                new_name.toStdString(), ctx);
+                new_name.toStdString(), to_vector(keys), ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
@@ -318,12 +373,17 @@ ProviderInterface::IMD ProviderInterface::Move(QString const& item_id, QString c
     return {};
 }
 
-ProviderInterface::IMD ProviderInterface::Copy(QString const& item_id, QString const& new_parent_id, QString const& new_name)
+ProviderInterface::IMD ProviderInterface::Copy(QString const& item_id,
+                                               QString const& new_parent_id,
+                                               QString const& new_name,
+                                               QList<QString> const& keys)
 {
-    queue_request([item_id, new_parent_id, new_name](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+    queue_request([item_id, new_parent_id, new_name, keys](shared_ptr<AccountData> const& account,
+                                                           Context const& ctx,
+                                                           QDBusMessage const& message) {
             auto f = account->provider().copy(
                 item_id.toStdString(), new_parent_id.toStdString(),
-                new_name.toStdString(), ctx);
+                new_name.toStdString(), to_vector(keys), ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {

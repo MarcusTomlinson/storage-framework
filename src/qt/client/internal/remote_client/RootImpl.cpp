@@ -122,7 +122,7 @@ QFuture<Item::SPtr> RootImpl::get(QString native_identity) const
     }
 
     auto prov = provider();
-    auto reply = prov->Metadata(native_identity);
+    auto reply = prov->Metadata(native_identity, QList<QString>());
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<Item::SPtr>& qf)
     {

@@ -42,25 +42,25 @@ class MyProvider : public ProviderBase
 public:
     MyProvider();
 
-    boost::future<ItemList> roots(Context const& ctx) override;
+    boost::future<ItemList> roots(vector<string> const& keys, Context const& ctx) override;
     boost::future<tuple<ItemList,string>> list(
-        string const& item_id, string const& page_token,
+        string const& item_id, string const& page_token, vector<string> const& keys,
         Context const& ctx) override;
     boost::future<ItemList> lookup(
-        string const& parent_id, string const& name,
+        string const& parent_id, string const& name, vector<string> const& keys,
         Context const& ctx) override;
     boost::future<Item> metadata(
-        string const& item_id, Context const& ctx) override;
+        string const& item_id, vector<string> const& keys, Context const& ctx) override;
     boost::future<Item> create_folder(
-        string const& parent_id, string const& name,
+        string const& parent_id, string const& name, vector<string> const& keys,
         Context const& ctx) override;
 
     boost::future<unique_ptr<UploadJob>> create_file(
         string const& parent_id, string const& name,
-        int64_t size, string const& content_type, bool allow_overwrite,
+        int64_t size, string const& content_type, bool allow_overwrite, vector<string> const& keys,
         Context const& ctx) override;
     boost::future<unique_ptr<UploadJob>> update(
-        string const& item_id, int64_t size, string const& old_etag,
+        string const& item_id, int64_t size, string const& old_etag, vector<string> const& keys,
         Context const& ctx) override;
 
     boost::future<unique_ptr<DownloadJob>> download(
@@ -70,10 +70,10 @@ public:
         string const& item_id, Context const& ctx) override;
     boost::future<Item> move(
         string const& item_id, string const& new_parent_id,
-        string const& new_name, Context const& ctx) override;
+        string const& new_name, vector<string> const& keys, Context const& ctx) override;
     boost::future<Item> copy(
         string const& item_id, string const& new_parent_id,
-        string const& new_name, Context const& ctx) override;
+        string const& new_name, vector<string> const& keys, Context const& ctx) override;
 };
 
 class MyUploadJob : public TempfileUploadJob
@@ -98,7 +98,7 @@ MyProvider::MyProvider()
 {
 }
 
-boost::future<ItemList> MyProvider::roots(Context const& ctx)
+boost::future<ItemList> MyProvider::roots(vector<string> const& keys, Context const& ctx)
 {
     printf("roots() called by %s (%d)\n", ctx.security_label.c_str(), ctx.pid);
     fflush(stdout);
@@ -109,7 +109,7 @@ boost::future<ItemList> MyProvider::roots(Context const& ctx)
 }
 
 boost::future<tuple<ItemList,string>> MyProvider::list(
-    string const& item_id, string const& page_token,
+    string const& item_id, string const& page_token, vector<string> const& keys,
     Context const& ctx)
 {
     printf("list('%s', '%s') called by %s (%d)\n", item_id.c_str(), page_token.c_str(), ctx.security_label.c_str(), ctx.pid);
@@ -137,7 +137,7 @@ boost::future<tuple<ItemList,string>> MyProvider::list(
 }
 
 boost::future<ItemList> MyProvider::lookup(
-    string const& parent_id, string const& name, Context const& ctx)
+    string const& parent_id, string const& name, vector<string> const& keys, Context const& ctx)
 {
     printf("lookup('%s', '%s') called by %s (%d)\n", parent_id.c_str(), name.c_str(), ctx.security_label.c_str(), ctx.pid);
     fflush(stdout);
@@ -160,6 +160,7 @@ boost::future<ItemList> MyProvider::lookup(
 }
 
 boost::future<Item> MyProvider::metadata(string const& item_id,
+                                         vector<string> const& keys,
                                          Context const& ctx)
 {
     printf("metadata('%s') called by %s (%d)\n", item_id.c_str(), ctx.security_label.c_str(), ctx.pid);
@@ -187,7 +188,7 @@ boost::future<Item> MyProvider::metadata(string const& item_id,
 }
 
 boost::future<Item> MyProvider::create_folder(
-    string const& parent_id, string const& name,
+    string const& parent_id, string const& name, vector<string> const& keys,
     Context const& ctx)
 {
     printf("create_folder('%s', '%s') called by %s (%d)\n", parent_id.c_str(), name.c_str(), ctx.security_label.c_str(), ctx.pid);
@@ -204,7 +205,7 @@ string make_job_id()
 
 boost::future<unique_ptr<UploadJob>> MyProvider::create_file(
     string const& parent_id, string const& name,
-    int64_t size, string const& content_type, bool allow_overwrite,
+    int64_t size, string const& content_type, bool allow_overwrite, vector<string> const& keys,
     Context const& ctx)
 {
     printf("create_file('%s', '%s', %" PRId64 ", '%s', %d) called by %s (%d)\n", parent_id.c_str(), name.c_str(), size, content_type.c_str(), allow_overwrite, ctx.security_label.c_str(), ctx.pid);
@@ -213,7 +214,7 @@ boost::future<unique_ptr<UploadJob>> MyProvider::create_file(
 }
 
 boost::future<unique_ptr<UploadJob>> MyProvider::update(
-    string const& item_id, int64_t size, string const& old_etag, Context const& ctx)
+    string const& item_id, int64_t size, string const& old_etag, vector<string> const& keys, Context const& ctx)
 {
     printf("update('%s', %" PRId64 ", '%s') called by %s (%d)\n", item_id.c_str(), size, old_etag.c_str(), ctx.security_label.c_str(), ctx.pid);
     fflush(stdout);
@@ -248,7 +249,7 @@ boost::future<void> MyProvider::delete_item(
 
 boost::future<Item> MyProvider::move(
     string const& item_id, string const& new_parent_id,
-    string const& new_name, Context const& ctx)
+    string const& new_name, vector<string> const& keys, Context const& ctx)
 {
     printf("move('%s', '%s', '%s') called by %s (%d)\n", item_id.c_str(), new_parent_id.c_str(), new_name.c_str(), ctx.security_label.c_str(), ctx.pid);
     fflush(stdout);
@@ -258,7 +259,7 @@ boost::future<Item> MyProvider::move(
 
 boost::future<Item> MyProvider::copy(
     string const& item_id, string const& new_parent_id,
-    string const& new_name, Context const& ctx)
+    string const& new_name, vector<string> const& keys, Context const& ctx)
 {
     printf("copy('%s', '%s', '%s') called by %s (%d)\n", item_id.c_str(), new_parent_id.c_str(), new_name.c_str(), ctx.security_label.c_str(), ctx.pid);
     fflush(stdout);

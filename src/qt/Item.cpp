@@ -112,24 +112,24 @@ QDateTime Item::lastModifiedTime() const
     return p_->lastModifiedTime();
 }
 
-QList<QString> Item::parentIds() const
+QStringList Item::parentIds() const
 {
     return p_->parentIds();
 }
 
-ItemListJob* Item::parents() const
+ItemListJob* Item::parents(QStringList const& keys) const
 {
-    return p_->parents();
+    return p_->parents(keys);
 }
 
-ItemJob* Item::copy(Item const& newParent, QString const& newName) const
+ItemJob* Item::copy(Item const& newParent, QString const& newName, QStringList const& keys) const
 {
-    return p_->copy(newParent, newName);
+    return p_->copy(newParent, newName, keys);
 }
 
-ItemJob* Item::move(Item const& newParent, QString const& newName) const
+ItemJob* Item::move(Item const& newParent, QString const& newName, QStringList const& keys) const
 {
-    return p_->move(newParent, newName);
+    return p_->move(newParent, newName, keys);
 }
 
 VoidJob* Item::deleteItem() const
@@ -137,9 +137,9 @@ VoidJob* Item::deleteItem() const
     return p_->deleteItem();
 }
 
-Uploader* Item::createUploader(ConflictPolicy policy, qint64 sizeInBytes) const
+Uploader* Item::createUploader(ConflictPolicy policy, qint64 sizeInBytes, QStringList const& keys) const
 {
-    return p_->createUploader(policy, sizeInBytes);
+    return p_->createUploader(policy, sizeInBytes, keys);
 }
 
 Downloader* Item::createDownloader() const
@@ -147,27 +147,28 @@ Downloader* Item::createDownloader() const
     return p_->createDownloader();
 }
 
-ItemListJob* Item::list() const
+ItemListJob* Item::list(QStringList const& keys) const
 {
-    return p_->list();
+    return p_->list(keys);
 }
 
-ItemListJob* Item::lookup(QString const& name) const
+ItemListJob* Item::lookup(QString const& name, QStringList const& keys) const
 {
-    return p_->lookup(name);
+    return p_->lookup(name, keys);
 }
 
-ItemJob* Item::createFolder(QString const& name) const
+ItemJob* Item::createFolder(QString const& name, QStringList const& keys) const
 {
-    return p_->createFolder(name);
+    return p_->createFolder(name, keys);
 }
 
 Uploader* Item::createFile(QString const& name,
                            ConflictPolicy policy,
                            qint64 sizeInBytes,
-                           QString const& contentType) const
+                           QString const& contentType,
+                           QStringList const& keys) const
 {
-    return p_->createFile(name, policy, sizeInBytes, contentType);
+    return p_->createFile(name, policy, sizeInBytes, contentType, keys);
 }
 
 IntJob* Item::freeSpaceBytes() const

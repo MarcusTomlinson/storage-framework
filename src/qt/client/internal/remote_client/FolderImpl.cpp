@@ -68,7 +68,7 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
     }
 
     auto prov = provider();
-    auto reply = prov->List(md_.item_id, "");
+    auto reply = prov->List(md_.item_id, "", QList<QString>());
 
     // Sorry for the mess, but we can't use auto for the lambda because it calls itself,
     // and the compiler can't deduce the type of the lambda while it's still parsing the lambda body.
@@ -114,7 +114,7 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::list() const
         else
         {
             // Request next lot.
-            auto next_reply = prov->List(md_.item_id, token);
+            auto next_reply = prov->List(md_.item_id, token, QList<QString>());
             new Handler<QVector<shared_ptr<Item>>>(const_cast<FolderImpl*>(this), next_reply, process_reply);
         }
     };
@@ -135,7 +135,7 @@ QFuture<QVector<shared_ptr<Item>>> FolderImpl::lookup(QString const& name) const
     }
 
     auto prov = provider();
-    auto reply = prov->Lookup(md_.item_id, name);
+    auto reply = prov->Lookup(md_.item_id, name, QList<QString>());
 
     auto process_reply = [this, name](decltype(reply) const& reply, QFutureInterface<QVector<shared_ptr<Item>>>& qf)
     {
@@ -194,7 +194,7 @@ QFuture<shared_ptr<Folder>> FolderImpl::create_folder(QString const& name)
     }
 
     auto prov = provider();
-    auto reply = prov->CreateFolder(md_.item_id, name);
+    auto reply = prov->CreateFolder(md_.item_id, name, QList<QString>());
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<shared_ptr<Folder>>& qf)
     {
@@ -252,7 +252,7 @@ QFuture<shared_ptr<Uploader>> FolderImpl::create_file(QString const& name, int64
     }
 
     auto prov = provider();
-    auto reply = prov->CreateFile(md_.item_id, name, size, "application/octet-stream", false);
+    auto reply = prov->CreateFile(md_.item_id, name, size, "application/octet-stream", false, QList<QString>());
 
     auto process_reply = [this, size](decltype(reply) const& reply, QFutureInterface<shared_ptr<Uploader>>& qf)
     {

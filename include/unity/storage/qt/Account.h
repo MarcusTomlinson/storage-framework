@@ -18,9 +18,8 @@
 
 #pragma once
 
-#include <QList>
 #include <QMetaType>
-#include <QString>
+#include <QStringList>
 
 #include <memory>
 
@@ -62,8 +61,8 @@ public:
     QString ownerId() const;
     QString description() const;
 
-    Q_INVOKABLE ItemListJob* roots() const;
-    Q_INVOKABLE ItemJob* get(QString const& itemId) const;
+    Q_INVOKABLE ItemListJob* roots(QStringList const& keys = QStringList()) const;
+    Q_INVOKABLE ItemJob* get(QString const& itemId, QStringList const& keys = QStringList()) const;
 
     bool operator==(Account const&) const;
     bool operator!=(Account const&) const;

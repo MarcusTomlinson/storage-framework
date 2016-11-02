@@ -44,7 +44,7 @@ MockProvider::MockProvider(string const& cmd)
 {
 }
 
-boost::future<ItemList> MockProvider::roots(Context const&)
+boost::future<ItemList> MockProvider::roots(vector<string> const&, Context const&)
 {
     ItemList roots =
     {
@@ -54,7 +54,7 @@ boost::future<ItemList> MockProvider::roots(Context const&)
 }
 
 boost::future<tuple<ItemList,string>> MockProvider::list(
-    string const& item_id, string const& page_token,
+    string const& item_id, string const& page_token, vector<string> const&,
     Context const&)
 {
     if (item_id != "root_id")
@@ -80,7 +80,7 @@ boost::future<tuple<ItemList,string>> MockProvider::list(
 }
 
 boost::future<ItemList> MockProvider::lookup(
-    string const& parent_id, string const& name, Context const&)
+    string const& parent_id, string const& name, vector<string> const&, Context const&)
 {
     if (parent_id != "root_id")
     {
@@ -100,7 +100,7 @@ boost::future<ItemList> MockProvider::lookup(
     return make_ready_future<ItemList>(children);
 }
 
-boost::future<Item> MockProvider::metadata(string const& item_id, Context const&)
+boost::future<Item> MockProvider::metadata(string const& item_id, vector<string> const&, Context const&)
 {
     if (item_id == "root_id")
     {
@@ -125,7 +125,7 @@ boost::future<Item> MockProvider::metadata(string const& item_id, Context const&
 }
 
 boost::future<Item> MockProvider::create_folder(
-    string const& parent_id, string const& name,
+    string const& parent_id, string const& name, vector<string> const&,
     Context const&)
 {
     Item metadata{"new_folder_id", { parent_id }, name, "etag", ItemType::folder, {}};
@@ -140,13 +140,13 @@ string make_job_id()
 
 boost::future<unique_ptr<UploadJob>> MockProvider::create_file(
     string const&, string const&,
-    int64_t, string const&, bool, Context const&)
+    int64_t, string const&, bool, vector<string> const&, Context const&)
 {
     return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob(make_job_id()));
 }
 
 boost::future<unique_ptr<UploadJob>> MockProvider::update(
-    string const&, int64_t, string const&, Context const&)
+    string const&, int64_t, string const&, vector<string> const&, Context const&)
 {
     return make_ready_future<unique_ptr<UploadJob>>(new MockUploadJob(make_job_id()));
 }
@@ -174,7 +174,7 @@ boost::future<void> MockProvider::delete_item(
 
 boost::future<Item> MockProvider::move(
     string const& item_id, string const& new_parent_id,
-    string const& new_name, Context const&)
+    string const& new_name, vector<string> const&, Context const&)
 {
     Item metadata{item_id, { new_parent_id }, new_name, "etag", ItemType::file, {}};
     return make_ready_future(metadata);
@@ -182,7 +182,7 @@ boost::future<Item> MockProvider::move(
 
 boost::future<Item> MockProvider::copy(
     string const&, string const& new_parent_id,
-    string const& new_name, Context const&)
+    string const& new_name, vector<string> const&, Context const&)
 {
     Item metadata{"new_item_id", { new_parent_id }, new_name, "etag", ItemType::file, {}};
     return make_ready_future(metadata);

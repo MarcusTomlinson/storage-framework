@@ -283,8 +283,9 @@ void TestDownloadJob::write_some()
 }
 
 
-boost::future<ItemList> TestProvider::roots(Context const& ctx)
+boost::future<ItemList> TestProvider::roots(vector<string> const& keys, Context const& ctx)
 {
+    Q_UNUSED(keys);
     Q_UNUSED(ctx);
 
     ItemList roots = {
@@ -296,8 +297,9 @@ boost::future<ItemList> TestProvider::roots(Context const& ctx)
 }
 
 boost::future<tuple<ItemList,string>> TestProvider::list(
-    string const& item_id, string const& page_token, Context const& ctx)
+    string const& item_id, string const& page_token, vector<string> const& keys, Context const& ctx)
 {
+    Q_UNUSED(keys);
     Q_UNUSED(ctx);
 
     boost::promise<tuple<ItemList,string>> p;
@@ -330,8 +332,9 @@ boost::future<tuple<ItemList,string>> TestProvider::list(
 }
 
 boost::future<ItemList> TestProvider::lookup(
-    string const& parent_id, string const& name, Context const& ctx)
+    string const& parent_id, string const& name, vector<string> const& keys, Context const& ctx)
 {
+    Q_UNUSED(keys);
     Q_UNUSED(ctx);
 
     boost::promise<ItemList> p;
@@ -343,8 +346,9 @@ boost::future<ItemList> TestProvider::lookup(
 }
 
 boost::future<Item> TestProvider::metadata(
-    string const& item_id, Context const& ctx)
+    string const& item_id, vector<string> const& keys, Context const& ctx)
 {
+    Q_UNUSED(keys);
     Q_UNUSED(ctx);
 
     boost::promise<Item> p;
@@ -361,8 +365,9 @@ boost::future<Item> TestProvider::metadata(
 }
 
 boost::future<Item> TestProvider::create_folder(
-    string const& parent_id, string const& name, Context const& ctx)
+    string const& parent_id, string const& name, vector<string> const& keys, Context const& ctx)
 {
+    Q_UNUSED(keys);
     Q_UNUSED(ctx);
 
     boost::promise<Item> p;
@@ -373,11 +378,12 @@ boost::future<Item> TestProvider::create_folder(
 
 boost::future<unique_ptr<UploadJob>> TestProvider::create_file(
     string const& parent_id, string const& name,
-    int64_t size, string const& content_type, bool allow_overwrite,
+    int64_t size, string const& content_type, bool allow_overwrite, vector<string> const& keys,
     Context const& ctx)
 {
     Q_UNUSED(content_type);
     Q_UNUSED(allow_overwrite);
+    Q_UNUSED(keys);
     Q_UNUSED(ctx);
 
     boost::promise<unique_ptr<UploadJob>> p;
@@ -387,11 +393,12 @@ boost::future<unique_ptr<UploadJob>> TestProvider::create_file(
 }
 
 boost::future<unique_ptr<UploadJob>> TestProvider::update(
-    string const& item_id, int64_t size, string const& old_etag,
+    string const& item_id, int64_t size, string const& old_etag, vector<string> const& keys,
     Context const& ctx)
 {
     Q_UNUSED(item_id);
     Q_UNUSED(old_etag);
+    Q_UNUSED(keys);
     Q_UNUSED(ctx);
 
     boost::promise<unique_ptr<UploadJob>> p;
@@ -438,8 +445,9 @@ boost::future<void> TestProvider::delete_item(
 
 boost::future<Item> TestProvider::move(
     string const& item_id, string const& new_parent_id,
-    string const& new_name, Context const& ctx)
+    string const& new_name, vector<string> const& keys, Context const& ctx)
 {
+    Q_UNUSED(keys);
     Q_UNUSED(ctx);
 
     boost::promise<Item> p;
@@ -450,9 +458,10 @@ boost::future<Item> TestProvider::move(
 
 boost::future<Item> TestProvider::copy(
     string const& item_id, string const& new_parent_id,
-    string const& new_name, Context const& ctx)
+    string const& new_name, vector<string> const& keys, Context const& ctx)
 {
     Q_UNUSED(item_id);
+    Q_UNUSED(keys);
     Q_UNUSED(ctx);
 
     boost::promise<Item> p;
