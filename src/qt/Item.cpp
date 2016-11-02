@@ -107,6 +107,11 @@ QVariantMap Item::metadata() const
     return p_->metadata();
 }
 
+qint64 Item::sizeInBytes() const
+{
+    return p_->sizeInBytes();
+}
+
 QDateTime Item::lastModifiedTime() const
 {
     return p_->lastModifiedTime();
@@ -169,16 +174,6 @@ Uploader* Item::createFile(QString const& name,
                            QStringList const& keys) const
 {
     return p_->createFile(name, policy, sizeInBytes, contentType, keys);
-}
-
-IntJob* Item::freeSpaceBytes() const
-{
-    return p_->freeSpaceBytes();
-}
-
-IntJob* Item::usedSpaceBytes() const
-{
-    return p_->usedSpaceBytes();
 }
 
 bool Item::operator==(Item const& other) const

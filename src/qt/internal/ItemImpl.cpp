@@ -19,7 +19,7 @@
 #include <unity/storage/qt/internal/ItemImpl.h>
 
 #include "ProviderInterface.h"
-#include <unity/storage/provider/metadata_keys.h>
+#include <unity/storage/common.h>
 #include <unity/storage/qt/internal/DownloaderImpl.h>
 #include <unity/storage/qt/internal/ItemJobImpl.h>
 #include <unity/storage/qt/internal/ItemListJobImpl.h>
@@ -96,13 +96,23 @@ Item::Type ItemImpl::type() const
 
 QVariantMap ItemImpl::metadata() const
 {
-    // TODO: Need to agree on metadata representation.
-    return is_valid_ ? QVariantMap() : QVariantMap();
+    return is_valid_ ? md_.metadata : QVariantMap();
+}
+
+qint64 ItemImpl::sizeInBytes() const
+{
+    if (!is_valid_ || md_.type != ItemType::file)
+    {
+        return 0;
+    }
+    auto variant = md_.metadata.value(metadata::SIZE_IN_BYTES);
+    assert(variant.isValid());
+    return variant.toLongLong();
 }
 
 QDateTime ItemImpl::lastModifiedTime() const
 {
-    return is_valid_ ? QDateTime::fromString(md_.metadata.value(provider::LAST_MODIFIED_TIME).toString(), Qt::ISODate)
+    return is_valid_ ? QDateTime::fromString(md_.metadata.value(metadata::LAST_MODIFIED_TIME).toString(), Qt::ISODate)
                      : QDateTime();
 }
 
@@ -423,16 +433,6 @@ Uploader* ItemImpl::createFile(QString const& name,
                                                        contentType, allow_overwrite, keys);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return UploaderImpl::make_job(This, method, reply, validate, policy, sizeInBytes);
-}
-
-IntJob* ItemImpl::freeSpaceBytes() const
-{
-    return nullptr;  // TODO
-}
-
-IntJob* ItemImpl::usedSpaceBytes() const
-{
-    return nullptr;  // TODO
 }
 
 bool ItemImpl::operator==(ItemImpl const& other) const

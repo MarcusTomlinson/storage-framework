@@ -54,7 +54,7 @@ public:
     bool isValid() const;        // Not nice, hides QLocalSocket::isValid()
     Status status() const;
     StorageError error() const;  // Not nice, hides QLocalSocket::error()
-    Item item() const;           // TODO: Should we keep this?
+    Item item() const;
 
     Q_INVOKABLE void finishDownload();
     Q_INVOKABLE void cancel();

@@ -55,6 +55,7 @@ public:
     QString etag() const;
     Item::Type type() const;
     QVariantMap metadata() const;
+    qint64 sizeInBytes() const;
     QDateTime lastModifiedTime() const;
     QList<QString> parentIds() const;
 
@@ -73,8 +74,6 @@ public:
                          qint64 sizeInBytes,
                          QString const& contentType,
                          QStringList const& keys) const;
-    IntJob* freeSpaceBytes() const;
-    IntJob* usedSpaceBytes() const;
 
     bool operator==(ItemImpl const&) const;
     bool operator!=(ItemImpl const&) const;

@@ -94,6 +94,7 @@ public:
     QString etag() const;
     Type type() const;
     QVariantMap metadata() const;
+    qint64 sizeInBytes() const;
     QDateTime lastModifiedTime() const;
     QStringList parentIds() const;
 
@@ -119,9 +120,6 @@ public:
                                      qint64 sizeInBytes,
                                      QString const& contentType,
                                      QStringList const& keys = QStringList()) const;
-
-    Q_INVOKABLE IntJob* freeSpaceBytes() const;
-    Q_INVOKABLE IntJob* usedSpaceBytes() const;
 
     bool operator==(Item const&) const;
     bool operator!=(Item const&) const;

@@ -18,8 +18,8 @@
 
 #include "MockProvider.h"
 
+#include <unity/storage/internal/metadata_keys.h>
 #include <unity/storage/provider/Exceptions.h>
-#include <unity/storage/provider/metadata_keys.h>
 
 #include <boost/thread.hpp>
 #include <boost/thread/future.hpp>
@@ -71,7 +71,7 @@ boost::future<tuple<ItemList,string>> MockProvider::list(
     {
         {
             "child_id", { "root_id" }, "Child", "etag", ItemType::file,
-            { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+            { { metadata::SIZE_IN_BYTES, 0 }, { metadata::LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
         }
     };
     boost::promise<tuple<ItemList,string>> p;
@@ -95,7 +95,7 @@ boost::future<ItemList> MockProvider::lookup(
     ItemList children =
     {
         { "child_id", { "root_id" }, "Child", "etag", ItemType::file,
-          { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } } }
+          { { metadata::SIZE_IN_BYTES, 0 }, { metadata::LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } } }
     };
     return make_ready_future<ItemList>(children);
 }
@@ -112,7 +112,7 @@ boost::future<Item> MockProvider::metadata(string const& item_id, vector<string>
         Item metadata
         {
             "child_id", { "root_id" }, "Child", "etag", ItemType::file,
-            { { SIZE_IN_BYTES, 0 }, { LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
+            { { metadata::SIZE_IN_BYTES, 0 }, { metadata::LAST_MODIFIED_TIME, "2007-04-05T14:30Z" } }
         };
         return make_ready_future<Item>(metadata);
     }
@@ -209,7 +209,7 @@ boost::future<Item> MockUploadJob::finish()
     Item metadata
     {
         "some_id", { "root_id" }, "some_upload", "etag", ItemType::file,
-        { { SIZE_IN_BYTES, 10 }, { LAST_MODIFIED_TIME, "2011-04-05T14:30:10.005Z" } }
+        { { metadata::SIZE_IN_BYTES, 10 }, { metadata::LAST_MODIFIED_TIME, "2011-04-05T14:30:10.005Z" } }
     };
     return make_ready_future(metadata);
 }
