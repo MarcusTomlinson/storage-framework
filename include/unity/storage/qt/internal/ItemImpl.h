@@ -58,21 +58,21 @@ public:
     QDateTime lastModifiedTime() const;
     QList<QString> parentIds() const;
 
-    ItemListJob* parents(MetadataKeys const& keys) const;
-    ItemJob* copy(Item const& newParent, QString const& newName, MetadataKeys const& keys) const;
-    ItemJob* move(Item const& newParent, QString const& newName, MetadataKeys const& keys) const;
+    ItemListJob* parents(QStringList const& keys) const;
+    ItemJob* copy(Item const& newParent, QString const& newName, QStringList const& keys) const;
+    ItemJob* move(Item const& newParent, QString const& newName, QStringList const& keys) const;
     VoidJob* deleteItem() const;
-    Uploader* createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes, MetadataKeys const& keys) const;
+    Uploader* createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes, QStringList const& keys) const;
     Downloader* createDownloader() const;
-    ItemListJob* list(MetadataKeys const& keys) const;
-    ItemListJob* lookup(QString const& name, MetadataKeys const& keys) const;
-    ItemJob* createFolder(QString const& name, MetadataKeys const& keys) const;
+    ItemListJob* list(QStringList const& keys) const;
+    ItemListJob* lookup(QString const& name, QStringList const& keys) const;
+    ItemJob* createFolder(QString const& name, QStringList const& keys) const;
     Uploader* createFile(QString const& name) const;
     Uploader* createFile(QString const& name,
                          Item::ConflictPolicy policy,
                          qint64 sizeInBytes,
                          QString const& contentType,
-                         MetadataKeys const& keys) const;
+                         QStringList const& keys) const;
     IntJob* freeSpaceBytes() const;
     IntJob* usedSpaceBytes() const;
 

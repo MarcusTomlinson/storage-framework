@@ -115,7 +115,7 @@ QList<QString> ItemImpl::parentIds() const
     return md_.parent_ids;
 }
 
-ItemListJob* ItemImpl::parents(MetadataKeys const& keys) const
+ItemListJob* ItemImpl::parents(QStringList const& keys) const
 {
     QString const method = "Item::parents()";
 
@@ -152,7 +152,7 @@ ItemListJob* ItemImpl::parents(MetadataKeys const& keys) const
     return MultiItemJobImpl::make_job(account_impl_, method, replies, validate);
 }
 
-ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName, MetadataKeys const& keys) const
+ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName, QStringList const& keys) const
 {
     QString const method = "Item::copy()";
 
@@ -179,7 +179,7 @@ ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName, MetadataK
     return ItemJobImpl::make_job(This, method, reply, validate);
 }
 
-ItemJob* ItemImpl::move(Item const& newParent, QString const& newName, MetadataKeys const& keys) const
+ItemJob* ItemImpl::move(Item const& newParent, QString const& newName, QStringList const& keys) const
 {
     QString const method = "Item::move()";
 
@@ -232,7 +232,7 @@ VoidJob* ItemImpl::deleteItem() const
     return VoidJobImpl::make_job(This, method, reply);
 }
 
-Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes, MetadataKeys const& keys) const
+Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes, QStringList const& keys) const
 {
     QString const method = "Item::createUploader()";
 
@@ -288,7 +288,7 @@ Downloader* ItemImpl::createDownloader() const
     return DownloaderImpl::make_job(This, method, reply);
 }
 
-ItemListJob* ItemImpl::list(MetadataKeys const& keys) const
+ItemListJob* ItemImpl::list(QStringList const& keys) const
 {
     QString const method = "Item::list()";
 
@@ -323,7 +323,7 @@ ItemListJob* ItemImpl::list(MetadataKeys const& keys) const
     return MultiItemListJobImpl::make_job(This, method, reply, validate, fetch_next);
 }
 
-ItemListJob* ItemImpl::lookup(QString const& name, MetadataKeys const& keys) const
+ItemListJob* ItemImpl::lookup(QString const& name, QStringList const& keys) const
 {
     QString const method = "Item::lookup()";
 
@@ -347,7 +347,7 @@ ItemListJob* ItemImpl::lookup(QString const& name, MetadataKeys const& keys) con
     return ItemListJobImpl::make_job(This, method, reply, validate);
 }
 
-ItemJob* ItemImpl::createFolder(QString const& name, MetadataKeys const& keys) const
+ItemJob* ItemImpl::createFolder(QString const& name, QStringList const& keys) const
 {
     QString const method = "Item::createFolder()";
 
@@ -382,7 +382,7 @@ Uploader* ItemImpl::createFile(QString const& name,
                                Item::ConflictPolicy policy,
                                qint64 sizeInBytes,
                                QString const& contentType,
-                               MetadataKeys const& keys) const
+                               QStringList const& keys) const
 {
     QString const method = "Item::createFile()";
 
