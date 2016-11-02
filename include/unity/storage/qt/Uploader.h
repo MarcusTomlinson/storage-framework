@@ -79,8 +79,8 @@ Q_SIGNALS:
 private:
     Uploader(std::unique_ptr<internal::UploaderImpl> p);
 
-    Q_INVOKABLE qint64 readData(char* data, qint64 c);
-    Q_INVOKABLE qint64 writeData(char const* data, qint64 c);
+    qint64 readData(char* data, qint64 c);
+    qint64 writeData(char const* data, qint64 c);
 
     std::unique_ptr<internal::UploaderImpl> p_;
 

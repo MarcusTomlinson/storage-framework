@@ -72,8 +72,8 @@ Q_SIGNALS:
 private:
     Downloader(std::unique_ptr<internal::DownloaderImpl> p);
 
-    Q_INVOKABLE qint64 readData(char* data, qint64 c);
-    Q_INVOKABLE qint64 writeData(char const* data, qint64 c);
+    qint64 readData(char* data, qint64 c);
+    qint64 writeData(char const* data, qint64 c);
 
     std::unique_ptr<internal::DownloaderImpl> p_;
 
