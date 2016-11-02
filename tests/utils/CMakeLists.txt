@@ -13,6 +13,7 @@ set_source_files_properties(${generated_files} PROPERTIES GENERATED TRUE)
 add_library(testutils STATIC
   DBusEnvironment.cpp
   ProviderFixture.cpp
+  gtest_printer.cpp
   ${generated_files}
 )
 target_compile_options(testutils PRIVATE ${QTDBUSTEST_DEPS_CFLAGS} ${ONLINEACCOUNTS_DEPS_CFLAGS})
