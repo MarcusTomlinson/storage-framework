@@ -112,7 +112,7 @@ QDateTime Item::lastModifiedTime() const
     return p_->lastModifiedTime();
 }
 
-QList<QString> Item::parentIds() const
+QStringList Item::parentIds() const
 {
     return p_->parentIds();
 }
