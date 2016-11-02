@@ -122,17 +122,17 @@ QList<QString> Item::parentIds() const
     return p_->parentIds();
 }
 
-ItemListJob* Item::parents(MetadataKeys const& keys) const
+ItemListJob* Item::parents(QStringList const& keys) const
 {
     return p_->parents(keys);
 }
 
-ItemJob* Item::copy(Item const& newParent, QString const& newName, MetadataKeys const& keys) const
+ItemJob* Item::copy(Item const& newParent, QString const& newName, QStringList const& keys) const
 {
     return p_->copy(newParent, newName, keys);
 }
 
-ItemJob* Item::move(Item const& newParent, QString const& newName, MetadataKeys const& keys) const
+ItemJob* Item::move(Item const& newParent, QString const& newName, QStringList const& keys) const
 {
     return p_->move(newParent, newName, keys);
 }
@@ -142,7 +142,7 @@ VoidJob* Item::deleteItem() const
     return p_->deleteItem();
 }
 
-Uploader* Item::createUploader(ConflictPolicy policy, qint64 sizeInBytes, MetadataKeys const& keys) const
+Uploader* Item::createUploader(ConflictPolicy policy, qint64 sizeInBytes, QStringList const& keys) const
 {
     return p_->createUploader(policy, sizeInBytes, keys);
 }
@@ -152,17 +152,17 @@ Downloader* Item::createDownloader() const
     return p_->createDownloader();
 }
 
-ItemListJob* Item::list(MetadataKeys const& keys) const
+ItemListJob* Item::list(QStringList const& keys) const
 {
     return p_->list(keys);
 }
 
-ItemListJob* Item::lookup(QString const& name, MetadataKeys const& keys) const
+ItemListJob* Item::lookup(QString const& name, QStringList const& keys) const
 {
     return p_->lookup(name, keys);
 }
 
-ItemJob* Item::createFolder(QString const& name, MetadataKeys const& keys) const
+ItemJob* Item::createFolder(QString const& name, QStringList const& keys) const
 {
     return p_->createFolder(name, keys);
 }
@@ -171,7 +171,7 @@ Uploader* Item::createFile(QString const& name,
                            ConflictPolicy policy,
                            qint64 sizeInBytes,
                            QString const& contentType,
-                           MetadataKeys const& keys) const
+                           QStringList const& keys) const
 {
     return p_->createFile(name, policy, sizeInBytes, contentType, keys);
 }
