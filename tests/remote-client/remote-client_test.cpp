@@ -2462,7 +2462,7 @@ TEST_F(DownloadTest, basic)
         child = j->item();
     }
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_TRUE(downloader->isValid());
     EXPECT_EQ(Downloader::Status::Loading, downloader->status());
     EXPECT_EQ(StorageError::NoError, downloader->error().type());
@@ -2524,7 +2524,7 @@ TEST_F(DownloadTest, abandoned)
         child = j->item();
     }
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_TRUE(downloader->isValid());
 
     {
@@ -2557,7 +2557,7 @@ TEST_F(DownloadTest, runtime_destroyed)
 
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_FALSE(downloader->isValid());
     EXPECT_EQ(Downloader::Status::Error, downloader->status());
     EXPECT_EQ(StorageError::RuntimeDestroyed, downloader->error().type());
@@ -2594,7 +2594,7 @@ TEST_F(DownloadTest, runtime_destroyed_while_download_running)
         child = j->item();
     }
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_TRUE(downloader->isValid());
 
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime, provider still sleeping
@@ -2635,7 +2635,7 @@ TEST_F(DownloadTest, download_error)
         child = j->item();
     }
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_TRUE(downloader->isValid());
 
     // Signal must arrive.
@@ -2681,7 +2681,7 @@ TEST_F(DownloadTest, finish_too_soon)
         child = j->item();
     }
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_TRUE(downloader->isValid());
 
     QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
@@ -2719,7 +2719,7 @@ TEST_F(DownloadTest, finish_runtime_destroyed)
         child = j->item();
     }
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_TRUE(downloader->isValid());
 
     {
@@ -2765,7 +2765,7 @@ TEST_F(DownloadTest, finish_runtime_destroyed_while_reply_outstanding)
         child = j->item();
     }
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_TRUE(downloader->isValid());
 
     {
@@ -2811,7 +2811,7 @@ TEST_F(DownloadTest, finish_twice)
         child = j->item();
     }
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_TRUE(downloader->isValid());
 
     {
@@ -2853,7 +2853,7 @@ TEST_F(DownloadTest, finish_error)
         child = j->item();
     }
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_TRUE(downloader->isValid());
 
     {
@@ -2892,7 +2892,7 @@ TEST_F(DownloadTest, wrong_type)
         root = j->item();
     }
 
-    unique_ptr<Downloader> downloader(root.createDownloader());
+    unique_ptr<Downloader> downloader(root.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_FALSE(downloader->isValid());
     EXPECT_EQ(Downloader::Status::Error, downloader->status());
     EXPECT_EQ(StorageError::Type::LogicError, downloader->error().type());
@@ -2904,6 +2904,33 @@ TEST_F(DownloadTest, wrong_type)
         auto arg = spy.takeFirst();
         EXPECT_EQ(Downloader::Status::Error, qvariant_cast<Downloader::Status>(arg.at(0)));
     }
+}
+
+TEST_F(DownloadTest, conflict)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::ErrorIfConflict));
+    EXPECT_TRUE(downloader->isValid());
+
+    {
+        QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        auto arg = spy.takeFirst();
+        EXPECT_EQ(Downloader::Status::Error, qvariant_cast<Downloader::Status>(arg.at(0)));
+    }
+
+    EXPECT_EQ(Downloader::Status::Error, downloader->status());
+    EXPECT_EQ(StorageError::Type::Conflict, downloader->error().type());
+    EXPECT_EQ("download(): etag mismatch", downloader->error().message());
 }
 
 TEST_F(DownloadTest, cancel)
@@ -2926,7 +2953,7 @@ TEST_F(DownloadTest, cancel)
         child = j->item();
     }
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_TRUE(downloader->isValid());
 
     {
@@ -2978,7 +3005,7 @@ TEST_F(DownloadTest, cancel_runtime_destroyed)
         child = j->item();
     }
 
-    unique_ptr<Downloader> downloader(child.createDownloader());
+    unique_ptr<Downloader> downloader(child.createDownloader(Item::ConflictPolicy::IgnoreConflict));
     EXPECT_TRUE(downloader->isValid());
 
     {
@@ -3027,12 +3054,12 @@ TEST_F(UploadTest, basic)
     }
 
     QByteArray contents("Hello world", -1);
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, contents.size()));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, contents.size()));
     EXPECT_TRUE(uploader->isValid());
     EXPECT_EQ(Uploader::Status::Loading, uploader->status());
     EXPECT_EQ(StorageError::NoError, uploader->error().type());
     EXPECT_EQ(Item(), uploader->item());
-    EXPECT_EQ(Item::ConflictPolicy::Overwrite, uploader->policy());
+    EXPECT_EQ(Item::ConflictPolicy::IgnoreConflict, uploader->policy());
     EXPECT_EQ(contents.size(), uploader->sizeInBytes());
 
     {
@@ -3074,7 +3101,7 @@ TEST_F(UploadTest, abandoned)
         child = j->item();
     }
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, 5));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 5));
     EXPECT_TRUE(uploader->isValid());
 
     {
@@ -3107,7 +3134,7 @@ TEST_F(UploadTest, runtime_destroyed)
 
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, 20));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 20));
     EXPECT_FALSE(uploader->isValid());
     EXPECT_EQ(Downloader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::RuntimeDestroyed, uploader->error().type());
@@ -3230,7 +3257,7 @@ TEST_F(UploadTest, finish_too_soon)
         child = j->item();
     }
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, 0));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 0));
     EXPECT_TRUE(uploader->isValid());
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
@@ -3268,7 +3295,7 @@ TEST_F(UploadTest, finish_runtime_destroyed)
         child = j->item();
     }
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, 0));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 0));
     EXPECT_TRUE(uploader->isValid());
 
     {
@@ -3314,7 +3341,7 @@ TEST_F(UploadTest, finish_runtime_destroyed_while_reply_outstanding)
         child = j->item();
     }
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, 0));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 0));
     EXPECT_TRUE(uploader->isValid());
 
     {
@@ -3360,7 +3387,7 @@ TEST_F(UploadTest, finish_twice)
         child = j->item();
     }
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, 0));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 0));
     EXPECT_TRUE(uploader->isValid());
 
     {
@@ -3402,7 +3429,7 @@ TEST_F(UploadTest, finish_error)
         child = j->item();
     }
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, 0));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 0));
     EXPECT_TRUE(uploader->isValid());
 
     {
@@ -3439,7 +3466,7 @@ TEST_F(UploadTest, wrong_type)
         root = j->item();
     }
 
-    unique_ptr<Uploader> uploader(root.createUploader(Item::ConflictPolicy::Overwrite, 0));
+    unique_ptr<Uploader> uploader(root.createUploader(Item::ConflictPolicy::IgnoreConflict, 0));
     EXPECT_FALSE(uploader->isValid());
     EXPECT_EQ(Uploader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::Type::LogicError, uploader->error().type());
@@ -3473,7 +3500,7 @@ TEST_F(UploadTest, wrong_size)
         child = j->item();
     }
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, -1));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, -1));
     EXPECT_FALSE(uploader->isValid());
     EXPECT_EQ(Uploader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::Type::InvalidArgument, uploader->error().type());
@@ -3507,7 +3534,7 @@ TEST_F(UploadTest, wrong_return_type)
         child = j->item();
     }
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, 0));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 0));
     EXPECT_TRUE(uploader->isValid());
 
     {
@@ -3548,7 +3575,7 @@ TEST_F(UploadTest, cancel_success)
         child = j->item();
     }
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, 0));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 0));
     EXPECT_TRUE(uploader->isValid());
 
     {
@@ -3593,7 +3620,7 @@ TEST_F(UploadTest, cancel_error)
         child = j->item();
     }
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, 0));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 0));
     EXPECT_TRUE(uploader->isValid());
 
     {
@@ -3645,7 +3672,7 @@ TEST_F(UploadTest, cancel_runtime_destroyed)
         child = j->item();
     }
 
-    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, 0));
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 0));
     EXPECT_TRUE(uploader->isValid());
 
     {
@@ -3695,14 +3722,14 @@ TEST_F(CreateFileTest, basic)
 
     QByteArray contents("Hello world", -1);
     unique_ptr<Uploader> uploader(root.createFile("Child",
-                                                  Item::ConflictPolicy::Overwrite,
+                                                  Item::ConflictPolicy::IgnoreConflict,
                                                   contents.size(),
                                                   ""));
     EXPECT_TRUE(uploader->isValid());
     EXPECT_EQ(Uploader::Status::Loading, uploader->status());
     EXPECT_EQ(StorageError::NoError, uploader->error().type());
     EXPECT_EQ(Item(), uploader->item());
-    EXPECT_EQ(Item::ConflictPolicy::Overwrite, uploader->policy());
+    EXPECT_EQ(Item::ConflictPolicy::IgnoreConflict, uploader->policy());
     EXPECT_EQ(contents.size(), uploader->sizeInBytes());
 
     {
@@ -3748,7 +3775,7 @@ TEST_F(CreateFileTest, runtime_destroyed)
 
     QByteArray contents("Hello world", -1);
     unique_ptr<Uploader> uploader(root.createFile("Child",
-                                                  Item::ConflictPolicy::Overwrite,
+                                                  Item::ConflictPolicy::IgnoreConflict,
                                                   contents.size(),
                                                   ""));
     EXPECT_FALSE(uploader->isValid());
@@ -3786,7 +3813,7 @@ TEST_F(CreateFileTest, wrong_type)
 
     QByteArray contents("Hello world", -1);
     unique_ptr<Uploader> uploader(child.createFile("somefile",
-                                                   Item::ConflictPolicy::Overwrite,
+                                                   Item::ConflictPolicy::IgnoreConflict,
                                                    contents.size(),
                                                    ""));
     EXPECT_FALSE(uploader->isValid());
@@ -3824,7 +3851,7 @@ TEST_F(CreateFileTest, bad_name)
 
     QByteArray contents("Hello world", -1);
     unique_ptr<Uploader> uploader(root.createFile("",
-                                                   Item::ConflictPolicy::Overwrite,
+                                                   Item::ConflictPolicy::IgnoreConflict,
                                                    contents.size(),
                                                    ""));
     EXPECT_FALSE(uploader->isValid());
@@ -3862,7 +3889,7 @@ TEST_F(CreateFileTest, bad_size)
 
     QByteArray contents("Hello world", -1);
     unique_ptr<Uploader> uploader(root.createFile("some_file",
-                                                   Item::ConflictPolicy::Overwrite,
+                                                   Item::ConflictPolicy::IgnoreConflict,
                                                    -1,
                                                    ""));
     EXPECT_FALSE(uploader->isValid());
@@ -3900,7 +3927,7 @@ TEST_F(CreateFileTest, bad_return_type)
 
     QByteArray contents("Hello world", -1);
     unique_ptr<Uploader> uploader(root.createFile("some_file",
-                                                   Item::ConflictPolicy::Overwrite,
+                                                   Item::ConflictPolicy::IgnoreConflict,
                                                    contents.size(),
                                                    ""));
     EXPECT_TRUE(uploader->isValid());

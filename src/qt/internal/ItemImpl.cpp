@@ -272,13 +272,13 @@ Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInByt
         }
     };
 
-    auto etag = policy == Item::ConflictPolicy::Overwrite ? "" : md_.etag;
+    auto etag = policy == Item::ConflictPolicy::IgnoreConflict ? "" : md_.etag;
     auto reply = account_impl_->provider()->Update(md_.item_id, sizeInBytes, etag, keys);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return UploaderImpl::make_job(This, method, reply, validate, policy, sizeInBytes);
 }
 
-Downloader* ItemImpl::createDownloader() const
+Downloader* ItemImpl::createDownloader(Item::ConflictPolicy policy) const
 {
     QString const method = "Item::createDownloader()";
 
@@ -293,7 +293,8 @@ Downloader* ItemImpl::createDownloader() const
         return DownloaderImpl::make_job(e);
     }
 
-    auto reply = account_impl_->provider()->Download(md_.item_id, "");
+    auto etag = policy == Item::ConflictPolicy::IgnoreConflict ? "" : md_.etag;
+    auto reply = account_impl_->provider()->Download(md_.item_id, etag);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return DownloaderImpl::make_job(This, method, reply);
 }
@@ -428,7 +429,7 @@ Uploader* ItemImpl::createFile(QString const& name,
         }
     };
 
-    bool allow_overwrite = policy == Item::ConflictPolicy::Overwrite;
+    bool allow_overwrite = policy == Item::ConflictPolicy::IgnoreConflict;
     auto reply = account_impl_->provider()->CreateFile(md_.item_id, name, sizeInBytes,
                                                        contentType, allow_overwrite, keys);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());

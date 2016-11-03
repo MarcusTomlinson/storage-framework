@@ -77,7 +77,7 @@ private:
     QString method_;
     std::shared_ptr<ItemImpl> item_impl_;
     std::function<void(storage::internal::ItemMetadata const&)> validate_;
-    Item::ConflictPolicy policy_ = Item::ConflictPolicy::Overwrite;
+    Item::ConflictPolicy policy_ = Item::ConflictPolicy::IgnoreConflict;
     qint64 size_in_bytes_ = 0;
     QString upload_id_;
     QDBusUnixFileDescriptor fd_;

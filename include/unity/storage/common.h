@@ -34,7 +34,8 @@ enum class ItemType
 enum class ConflictPolicy
 {
     error_if_conflict,
-    overwrite,
+    ignore_conflict,
+    overwrite = ignore_conflict, // TODO: remove this, it's here only for compatibility with v1 API
 };
 
 namespace metadata
