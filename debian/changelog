@@ -4,6 +4,9 @@ storage-framework (0.2) UNRELEASED; urgency=medium
   * Added v2 of the client-side API.
   * Updated server-side API to tell the provider which metadata to return.
 
+  [ James Henstridge ]
+  * Add match_etag argument to Download() D-Bus method.
+
  -- Michi Henning <michi.henning@canonical.com>  Wed, 21 Sep 2016 14:36:15 +1000
 
 storage-framework (0.1+16.10.20160804.1-0ubuntu1) yakkety; urgency=medium
