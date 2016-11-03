@@ -64,7 +64,8 @@ public:
         Context const& ctx) override;
 
     boost::future<unique_ptr<DownloadJob>> download(
-        string const& item_id, Context const& ctx) override;
+        string const& item_id, string const& match_etag,
+        Context const& ctx) override;
 
     boost::future<void> delete_item(
         string const& item_id, Context const& ctx) override;
@@ -222,9 +223,9 @@ boost::future<unique_ptr<UploadJob>> MyProvider::update(
 }
 
 boost::future<unique_ptr<DownloadJob>> MyProvider::download(
-    string const& item_id, Context const& ctx)
+    string const& item_id, string const& match_etag, Context const& ctx)
 {
-    printf("download('%s') called by %s (%d)\n", item_id.c_str(), ctx.security_label.c_str(), ctx.pid);
+    printf("download('%s', '%s') called by %s (%d)\n", item_id.c_str(), match_etag.c_str(), ctx.security_label.c_str(), ctx.pid);
     fflush(stdout);
 
     unique_ptr<DownloadJob> job(new MyDownloadJob(make_job_id()));

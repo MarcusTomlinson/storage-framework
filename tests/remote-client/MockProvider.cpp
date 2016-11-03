@@ -392,7 +392,7 @@ boost::future<unique_ptr<UploadJob>> MockProvider::update(
 }
 
 boost::future<unique_ptr<DownloadJob>> MockProvider::download(
-    string const&, Context const&)
+    string const&, string const&, Context const&)
 {
     if (cmd_ == "download_slow")
     {

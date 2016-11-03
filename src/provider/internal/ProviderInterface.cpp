@@ -294,11 +294,11 @@ void ProviderInterface::CancelUpload(QString const& upload_id)
         });
 }
 
-QString ProviderInterface::Download(QString const& item_id, QDBusUnixFileDescriptor& /*file_descriptor*/)
+QString ProviderInterface::Download(QString const& item_id, QString const& match_etag, QDBusUnixFileDescriptor& /*file_descriptor*/)
 {
-    queue_request([item_id](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
+    queue_request([item_id, match_etag](shared_ptr<AccountData> const& account, Context const& ctx, QDBusMessage const& message) {
             auto f = account->provider().download(
-                item_id.toStdString(), ctx);
+                item_id.toStdString(), match_etag.toStdString(), ctx);
             return f.then(
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {

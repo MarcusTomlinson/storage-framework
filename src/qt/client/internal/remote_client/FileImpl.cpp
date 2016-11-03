@@ -116,7 +116,7 @@ QFuture<shared_ptr<Downloader>> FileImpl::create_downloader()
     }
 
     auto prov = provider();
-    auto reply = prov->Download(md_.item_id);
+    auto reply = prov->Download(md_.item_id, "");
 
     auto process_reply = [this, prov](QDBusPendingReply<QString, QDBusUnixFileDescriptor> const& reply,
                                       QFutureInterface<std::shared_ptr<Downloader>>& qf)

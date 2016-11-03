@@ -293,7 +293,7 @@ Downloader* ItemImpl::createDownloader() const
         return DownloaderImpl::make_job(e);
     }
 
-    auto reply = account_impl_->provider()->Download(md_.item_id);
+    auto reply = account_impl_->provider()->Download(md_.item_id, "");
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return DownloaderImpl::make_job(This, method, reply);
 }
