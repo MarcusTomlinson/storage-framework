@@ -44,8 +44,8 @@ class Q_DECL_EXPORT Account final
 {
     Q_GADGET
     Q_PROPERTY(bool isValid READ isValid FINAL)
-    Q_PROPERTY(QString bus_name READ bus_name FINAL)
-    Q_PROPERTY(QString object_path READ object_path FINAL)
+    Q_PROPERTY(QString busName READ busName FINAL)
+    Q_PROPERTY(QString objectPath READ objectPath FINAL)
     Q_PROPERTY(QString displayName READ displayName FINAL)
 
 public:
@@ -57,8 +57,8 @@ public:
     Account& operator=(Account&&);
 
     bool isValid() const;
-    QString bus_name() const;
-    QString object_path() const;
+    QString busName() const;
+    QString objectPath() const;
     QString displayName() const;
     // TODO: add more methods to retrieve additional info, such as description, icon ID, and service name.
 

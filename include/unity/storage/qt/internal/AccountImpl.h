@@ -47,8 +47,8 @@ public:
     AccountImpl& operator=(AccountImpl const&) = default;
     AccountImpl& operator=(AccountImpl&&) = default;
 
-    QString bus_name() const;
-    QString object_path() const;
+    QString busName() const;
+    QString objectPath() const;
     QString displayName() const;
 
     ItemListJob* roots(QStringList const& keys) const;

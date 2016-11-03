@@ -27,8 +27,8 @@ Item {
         var accounts = root.accountsjob.accounts;
         console.log("Got accounts " + accounts);
         for (var i = 0; i < accounts.length; i++) {
-          console.log("Account " + i + ": id =          " + accounts[i].id);
-          console.log("Account " + i + ": serviceId =   " + accounts[i].serviceId);
+          console.log("Account " + i + ": busName =     " + accounts[i].busName());
+          console.log("Account " + i + ": objectPath =  " + accounts[i].objectPath());
           console.log("Account " + i + ": displayName = " + accounts[i].displayName);
         }
       }
