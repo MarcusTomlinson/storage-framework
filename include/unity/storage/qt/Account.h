@@ -45,8 +45,8 @@ class Q_DECL_EXPORT Account final
 {
     Q_GADGET
     Q_PROPERTY(bool isValid READ isValid FINAL)
-    Q_PROPERTY(QString id READ id FINAL)
-    Q_PROPERTY(QString serviceId READ serviceId FINAL)
+    Q_PROPERTY(QString bus_name READ bus_name FINAL)
+    Q_PROPERTY(QString object_path READ object_path FINAL)
     Q_PROPERTY(QString displayName READ displayName FINAL)
 
 public:
@@ -58,9 +58,10 @@ public:
     Account& operator=(Account&&);
 
     bool isValid() const;
-    QString id() const;
-    QString serviceId() const;
+    QString bus_name() const;
+    QString object_path() const;
     QString displayName() const;
+    // TODO: add more methods to retrieve additional info, such as description, icon ID, and service name.
 
     Q_INVOKABLE unity::storage::qt::ItemListJob* roots() const;
     Q_INVOKABLE unity::storage::qt::ItemJob* get(QString const& itemId) const;

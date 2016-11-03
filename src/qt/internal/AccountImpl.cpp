@@ -66,14 +66,14 @@ AccountImpl::AccountImpl(shared_ptr<RuntimeImpl> const& runtime_impl,
     assert(!object_path.isEmpty());
 }
 
-QString AccountImpl::id() const
+QString AccountImpl::bus_name() const
 {
-    return is_valid_ ? id_ : "";
+    return is_valid_ ? bus_name_ : "";
 }
 
-QString AccountImpl::serviceId() const
+QString AccountImpl::object_path() const
 {
-    return is_valid_ ? service_id_ : "";
+    return is_valid_ ? object_path_ : "";
 }
 
 QString AccountImpl::displayName() const

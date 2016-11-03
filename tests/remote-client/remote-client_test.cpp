@@ -112,8 +112,8 @@ TEST_F(AccountTest, basic)
         // Default constructor.
         Account a;
         EXPECT_FALSE(a.isValid());
-        EXPECT_EQ("", a.id());
-        EXPECT_EQ("", a.serviceId());
+        EXPECT_EQ("", a.bus_name());
+        EXPECT_EQ("", a.object_path());
         EXPECT_EQ("", a.displayName());
     }
 
@@ -121,22 +121,22 @@ TEST_F(AccountTest, basic)
         auto acc = runtime_->make_test_account(service_connection_->baseService(), object_path(),
                                                "id", "sid", "displayName");
         EXPECT_TRUE(acc.isValid());
-        EXPECT_EQ("id", acc.id());
-        EXPECT_EQ("sid", acc.serviceId());
+        EXPECT_EQ(service_connection_->baseService(), acc.bus_name());
+        EXPECT_EQ(object_path(), acc.object_path());
         EXPECT_EQ("displayName", acc.displayName());
 
         // Copy constructor
         Account a2(acc);
         EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id", a2.id());
-        EXPECT_EQ("sid", a2.serviceId());
+        EXPECT_EQ(service_connection_->baseService(), a2.bus_name());
+        EXPECT_EQ(object_path(), a2.object_path());
         EXPECT_EQ("displayName", a2.displayName());
 
         // Move constructor
         Account a3(move(a2));
         EXPECT_TRUE(a3.isValid());
-        EXPECT_EQ("id", a3.id());
-        EXPECT_EQ("sid", a3.serviceId());
+        EXPECT_EQ(service_connection_->baseService(), a3.bus_name());
+        EXPECT_EQ(object_path(), a3.object_path());
         EXPECT_EQ("displayName", a3.displayName());
 
         // Moved-from object must be invalid
@@ -147,8 +147,8 @@ TEST_F(AccountTest, basic)
                                               "id4", "sid4", "displayName4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id4", a2.id());
-        EXPECT_EQ("sid4", a2.serviceId());
+        EXPECT_EQ(service_connection_->baseService(), a2.bus_name());
+        EXPECT_EQ(object_path(), a2.object_path());
         EXPECT_EQ("displayName4", a2.displayName());
     }
 
@@ -159,15 +159,15 @@ TEST_F(AccountTest, basic)
         // Copy assignment
         a1 = a2;
         EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id2", a1.id());
-        EXPECT_EQ("sid2", a2.serviceId());
+        EXPECT_EQ(service_connection_->baseService(), a1.bus_name());
+        EXPECT_EQ(object_path(), a1.object_path());
         EXPECT_EQ("dn2", a1.displayName());
 
         // Self-assignment
         a2 = a2;
         EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id2", a1.id());
-        EXPECT_EQ("sid2", a2.serviceId());
+        EXPECT_EQ(service_connection_->baseService(), a1.bus_name());
+        EXPECT_EQ(object_path(), a1.object_path());
         EXPECT_EQ("dn2", a1.displayName());
 
         // Move assignment
@@ -175,8 +175,8 @@ TEST_F(AccountTest, basic)
                                               "id3", "sid3", "dn3");
         a1 = move(a3);
         EXPECT_TRUE(a1.isValid());
-        EXPECT_EQ("id3", a1.id());
-        EXPECT_EQ("sid3", a1.serviceId());
+        EXPECT_EQ(service_connection_->baseService(), a1.bus_name());
+        EXPECT_EQ(object_path(), a1.object_path());
         EXPECT_EQ("dn3", a1.displayName());
 
         // Moved-from object must be invalid
@@ -187,8 +187,8 @@ TEST_F(AccountTest, basic)
                                               "id4", "sid4", "dn4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
-        EXPECT_EQ("id4", a2.id());
-        EXPECT_EQ("sid4", a2.serviceId());
+        EXPECT_EQ(service_connection_->baseService(), a2.bus_name());
+        EXPECT_EQ(object_path(), a2.object_path());
         EXPECT_EQ("dn4", a2.displayName());
     }
 }

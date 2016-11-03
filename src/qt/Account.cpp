@@ -78,14 +78,14 @@ bool Account::isValid() const
     return p_->is_valid_;
 }
 
-QString Account::id() const
+QString Account::bus_name() const
 {
-    return p_->id();
+    return p_->bus_name();
 }
 
-QString Account::serviceId() const
+QString Account::object_path() const
 {
-    return p_->serviceId();
+    return p_->object_path();
 }
 
 QString Account::displayName() const
