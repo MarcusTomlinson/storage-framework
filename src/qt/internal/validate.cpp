@@ -141,10 +141,10 @@ void validate(QString const& method, ItemMetadata const& md)
         {
             throw StorageErrorImpl::local_comms_error(prefix + "name cannot be empty");
         }
-        if (md.etag.isEmpty())
-        {
-            throw StorageErrorImpl::local_comms_error(prefix + "etag cannot be empty");
-        }
+    }
+    if (md.type == ItemType::file && md.etag.isEmpty())  // WebDav doesn't do etag for folders.
+    {
+        throw StorageErrorImpl::local_comms_error(prefix + "etag of a file cannot be empty");
     }
 
     // Sanity check metadata to make sure only known metadata keys appear.
