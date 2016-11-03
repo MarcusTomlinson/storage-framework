@@ -409,7 +409,7 @@ TEST_F(ProviderInterfaceTest, cancel_upload_on_disconnect)
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     QDBusServiceWatcher service_watcher;
-    service_watcher.setConnection(*service_connection_);
+    service_watcher.setConnection(connection());
     service_watcher.setWatchMode(QDBusServiceWatcher::WatchForUnregistration);
     QSignalSpy service_spy(
         &service_watcher, &QDBusServiceWatcher::serviceUnregistered);
@@ -710,7 +710,7 @@ TEST_F(ProviderInterfaceTest, cancel_download_on_disconnect)
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
     QDBusServiceWatcher service_watcher;
-    service_watcher.setConnection(*service_connection_);
+    service_watcher.setConnection(connection());
     service_watcher.setWatchMode(QDBusServiceWatcher::WatchForUnregistration);
     QSignalSpy service_spy(
         &service_watcher, &QDBusServiceWatcher::serviceUnregistered);

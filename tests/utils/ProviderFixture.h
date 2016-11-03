@@ -24,8 +24,6 @@
 #include <utils/ProviderClient.h>
 
 #include <gtest/gtest.h>
-#include <OnlineAccounts/Account>
-#include <OnlineAccounts/Manager>
 #include <QDBusConnection>
 
 #include <memory>
@@ -33,6 +31,9 @@
 class ProviderFixture : public ::testing::Test
 {
 public:
+    ProviderFixture();
+    virtual ~ProviderFixture();
+
     virtual void SetUp() override;
     virtual void TearDown() override;
 
@@ -44,7 +45,7 @@ public:
 
 protected:
     std::unique_ptr<DBusEnvironment> dbus_;
-    std::unique_ptr<QDBusConnection> service_connection_;
-    std::unique_ptr<OnlineAccounts::Manager> account_manager_;
-    std::unique_ptr<unity::storage::provider::testing::TestServer> test_server_;
+private:
+    class ServiceThread;
+    std::unique_ptr<ServiceThread> service_thread_;
 };
