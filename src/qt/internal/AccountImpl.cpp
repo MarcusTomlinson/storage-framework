@@ -81,7 +81,7 @@ QString AccountImpl::displayName() const
     return is_valid_ ? display_name_ : "";
 }
 
-ItemListJob* AccountImpl::roots() const
+ItemListJob* AccountImpl::roots(QStringList const& keys) const
 {
     QString const method = "Account::roots()";
 
@@ -107,12 +107,12 @@ ItemListJob* AccountImpl::roots() const
         }
     };
 
-    auto reply = provider_->Roots();
+    auto reply = provider_->Roots(keys);
     auto This = const_pointer_cast<AccountImpl>(shared_from_this());
     return ItemListJobImpl::make_job(This, method, reply, validate);
 }
 
-ItemJob* AccountImpl::get(QString const& itemId) const
+ItemJob* AccountImpl::get(QString const& itemId, QStringList const& keys) const
 {
     QString const method = "Account::get()";
 
@@ -132,7 +132,7 @@ ItemJob* AccountImpl::get(QString const& itemId) const
     {
     };
 
-    auto reply = provider_->Metadata(itemId);
+    auto reply = provider_->Metadata(itemId, keys);
     auto This = const_pointer_cast<AccountImpl>(shared_from_this());
     return ItemJobImpl::make_job(This, method, reply, validate);
 }

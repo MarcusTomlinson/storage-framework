@@ -62,7 +62,7 @@ class Q_DECL_EXPORT Item final
     Q_PROPERTY(unity::storage::qt::Item::Type type READ type FINAL)
     Q_PROPERTY(QVariantMap metadata READ metadata FINAL)
     Q_PROPERTY(QDateTime lastModifiedTime READ lastModifiedTime FINAL)
-    Q_PROPERTY(QList<QString> parentIds READ parentIds FINAL)
+    Q_PROPERTY(QStringList parentIds READ parentIds FINAL)
 
 public:
     Item();
@@ -94,27 +94,32 @@ public:
     QString etag() const;
     Type type() const;
     QVariantMap metadata() const;
+    qint64 sizeInBytes() const;
     QDateTime lastModifiedTime() const;
-    QList<QString> parentIds() const;
+    QStringList parentIds() const;
 
-    Q_INVOKABLE unity::storage::qt::ItemListJob* parents() const;
-    Q_INVOKABLE unity::storage::qt::ItemJob* copy(Item const& newParent, QString const& newName) const;
-    Q_INVOKABLE unity::storage::qt::ItemJob* move(Item const& newParent, QString const& newName) const;
+    Q_INVOKABLE unity::storage::qt::ItemListJob* parents(QStringList const& keys = QStringList()) const;
+    Q_INVOKABLE unity::storage::qt::ItemJob* copy(Item const& newParent,
+                              QString const& newName,
+                              QStringList const& keys = QStringList()) const;
+    Q_INVOKABLE unity::storage::qt::ItemJob* move(Item const& newParent,
+                              QString const& newName,
+                              QStringList const& keys = QStringList()) const;
     Q_INVOKABLE unity::storage::qt::VoidJob* deleteItem() const;
 
-    Q_INVOKABLE unity::storage::qt::Uploader* createUploader(ConflictPolicy policy, qint64 sizeInBytes) const;
+    Q_INVOKABLE unity::storage::qt::Uploader* createUploader(ConflictPolicy policy,
+                                                             qint64 sizeInBytes,
+                                                             QStringList const& keys = QStringList()) const;
     Q_INVOKABLE unity::storage::qt::Downloader* createDownloader() const;
 
-    Q_INVOKABLE unity::storage::qt::ItemListJob* list() const;
-    Q_INVOKABLE unity::storage::qt::ItemListJob* lookup(QString const& name) const;
-    Q_INVOKABLE unity::storage::qt::ItemJob* createFolder(QString const& name) const;
+    Q_INVOKABLE unity::storage::qt::ItemListJob* list(QStringList const& keys = QStringList()) const;
+    Q_INVOKABLE unity::storage::qt::ItemListJob* lookup(QString const& name, QStringList const& = QStringList()) const;
+    Q_INVOKABLE unity::storage::qt::ItemJob* createFolder(QString const& name, QStringList const& = QStringList()) const;
     Q_INVOKABLE unity::storage::qt::Uploader* createFile(QString const& name,
                                                          ConflictPolicy policy,
                                                          qint64 sizeInBytes,
-                                                         QString const& contentType) const;
-
-    Q_INVOKABLE unity::storage::qt::IntJob* freeSpaceBytes() const;
-    Q_INVOKABLE unity::storage::qt::IntJob* usedSpaceBytes() const;
+                                                         QString const& contentType,
+                                                         QStringList const& keys = QStringList()) const;
 
     bool operator==(Item const&) const;
     bool operator!=(Item const&) const;

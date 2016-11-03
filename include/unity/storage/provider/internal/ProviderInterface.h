@@ -59,20 +59,36 @@ private:
     typedef unity::storage::internal::ItemMetadata IMD;  // To keep things readable
 
 public Q_SLOTS:
-    QList<IMD> Roots();
-    QList<IMD> List(QString const& item_id, QString const& page_token, QString& next_token);
-    QList<IMD> Lookup(QString const& parent_id, QString const& name);
-    IMD Metadata(QString const& item_id);
-    IMD CreateFolder(QString const& parent_id, QString const& name);
-    QString CreateFile(QString const& parent_id, QString const& name, int64_t size, QString const& content_type, bool allow_overwrite, QDBusUnixFileDescriptor& file_descriptor);
-    QString Update(QString const& item_id, int64_t size, QString const& old_etag, QDBusUnixFileDescriptor& file_descriptor);
+    QList<IMD> Roots(QList<QString> const& keys);
+    QList<IMD> List(QString const& item_id, QString const& page_token, QList<QString> const& keys, QString& next_token);
+    QList<IMD> Lookup(QString const& parent_id, QString const& name, QList<QString> const& keys);
+    IMD Metadata(QString const& item_id, QList<QString> const& keys);
+    IMD CreateFolder(QString const& parent_id, QString const& name, QList<QString> const& keys);
+    QString CreateFile(QString const& parent_id,
+                       QString const& name,
+                       int64_t size,
+                       QString const& content_type,
+                       bool allow_overwrite,
+                       QList<QString> const& keys,
+                       QDBusUnixFileDescriptor& file_descriptor);
+    QString Update(QString const& item_id,
+                   int64_t size,
+                   QString const& old_etag,
+                   QList<QString> const& keys,
+                   QDBusUnixFileDescriptor& file_descriptor);
     IMD FinishUpload(QString const& upload_id);
     void CancelUpload(QString const& upload_id);
     QString Download(QString const& item_id, QDBusUnixFileDescriptor& file_descriptor);
     void FinishDownload(QString const& download_id);
     void Delete(QString const& item_id);
-    IMD Move(QString const& item_id, QString const& new_parent_id, QString const& new_name);
-    IMD Copy(QString const& item_id, QString const& new_parent_id, QString const& new_name);
+    IMD Move(QString const& item_id,
+             QString const& new_parent_id,
+             QString const& new_name,
+             QList<QString> const& metadata_keys);
+    IMD Copy(QString const& item_id,
+             QString const& new_parent_id,
+             QString const& new_name,
+             QList<QString> const& metadata_keys);
 
 private Q_SLOTS:
     void request_finished();

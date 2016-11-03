@@ -55,25 +55,25 @@ public:
     QString etag() const;
     Item::Type type() const;
     QVariantMap metadata() const;
+    qint64 sizeInBytes() const;
     QDateTime lastModifiedTime() const;
     QList<QString> parentIds() const;
 
-    ItemListJob* parents() const;
-    ItemJob* copy(Item const& newParent, QString const& newName) const;
-    ItemJob* move(Item const& newParent, QString const& newName) const;
+    ItemListJob* parents(QStringList const& keys) const;
+    ItemJob* copy(Item const& newParent, QString const& newName, QStringList const& keys) const;
+    ItemJob* move(Item const& newParent, QString const& newName, QStringList const& keys) const;
     VoidJob* deleteItem() const;
-    Uploader* createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes) const;
+    Uploader* createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes, QStringList const& keys) const;
     Downloader* createDownloader() const;
-    ItemListJob* list() const;
-    ItemListJob* lookup(QString const& name) const;
-    ItemJob* createFolder(QString const& name) const;
+    ItemListJob* list(QStringList const& keys) const;
+    ItemListJob* lookup(QString const& name, QStringList const& keys) const;
+    ItemJob* createFolder(QString const& name, QStringList const& keys) const;
     Uploader* createFile(QString const& name) const;
     Uploader* createFile(QString const& name,
                          Item::ConflictPolicy policy,
                          qint64 sizeInBytes,
-                         QString const& contentType) const;
-    IntJob* freeSpaceBytes() const;
-    IntJob* usedSpaceBytes() const;
+                         QString const& contentType,
+                         QStringList const& keys) const;
 
     bool operator==(ItemImpl const&) const;
     bool operator!=(ItemImpl const&) const;

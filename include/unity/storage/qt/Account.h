@@ -18,9 +18,8 @@
 
 #pragma once
 
-#include <QList>
 #include <QMetaType>
-#include <QString>
+#include <QStringList>
 
 #include <memory>
 
@@ -63,8 +62,8 @@ public:
     QString displayName() const;
     // TODO: add more methods to retrieve additional info, such as description, icon ID, and service name.
 
-    Q_INVOKABLE unity::storage::qt::ItemListJob* roots() const;
-    Q_INVOKABLE unity::storage::qt::ItemJob* get(QString const& itemId) const;
+    Q_INVOKABLE unity::storage::qt::ItemListJob* roots(QStringList const& keys = QStringList()) const;
+    Q_INVOKABLE unity::storage::qt::ItemJob* get(QString const& itemId, QStringList const& keys = QStringList()) const;
 
     bool operator==(Account const&) const;
     bool operator!=(Account const&) const;

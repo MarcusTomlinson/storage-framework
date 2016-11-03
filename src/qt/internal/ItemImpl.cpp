@@ -19,7 +19,7 @@
 #include <unity/storage/qt/internal/ItemImpl.h>
 
 #include "ProviderInterface.h"
-#include <unity/storage/provider/metadata_keys.h>
+#include <unity/storage/common.h>
 #include <unity/storage/qt/internal/DownloaderImpl.h>
 #include <unity/storage/qt/internal/ItemJobImpl.h>
 #include <unity/storage/qt/internal/ItemListJobImpl.h>
@@ -96,13 +96,23 @@ Item::Type ItemImpl::type() const
 
 QVariantMap ItemImpl::metadata() const
 {
-    // TODO: Need to agree on metadata representation.
-    return is_valid_ ? QVariantMap() : QVariantMap();
+    return is_valid_ ? md_.metadata : QVariantMap();
+}
+
+qint64 ItemImpl::sizeInBytes() const
+{
+    if (!is_valid_ || md_.type != ItemType::file)
+    {
+        return 0;
+    }
+    auto variant = md_.metadata.value(metadata::SIZE_IN_BYTES);
+    assert(variant.isValid());
+    return variant.toLongLong();
 }
 
 QDateTime ItemImpl::lastModifiedTime() const
 {
-    return is_valid_ ? QDateTime::fromString(md_.metadata.value(provider::LAST_MODIFIED_TIME).toString(), Qt::ISODate)
+    return is_valid_ ? QDateTime::fromString(md_.metadata.value(metadata::LAST_MODIFIED_TIME).toString(), Qt::ISODate)
                      : QDateTime();
 }
 
@@ -115,7 +125,7 @@ QList<QString> ItemImpl::parentIds() const
     return md_.parent_ids;
 }
 
-ItemListJob* ItemImpl::parents() const
+ItemListJob* ItemImpl::parents(QStringList const& keys) const
 {
     QString const method = "Item::parents()";
 
@@ -135,7 +145,7 @@ ItemListJob* ItemImpl::parents() const
     QList<QDBusPendingReply<storage::internal::ItemMetadata>> replies;
     for (auto const& id : md_.parent_ids)
     {
-        auto reply = account_impl_->provider()->Metadata(id);
+        auto reply = account_impl_->provider()->Metadata(id, keys);
         replies.append(reply);
     }
 
@@ -152,7 +162,7 @@ ItemListJob* ItemImpl::parents() const
     return MultiItemJobImpl::make_job(account_impl_, method, replies, validate);
 }
 
-ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName) const
+ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName, QStringList const& keys) const
 {
     QString const method = "Item::copy()";
 
@@ -174,12 +184,12 @@ ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName) const
         }
     };
 
-    auto reply = account_impl_->provider()->Copy(md_.item_id, newParent.itemId(), newName);
+    auto reply = account_impl_->provider()->Copy(md_.item_id, newParent.itemId(), newName, keys);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return ItemJobImpl::make_job(This, method, reply, validate);
 }
 
-ItemJob* ItemImpl::move(Item const& newParent, QString const& newName) const
+ItemJob* ItemImpl::move(Item const& newParent, QString const& newName, QStringList const& keys) const
 {
     QString const method = "Item::move()";
 
@@ -207,7 +217,7 @@ ItemJob* ItemImpl::move(Item const& newParent, QString const& newName) const
         }
     };
 
-    auto reply = account_impl_->provider()->Move(md_.item_id, newParent.itemId(), newName);
+    auto reply = account_impl_->provider()->Move(md_.item_id, newParent.itemId(), newName, keys);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return ItemJobImpl::make_job(This, method, reply, validate);
 }
@@ -232,7 +242,7 @@ VoidJob* ItemImpl::deleteItem() const
     return VoidJobImpl::make_job(This, method, reply);
 }
 
-Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes) const
+Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes, QStringList const& keys) const
 {
     QString const method = "Item::createUploader()";
 
@@ -263,7 +273,7 @@ Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInByt
     };
 
     auto etag = policy == Item::ConflictPolicy::Overwrite ? "" : md_.etag;
-    auto reply = account_impl_->provider()->Update(md_.item_id, sizeInBytes, etag);
+    auto reply = account_impl_->provider()->Update(md_.item_id, sizeInBytes, etag, keys);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return UploaderImpl::make_job(This, method, reply, validate, policy, sizeInBytes);
 }
@@ -288,7 +298,7 @@ Downloader* ItemImpl::createDownloader() const
     return DownloaderImpl::make_job(This, method, reply);
 }
 
-ItemListJob* ItemImpl::list() const
+ItemListJob* ItemImpl::list(QStringList const& keys) const
 {
     QString const method = "Item::list()";
 
@@ -313,17 +323,17 @@ ItemListJob* ItemImpl::list() const
         }
     };
 
-    auto fetch_next = [this](QString const& page_token)
+    auto fetch_next = [this, keys](QString const& page_token)
     {
-        return account_impl_->provider()->List(md_.item_id, page_token);
+        return account_impl_->provider()->List(md_.item_id, page_token, keys);
     };
 
-    auto reply = account_impl_->provider()->List(md_.item_id, "");
+    auto reply = account_impl_->provider()->List(md_.item_id, "", keys);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return MultiItemListJobImpl::make_job(This, method, reply, validate, fetch_next);
 }
 
-ItemListJob* ItemImpl::lookup(QString const& name) const
+ItemListJob* ItemImpl::lookup(QString const& name, QStringList const& keys) const
 {
     QString const method = "Item::lookup()";
 
@@ -342,12 +352,12 @@ ItemListJob* ItemImpl::lookup(QString const& name) const
     {
     };
 
-    auto reply = account_impl_->provider()->Lookup(md_.item_id, name);
+    auto reply = account_impl_->provider()->Lookup(md_.item_id, name, keys);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return ItemListJobImpl::make_job(This, method, reply, validate);
 }
 
-ItemJob* ItemImpl::createFolder(QString const& name) const
+ItemJob* ItemImpl::createFolder(QString const& name, QStringList const& keys) const
 {
     QString const method = "Item::createFolder()";
 
@@ -373,7 +383,7 @@ ItemJob* ItemImpl::createFolder(QString const& name) const
         throw StorageErrorImpl::local_comms_error(msg);
     };
 
-    auto reply = account_impl_->provider()->CreateFolder(md_.item_id, name);
+    auto reply = account_impl_->provider()->CreateFolder(md_.item_id, name, keys);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return ItemJobImpl::make_job(This, method, reply, validate);
 }
@@ -381,7 +391,8 @@ ItemJob* ItemImpl::createFolder(QString const& name) const
 Uploader* ItemImpl::createFile(QString const& name,
                                Item::ConflictPolicy policy,
                                qint64 sizeInBytes,
-                               QString const& contentType) const
+                               QString const& contentType,
+                               QStringList const& keys) const
 {
     QString const method = "Item::createFile()";
 
@@ -418,19 +429,10 @@ Uploader* ItemImpl::createFile(QString const& name,
     };
 
     bool allow_overwrite = policy == Item::ConflictPolicy::Overwrite;
-    auto reply = account_impl_->provider()->CreateFile(md_.item_id, name, sizeInBytes, contentType, allow_overwrite);
+    auto reply = account_impl_->provider()->CreateFile(md_.item_id, name, sizeInBytes,
+                                                       contentType, allow_overwrite, keys);
     auto This = const_pointer_cast<ItemImpl>(shared_from_this());
     return UploaderImpl::make_job(This, method, reply, validate, policy, sizeInBytes);
-}
-
-IntJob* ItemImpl::freeSpaceBytes() const
-{
-    return nullptr;  // TODO
-}
-
-IntJob* ItemImpl::usedSpaceBytes() const
-{
-    return nullptr;  // TODO
 }
 
 bool ItemImpl::operator==(ItemImpl const& other) const
