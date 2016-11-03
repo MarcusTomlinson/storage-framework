@@ -7,6 +7,7 @@ storage-framework (0.2-0ubuntu1) UNRELEASED; urgency=medium
   [ James Henstridge ]
   * Update provider API to manager ProviderBase class as a shared_ptr.
   * Update client to discover ownCloud/Nextcloud and OneDrive accounts.
+  * Add match_etag argument to Download() D-Bus method.
 
  -- Michi Henning <michi.henning@canonical.com>  Wed, 21 Sep 2016 14:36:15 +1000
 

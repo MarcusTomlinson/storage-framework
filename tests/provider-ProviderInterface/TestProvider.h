@@ -52,7 +52,8 @@ public:
         Context const& ctx) override;
 
     boost::future<unique_ptr<DownloadJob>> download(
-        string const& item_id, Context const& ctx) override;
+        string const& item_id, string const& match_etag,
+        Context const& ctx) override;
 
     boost::future<void> delete_item(
         string const& item_id, Context const& ctx) override;

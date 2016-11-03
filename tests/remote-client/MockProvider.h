@@ -52,7 +52,8 @@ public:
         unity::storage::provider::Context const& ctx) override;
 
     boost::future<std::unique_ptr<unity::storage::provider::DownloadJob>> download(
-        std::string const& item_id, unity::storage::provider::Context const& ctx) override;
+        std::string const& item_id, std::string const& match_etag,
+        unity::storage::provider::Context const& ctx) override;
 
     boost::future<void> delete_item(
         std::string const& item_id, unity::storage::provider::Context const& ctx) override;

@@ -147,9 +147,9 @@ Uploader* Item::createUploader(ConflictPolicy policy, qint64 sizeInBytes, QStrin
     return p_->createUploader(policy, sizeInBytes, keys);
 }
 
-Downloader* Item::createDownloader() const
+Downloader* Item::createDownloader(ConflictPolicy policy) const
 {
-    return p_->createDownloader();
+    return p_->createDownloader(policy);
 }
 
 ItemListJob* Item::list(QStringList const& keys) const

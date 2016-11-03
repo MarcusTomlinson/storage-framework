@@ -64,7 +64,7 @@ public:
     ItemJob* move(Item const& newParent, QString const& newName, QStringList const& keys) const;
     VoidJob* deleteItem() const;
     Uploader* createUploader(Item::ConflictPolicy policy, qint64 sizeInBytes, QStringList const& keys) const;
-    Downloader* createDownloader() const;
+    Downloader* createDownloader(Item::ConflictPolicy policy) const;
     ItemListJob* list(QStringList const& keys) const;
     ItemListJob* lookup(QString const& name, QStringList const& keys) const;
     ItemJob* createFolder(QString const& name, QStringList const& keys) const;
