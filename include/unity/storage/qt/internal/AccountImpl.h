@@ -47,9 +47,9 @@ public:
     AccountImpl& operator=(AccountImpl const&) = default;
     AccountImpl& operator=(AccountImpl&&) = default;
 
-    QString ownerId() const;
-    QString owner() const;
-    QString description() const;
+    QString busName() const;
+    QString objectPath() const;
+    QString displayName() const;
 
     ItemListJob* roots(QStringList const& keys) const;
     ItemJob* get(QString const& itemId, QStringList const& keys) const;
@@ -69,24 +69,24 @@ public:
     static Account make_account(std::shared_ptr<RuntimeImpl> const& runtime_impl,
                                 QString const& bus_name,
                                 QString const& object_path,
-                                QString const& owner_id,
-                                QString const& owner,
-                                QString const& description);
+                                QString const& id,
+                                QString const& service_id,
+                                QString const& display_name);
 
 private:
     AccountImpl(std::shared_ptr<RuntimeImpl> const& runtime_impl,
                 QString const& bus_name,
                 QString const& object_path,
-                QString const& owner_id,
-                QString const& owner,
-                QString const& description);
+                QString const& id,
+                QString const& service_id,
+                QString const& display_name);
 
     bool is_valid_;
     QString bus_name_;
     QString object_path_;
-    QString owner_id_;
-    QString owner_;
-    QString description_;
+    QString id_;
+    QString service_id_;
+    QString display_name_;
     std::weak_ptr<RuntimeImpl> runtime_impl_;
     std::shared_ptr<ProviderInterface> provider_;
 

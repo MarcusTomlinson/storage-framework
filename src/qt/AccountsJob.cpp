@@ -21,6 +21,8 @@
 #include <unity/storage/qt/Account.h>
 #include <unity/storage/qt/internal/AccountsJobImpl.h>
 
+#include <QVariant>
+
 using namespace unity::storage::qt;
 using namespace std;
 
@@ -61,6 +63,11 @@ StorageError AccountsJob::error() const
 QList<Account> AccountsJob::accounts() const
 {
     return p_->accounts();
+}
+
+QVariantList AccountsJob::accountsAsVariantList() const
+{
+    return p_->accountsAsVariantList();
 }
 
 }  // namespace qt

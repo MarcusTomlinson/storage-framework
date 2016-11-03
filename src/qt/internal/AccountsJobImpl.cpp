@@ -103,6 +103,16 @@ QList<Account> AccountsJobImpl::accounts() const
     return accounts_;
 }
 
+QVariantList AccountsJobImpl::accountsAsVariantList() const
+{
+    QVariantList account_list;
+    for (auto const& a : accounts())
+    {
+        account_list.append(QVariant::fromValue(a));
+    }
+    return account_list;
+}
+
 void AccountsJobImpl::manager_ready()
 {
     timer_.stop();
@@ -171,8 +181,8 @@ void AccountsJobImpl::initialize_accounts()
             accounts_.append(AccountImpl::make_account(runtime,
                                                        bus_name,
                                                        object_path,
+                                                       QString::number(a->id()),
                                                        a->serviceId(),
-                                                       "",
                                                        a->displayName()));
         }
     }
