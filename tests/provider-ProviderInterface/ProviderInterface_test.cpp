@@ -618,7 +618,7 @@ TEST_F(ProviderInterfaceTest, download)
     QString download_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Download("item_id");
+        auto reply = client_->Download("item_id", "");
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         download_id = reply.argumentAt<0>();
@@ -661,7 +661,7 @@ TEST_F(ProviderInterfaceTest, download_short_read)
     QString download_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Download("item_id");
+        auto reply = client_->Download("item_id", "");
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         download_id = reply.argumentAt<0>();
@@ -689,7 +689,7 @@ TEST_F(ProviderInterfaceTest, finish_download_wrong_connection)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    auto download_reply = client_->Download("item_id");
+    auto download_reply = client_->Download("item_id", "");
     wait_for(download_reply);
     ASSERT_TRUE(download_reply.isValid()) << download_reply.error().message().toStdString();
     auto download_id = download_reply.argumentAt<0>();
@@ -721,7 +721,7 @@ TEST_F(ProviderInterfaceTest, cancel_download_on_disconnect)
         QDBusConnection::disconnectFromBus(SECOND_CONNECTION_NAME);
         service_watcher.addWatchedService(connection2.baseService());
         ProviderClient client2(bus_name(), object_path(), connection2);
-        auto reply = client2.Download("item_id");
+        auto reply = client2.Download("item_id", "");
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         // Store socket so it will remain open past the closing of the

@@ -152,7 +152,7 @@ boost::future<unique_ptr<UploadJob>> MockProvider::update(
 }
 
 boost::future<unique_ptr<DownloadJob>> MockProvider::download(
-    string const&, Context const&)
+    string const&, string const&, Context const&)
 {
     unique_ptr<DownloadJob> job(new MockDownloadJob(make_job_id()));
     const char contents[] = "Hello world";
