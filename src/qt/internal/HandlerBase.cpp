@@ -50,6 +50,7 @@ HandlerBase::HandlerBase(QObject* parent,
 void HandlerBase::finished(QDBusPendingCallWatcher* call)
 {
     deleteLater();
+    disconnect(&watcher_, &QDBusPendingCallWatcher::finished, this, &HandlerBase::finished);
     closure_(*call);
 }
 

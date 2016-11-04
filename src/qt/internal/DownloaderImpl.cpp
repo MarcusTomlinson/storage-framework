@@ -107,7 +107,7 @@ DownloaderImpl::DownloaderImpl(shared_ptr<ItemImpl> const& item_impl,
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
-    new Handler<storage::internal::ItemMetadata>(this, reply, process_reply, process_error);
+    new Handler<QDBusPendingReply<QString, QDBusUnixFileDescriptor>>(this, reply, process_reply, process_error);
 }
 
 DownloaderImpl::DownloaderImpl(StorageError const& e)

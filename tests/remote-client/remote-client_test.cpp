@@ -994,18 +994,6 @@ TEST_F(DeleteTest, invalid_item)
     EXPECT_EQ("Item::deleteItem(): cannot create job from invalid item", j->error().message());
 }
 
-#if 0
-// TODO: need to make internal symbols available for testing.
-TEST_F(ValidateTest, basic)
-{
-    using namespace unity::storage::qt::internal;
-
-    unity::storage::internal::ItemMetadata md;
-
-    validate("foo", md);
-}
-#endif
-
 TEST_F(ItemTest, basic)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
@@ -1322,14 +1310,6 @@ TEST_F(ParentsTest, two_parents)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("two_parents")));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -1375,14 +1355,6 @@ TEST_F(ParentsTest, two_parents)
 TEST_F(ParentsTest, two_parents_throw)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("two_parents_throw")));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -1467,14 +1439,6 @@ TEST_F(ParentsTest, runtime_destroyed_while_item_list_job_running)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("slow_metadata")));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -1500,14 +1464,6 @@ TEST_F(ParentsTest, runtime_destroyed_while_item_list_job_running)
 TEST_F(ParentsTest, bad_metadata)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("bad_parent_metadata_from_child")));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -1611,14 +1567,6 @@ TEST_F(CopyTest, invalid)
 TEST_F(CopyTest, invalid_parent)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -1742,14 +1690,6 @@ TEST_F(CopyTest, wrong_account)
 TEST_F(CopyTest, wrong_type)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -2026,14 +1966,6 @@ TEST_F(LookupTest, wrong_type)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -2113,14 +2045,6 @@ TEST_F(CreateFolderTest, invalid)
 TEST_F(CreateFolderTest, wrong_type)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -2332,14 +2256,6 @@ TEST_F(ListTest, wrong_type)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -2446,14 +2362,6 @@ TEST_F(DownloadTest, basic)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -2515,14 +2423,6 @@ TEST_F(DownloadTest, abandoned)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -2547,14 +2447,6 @@ TEST_F(DownloadTest, abandoned)
 TEST_F(DownloadTest, runtime_destroyed)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -2586,14 +2478,6 @@ TEST_F(DownloadTest, runtime_destroyed)
 TEST_F(DownloadTest, runtime_destroyed_while_download_running)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("download_slow")));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -2627,14 +2511,6 @@ TEST_F(DownloadTest, runtime_destroyed_while_download_running)
 TEST_F(DownloadTest, download_error)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("download_error")));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -2674,14 +2550,6 @@ TEST_F(DownloadTest, finish_too_soon)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -2711,14 +2579,6 @@ TEST_F(DownloadTest, finish_too_soon)
 TEST_F(DownloadTest, finish_runtime_destroyed)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -2758,14 +2618,6 @@ TEST_F(DownloadTest, finish_runtime_destroyed_while_reply_outstanding)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_download_slow")));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -2804,14 +2656,6 @@ TEST_F(DownloadTest, finish_twice)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -2845,14 +2689,6 @@ TEST_F(DownloadTest, finish_twice)
 TEST_F(DownloadTest, finish_error)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_download_error")));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -2919,14 +2755,6 @@ TEST_F(DownloadTest, cancel)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_download_slow_error")));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -2971,14 +2799,6 @@ TEST_F(DownloadTest, cancel_runtime_destroyed)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_download_slow_error")));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -3018,14 +2838,6 @@ TEST_F(DownloadTest, cancel_runtime_destroyed)
 TEST_F(UploadTest, basic)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3070,17 +2882,46 @@ TEST_F(UploadTest, basic)
     EXPECT_EQ(child, uploader->item());
 }
 
+#if 0
+// TODO: This test is currently disabled because a synchronous wait in the client
+//       blocks the single event loop that is shared by the client and the mock provider.
+//       We need to change the test harness to run a separate event loop for the provider.
+//
+TEST_F(UploadTest, write_before_ready)
+{
+    set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("upload_slow")));
+
+    Item child;
+    {
+        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
+        spy.wait(SIGNAL_WAIT_TIME);
+        child = j->item();
+    }
+
+    QByteArray contents("Hello world", -1);
+    unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::Overwrite, contents.size()));
+    EXPECT_TRUE(uploader->isValid());
+
+    // Don't wait for ready state.
+
+    EXPECT_EQ(contents.size(), uploader->write(contents));
+    EXPECT_TRUE(uploader->waitForBytesWritten(1000));
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    uploader->finishUpload();
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    auto arg = spy.takeFirst();
+    EXPECT_EQ(Uploader::Status::Finished, qvariant_cast<Uploader::Status>(arg.at(0)));
+
+    EXPECT_EQ(Uploader::Status::Finished, uploader->status());
+    EXPECT_EQ(child, uploader->item());
+}
+#endif
+
 TEST_F(UploadTest, abandoned)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3107,14 +2948,6 @@ TEST_F(UploadTest, abandoned)
 TEST_F(UploadTest, runtime_destroyed)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3146,14 +2979,6 @@ TEST_F(UploadTest, runtime_destroyed)
 TEST_F(UploadTest, runtime_destroyed_while_upload_running)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("upload_slow")));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3187,14 +3012,6 @@ TEST_F(UploadTest, runtime_destroyed_while_upload_running)
 TEST_F(UploadTest, upload_error)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("upload_error")));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3233,14 +3050,6 @@ TEST_F(UploadTest, finish_too_soon)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -3270,14 +3079,6 @@ TEST_F(UploadTest, finish_too_soon)
 TEST_F(UploadTest, finish_runtime_destroyed)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3317,14 +3118,6 @@ TEST_F(UploadTest, finish_runtime_destroyed_while_reply_outstanding)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_upload_slow")));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -3363,14 +3156,6 @@ TEST_F(UploadTest, finish_twice)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -3404,14 +3189,6 @@ TEST_F(UploadTest, finish_twice)
 TEST_F(UploadTest, finish_error)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_upload_error")));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3476,14 +3253,6 @@ TEST_F(UploadTest, wrong_size)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
-
     Item child;
     {
         unique_ptr<ItemJob> j(acc_.get("child_id"));
@@ -3509,14 +3278,6 @@ TEST_F(UploadTest, wrong_size)
 TEST_F(UploadTest, wrong_return_type)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("upload_returns_dir")));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3550,14 +3311,6 @@ TEST_F(UploadTest, wrong_return_type)
 TEST_F(UploadTest, cancel_success)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3595,14 +3348,6 @@ TEST_F(UploadTest, cancel_success)
 TEST_F(UploadTest, cancel_error)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_upload_slow_error")));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3647,14 +3392,6 @@ TEST_F(UploadTest, cancel_error)
 TEST_F(UploadTest, cancel_runtime_destroyed)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider("finish_upload_slow_error")));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3755,14 +3492,6 @@ TEST_F(CreateFileTest, runtime_destroyed)
         root = j->item();
     }
 
-    Item child;
-    {
-        unique_ptr<ItemJob> j(acc_.get("child_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        child = j->item();
-    }
-
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime
 
     QByteArray contents("Hello world", -1);
@@ -3786,14 +3515,6 @@ TEST_F(CreateFileTest, runtime_destroyed)
 TEST_F(CreateFileTest, wrong_type)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
-
-    Item root;
-    {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        root = j->item();
-    }
 
     Item child;
     {
@@ -3833,14 +3554,6 @@ TEST_F(CreateFileTest, bad_name)
         root = j->item();
     }
 
-    Item child;
-    {
-        unique_ptr<ItemJob> j(acc_.get("child_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        child = j->item();
-    }
-
     QByteArray contents("Hello world", -1);
     unique_ptr<Uploader> uploader(root.createFile("",
                                                    Item::ConflictPolicy::Overwrite,
@@ -3871,14 +3584,6 @@ TEST_F(CreateFileTest, bad_size)
         root = j->item();
     }
 
-    Item child;
-    {
-        unique_ptr<ItemJob> j(acc_.get("child_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        child = j->item();
-    }
-
     QByteArray contents("Hello world", -1);
     unique_ptr<Uploader> uploader(root.createFile("some_file",
                                                    Item::ConflictPolicy::Overwrite,
@@ -3907,14 +3612,6 @@ TEST_F(CreateFileTest, bad_return_type)
         QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         spy.wait(SIGNAL_WAIT_TIME);
         root = j->item();
-    }
-
-    Item child;
-    {
-        unique_ptr<ItemJob> j(acc_.get("child_id"));
-        QSignalSpy spy(j.get(), &ItemJob::statusChanged);
-        spy.wait(SIGNAL_WAIT_TIME);
-        child = j->item();
     }
 
     QByteArray contents("Hello world", -1);

@@ -19,7 +19,7 @@
 #include <unity/storage/qt/internal/UploaderImpl.h>
 
 #include "ProviderInterface.h"
-#include <unity/storage/qt/internal/Handler.h>
+//#include <unity/storage/qt/internal/Handler.h>
 #include <unity/storage/qt/internal/ItemImpl.h>
 #include <unity/storage/qt/internal/VoidJobImpl.h>
 #include <unity/storage/qt/ItemJob.h>
@@ -55,7 +55,7 @@ UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
     assert(!method.isEmpty());
     assert(size_in_bytes >= 0);
 
-    auto process_reply = [this, method](decltype(reply)& r)
+    process_reply_ = [this, method](QDBusPendingReply<QString, QDBusUnixFileDescriptor>& r)
     {
         if (status_ != Uploader::Status::Loading)
         {
@@ -106,7 +106,7 @@ UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
-    auto process_error = [this](StorageError const& error)
+    process_error_ = [this](StorageError const& error)
     {
         // TODO: This does not set the method
         error_ = error;
@@ -116,7 +116,7 @@ UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
-    new Handler<storage::internal::ItemMetadata>(this, reply, process_reply, process_error);
+    handler_ = new Handler<QDBusPendingReply<QString, QDBusUnixFileDescriptor>>(this, reply, process_reply_, process_error_);
 }
 
 UploaderImpl::UploaderImpl(StorageError const& e)
@@ -329,6 +329,17 @@ bool UploaderImpl::isSequential() const
 
 bool UploaderImpl::waitForBytesWritten(int msecs)
 {
+    if (status_ == Uploader::Status::Loading)
+    {
+        // Unfortunately, QDBusPendingReply::waitForFinished() does not accept a timeout.
+        // The next-best thing we can do is to simply wait without a timeout. The DBus
+        // method will finish eventually, even though it might take a lot longer than msecs.
+        handler_->wait_and_process_now();
+    }
+    if (flush_buffer() == -1)
+    {
+        return false;
+    }
     return socket_.waitForBytesWritten(msecs);
 }
 
@@ -347,7 +358,34 @@ qint64 UploaderImpl::readData(char* data, qint64 c)
 
 qint64 UploaderImpl::writeData(char const* data, qint64 c)
 {
-    return socket_.write(data, c);
+    switch (status_)
+    {
+        case Uploader::Status::Loading:
+        {
+            // Client is writing before we have received the file descriptor from the provider.
+            buffer_.append(data, c);
+            return c;
+        }
+        case Uploader::Status::Ready:
+        {
+            if (flush_buffer() == -1)
+            {
+                return -1;
+            }
+            return socket_.write(data, c);
+        }
+        case Uploader::Status::Cancelled:
+        case Uploader::Status::Finished:
+        case Uploader::Status::Error:
+        {
+            return -1;  // Can't write to an already-finalized uploader.
+        }
+        default:
+        {
+            abort();  // Impossible  // LCOV_EXCL_LINE
+        }
+    }
+    // NOTREACHED
 }
 
 Uploader* UploaderImpl::make_job(shared_ptr<ItemImpl> const& item_impl,
@@ -375,6 +413,22 @@ Uploader* UploaderImpl::make_job(StorageError const& e)
                               Qt::QueuedConnection,
                               Q_ARG(unity::storage::qt::Uploader::Status, uploader->p_->status_));
     return uploader;
+}
+
+qint64 UploaderImpl::flush_buffer()
+{
+    qint64 bytes_written = 0;
+    auto bytes_to_write = buffer_.size();
+    if (bytes_to_write > 0)
+    {
+        auto bytes_written = socket_.write(buffer_.data(), bytes_to_write);
+        if (bytes_written != bytes_to_write)
+        {
+            return -1;  // Not exactly detailed, but that's the best we can do.  // LCOV_EXCL_LINE
+        }
+        buffer_.resize(0);
+    }
+    return bytes_written;
 }
 
 }  // namespace internal

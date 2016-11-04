@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <unity/storage/qt/internal/Handler.h>
 #include <unity/storage/qt/Uploader.h>
 
 #include <QDBusPendingReply>
@@ -79,6 +80,8 @@ public:
                               qint64 size_in_bytes);
     static Uploader* make_job(StorageError const& e);
 
+    qint64 flush_buffer();
+
 private:
     Uploader* public_instance_;
     Uploader::Status status_;
@@ -88,9 +91,13 @@ private:
     std::function<void(storage::internal::ItemMetadata const&)> validate_;
     Item::ConflictPolicy policy_ = Item::ConflictPolicy::Overwrite;
     qint64 size_in_bytes_ = 0;
+    std::function<void(QDBusPendingReply<QString, QDBusUnixFileDescriptor>& reply)> process_reply_;
+    std::function<void(StorageError const& error)> process_error_;
+    Handler<QDBusPendingReply<QString, QDBusUnixFileDescriptor>>* handler_;
     QString upload_id_;
     QDBusUnixFileDescriptor fd_;
     QLocalSocket socket_;
+    QByteArray buffer_;
     bool finalizing_ = false;
 };
 
