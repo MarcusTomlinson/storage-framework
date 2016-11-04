@@ -86,7 +86,7 @@ QFuture<QVector<Root::SPtr>> AccountImpl::roots()
         return make_exceptional_future<QVector<Root::SPtr>>(RuntimeDestroyedException("Account::roots()"));
     }
 
-    auto reply = provider_->Roots();
+    auto reply = provider_->Roots(QList<QString>());
 
     auto process_reply = [this](decltype(reply) const& reply, QFutureInterface<QVector<Root::SPtr>>& qf)
     {

@@ -47,7 +47,7 @@ public:
     void run();
 
 protected:
-    virtual std::unique_ptr<ProviderBase> make_provider() = 0;
+    virtual std::shared_ptr<ProviderBase> make_provider() = 0;
 private:
     std::unique_ptr<internal::ServerImpl> p_;
 
@@ -60,8 +60,8 @@ class Server : public ServerBase
 public:
     using ServerBase::ServerBase;
 protected:
-    std::unique_ptr<ProviderBase> make_provider() override {
-        return std::unique_ptr<ProviderBase>(new T);
+    std::shared_ptr<ProviderBase> make_provider() override {
+        return std::make_shared<T>();
     }
 };
 

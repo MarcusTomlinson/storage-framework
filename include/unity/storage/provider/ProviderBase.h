@@ -26,8 +26,9 @@
 #include <boost/variant.hpp>
 
 #include <sys/types.h>
-#include <string>
 #include <map>
+#include <memory>
+#include <string>
 #include <vector>
 
 namespace unity
@@ -65,7 +66,7 @@ struct UNITY_STORAGE_EXPORT Item
 
 typedef std::vector<Item> ItemList;
 
-class UNITY_STORAGE_EXPORT ProviderBase
+class UNITY_STORAGE_EXPORT ProviderBase : public std::enable_shared_from_this<ProviderBase>
 {
 public:
     ProviderBase();
@@ -74,39 +75,41 @@ public:
     ProviderBase(ProviderBase const& other) = delete;
     ProviderBase& operator=(ProviderBase const& other) = delete;
 
-    virtual boost::future<ItemList> roots(Context const& context) = 0;
+    virtual boost::future<ItemList> roots(std::vector<std::string> const& keys, Context const& context) = 0;
     virtual boost::future<std::tuple<ItemList,std::string>> list(
         std::string const& item_id, std::string const& page_token,
+        std::vector<std::string> const& keys,
         Context const& context) = 0;
     virtual boost::future<ItemList> lookup(
-        std::string const& parent_id, std::string const& name,
+        std::string const& parent_id, std::string const& name, std::vector<std::string> const& keys,
         Context const& context) = 0;
-    virtual boost::future<Item> metadata(std::string const& item_id,
+    virtual boost::future<Item> metadata(std::string const& item_id, std::vector<std::string> const& keys,
         Context const& context) = 0;
 
     virtual boost::future<Item> create_folder(
-        std::string const& parent_id, std::string const& name,
+        std::string const& parent_id, std::string const& name, std::vector<std::string> const& keys,
         Context const& context) = 0;
 
     virtual boost::future<std::unique_ptr<UploadJob>> create_file(
         std::string const& parent_id, std::string const& name,
-        int64_t size, std::string const& content_type, bool allow_overwrite,
+        int64_t size, std::string const& content_type, bool allow_overwrite, std::vector<std::string> const& keys,
         Context const& context) = 0;
     virtual boost::future<std::unique_ptr<UploadJob>> update(
-        std::string const& item_id, int64_t size, std::string const& old_etag,
+        std::string const& item_id, int64_t size, std::string const& old_etag, std::vector<std::string> const& keys,
         Context const& context) = 0;
 
     virtual boost::future<std::unique_ptr<DownloadJob>> download(
-        std::string const& item_id, Context const& context) = 0;
+        std::string const& item_id, std::string const& match_etag,
+        Context const& context) = 0;
 
     virtual boost::future<void> delete_item(
         std::string const& item_id, Context const& context) = 0;
     virtual boost::future<Item> move(
         std::string const& item_id, std::string const& new_parent_id,
-        std::string const& new_name, Context const& context) = 0;
+        std::string const& new_name, std::vector<std::string> const& keys, Context const& context) = 0;
     virtual boost::future<Item> copy(
         std::string const& item_id, std::string const& new_parent_id,
-        std::string const& new_name, Context const& context) = 0;
+        std::string const& new_name, std::vector<std::string> const& keys, Context const& context) = 0;
 };
 
 }

@@ -6,7 +6,7 @@ set_source_files_properties(bus.xml PROPERTIES CLASSNAME BusInterface)
 qt5_add_dbus_interface(generated_files bus.xml businterface)
 
 set_source_files_properties(${generated_files} PROPERTIES
-  COMPILE_FLAGS "-Wno-ctor-dtor-privacy -Wmissing-field-initializers"
+  COMPILE_FLAGS "-Wno-ctor-dtor-privacy -Wno-missing-field-initializers"
   GENERATED TRUE
 )
 
@@ -42,6 +42,11 @@ add_library(sf-provider-objects OBJECT
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/TempfileUploadJobImpl.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/UploadJobImpl.h
 )
+
+set_source_files_properties(internal/ProviderInterface.cpp PROPERTIES
+  COMPILE_FLAGS "-Wno-missing-field-initializers"
+)
+
 add_dependencies(sf-provider-objects sf-provider-generated-files)
 set_target_properties(sf-provider-objects PROPERTIES
   AUTOMOC TRUE

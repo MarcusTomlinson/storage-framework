@@ -7,5 +7,9 @@ install(FILES ${common_headers}
 install(FILES ${common_headers}
   DESTINATION ${provider_base_includedir}/${includeprefix})
 
+# Deprecated client API v1 install
+install(FILES ${common_headers}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/storage-framework-client-1/${includeprefix})
+
 add_subdirectory(provider)
 add_subdirectory(qt)

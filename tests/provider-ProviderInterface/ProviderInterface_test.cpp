@@ -68,12 +68,14 @@ class ProviderInterfaceTest : public ProviderFixture
 protected:
     void SetUp() override
     {
+        ProviderFixture::SetUp();
         client_.reset(new ProviderClient(bus_name(), object_path(), connection()));
     }
 
     void TearDown() override
     {
         client_.reset();
+        ProviderFixture::TearDown();
     }
 
     std::unique_ptr<ProviderClient> client_;
@@ -83,13 +85,13 @@ TEST_F(ProviderInterfaceTest, roots)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    auto reply = client_->Roots();
+    auto reply = client_->Roots(QList<QString>());
     wait_for(reply);
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     EXPECT_EQ(1, reply.value().size());
     auto root = reply.value()[0];
     EXPECT_EQ("root_id", root.item_id);
-    EXPECT_EQ(QVector<QString>(), root.parent_ids);
+    EXPECT_EQ(QList<QString>(), root.parent_ids);
     EXPECT_EQ("Root", root.name);
     EXPECT_EQ("etag", root.etag);
     EXPECT_EQ(ItemType::root, root.type);
@@ -99,7 +101,7 @@ TEST_F(ProviderInterfaceTest, list)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    auto reply = client_->List("root_id", "");
+    auto reply = client_->List("root_id", "", QList<QString>());
     wait_for(reply);
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto items = reply.argumentAt<0>();
@@ -109,7 +111,7 @@ TEST_F(ProviderInterfaceTest, list)
     EXPECT_EQ("child2_id", items[1].item_id);
     EXPECT_EQ("page_token", page_token);
 
-    reply = client_->List("root_id", page_token);
+    reply = client_->List("root_id", page_token, QList<QString>());
     wait_for(reply);
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     items = reply.argumentAt<0>();
@@ -120,13 +122,13 @@ TEST_F(ProviderInterfaceTest, list)
     EXPECT_EQ("", page_token);
 
     // Try a bad page token
-    reply = client_->List("root_id", "bad_page_token");
+    reply = client_->List("root_id", "bad_page_token", QList<QString>());
     wait_for(reply);
     EXPECT_TRUE(reply.isError());
     EXPECT_EQ(PROVIDER_ERROR + "LogicException", reply.error().name()) << reply.error().name().toStdString();
     EXPECT_EQ("Unknown page token", reply.error().message()) << reply.error().message().toStdString();
 
-    reply = client_->List("no_such_folder_id", "");
+    reply = client_->List("no_such_folder_id", "", QList<QString>());
     wait_for(reply);
     EXPECT_TRUE(reply.isError());
     EXPECT_EQ(PROVIDER_ERROR + "NotExistsException", reply.error().name());
@@ -137,14 +139,14 @@ TEST_F(ProviderInterfaceTest, lookup)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    auto reply = client_->Lookup("root_id", "Filename");
+    auto reply = client_->Lookup("root_id", "Filename", QList<QString>());
     wait_for(reply);
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto items = reply.value();
     ASSERT_EQ(1, items.size());
     auto item = items[0];
     EXPECT_EQ("child_id", item.item_id);
-    EXPECT_EQ(QVector<QString>{ "root_id"}, item.parent_ids);
+    EXPECT_EQ(QList<QString>{ "root_id"}, item.parent_ids);
     EXPECT_EQ("Filename", item.name);
     EXPECT_EQ(ItemType::file, item.type);
 }
@@ -153,12 +155,12 @@ TEST_F(ProviderInterfaceTest, metadata)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    auto reply = client_->Metadata("root_id");
+    auto reply = client_->Metadata("root_id", QList<QString>());
     wait_for(reply);
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("root_id", item.item_id);
-    EXPECT_EQ(QVector<QString>(), item.parent_ids);
+    EXPECT_EQ(QList<QString>(), item.parent_ids);
     EXPECT_EQ("Root", item.name);
     EXPECT_EQ(ItemType::root, item.type);
 }
@@ -167,12 +169,12 @@ TEST_F(ProviderInterfaceTest, create_folder)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    auto reply = client_->CreateFolder("root_id", "New Folder");
+    auto reply = client_->CreateFolder("root_id", "New Folder", QList<QString>());
     wait_for(reply);
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("new_folder_id", item.item_id);
-    EXPECT_EQ(QVector<QString>{ "root_id" }, item.parent_ids);
+    EXPECT_EQ(QList<QString>{ "root_id" }, item.parent_ids);
     EXPECT_EQ("New Folder", item.name);
     EXPECT_EQ(ItemType::folder, item.type);
 }
@@ -184,7 +186,8 @@ TEST_F(ProviderInterfaceTest, create_file)
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->CreateFile("parent_id", "file name", file_contents.size(), "text/plain", false);
+        auto reply = client_->CreateFile("parent_id", "file name", file_contents.size(),
+                                         "text/plain", false, QList<QString>());
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         upload_id = reply.argumentAt<0>();
@@ -222,7 +225,7 @@ TEST_F(ProviderInterfaceTest, create_file)
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("new_file_id", item.item_id);
-    EXPECT_EQ(QVector<QString>{ "parent_id" }, item.parent_ids);
+    EXPECT_EQ(QList<QString>{ "parent_id" }, item.parent_ids);
     EXPECT_EQ("file name", item.name);
 }
 
@@ -233,7 +236,7 @@ TEST_F(ProviderInterfaceTest, update)
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Update("item_id", file_contents.size(), "old_etag");
+        auto reply = client_->Update("item_id", file_contents.size(), "old_etag", QList<QString>());
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         upload_id = reply.argumentAt<0>();
@@ -280,7 +283,7 @@ TEST_F(ProviderInterfaceTest, upload_short_write)
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Update("item_id", 100, "old_etag");
+        auto reply = client_->Update("item_id", 100, "old_etag", QList<QString>());
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         upload_id = reply.argumentAt<0>();
@@ -303,7 +306,7 @@ TEST_F(ProviderInterfaceTest, upload_long_write)
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Update("item_id", file_contents.size() - 5, "old_etag");
+        auto reply = client_->Update("item_id", file_contents.size() - 5, "old_etag", QList<QString>());
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         upload_id = reply.argumentAt<0>();
@@ -350,7 +353,7 @@ TEST_F(ProviderInterfaceTest, upload_not_closed)
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Update("item_id", 100, "old_etag");
+        auto reply = client_->Update("item_id", 100, "old_etag", QList<QString>());
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         upload_id = reply.argumentAt<0>();
@@ -370,7 +373,7 @@ TEST_F(ProviderInterfaceTest, cancel_upload)
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Update("item_id", 100, "old_etag");
+        auto reply = client_->Update("item_id", 100, "old_etag", QList<QString>());
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         upload_id = reply.argumentAt<0>();
@@ -385,7 +388,7 @@ TEST_F(ProviderInterfaceTest, cancel_upload_wrong_connection)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    auto upload_reply = client_->Update("item_id", 100, "old_etag");
+    auto upload_reply = client_->Update("item_id", 100, "old_etag", QList<QString>());
     wait_for(upload_reply);
     ASSERT_TRUE(upload_reply.isValid()) << upload_reply.error().message().toStdString();
     auto upload_id = upload_reply.argumentAt<0>();
@@ -417,7 +420,7 @@ TEST_F(ProviderInterfaceTest, cancel_upload_on_disconnect)
         QDBusConnection::disconnectFromBus(SECOND_CONNECTION_NAME);
         service_watcher.addWatchedService(connection2.baseService());
         ProviderClient client2(bus_name(), object_path(), connection2);
-        auto reply = client2.Update("item_id", 100, "old_etag");
+        auto reply = client2.Update("item_id", 100, "old_etag", QList<QString>());
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         // Store socket so it will remain open past the closing of the
@@ -455,7 +458,7 @@ TEST_F(ProviderInterfaceTest, finish_upload_wrong_connection)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    auto upload_reply = client_->Update("item_id", 100, "old_etag");
+    auto upload_reply = client_->Update("item_id", 100, "old_etag", QList<QString>());
     wait_for(upload_reply);
     ASSERT_TRUE(upload_reply.isValid()) << upload_reply.error().message().toStdString();
     auto upload_id = upload_reply.argumentAt<0>();
@@ -478,7 +481,7 @@ TEST_F(ProviderInterfaceTest, tempfile_upload)
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Update("tempfile_item_id", file_contents.size(), "old_etag");
+        auto reply = client_->Update("tempfile_item_id", file_contents.size(), "old_etag", QList<QString>());
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         upload_id = reply.argumentAt<0>();
@@ -525,7 +528,7 @@ TEST_F(ProviderInterfaceTest, tempfile_upload_short_write)
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Update("tempfile_item_id", 100, "old_etag");
+        auto reply = client_->Update("tempfile_item_id", 100, "old_etag", QList<QString>());
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         upload_id = reply.argumentAt<0>();
@@ -548,7 +551,7 @@ TEST_F(ProviderInterfaceTest, tempfile_upload_long_write)
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Update("tempfile_item_id", file_contents.size() - 5, "old_etag");
+        auto reply = client_->Update("tempfile_item_id", file_contents.size() - 5, "old_etag", QList<QString>());
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         upload_id = reply.argumentAt<0>();
@@ -595,7 +598,7 @@ TEST_F(ProviderInterfaceTest, tempfile_upload_not_closed)
     QString upload_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Update("tempfile_item_id", 100, "old_etag");
+        auto reply = client_->Update("tempfile_item_id", 100, "old_etag", QList<QString>());
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         upload_id = reply.argumentAt<0>();
@@ -615,7 +618,7 @@ TEST_F(ProviderInterfaceTest, download)
     QString download_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Download("item_id");
+        auto reply = client_->Download("item_id", "");
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         download_id = reply.argumentAt<0>();
@@ -658,7 +661,7 @@ TEST_F(ProviderInterfaceTest, download_short_read)
     QString download_id;
     QDBusUnixFileDescriptor socket;
     {
-        auto reply = client_->Download("item_id");
+        auto reply = client_->Download("item_id", "");
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         download_id = reply.argumentAt<0>();
@@ -686,7 +689,7 @@ TEST_F(ProviderInterfaceTest, finish_download_wrong_connection)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    auto download_reply = client_->Download("item_id");
+    auto download_reply = client_->Download("item_id", "");
     wait_for(download_reply);
     ASSERT_TRUE(download_reply.isValid()) << download_reply.error().message().toStdString();
     auto download_id = download_reply.argumentAt<0>();
@@ -718,7 +721,7 @@ TEST_F(ProviderInterfaceTest, cancel_download_on_disconnect)
         QDBusConnection::disconnectFromBus(SECOND_CONNECTION_NAME);
         service_watcher.addWatchedService(connection2.baseService());
         ProviderClient client2(bus_name(), object_path(), connection2);
-        auto reply = client2.Download("item_id");
+        auto reply = client2.Download("item_id", "");
         wait_for(reply);
         ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
         // Store socket so it will remain open past the closing of the
@@ -754,12 +757,12 @@ TEST_F(ProviderInterfaceTest, move)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    auto reply = client_->Move("child_id", "new_parent_id", "New name");
+    auto reply = client_->Move("child_id", "new_parent_id", "New name", QList<QString>());
     wait_for(reply);
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("child_id", item.item_id);
-    EXPECT_EQ(QVector<QString>{ "new_parent_id" }, item.parent_ids);
+    EXPECT_EQ(QList<QString>{ "new_parent_id" }, item.parent_ids);
     EXPECT_EQ("New name", item.name);
     EXPECT_EQ(ItemType::file, item.type);
 }
@@ -768,12 +771,12 @@ TEST_F(ProviderInterfaceTest, copy)
 {
     set_provider(unique_ptr<ProviderBase>(new TestProvider));
 
-    auto reply = client_->Copy("child_id", "new_parent_id", "New name");
+    auto reply = client_->Copy("child_id", "new_parent_id", "New name", QList<QString>());
     wait_for(reply);
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
     EXPECT_EQ("new_id", item.item_id);
-    EXPECT_EQ(QVector<QString>{ "new_parent_id" }, item.parent_ids);
+    EXPECT_EQ(QList<QString>{ "new_parent_id" }, item.parent_ids);
     EXPECT_EQ("New name", item.name);
     EXPECT_EQ(ItemType::file, item.type);
 }
