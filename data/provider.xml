@@ -212,6 +212,7 @@
         Download:
         @short_description: download the contents of a file.
         @item_id: the ID for the file
+        @match_etag: if not empty, the expected etag for the file
         @download_id: an identifier for the download
         @file_descriptor: a file descriptor used to read the contents
 
@@ -220,11 +221,16 @@
         The application can check for errors in the download (e.g. if
         the file was truncated) with the FinishDownload method.
 
+        If the match_etag parameter is non-empty, the provider may
+        fail the request if the file has changed (either immediately,
+        or signalling the failure in FinishDownload).
+
         The application can cancel the download by closing the file
         descriptor early.
     -->
     <method name="Download">
       <arg type="s" name="item_id" direction="in"/>
+      <arg type="s" name="match_etag" direction="in"/>
       <arg type="s" name="download_id" direction="out"/>
       <arg type="h" name="file_descriptor" direction="out"/>
     </method>

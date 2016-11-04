@@ -91,6 +91,11 @@ qint64 Uploader::bytesToWrite() const
     return p_->bytesToWrite();
 }
 
+bool Uploader::canReadLine() const
+{
+    return p_->canReadLine();
+}
+
 bool Uploader::isSequential() const
 {
     return p_->isSequential();

@@ -83,7 +83,7 @@ public:
     enum ConflictPolicy
     {
         ErrorIfConflict = unsigned(unity::storage::ConflictPolicy::error_if_conflict),
-        Overwrite = unsigned(unity::storage::ConflictPolicy::overwrite)
+        IgnoreConflict = unsigned(unity::storage::ConflictPolicy::ignore_conflict)
     };
     Q_ENUMS(ConflictPolicy)
 
@@ -98,28 +98,28 @@ public:
     QDateTime lastModifiedTime() const;
     QStringList parentIds() const;
 
-    Q_INVOKABLE ItemListJob* parents(QStringList const& keys = QStringList()) const;
-    Q_INVOKABLE ItemJob* copy(Item const& newParent,
+    Q_INVOKABLE unity::storage::qt::ItemListJob* parents(QStringList const& keys = QStringList()) const;
+    Q_INVOKABLE unity::storage::qt::ItemJob* copy(Item const& newParent,
                               QString const& newName,
                               QStringList const& keys = QStringList()) const;
-    Q_INVOKABLE ItemJob* move(Item const& newParent,
+    Q_INVOKABLE unity::storage::qt::ItemJob* move(Item const& newParent,
                               QString const& newName,
                               QStringList const& keys = QStringList()) const;
-    Q_INVOKABLE VoidJob* deleteItem() const;
+    Q_INVOKABLE unity::storage::qt::VoidJob* deleteItem() const;
 
-    Q_INVOKABLE Uploader* createUploader(ConflictPolicy policy,
-                                         qint64 sizeInBytes,
-                                         QStringList const& keys = QStringList()) const;
-    Q_INVOKABLE Downloader* createDownloader() const;
+    Q_INVOKABLE unity::storage::qt::Uploader* createUploader(ConflictPolicy policy,
+                                                             qint64 sizeInBytes,
+                                                             QStringList const& keys = QStringList()) const;
+    Q_INVOKABLE unity::storage::qt::Downloader* createDownloader(ConflictPolicy policy) const;
 
-    Q_INVOKABLE ItemListJob* list(QStringList const& keys = QStringList()) const;
-    Q_INVOKABLE ItemListJob* lookup(QString const& name, QStringList const& = QStringList()) const;
-    Q_INVOKABLE ItemJob* createFolder(QString const& name, QStringList const& = QStringList()) const;
-    Q_INVOKABLE Uploader* createFile(QString const& name,
-                                     ConflictPolicy policy,
-                                     qint64 sizeInBytes,
-                                     QString const& contentType,
-                                     QStringList const& keys = QStringList()) const;
+    Q_INVOKABLE unity::storage::qt::ItemListJob* list(QStringList const& keys = QStringList()) const;
+    Q_INVOKABLE unity::storage::qt::ItemListJob* lookup(QString const& name, QStringList const& = QStringList()) const;
+    Q_INVOKABLE unity::storage::qt::ItemJob* createFolder(QString const& name, QStringList const& = QStringList()) const;
+    Q_INVOKABLE unity::storage::qt::Uploader* createFile(QString const& name,
+                                                         ConflictPolicy policy,
+                                                         qint64 sizeInBytes,
+                                                         QString const& contentType,
+                                                         QStringList const& keys = QStringList()) const;
 
     bool operator==(Item const&) const;
     bool operator!=(Item const&) const;

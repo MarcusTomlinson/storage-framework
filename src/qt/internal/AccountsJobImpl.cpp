@@ -45,7 +45,9 @@ namespace
 static map<QString, QString> const BUS_NAMES =
 {
     { "google-drive-scope", "com.canonical.StorageFramework.Provider.ProviderTest" },
-    { "com.canonical.scopes.mcloud_mcloud_mcloud", "com.canonical.StorageFramework.Provider.McloudProvider" }
+    { "com.canonical.scopes.mcloud_mcloud_mcloud", "com.canonical.StorageFramework.Provider.McloudProvider" },
+    { "storage-provider-owncloud", "com.canonical.StorageFramework.Provider.OwnCloud" },
+    { "storage-provider-onedrive", "com.canonical.StorageFramework.Provider.OnedriveProvider" },
 };
 
 }  // namespace
@@ -99,6 +101,16 @@ QList<Account> AccountsJobImpl::accounts() const
         return QList<Account>();
     }
     return accounts_;
+}
+
+QVariantList AccountsJobImpl::accountsAsVariantList() const
+{
+    QVariantList account_list;
+    for (auto const& a : accounts())
+    {
+        account_list.append(QVariant::fromValue(a));
+    }
+    return account_list;
 }
 
 void AccountsJobImpl::manager_ready()
@@ -169,8 +181,8 @@ void AccountsJobImpl::initialize_accounts()
             accounts_.append(AccountImpl::make_account(runtime,
                                                        bus_name,
                                                        object_path,
+                                                       QString::number(a->id()),
                                                        a->serviceId(),
-                                                       "",
                                                        a->displayName()));
         }
     }

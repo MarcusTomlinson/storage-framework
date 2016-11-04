@@ -53,6 +53,7 @@ public:
     // From QLocalSocket interface.
     qint64 bytesAvailable() const;
     qint64 bytesToWrite() const;
+    bool canReadLine() const;
     bool isSequential() const;
     bool waitForBytesWritten(int msecs);
     bool waitForReadyRead(int msecs);

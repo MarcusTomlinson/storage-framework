@@ -23,6 +23,7 @@
 
 #include <QDBusPendingReply>
 #include <QDBusUnixFileDescriptor>
+#include <QPointer>
 
 namespace unity
 {
@@ -66,6 +67,7 @@ public:
     // From QLocalSocket interface.
     qint64 bytesAvailable() const;
     qint64 bytesToWrite() const;
+    bool canReadLine() const;
     bool isSequential() const;
     bool waitForBytesWritten(int msecs);
     bool waitForReadyRead(int msecs);
@@ -89,11 +91,9 @@ private:
     QString method_;
     std::shared_ptr<ItemImpl> item_impl_;
     std::function<void(storage::internal::ItemMetadata const&)> validate_;
-    Item::ConflictPolicy policy_ = Item::ConflictPolicy::Overwrite;
+    Item::ConflictPolicy policy_ = Item::ConflictPolicy::IgnoreConflict;
     qint64 size_in_bytes_ = 0;
-    std::function<void(QDBusPendingReply<QString, QDBusUnixFileDescriptor>& reply)> process_reply_;
-    std::function<void(StorageError const& error)> process_error_;
-    Handler<QDBusPendingReply<QString, QDBusUnixFileDescriptor>>* handler_;
+    QPointer<Handler<QDBusPendingReply<QString, QDBusUnixFileDescriptor>>> handler_;
     QString upload_id_;
     QDBusUnixFileDescriptor fd_;
     QLocalSocket socket_;

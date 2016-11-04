@@ -415,9 +415,10 @@ boost::future<unique_ptr<UploadJob>> TestProvider::update(
 }
 
 boost::future<unique_ptr<DownloadJob>> TestProvider::download(
-    string const& item_id, Context const& ctx)
+    string const& item_id, string const& match_etag, Context const& ctx)
 {
     Q_UNUSED(item_id);
+    Q_UNUSED(match_etag);
     Q_UNUSED(ctx);
 
     boost::promise<unique_ptr<DownloadJob>> p;

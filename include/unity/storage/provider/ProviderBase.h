@@ -99,7 +99,8 @@ public:
         Context const& context) = 0;
 
     virtual boost::future<std::unique_ptr<DownloadJob>> download(
-        std::string const& item_id, Context const& context) = 0;
+        std::string const& item_id, std::string const& match_etag,
+        Context const& context) = 0;
 
     virtual boost::future<void> delete_item(
         std::string const& item_id, Context const& context) = 0;

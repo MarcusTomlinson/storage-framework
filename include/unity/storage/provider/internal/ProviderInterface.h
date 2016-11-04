@@ -78,7 +78,7 @@ public Q_SLOTS:
                    QDBusUnixFileDescriptor& file_descriptor);
     IMD FinishUpload(QString const& upload_id);
     void CancelUpload(QString const& upload_id);
-    QString Download(QString const& item_id, QDBusUnixFileDescriptor& file_descriptor);
+    QString Download(QString const& item_id, QString const& match_etag, QDBusUnixFileDescriptor& file_descriptor);
     void FinishDownload(QString const& download_id);
     void Delete(QString const& item_id);
     IMD Move(QString const& item_id,

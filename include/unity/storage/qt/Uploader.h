@@ -69,6 +69,7 @@ public:
     // From QLocalSocket interface.
     Q_INVOKABLE qint64 bytesAvailable() const override;
     Q_INVOKABLE qint64 bytesToWrite() const override;
+    Q_INVOKABLE bool canReadLine() const override;
     Q_INVOKABLE bool isSequential() const override;
     Q_INVOKABLE bool waitForBytesWritten(int msecs = 30000) override;
     Q_INVOKABLE bool waitForReadyRead(int msecs = 30000) override;

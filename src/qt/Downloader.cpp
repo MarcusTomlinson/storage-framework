@@ -81,6 +81,11 @@ qint64 Downloader::bytesToWrite() const
     return p_->bytesToWrite();
 }
 
+bool Downloader::canReadLine() const
+{
+    return p_->canReadLine();
+}
+
 bool Downloader::isSequential() const
 {
     return p_->isSequential();

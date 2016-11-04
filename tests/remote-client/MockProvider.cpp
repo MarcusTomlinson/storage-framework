@@ -44,7 +44,7 @@ MockProvider::MockProvider(string const& cmd)
 {
 }
 
-boost::future<ItemList> MockProvider::roots(vector<string> const& keys, Context const&)
+boost::future<ItemList> MockProvider::roots(vector<string> const& /* keys */, Context const&)
 {
     if (cmd_ == "roots_slow")
     {
@@ -72,7 +72,7 @@ boost::future<ItemList> MockProvider::roots(vector<string> const& keys, Context 
 }
 
 boost::future<tuple<ItemList,string>> MockProvider::list(
-    string const& item_id, string const& page_token, vector<string> const& keys,
+    string const& item_id, string const& page_token, vector<string> const& /* keys */,
     Context const&)
 {
     if (cmd_ == "list_slow")
@@ -156,7 +156,7 @@ boost::future<tuple<ItemList,string>> MockProvider::list(
 }
 
 boost::future<ItemList> MockProvider::lookup(
-    string const& parent_id, string const& name, vector<string> const& keys, Context const&)
+    string const& parent_id, string const& name, vector<string> const& /* keys */, Context const&)
 {
     if (parent_id != "root_id")
     {
@@ -176,7 +176,7 @@ boost::future<ItemList> MockProvider::lookup(
     return make_ready_future<ItemList>(children);
 }
 
-boost::future<Item> MockProvider::metadata(string const& item_id, vector<string> const& keys, Context const&)
+boost::future<Item> MockProvider::metadata(string const& item_id, vector<string> const& /* keys */, Context const&)
 {
     static int num_calls = 0;
 
@@ -349,7 +349,7 @@ boost::future<Item> MockProvider::metadata(string const& item_id, vector<string>
 }
 
 boost::future<Item> MockProvider::create_folder(
-    string const& parent_id, string const& name, vector<string> const& keys,
+    string const& parent_id, string const& name, vector<string> const& /* keys */,
     Context const&)
 {
     if (cmd_ == "create_folder_returns_file")
@@ -386,11 +386,16 @@ boost::future<unique_ptr<UploadJob>> MockProvider::update(
 }
 
 boost::future<unique_ptr<DownloadJob>> MockProvider::download(
-    string const&, Context const&)
+    string const&, string const& match_etag, Context const&)
 {
     if (cmd_ == "download_slow")
     {
         this_thread::sleep_for(chrono::seconds(1));
+    }
+    if (!match_etag.empty())
+    {
+        ConflictException e("download(): etag mismatch");
+        return make_exceptional_future<unique_ptr<DownloadJob>>(e);
     }
     if (cmd_ == "download_error")
     {
@@ -431,7 +436,7 @@ boost::future<void> MockProvider::delete_item(
 
 boost::future<Item> MockProvider::move(
     string const& item_id, string const& new_parent_id,
-    string const& new_name, vector<string> const& keys, Context const&)
+    string const& new_name, vector<string> const& /* keys */, Context const&)
 {
     if (cmd_ == "move_returns_root")
     {
@@ -461,7 +466,7 @@ boost::future<Item> MockProvider::move(
 
 boost::future<Item> MockProvider::copy(
     string const&, string const& new_parent_id,
-    string const& new_name, vector<string> const& keys, Context const&)
+    string const& new_name, vector<string> const& /* keys */, Context const&)
 {
     if (cmd_ == "copy_type_mismatch")
     {

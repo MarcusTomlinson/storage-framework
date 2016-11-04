@@ -55,7 +55,7 @@ UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
     assert(!method.isEmpty());
     assert(size_in_bytes >= 0);
 
-    process_reply_ = [this, method](QDBusPendingReply<QString, QDBusUnixFileDescriptor>& r)
+    auto process_reply = [this, method](QDBusPendingReply<QString, QDBusUnixFileDescriptor>& r)
     {
         if (status_ != Uploader::Status::Loading)
         {
@@ -102,11 +102,12 @@ UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
 #endif
 
         socket_.setSocketDescriptor(fd_.fileDescriptor(), QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+        flush_buffer();
         status_ = Uploader::Status::Ready;
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
-    process_error_ = [this](StorageError const& error)
+    auto process_error = [this](StorageError const& error)
     {
         // TODO: This does not set the method
         error_ = error;
@@ -116,7 +117,7 @@ UploaderImpl::UploaderImpl(shared_ptr<ItemImpl> const& item_impl,
         Q_EMIT public_instance_->statusChanged(status_);
     };
 
-    handler_ = new Handler<QDBusPendingReply<QString, QDBusUnixFileDescriptor>>(this, reply, process_reply_, process_error_);
+    handler_ = new Handler<QDBusPendingReply<QString, QDBusUnixFileDescriptor>>(this, reply, process_reply, process_error);
 }
 
 UploaderImpl::UploaderImpl(StorageError const& e)
@@ -210,6 +211,7 @@ void UploaderImpl::finishUpload()
     }
 
     finalizing_ = true;
+    flush_buffer();
     socket_.disconnectFromServer();
     auto reply = item_impl_->account_impl()->provider()->FinishUpload(upload_id_);
 
@@ -320,6 +322,11 @@ qint64 UploaderImpl::bytesAvailable() const
 qint64 UploaderImpl::bytesToWrite() const
 {
     return socket_.bytesToWrite();
+}
+
+bool UploaderImpl::canReadLine() const
+{
+    return socket_.canReadLine();
 }
 
 bool UploaderImpl::isSequential() const

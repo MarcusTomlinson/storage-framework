@@ -273,6 +273,11 @@ qint64 DownloaderImpl::bytesToWrite() const
     return socket_.bytesToWrite();
 }
 
+bool DownloaderImpl::canReadLine() const
+{
+    return socket_.canReadLine();
+}
+
 bool DownloaderImpl::isSequential() const
 {
     return socket_.isSequential();

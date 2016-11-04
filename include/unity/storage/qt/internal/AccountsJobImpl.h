@@ -43,6 +43,7 @@ public:
     AccountsJob::Status status() const;
     StorageError error() const;
     QList<Account> accounts() const;
+    QVariantList accountsAsVariantList() const;
 
 private Q_SLOTS:
     void manager_ready();
