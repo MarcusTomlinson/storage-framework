@@ -12,7 +12,7 @@ substitute() {
 # This file is regenerated automatically in the clean target.
 #
 EOF
-    sed -e "s/@PROVIDER_SOVERSION@/${soversion}/" < "$1" >> "$2"
+    sed -e "s/@PROVIDER_SOVERSION@/${soversion}/g" < "$1" >> "$2"
 }
 
 substitute ./debian/control.in ./debian/control
