@@ -18,10 +18,12 @@
 
 #pragma once
 
+#include <unity/storage/qt/internal/Handler.h>
 #include <unity/storage/qt/Uploader.h>
 
 #include <QDBusPendingReply>
 #include <QDBusUnixFileDescriptor>
+#include <QPointer>
 
 namespace unity
 {
@@ -59,8 +61,18 @@ public:
     qint64 sizeInBytes() const;
     Item item() const;
 
-    void finishUpload();
     void cancel();
+
+    // From QLocalSocket interface.
+    void close();
+    qint64 bytesAvailable() const;
+    qint64 bytesToWrite() const;
+    bool canReadLine() const;
+    bool isSequential() const;
+    bool waitForBytesWritten(int msecs);
+    bool waitForReadyRead(int msecs);
+    qint64 readData(char* data, qint64 c);
+    qint64 writeData(char const* data, qint64 c);
 
     static Uploader* make_job(std::shared_ptr<ItemImpl> const& item_impl,
                               QString const& method,
@@ -69,6 +81,8 @@ public:
                               Item::ConflictPolicy policy,
                               qint64 size_in_bytes);
     static Uploader* make_job(StorageError const& e);
+
+    qint64 flush_buffer();
 
 private:
     Uploader* public_instance_;
@@ -79,8 +93,11 @@ private:
     std::function<void(storage::internal::ItemMetadata const&)> validate_;
     Item::ConflictPolicy policy_ = Item::ConflictPolicy::IgnoreConflict;
     qint64 size_in_bytes_ = 0;
+    QPointer<Handler<QDBusPendingReply<QString, QDBusUnixFileDescriptor>>> handler_;
     QString upload_id_;
     QDBusUnixFileDescriptor fd_;
+    QLocalSocket socket_;
+    QByteArray buffer_;
     bool finalizing_ = false;
 };
 

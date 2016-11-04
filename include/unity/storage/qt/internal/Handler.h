@@ -102,6 +102,12 @@ public:
                           })
     {
     }
+
+    void wait_and_process_now()
+    {
+        watcher_.waitForFinished();
+        finished(&watcher_);
+    }
 };
 
 }  // namespace internal

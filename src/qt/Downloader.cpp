@@ -61,15 +61,58 @@ Item Downloader::item() const
     return p_->item();
 }
 
-void Downloader::finishDownload()
-{
-    p_->finishDownload();
-}
-
 void Downloader::cancel()
 {
     p_->cancel();
 }
+
+void Downloader::close()
+{
+    p_->close();
+}
+
+qint64 Downloader::bytesAvailable() const
+{
+    return p_->bytesAvailable();
+}
+
+qint64 Downloader::bytesToWrite() const
+{
+    return p_->bytesToWrite();
+}
+
+bool Downloader::canReadLine() const
+{
+    return p_->canReadLine();
+}
+
+bool Downloader::isSequential() const
+{
+    return p_->isSequential();
+}
+
+bool Downloader::waitForBytesWritten(int msecs)
+{
+    return p_->waitForBytesWritten(msecs);
+}
+
+bool Downloader::waitForReadyRead(int msecs)
+{
+    return p_->waitForReadyRead(msecs);
+}
+
+qint64 Downloader::readData(char* data, qint64 c)
+{
+    return p_->readData(data, c);
+}
+
+// LCOV_EXCL_START
+// Never called by QIODevice because device is opened read-only.
+qint64 Downloader::writeData(char const* data, qint64 c)
+{
+    return p_->writeData(data, c);
+}
+// LCOV_EXCL_STOP
 
 }  // namespace qt
 }  // namespace storage

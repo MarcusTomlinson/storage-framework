@@ -194,9 +194,9 @@ boost::future<Item> MockProvider::metadata(string const& item_id, vector<string>
         ++num_calls;
         switch (num_calls)
         {
-            case 3:
+            case 2:
                 return make_exceptional_future<Item>(ResourceException("metadata(): weird error", 42));
-            case 4:
+            case 3:
                 num_calls = 0;
                 return make_exceptional_future<Item>(RemoteCommsException("metadata(): HTTP broken"));
             default:
@@ -207,14 +207,8 @@ boost::future<Item> MockProvider::metadata(string const& item_id, vector<string>
     {
         if (cmd_ == "bad_parent_metadata_from_child")
         {
-            ++num_calls;
-            if (num_calls == 2)
-            {
-                num_calls = 0;
-                // On second call, we return type file for the root.
-                Item metadata{"root_id", {}, "Root", "etag", ItemType::file, {}};
-                return make_ready_future<Item>(metadata);
-            }
+            Item metadata{"root_id", {}, "Root", "etag", ItemType::file, {}};
+            return make_ready_future<Item>(metadata);
         }
         if (cmd_ == "root_with_parent")
         {

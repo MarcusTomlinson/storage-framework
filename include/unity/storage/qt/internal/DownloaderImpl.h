@@ -47,8 +47,18 @@ public:
     StorageError error() const;
     Item item() const;
 
-    void finishDownload();
     void cancel();
+
+    // From QLocalSocket interface.
+    void close();
+    qint64 bytesAvailable() const;
+    qint64 bytesToWrite() const;
+    bool canReadLine() const;
+    bool isSequential() const;
+    bool waitForBytesWritten(int msecs);
+    bool waitForReadyRead(int msecs);
+    qint64 readData(char* data, qint64 c);
+    qint64 writeData(char const* data, qint64 c);
 
     static Downloader* make_job(std::shared_ptr<ItemImpl> const& item_impl,
                                 QString const& method,
@@ -62,6 +72,7 @@ private:
     std::shared_ptr<ItemImpl> item_impl_;
     QString download_id_;
     QDBusUnixFileDescriptor fd_;
+    QLocalSocket socket_;
     bool finalizing_ = false;
 };
 

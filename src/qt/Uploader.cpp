@@ -71,14 +71,57 @@ Item Uploader::item() const
     return p_->item();
 }
 
-void Uploader::finishUpload()
-{
-    p_->finishUpload();
-}
-
 void Uploader::cancel()
 {
     p_->cancel();
+}
+
+void Uploader::close()
+{
+    p_->close();
+}
+
+qint64 Uploader::bytesAvailable() const
+{
+    return p_->bytesAvailable();
+}
+
+qint64 Uploader::bytesToWrite() const
+{
+    return p_->bytesToWrite();
+}
+
+bool Uploader::canReadLine() const
+{
+    return p_->canReadLine();
+}
+
+bool Uploader::isSequential() const
+{
+    return p_->isSequential();
+}
+
+bool Uploader::waitForBytesWritten(int msecs)
+{
+    return p_->waitForBytesWritten(msecs);
+}
+
+bool Uploader::waitForReadyRead(int msecs)
+{
+    return p_->waitForReadyRead(msecs);
+}
+
+// LCOV_EXCL_START
+// Never called by QIODevice because device is opened write-only.
+qint64 Uploader::readData(char* data, qint64 c)
+{
+    return p_->readData(data, c);
+}
+// LCOV_EXCL_STOP
+
+qint64 Uploader::writeData(char const* data, qint64 c)
+{
+    return p_->writeData(data, c);
 }
 
 }  // namespace qt

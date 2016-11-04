@@ -53,8 +53,6 @@ public Q_SLOTS:
 
 protected:
     QDBusPendingCallWatcher watcher_;
-
-private:
     std::function<void(QDBusPendingCallWatcher&)> closure_;
 };
 
