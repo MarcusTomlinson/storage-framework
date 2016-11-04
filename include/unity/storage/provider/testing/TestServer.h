@@ -49,7 +49,7 @@ namespace testing
 class UNITY_STORAGE_EXPORT TestServer
 {
 public:
-    TestServer(std::unique_ptr<ProviderBase>&& provider,
+    TestServer(std::shared_ptr<ProviderBase> const& provider,
                OnlineAccounts::Account* account,
                QDBusConnection const& connection,
                std::string const& object_path);

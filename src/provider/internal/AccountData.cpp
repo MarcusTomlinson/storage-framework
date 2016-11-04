@@ -31,12 +31,12 @@ namespace storage {
 namespace provider {
 namespace internal {
 
-AccountData::AccountData(std::unique_ptr<ProviderBase>&& provider,
-                         std::shared_ptr<DBusPeerCache> const& dbus_peer,
+AccountData::AccountData(shared_ptr<ProviderBase> const& provider,
+                         shared_ptr<DBusPeerCache> const& dbus_peer,
                          QDBusConnection const& bus,
                          OnlineAccounts::Account* account,
                          QObject* parent)
-    : QObject(parent), provider_(std::move(provider)), dbus_peer_(dbus_peer),
+    : QObject(parent), provider_(provider), dbus_peer_(dbus_peer),
       jobs_(new PendingJobs(bus)), account_(account)
 {
     authenticate(false);
@@ -132,6 +132,9 @@ void AccountData::on_authenticated()
     }
     case OnlineAccounts::AuthenticationMethodPassword:
     {
+        // Grab hostname from account settings if available
+        string host = account_->setting("host").toString().toStdString();
+
         OnlineAccounts::PasswordReply reply(*auth_watcher_);
         if (reply.hasError())
         {
@@ -139,9 +142,20 @@ void AccountData::on_authenticated()
         }
         else
         {
+            QString username = reply.username();
+            QString password = reply.password();
+
+            // Work around password credentials bug in online-accounts-service
+            //   https://bugs.launchpad.net/bugs/1628473
+            if (username.isEmpty() && password.isEmpty())
+            {
+                username = reply.data()["UserName"].toString();
+                password = reply.data()["Secret"].toString();
+            }
             credentials_ = PasswordCredentials{
-                reply.username().toStdString(),
-                reply.password().toStdString(),
+                username.toStdString(),
+                password.toStdString(),
+                move(host),
             };
         }
         break;

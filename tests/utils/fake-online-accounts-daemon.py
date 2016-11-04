@@ -80,19 +80,33 @@ class Password:
             "Password": dbus.String(self.password),
         }, signature="sv")
 
+# A version of Password that incorrectly serialises the credentials
+#   https://bugs.launchpad.net/bugs/1628473
+class Password_Bug1628473(Password):
+    def serialise(self):
+        return dbus.Dictionary({
+            "UserName": dbus.String(self.username),
+            "Secret": dbus.String(self.password),
+        }, signature="sv")
+
 class Account:
-    def __init__(self, account_id, display_name, service_id, credentials):
+    def __init__(self, account_id, display_name, service_id, credentials, settings=None):
         self.account_id = account_id
         self.display_name = display_name
         self.service_id = service_id
         self.credentials = credentials
+        self.settings = settings
 
     def serialise(self):
-        return (dbus.UInt32(self.account_id), dbus.Dictionary({
+        account_info = dbus.Dictionary({
             "displayName": dbus.String(self.display_name),
             "serviceId": dbus.String(self.service_id),
             "authMethod": dbus.Int32(self.credentials.method),
-            }, signature="sv"))
+        }, signature="sv")
+        if self.settings is not None:
+            for key, value in self.settings.items():
+                account_info['settings/' + key] = value
+        return (dbus.UInt32(self.account_id), account_info)
 
 class Manager(dbus.service.Object):
     def __init__(self, connection, object_path, accounts):
@@ -102,7 +116,7 @@ class Manager(dbus.service.Object):
     @dbus.service.method(dbus_interface=OA_IFACE,
                          in_signature="a{sv}", out_signature="a(ua{sv})")
     def GetAccounts(self, filters):
-        print("GetAccounts %r" % filters)
+        #print("GetAccounts %r" % filters)
         sys.stdout.flush()
         return dbus.Array([a.serialise() for a in self.accounts],
                           signature="a(ua{sv})")
@@ -110,7 +124,7 @@ class Manager(dbus.service.Object):
     @dbus.service.method(dbus_interface=OA_IFACE,
                          in_signature="usbba{sv}", out_signature="a{sv}")
     def Authenticate(self, account_id, service_id, interactive, invalidate, parameters):
-        print("Authenticate %r %r %r %r %r" % (account_id, service_id, interactive, invalidate, parameters))
+        #print("Authenticate %r %r %r %r %r" % (account_id, service_id, interactive, invalidate, parameters))
         sys.stdout.flush()
         for account in self.accounts:
             if account.account_id == account_id and account.service_id == service_id:
@@ -121,7 +135,7 @@ class Manager(dbus.service.Object):
     @dbus.service.method(dbus_interface=OA_IFACE,
                          in_signature="sa{sv}", out_signature="(ua{sv})a{sv}")
     def RequestAccess(self, service_id, parameters):
-        print("RequestAccess %r %r" % (service_id, parameters))
+        #print("RequestAccess %r %r" % (service_id, parameters))
         sys.stdout.flush()
         for account in self.accounts:
             if account.service_id == service_id:
@@ -161,6 +175,9 @@ if __name__ == "__main__":
                 OAuth2("access_token", 0, ["scope1", "scope2"])),
         Account(3, "Password account", "password-service",
                 Password("user", "pass")),
+        Account(4, "Password host account", "password-host-service",
+                Password_Bug1628473("joe", "secret"),
+                {"host": "http://www.example.com/"}),
         Account(42, "Fake google account", "google-drive-scope",
                 OAuth2("fake-google-access-token", 0, [])),
         Account(99, "Fake mcloud account", "com.canonical.scopes.mcloud_mcloud_mcloud",

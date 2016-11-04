@@ -131,6 +131,34 @@ TEST_F(AccountDataTest, password_credentials)
 
     EXPECT_EQ("user", creds.username);
     EXPECT_EQ("pass", creds.password);
+    EXPECT_EQ("", creds.host);
+}
+
+TEST_F(AccountDataTest, password_credentials_host)
+{
+    OnlineAccounts::Manager manager("", connection());
+    manager.waitForReady();
+    ASSERT_TRUE(manager.isReady());
+
+    auto accounts = manager.availableAccounts("password-host-service");
+    ASSERT_EQ(1, accounts.size());
+
+    internal::AccountData account(unique_ptr<ProviderBase>(),
+                                  shared_ptr<internal::DBusPeerCache>(),
+                                  connection(),
+                                  accounts[0]);
+
+    QSignalSpy spy(&account, &internal::AccountData::authenticated);
+    account.authenticate(true);
+    ASSERT_TRUE(spy.wait());
+
+    ASSERT_TRUE(account.has_credentials());
+    auto creds = boost::get<PasswordCredentials>(account.credentials());
+
+    // Host extracted from account settings.
+    EXPECT_EQ("joe", creds.username);
+    EXPECT_EQ("secret", creds.password);
+    EXPECT_EQ("http://www.example.com/", creds.host);
 }
 
 int main(int argc, char **argv)

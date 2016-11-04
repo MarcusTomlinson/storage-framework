@@ -30,36 +30,37 @@ using unity::storage::provider::UploadJob;
 
 class TestProvider : public ProviderBase {
 public:
-    boost::future<ItemList> roots(Context const& ctx) override;
+    boost::future<ItemList> roots(vector<string> const& keys, Context const& ctx) override;
     boost::future<tuple<ItemList,string>> list(
-        string const& item_id, string const& page_token,
+        string const& item_id, string const& page_token, vector<string> const& keys,
         Context const& ctx) override;
     boost::future<ItemList> lookup(
-        string const& parent_id, string const& name,
+        string const& parent_id, string const& name, vector<string> const& keys,
         Context const& ctx) override;
     boost::future<Item> metadata(
-        string const& item_id, Context const& ctx) override;
+        string const& item_id, vector<string> const& keys, Context const& ctx) override;
     boost::future<Item> create_folder(
-        string const& parent_id, string const& name,
+        string const& parent_id, string const& name, vector<string> const& keys,
         Context const& ctx) override;
 
     boost::future<unique_ptr<UploadJob>> create_file(
         string const& parent_id, string const& name,
-        int64_t size, string const& content_type, bool allow_overwrite,
+        int64_t size, string const& content_type, bool allow_overwrite, vector<string> const& keys,
         Context const& ctx) override;
     boost::future<unique_ptr<UploadJob>> update(
-        string const& item_id, int64_t size, string const& old_etag,
+        string const& item_id, int64_t size, string const& old_etag, vector<string> const& keys,
         Context const& ctx) override;
 
     boost::future<unique_ptr<DownloadJob>> download(
-        string const& item_id, Context const& ctx) override;
+        string const& item_id, string const& match_etag,
+        Context const& ctx) override;
 
     boost::future<void> delete_item(
         string const& item_id, Context const& ctx) override;
     boost::future<Item> move(
         string const& item_id, string const& new_parent_id,
-        string const& new_name, Context const& ctx) override;
+        string const& new_name, vector<string> const& keys, Context const& ctx) override;
     boost::future<Item> copy(
         string const& item_id, string const& new_parent_id,
-        string const& new_name, Context const& ctx) override;
+        string const& new_name, vector<string> const& keys, Context const& ctx) override;
 };

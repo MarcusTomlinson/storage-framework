@@ -23,19 +23,19 @@ case "$SERIES" in
     trusty)
         # TODO: the CI systems are running Trusty, so don't bomb out
         # when they try to build the source package.
-        echo 0
+        echo 3
         ;;
     vivid)
         # Old C++11 ABI, Boost 1.55
-        echo 0
+        echo 3
         ;;
     xenial)
         # New C++11 ABI, Boost 1.58
-        echo 1
+        echo 4
         ;;
-    yakkety)
-        # New C++11 ABI, Boost 1.60
-        echo 2
+    yakkety|zesty)
+        # New C++11 ABI, Boost 1.61
+        echo 5
         ;;
     *)
         echo "Unknown distro series $SERIES" >&2

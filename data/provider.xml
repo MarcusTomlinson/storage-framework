@@ -16,11 +16,21 @@
 
       Note that parent_ids is a sequence of IDs instead of a single ID to allow the client to
       navigate items in Google Drive, which permits more than one parent for a file or folder.
+
+      The metadata_keys parameter allows the caller to select which metadata values should be returned
+      for an item. If the list is empty, the provider will return a "reasonable" default set of metadata
+      values. (Note that this may not be the same set for each provider.) If the caller specifies one or
+      more keys, the provider will return the requested values. Note that not all providers may support
+      all values, so some of the requested values may be missing. Also, providers are free to return
+      additional values that were not requested.
+      Passing a single-element list with the value "__ALL__" indicates that the provider should return
+      all available metadata.
   -->
   <interface name="com.canonical.StorageFramework.Provider">
     <!--
         Roots:
         @short_description: Get the list of roots for the storage account
+        @metadata_keys: what metadata to return for the roots
         @roots: Returned list of roots.
 
         Returns the list of top level root items provided by the
@@ -28,6 +38,7 @@
         of files, this list will contain a single item.
     -->
     <method name="Roots">
+      <arg type="as" name="metadata_keys" direction="in"/>
       <arg type="a(sasssia{sv})" name="roots" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;unity::storage::internal::ItemMetadata&gt;"/>
     </method>
@@ -37,6 +48,7 @@
         @short_description: list the children of the given folder
         @item_id: the ID identifying the folder
         @page_token: if not empty, return the page of results identified by this token.
+        @metadata_keys: what metadata to return for the children
         @children: returned list of children
         @next_token: if not empty, a token that can be used to request more results.
 
@@ -48,6 +60,7 @@
     <method name="List">
       <arg type="s" name="item_id" direction="in"/>
       <arg type="s" name="page_token" direction="in"/>
+      <arg type="as" name="metadata_keys" direction="in"/>
       <arg type="a(sasssia{sv})" name="children" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;unity::storage::internal::ItemMetadata&gt;"/>
       <arg type="s" name="next_token" direction="out"/>
@@ -58,11 +71,13 @@
         @short_description: lookup a child in a folder by name
         @parent_id: the ID of the parent folder
         @name: the name of the child
+        @metadata_keys: what metadata to return for the item(s)
         @items: the matching items in the folder
     -->
     <method name="Lookup">
       <arg type="s" name="parent_id" direction="in"/>
       <arg type="s" name="name" direction="in"/>
+      <arg type="as" name="metadata_keys" direction="in"/>
       <arg type="a(sasssia{sv})" name="items" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;unity::storage::internal::ItemMetadata&gt;"/>
     </method>
@@ -71,10 +86,12 @@
         Metadata:
         @short_description: get metadata for an item
         @item_id: the ID of the item
+        @metadata_keys: what metadata to return for the item
         @metadata: the item metadata
     -->
     <method name="Metadata">
       <arg type="s" name="item_id" direction="in"/>
+      <arg type="as" name="metadata_keys" direction="in"/>
       <arg type="(sasssia{sv})" name="metadata" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="unity::storage::internal::ItemMetadata"/>
     </method>
@@ -84,11 +101,13 @@
         @short_description: create a new folder
         @parent_id: the ID of the parent folder
         @name: the name of the new folder
+        @metadata_keys: what metadata to return for the new folder
         @metadata: the metadata for the new folder
     -->
     <method name="CreateFolder">
       <arg type="s" name="parent_id" direction="in"/>
       <arg type="s" name="name" direction="in"/>
+      <arg type="as" name="metadata_keys" direction="in"/>
       <arg type="(sasssia{sv})" name="metadata" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="unity::storage::internal::ItemMetadata"/>
     </method>
@@ -102,6 +121,7 @@
         @content_type: the content type of the new file
         @allow_overwrite: if false, the file creation will fail if it
         would overwrite an existing file.
+        @metadata_keys: what metadata to return for the new file
         @upload_id: the identifier for this upload job
         @file_descriptor: a file descriptor to write the file contents to
 
@@ -116,6 +136,7 @@
       <arg type="x" name="size" direction="in"/>
       <arg type="s" name="content_type" direction="in"/>
       <arg type="b" name="allow_overwrite" direction="in"/>
+      <arg type="as" name="metadata_keys" direction="in"/>
       <arg type="s" name="upload_id" direction="out"/>
       <arg type="h" name="file_descriptor" direction="out"/>
     </method>
@@ -127,6 +148,7 @@
         @size: the size of the upload
         @old_etag: if not empty, the expected etag of the old version
         of the file.
+        @metadata_keys: what metadata to return for the updated file
         @upload_id: the identifier for this upload job
         @file_descriptor: a file descriptor to write the file contents to
 
@@ -144,6 +166,7 @@
       <arg type="s" name="item_id" direction="in"/>
       <arg type="x" name="size" direction="in"/>
       <arg type="s" name="old_etag" direction="in"/>
+      <arg type="as" name="metadata_keys" direction="in"/>
       <arg type="s" name="upload_id" direction="out"/>
       <arg type="h" name="file_descriptor" direction="out"/>
     </method>
@@ -189,6 +212,7 @@
         Download:
         @short_description: download the contents of a file.
         @item_id: the ID for the file
+        @match_etag: if not empty, the expected etag for the file
         @download_id: an identifier for the download
         @file_descriptor: a file descriptor used to read the contents
 
@@ -197,11 +221,16 @@
         The application can check for errors in the download (e.g. if
         the file was truncated) with the FinishDownload method.
 
+        If the match_etag parameter is non-empty, the provider may
+        fail the request if the file has changed (either immediately,
+        or signalling the failure in FinishDownload).
+
         The application can cancel the download by closing the file
         descriptor early.
     -->
     <method name="Download">
       <arg type="s" name="item_id" direction="in"/>
+      <arg type="s" name="match_etag" direction="in"/>
       <arg type="s" name="download_id" direction="out"/>
       <arg type="h" name="file_descriptor" direction="out"/>
     </method>
@@ -233,12 +262,14 @@
         @item_id: the ID for the item
         @new_parent_id: the ID for the new parent folder
         @new_name: the new name for the item
+        @metadata_keys: what metadata to return for the moved item
         @metadata: the metadata for the file in the new location
     -->
     <method name="Move">
       <arg type="s" name="item_id" direction="in"/>
       <arg type="s" name="new_parent_id" direction="in"/>
       <arg type="s" name="new_name" direction="in"/>
+      <arg type="as" name="metadata_keys" direction="in"/>
       <arg type="(ssssia{sv})" name="metadata" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="unity::storage::internal::ItemMetadata"/>
     </method>
@@ -249,12 +280,14 @@
         @item_id: the ID for the item
         @new_parent_id: the ID for the new parent folder
         @new_name: the new name for the item
+        @metadata_keys: what metadata to return for the copied item
         @metadata: the metadata for the file in the new location
     -->
     <method name="Copy">
       <arg type="s" name="item_id" direction="in"/>
       <arg type="s" name="new_parent_id" direction="in"/>
       <arg type="s" name="new_name" direction="in"/>
+      <arg type="as" name="metadata_keys" direction="in"/>
       <arg type="(ssssia{sv})" name="metadata" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="unity::storage::internal::ItemMetadata"/>
     </method>

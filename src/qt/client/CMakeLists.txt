@@ -50,9 +50,9 @@ target_include_directories(storage-framework-qt-local-client PRIVATE
 set_target_properties(storage-framework-qt-local-client PROPERTIES
     AUTOMOC TRUE
     LINK_FLAGS "-Wl,--no-undefined"
-    OUTPUT_NAME "storage-framework-qt-local-client-${SF_CLIENT_API_VERSION}"
-    SOVERSION ${SF_CLIENT_SOVERSION}
-    VERSION ${SF_CLIENT_LIBVERSION}
+    OUTPUT_NAME "storage-framework-qt-local-client-1"
+    SOVERSION 0
+    VERSION 0.0.1
 )
 target_link_libraries(storage-framework-qt-local-client
     storage-framework-common-internal
@@ -70,10 +70,10 @@ install(
 
 configure_file(
     storage-framework-qt-local-client.pc.in
-    storage-framework-qt-local-client-${SF_CLIENT_API_VERSION}.pc
+    storage-framework-qt-local-client-1.pc
 )
 install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-local-client-${SF_CLIENT_API_VERSION}.pc
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-local-client-1.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
 
@@ -88,7 +88,7 @@ qt5_add_dbus_interface(generated_files
     ProviderInterface
 )
 set_source_files_properties(${generated_files} PROPERTIES
-    COMPILE_FLAGS "-Wno-ctor-dtor-privacy -Wmissing-field-initializers"
+    COMPILE_FLAGS "-Wno-ctor-dtor-privacy -Wno-missing-field-initializers"
     GENERATED TRUE
 )
 
@@ -104,9 +104,9 @@ target_include_directories(storage-framework-qt-client PRIVATE
 set_target_properties(storage-framework-qt-client PROPERTIES
     AUTOMOC TRUE
     LINK_FLAGS "-Wl,--no-undefined"
-    OUTPUT_NAME "storage-framework-qt-client-${SF_CLIENT_API_VERSION}"
-    SOVERSION ${SF_CLIENT_SOVERSION}
-    VERSION ${SF_CLIENT_LIBVERSION}
+    OUTPUT_NAME "storage-framework-qt-client-1"
+    SOVERSION 0
+    VERSION 0.0.1
 )
 target_link_libraries(storage-framework-qt-client
     storage-framework-common-internal
@@ -122,10 +122,10 @@ install(
 )
 
 configure_file(
-    storage-framework-qt-client.pc.in
-    storage-framework-qt-client-${SF_CLIENT_API_VERSION}.pc
+    storage-framework-qt-client-1.pc.in
+    storage-framework-qt-client-1.pc
 )
 install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-client-${SF_CLIENT_API_VERSION}.pc
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-qt-client-1.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )

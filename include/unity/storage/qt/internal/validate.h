@@ -18,28 +18,27 @@
 
 #pragma once
 
-#include <unordered_map>
+#include <QString>
 
 namespace unity
 {
 namespace storage
 {
-namespace provider
+namespace internal
 {
 
-static char constexpr SIZE_IN_BYTES[] = "size_in_bytes";            // int64_t, >= 0
-static char constexpr CREATION_TIME[] = "creation_time";            // String, ISO 8601 format
-static char constexpr LAST_MODIFIED_TIME[] = "last_modified_time";  // String, ISO 8601 format
+class ItemMetadata;
 
-enum class MetadataType { int64, iso_8601_date_time };
+}  // namespace internal
 
-static std::unordered_map<std::string, MetadataType> known_metadata =
+namespace qt
 {
-    { SIZE_IN_BYTES, MetadataType::int64 },
-    { CREATION_TIME, MetadataType::iso_8601_date_time },
-    { LAST_MODIFIED_TIME, MetadataType::iso_8601_date_time }
-};
+namespace internal
+{
 
-}  // namespace provider
+void validate(QString const& method, unity::storage::internal::ItemMetadata const& md);
+
+}  // namespace internal
+}  // namespace qt
 }  // namespace storage
 }  // namespace unity

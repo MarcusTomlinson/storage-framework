@@ -40,7 +40,7 @@ namespace provider
 namespace internal
 {
 
-TestServerImpl::TestServerImpl(unique_ptr<ProviderBase>&& provider,
+TestServerImpl::TestServerImpl(shared_ptr<ProviderBase> const& provider,
                                OnlineAccounts::Account* account,
                                QDBusConnection const& connection,
                                string const& object_path)
@@ -51,7 +51,7 @@ TestServerImpl::TestServerImpl(unique_ptr<ProviderBase>&& provider,
 
     auto peer_cache = make_shared<DBusPeerCache>(connection_);
     auto account_data = make_shared<AccountData>(
-        move(provider), peer_cache, connection_, account);
+        provider, peer_cache, connection_, account);
     interface_.reset(new ProviderInterface(account_data));
     new ProviderAdaptor(interface_.get());
 

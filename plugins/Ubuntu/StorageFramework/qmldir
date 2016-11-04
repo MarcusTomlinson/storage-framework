@@ -1,0 +1,2 @@
+module Ubuntu.StorageFramework
+plugin storage-framework-qml
