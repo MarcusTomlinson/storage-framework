@@ -1,4 +1,4 @@
-storage-framework (0.2-0ubuntu1) UNRELEASED; urgency=medium
+storage-framework (0.2+17.04.20161104-0ubuntu1) zesty; urgency=medium
 
   [ Michi Henning ]
   * Added v2 of the client-side API.
@@ -9,7 +9,7 @@ storage-framework (0.2-0ubuntu1) UNRELEASED; urgency=medium
   * Update client to discover ownCloud/Nextcloud and OneDrive accounts.
   * Add match_etag argument to Download() D-Bus method.
 
- -- Michi Henning <michi.henning@canonical.com>  Wed, 21 Sep 2016 14:36:15 +1000
+ -- Michi Henning <michi@triodia.com>  Fri, 04 Nov 2016 12:22:33 +0000
 
 storage-framework (0.1+16.10.20160909-0ubuntu1) yakkety; urgency=medium
 
