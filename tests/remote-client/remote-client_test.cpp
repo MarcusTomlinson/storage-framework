@@ -2398,7 +2398,7 @@ TEST_F(DownloadTest, basic)
     auto data = downloader->readAll();
     EXPECT_EQ(QByteArray("Hello world", -1), data);
 
-    downloader->finishDownload();
+    downloader->close();
     ASSERT_TRUE(status_spy.wait(SIGNAL_WAIT_TIME));
     auto arg = status_spy.takeFirst();
     EXPECT_EQ(Downloader::Status::Finished, qvariant_cast<Downloader::Status>(arg.at(0)));
@@ -2538,10 +2538,10 @@ TEST_F(DownloadTest, download_error)
     EXPECT_EQ(42, downloader->error().errorCode());
     EXPECT_EQ(Item(), downloader->item());
 
-    // For coverage: call finishDownload() while in the Error state.
+    // For coverage: call close() while in the Error state.
     {
         QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
-        downloader->finishDownload();
+        downloader->close();
         EXPECT_FALSE(spy.wait(1000));
     }
 }
@@ -2563,7 +2563,7 @@ TEST_F(DownloadTest, finish_too_soon)
 
     QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
 
-    downloader->finishDownload();
+    downloader->close();
 
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
@@ -2572,7 +2572,7 @@ TEST_F(DownloadTest, finish_too_soon)
     EXPECT_FALSE(downloader->isValid());
     EXPECT_EQ(Downloader::Status::Error, downloader->status());
     EXPECT_EQ(StorageError::LogicError, downloader->error().type());
-    EXPECT_EQ("LogicError: Downloader::finishDownload(): cannot finalize while Downloader is not in the Ready state",
+    EXPECT_EQ("LogicError: Downloader::close(): cannot finalize while Downloader is not in the Ready state",
               downloader->error().errorString());
 }
 
@@ -2602,7 +2602,7 @@ TEST_F(DownloadTest, finish_runtime_destroyed)
 
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime
 
-    downloader->finishDownload();
+    downloader->close();
 
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
@@ -2611,7 +2611,7 @@ TEST_F(DownloadTest, finish_runtime_destroyed)
     EXPECT_FALSE(downloader->isValid());
     EXPECT_EQ(Downloader::Status::Error, downloader->status());
     EXPECT_EQ(StorageError::RuntimeDestroyed, downloader->error().type());
-    EXPECT_EQ("Downloader::finishDownload(): Runtime was destroyed previously", downloader->error().message());
+    EXPECT_EQ("Downloader::close(): Runtime was destroyed previously", downloader->error().message());
 }
 
 TEST_F(DownloadTest, finish_runtime_destroyed_while_reply_outstanding)
@@ -2638,7 +2638,7 @@ TEST_F(DownloadTest, finish_runtime_destroyed_while_reply_outstanding)
 
     QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
 
-    downloader->finishDownload();
+    downloader->close();
 
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime, provider still sleeping
 
@@ -2649,7 +2649,7 @@ TEST_F(DownloadTest, finish_runtime_destroyed_while_reply_outstanding)
     EXPECT_FALSE(downloader->isValid());
     EXPECT_EQ(Downloader::Status::Error, downloader->status());
     EXPECT_EQ(StorageError::RuntimeDestroyed, downloader->error().type());
-    EXPECT_EQ("Downloader::finishDownload(): Runtime was destroyed previously", downloader->error().message());
+    EXPECT_EQ("Downloader::close(): Runtime was destroyed previously", downloader->error().message());
 }
 
 TEST_F(DownloadTest, finish_twice)
@@ -2676,8 +2676,8 @@ TEST_F(DownloadTest, finish_twice)
 
     QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
 
-    downloader->finishDownload();
-    downloader->finishDownload();
+    downloader->close();
+    downloader->close();
 
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     auto arg = spy.takeFirst();
@@ -2710,7 +2710,7 @@ TEST_F(DownloadTest, finish_error)
 
     QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
 
-    downloader->finishDownload();
+    downloader->close();
 
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     auto arg = spy.takeFirst();
@@ -2802,12 +2802,12 @@ TEST_F(DownloadTest, cancel)
 
     QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
 
-    downloader->finishDownload();
+    downloader->close();
 
     downloader->cancel();
     downloader->cancel();  // Second time for coverage
 
-    downloader->finishDownload();  // Second time for coverage
+    downloader->close();  // Second time for coverage
 
     EXPECT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
@@ -2817,7 +2817,7 @@ TEST_F(DownloadTest, cancel)
     EXPECT_EQ(StorageError::Type::Cancelled, downloader->error().type());
     EXPECT_EQ("Downloader::cancel(): download was cancelled", downloader->error().message());
 
-    // We wait here to get coverage for when the reply to a finishDownload() call
+    // We wait here to get coverage for when the reply to a FinishDownload() call
     // finds the downloader in a final state.
     EXPECT_FALSE(spy.wait(2000));
 }
@@ -2900,7 +2900,7 @@ TEST_F(UploadTest, basic)
     EXPECT_TRUE(uploader->waitForBytesWritten(contents.size()));
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
-    uploader->finishUpload();
+    uploader->close();
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     auto arg = spy.takeFirst();
     EXPECT_EQ(Uploader::Status::Finished, qvariant_cast<Uploader::Status>(arg.at(0)));
@@ -2936,7 +2936,7 @@ TEST_F(UploadTest, write_before_ready_and_wait)
     EXPECT_TRUE(uploader->waitForBytesWritten(1000));
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
-    uploader->finishUpload();
+    uploader->close();
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     auto arg = spy.takeFirst();
     EXPECT_EQ(Uploader::Status::Finished, qvariant_cast<Uploader::Status>(arg.at(0)));
@@ -2975,7 +2975,7 @@ TEST_F(UploadTest, write_before_ready)
     }
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
-    uploader->finishUpload();
+    uploader->close();
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     auto arg = spy.takeFirst();
     EXPECT_EQ(Uploader::Status::Finished, qvariant_cast<Uploader::Status>(arg.at(0)));
@@ -3103,10 +3103,10 @@ TEST_F(UploadTest, upload_error)
     EXPECT_EQ("Conflict: version mismatch", uploader->error().errorString());
     EXPECT_EQ(Item(), uploader->item());
 
-    // For coverage: call finishUpload() while in the Error state.
+    // For coverage: call close() while in the Error state.
     {
         QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
-        uploader->finishUpload();
+        uploader->close();
         EXPECT_FALSE(spy.wait(1000));
     }
 }
@@ -3128,7 +3128,7 @@ TEST_F(UploadTest, finish_too_soon)
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
 
-    uploader->finishUpload();
+    uploader->close();
 
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
@@ -3137,7 +3137,7 @@ TEST_F(UploadTest, finish_too_soon)
     EXPECT_FALSE(uploader->isValid());
     EXPECT_EQ(Uploader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::LogicError, uploader->error().type());
-    EXPECT_EQ("LogicError: Uploader::finishUpload(): cannot finalize while Uploader is not in the Ready state",
+    EXPECT_EQ("LogicError: Uploader::close(): cannot finalize while Uploader is not in the Ready state",
               uploader->error().errorString());
 }
 
@@ -3167,7 +3167,7 @@ TEST_F(UploadTest, finish_runtime_destroyed)
 
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime
 
-    uploader->finishUpload();
+    uploader->close();
 
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
@@ -3176,7 +3176,7 @@ TEST_F(UploadTest, finish_runtime_destroyed)
     EXPECT_FALSE(uploader->isValid());
     EXPECT_EQ(Uploader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::RuntimeDestroyed, uploader->error().type());
-    EXPECT_EQ("Uploader::finishUpload(): Runtime was destroyed previously", uploader->error().message());
+    EXPECT_EQ("Uploader::close(): Runtime was destroyed previously", uploader->error().message());
 }
 
 TEST_F(UploadTest, finish_runtime_destroyed_while_reply_outstanding)
@@ -3203,7 +3203,7 @@ TEST_F(UploadTest, finish_runtime_destroyed_while_reply_outstanding)
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
 
-    uploader->finishUpload();
+    uploader->close();
 
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime, provider still sleeping
 
@@ -3214,7 +3214,7 @@ TEST_F(UploadTest, finish_runtime_destroyed_while_reply_outstanding)
     EXPECT_FALSE(uploader->isValid());
     EXPECT_EQ(Uploader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::RuntimeDestroyed, uploader->error().type());
-    EXPECT_EQ("Uploader::finishUpload(): Runtime was destroyed previously", uploader->error().message());
+    EXPECT_EQ("Uploader::close(): Runtime was destroyed previously", uploader->error().message());
 }
 
 TEST_F(UploadTest, finish_twice)
@@ -3241,8 +3241,8 @@ TEST_F(UploadTest, finish_twice)
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
 
-    uploader->finishUpload();
-    uploader->finishUpload();
+    uploader->close();
+    uploader->close();
 
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     auto arg = spy.takeFirst();
@@ -3275,7 +3275,7 @@ TEST_F(UploadTest, finish_error)
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
 
-    uploader->finishUpload();
+    uploader->close();
 
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     auto arg = spy.takeFirst();
@@ -3363,7 +3363,7 @@ TEST_F(UploadTest, wrong_return_type)
     }
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
-    uploader->finishUpload();
+    uploader->close();
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     auto arg = spy.takeFirst();
     EXPECT_EQ(Uploader::Status::Error, qvariant_cast<Uploader::Status>(arg.at(0)));
@@ -3434,12 +3434,12 @@ TEST_F(UploadTest, cancel_error)
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
 
-    uploader->finishUpload();
+    uploader->close();
 
     uploader->cancel();
     uploader->cancel();  // Second time for coverage
 
-    uploader->finishUpload();  // Second time for coverage
+    uploader->close();  // Second time for coverage
 
     EXPECT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
@@ -3449,7 +3449,7 @@ TEST_F(UploadTest, cancel_error)
     EXPECT_EQ(StorageError::Type::Cancelled, uploader->error().type());
     EXPECT_EQ("Uploader::cancel(): upload was cancelled", uploader->error().message());
 
-    // We wait here to get coverage for when the reply to a finishUpload() call
+    // We wait here to get coverage for when the reply to a FinishUpload() call
     // finds the uploader in a final state.
     EXPECT_FALSE(spy.wait(2000));
 }
@@ -3536,7 +3536,7 @@ TEST_F(CreateFileTest, basic)
     EXPECT_EQ(contents.size(), uploader->write(contents));
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
-    uploader->finishUpload();
+    uploader->close();
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     auto arg = spy.takeFirst();
     EXPECT_EQ(Uploader::Status::Finished, qvariant_cast<Uploader::Status>(arg.at(0)));
@@ -3696,7 +3696,7 @@ TEST_F(CreateFileTest, bad_return_type)
     EXPECT_EQ(contents.size(), uploader->write(contents));
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
-    uploader->finishUpload();
+    uploader->close();
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     auto arg = spy.takeFirst();
     EXPECT_EQ(Uploader::Status::Error, qvariant_cast<Uploader::Status>(arg.at(0)));
@@ -3734,7 +3734,7 @@ TEST_F(CreateFileTest, exists)
     EXPECT_EQ(contents.size(), uploader->write(contents));
 
     QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
-    uploader->finishUpload();
+    uploader->close();
     ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     auto arg = spy.takeFirst();
     EXPECT_EQ(Uploader::Status::Error, qvariant_cast<Uploader::Status>(arg.at(0)));

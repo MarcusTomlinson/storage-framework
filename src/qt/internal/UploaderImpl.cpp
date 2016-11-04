@@ -177,11 +177,56 @@ Item UploaderImpl::item() const
     return Item(item_impl_);
 }
 
-void UploaderImpl::finishUpload()
+void UploaderImpl::cancel()
 {
-    static QString const method = "Uploader::finishUpload()";
+    static QString const method = "Uploader::cancel()";
 
-    // If we encountered an error earlier or were cancelled, or if finishUpload() was
+    // If we are in a final state already, ignore the call.
+    if (   status_ == Uploader::Status::Error
+        || status_ == Uploader::Status::Finished
+        || status_ == Uploader::Status::Cancelled)
+    {
+        return;
+    }
+    auto runtime = item_impl_->runtime_impl();
+    if (!runtime || !runtime->isValid())
+    {
+        QString msg = method + ": Runtime was destroyed previously";
+        error_ = StorageErrorImpl::runtime_destroyed_error(msg);
+        status_ = Uploader::Status::Error;
+        Q_EMIT public_instance_->statusChanged(status_);
+        return;
+    }
+
+    if (!upload_id_.isEmpty())
+    {
+        // We just send the cancel and ignore any reply because it is best-effort only.
+        auto reply = item_impl_->account_impl()->provider()->CancelUpload(upload_id_);
+
+        auto process_reply = [](decltype(reply)&)
+        {
+        };
+
+        auto process_error = [](StorageError const&)
+        {
+        };
+
+        new Handler<void>(this, reply, process_reply, process_error);
+    }
+
+    QString msg = method + ": upload was cancelled";
+    error_ = StorageErrorImpl::cancelled_error(msg);
+    socket_.abort();
+    public_instance_->setErrorString(msg);
+    status_ = Uploader::Status::Cancelled;
+    Q_EMIT public_instance_->statusChanged(status_);
+}
+
+void UploaderImpl::close()
+{
+    static QString const method = "Uploader::close()";
+
+    // If we encountered an error earlier or were cancelled, or if close() was
     // called already, we ignore the call.
     if (status_ == Uploader::Status::Error || status_ == Uploader::Status::Cancelled || finalizing_)
     {
@@ -267,51 +312,6 @@ void UploaderImpl::finishUpload()
     };
 
     new Handler<void>(this, reply, process_reply, process_error);
-}
-
-void UploaderImpl::cancel()
-{
-    static QString const method = "Uploader::cancel()";
-
-    // If we are in a final state already, ignore the call.
-    if (   status_ == Uploader::Status::Error
-        || status_ == Uploader::Status::Finished
-        || status_ == Uploader::Status::Cancelled)
-    {
-        return;
-    }
-    auto runtime = item_impl_->runtime_impl();
-    if (!runtime || !runtime->isValid())
-    {
-        QString msg = method + ": Runtime was destroyed previously";
-        error_ = StorageErrorImpl::runtime_destroyed_error(msg);
-        status_ = Uploader::Status::Error;
-        Q_EMIT public_instance_->statusChanged(status_);
-        return;
-    }
-
-    if (!upload_id_.isEmpty())
-    {
-        // We just send the cancel and ignore any reply because it is best-effort only.
-        auto reply = item_impl_->account_impl()->provider()->CancelUpload(upload_id_);
-
-        auto process_reply = [](decltype(reply)&)
-        {
-        };
-
-        auto process_error = [](StorageError const&)
-        {
-        };
-
-        new Handler<void>(this, reply, process_reply, process_error);
-    }
-
-    QString msg = method + ": upload was cancelled";
-    error_ = StorageErrorImpl::cancelled_error(msg);
-    socket_.abort();
-    public_instance_->setErrorString(msg);
-    status_ = Uploader::Status::Cancelled;
-    Q_EMIT public_instance_->statusChanged(status_);
 }
 
 qint64 UploaderImpl::bytesAvailable() const

@@ -157,11 +157,40 @@ Item DownloaderImpl::item() const
     return Item(item_impl_);
 }
 
-void DownloaderImpl::finishDownload()
+void DownloaderImpl::cancel()
 {
-    static QString const method = "Downloader::finishDownload()";
+    static QString const method = "Downloader::cancel()";
 
-    // If we encountered an error earlier or were cancelled, or if finishDownload() was
+    // If we are in a final state already, ignore the call.
+    if (   status_ == Downloader::Status::Error
+        || status_ == Downloader::Status::Finished
+        || status_ == Downloader::Status::Cancelled)
+    {
+        return;
+    }
+    auto runtime = item_impl_->runtime_impl();
+    if (!runtime || !runtime->isValid())
+    {
+        QString msg = method + ": Runtime was destroyed previously";
+        error_ = StorageErrorImpl::runtime_destroyed_error(msg);
+        status_ = Downloader::Status::Error;
+        Q_EMIT public_instance_->statusChanged(status_);
+        return;
+    }
+
+    QString msg = method + ": download was cancelled";
+    error_ = StorageErrorImpl::cancelled_error(msg);
+    socket_.abort();
+    public_instance_->setErrorString(msg);
+    status_ = Downloader::Status::Cancelled;
+    Q_EMIT public_instance_->statusChanged(status_);
+}
+
+void DownloaderImpl::close()
+{
+    static QString const method = "Downloader::close()";
+
+    // If we encountered an error earlier or were cancelled, or if close() was
     // called already, we ignore the call.
     if (status_ == Downloader::Status::Error || status_ == Downloader::Status::Cancelled || finalizing_)
     {
@@ -232,35 +261,6 @@ void DownloaderImpl::finishDownload()
     };
 
     new Handler<void>(this, reply, process_reply, process_error);
-}
-
-void DownloaderImpl::cancel()
-{
-    static QString const method = "Downloader::cancel()";
-
-    // If we are in a final state already, ignore the call.
-    if (   status_ == Downloader::Status::Error
-        || status_ == Downloader::Status::Finished
-        || status_ == Downloader::Status::Cancelled)
-    {
-        return;
-    }
-    auto runtime = item_impl_->runtime_impl();
-    if (!runtime || !runtime->isValid())
-    {
-        QString msg = method + ": Runtime was destroyed previously";
-        error_ = StorageErrorImpl::runtime_destroyed_error(msg);
-        status_ = Downloader::Status::Error;
-        Q_EMIT public_instance_->statusChanged(status_);
-        return;
-    }
-
-    QString msg = method + ": download was cancelled";
-    error_ = StorageErrorImpl::cancelled_error(msg);
-    socket_.abort();
-    public_instance_->setErrorString(msg);
-    status_ = Downloader::Status::Cancelled;
-    Q_EMIT public_instance_->statusChanged(status_);
 }
 
 qint64 DownloaderImpl::bytesAvailable() const

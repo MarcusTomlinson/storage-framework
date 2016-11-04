@@ -63,10 +63,10 @@ public:
     qint64 sizeInBytes() const;
     Item item() const;
 
-    Q_INVOKABLE void finishUpload();
     Q_INVOKABLE void cancel();
 
     // From QLocalSocket interface.
+    Q_INVOKABLE void close() override;
     Q_INVOKABLE qint64 bytesAvailable() const override;
     Q_INVOKABLE qint64 bytesToWrite() const override;
     Q_INVOKABLE bool canReadLine() const override;

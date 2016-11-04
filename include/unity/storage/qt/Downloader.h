@@ -56,10 +56,10 @@ public:
     StorageError error() const;
     Item item() const;
 
-    Q_INVOKABLE void finishDownload();
     Q_INVOKABLE void cancel();
 
     // From QLocalSocket interface.
+    Q_INVOKABLE void close();
     Q_INVOKABLE qint64 bytesAvailable() const override;
     Q_INVOKABLE qint64 bytesToWrite() const override;
     Q_INVOKABLE bool canReadLine() const override;

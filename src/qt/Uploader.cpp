@@ -71,14 +71,14 @@ Item Uploader::item() const
     return p_->item();
 }
 
-void Uploader::finishUpload()
-{
-    p_->finishUpload();
-}
-
 void Uploader::cancel()
 {
     p_->cancel();
+}
+
+void Uploader::close()
+{
+    p_->close();
 }
 
 qint64 Uploader::bytesAvailable() const

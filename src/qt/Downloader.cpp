@@ -61,14 +61,14 @@ Item Downloader::item() const
     return p_->item();
 }
 
-void Downloader::finishDownload()
-{
-    p_->finishDownload();
-}
-
 void Downloader::cancel()
 {
     p_->cancel();
+}
+
+void Downloader::close()
+{
+    p_->close();
 }
 
 qint64 Downloader::bytesAvailable() const

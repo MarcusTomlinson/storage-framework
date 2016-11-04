@@ -47,10 +47,10 @@ public:
     StorageError error() const;
     Item item() const;
 
-    void finishDownload();
     void cancel();
 
     // From QLocalSocket interface.
+    void close();
     qint64 bytesAvailable() const;
     qint64 bytesToWrite() const;
     bool canReadLine() const;

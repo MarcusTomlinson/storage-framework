@@ -61,10 +61,10 @@ public:
     qint64 sizeInBytes() const;
     Item item() const;
 
-    void finishUpload();
     void cancel();
 
     // From QLocalSocket interface.
+    void close();
     qint64 bytesAvailable() const;
     qint64 bytesToWrite() const;
     bool canReadLine() const;
