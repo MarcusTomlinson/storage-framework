@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Canonical Ltd
+ * Copyright (C) 2016 Canonical Ltd
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -18,33 +18,16 @@
 
 #pragma once
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-align"
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Wswitch-default"
-#include <QDebug>
-#pragma GCC diagnostic pop
-
 namespace unity
 {
 namespace storage
 {
-namespace internal
+namespace registry
 {
 
-class TraceMessageHandler final
-{
-public:
-    TraceMessageHandler();
-    TraceMessageHandler(std::string const& prog_name);
-    TraceMessageHandler(QString const& prog_name);
-    TraceMessageHandler(char const* prog_name);
-    ~TraceMessageHandler();
+static const char BUS_NAME[] = "com.canonical.StorageFramework.Registry";
+static const char OBJECT_PATH[] = "/com/canonical/StorageFramework/Registry";
 
-private:
-    QtMessageHandler old_message_handler_;
-};
-
-}  // namespace internal
+}  // namespace registry
 }  // namespace storage
 }  // namespace unity

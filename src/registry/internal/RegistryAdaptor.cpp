@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Canonical Ltd
+ * Copyright (C) 2016 Canonical Ltd
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -16,35 +16,30 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#pragma once
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-align"
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Wswitch-default"
-#include <QDebug>
-#pragma GCC diagnostic pop
+#include <unity/storage/registry/internal/RegistryAdaptor.h>
 
 namespace unity
 {
 namespace storage
 {
+namespace registry
+{
 namespace internal
 {
 
-class TraceMessageHandler final
+RegistryInterface::RegistryInterface(QObject* parent)
+    : QObject(parent)
 {
-public:
-    TraceMessageHandler();
-    TraceMessageHandler(std::string const& prog_name);
-    TraceMessageHandler(QString const& prog_name);
-    TraceMessageHandler(char const* prog_name);
-    ~TraceMessageHandler();
+}
 
-private:
-    QtMessageHandler old_message_handler_;
-};
+RegistryInterface::~RegistryInterface() = default;
 
-}  // namespace internal
-}  // namespace storage
-}  // namespace unity
+QList<unity::storage::internal::AccountDetails> RegistryInterface::List()
+{
+    return QList<unity::storage::internal::AccountDetails>();
+}
+
+} // namespace internal
+} // namespace registry
+} // namespace storage
+} // namespace unity

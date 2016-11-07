@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Canonical Ltd
+ * Copyright (C) 2016 Canonical Ltd
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -22,7 +22,7 @@
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #pragma GCC diagnostic ignored "-Wswitch-default"
-#include <QDebug>
+#include <QVariant>
 #pragma GCC diagnostic pop
 
 namespace unity
@@ -32,19 +32,20 @@ namespace storage
 namespace internal
 {
 
-class TraceMessageHandler final
+struct AccountDetails
 {
-public:
-    TraceMessageHandler();
-    TraceMessageHandler(std::string const& prog_name);
-    TraceMessageHandler(QString const& prog_name);
-    TraceMessageHandler(char const* prog_name);
-    ~TraceMessageHandler();
-
-private:
-    QtMessageHandler old_message_handler_;
+    //QString bus_name;
+    //QString object_path;
+    int64_t id;
+    QString serviceId;
+    QString displayName;
+    QString providerId;
+    QString providerName;
+    QString iconName;
 };
 
 }  // namespace internal
 }  // namespace storage
 }  // namespace unity
+
+Q_DECLARE_METATYPE(unity::storage::internal::AccountDetails)

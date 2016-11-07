@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Canonical Ltd
+ * Copyright (C) 2016 Canonical Ltd
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -18,33 +18,33 @@
 
 #pragma once
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-align"
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Wswitch-default"
-#include <QDebug>
-#pragma GCC diagnostic pop
+#include <unity/storage/internal/AccountDetails.h>
 
 namespace unity
 {
 namespace storage
 {
+namespace registry
+{
 namespace internal
 {
 
-class TraceMessageHandler final
+class RegistryInterface : public QObject
 {
+    Q_OBJECT
+
 public:
-    TraceMessageHandler();
-    TraceMessageHandler(std::string const& prog_name);
-    TraceMessageHandler(QString const& prog_name);
-    TraceMessageHandler(char const* prog_name);
-    ~TraceMessageHandler();
+    RegistryInterface(QObject* parent = nullptr);
+    ~RegistryInterface();
+
+public Q_SLOTS:
+    QList<unity::storage::internal::AccountDetails> List();
 
 private:
-    QtMessageHandler old_message_handler_;
+    Q_DISABLE_COPY(RegistryInterface)
 };
 
 }  // namespace internal
+}  // namespace registry
 }  // namespace storage
 }  // namespace unity
