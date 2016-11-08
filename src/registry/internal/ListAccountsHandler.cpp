@@ -91,7 +91,7 @@ void ListAccountsHandler::manager_ready()
         ad.serviceId = acct->serviceId();
         ad.providerName = it->second.provider_name;
         ad.iconName = "";
-        
+
         accounts.append(ad);
     }
 
