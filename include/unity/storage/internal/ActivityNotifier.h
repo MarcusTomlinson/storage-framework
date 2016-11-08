@@ -18,15 +18,9 @@
 
 #pragma once
 
-#include <unity/storage/internal/AccountDetails.h>
+#include <unity/storage/internal/InactivityTimer.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-align"
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#include <QDBusConnection>
-#include <QDBusContext>
-#pragma GCC diagnostic pop
-
+#include <cassert>
 #include <memory>
 
 namespace unity
@@ -38,36 +32,26 @@ namespace internal
 
 class InactivityTimer;
 
-}  // namespace internal
-
-namespace registry
+class ActivityNotifier
 {
-namespace internal
-{
-
-class RegistryAdaptor : public QObject, protected QDBusContext
-{
-    Q_OBJECT
-
 public:
-    RegistryAdaptor(QString const& prog_name,
-                    QDBusConnection const& conn,
-                    std::shared_ptr<storage::internal::InactivityTimer> const& timer,
-                    QObject* parent = nullptr);
-    ~RegistryAdaptor();
+    ActivityNotifier(std::shared_ptr<InactivityTimer> const& timer)
+        : timer_(timer)
+    {
+        assert(timer);
 
-public Q_SLOTS:
-    QList<unity::storage::internal::AccountDetails> ListAccounts();
+        timer_->request_started();
+    }
+
+    ~ActivityNotifier()
+    {
+        timer_->request_finished();
+    }
 
 private:
-    QDBusConnection conn_;
-    QString prog_name_;
-    std::shared_ptr<storage::internal::InactivityTimer> timer_;
-
-    Q_DISABLE_COPY(RegistryAdaptor)
+    std::shared_ptr<InactivityTimer> timer_;
 };
 
 }  // namespace internal
-}  // namespace registry
 }  // namespace storage
 }  // namespace unity

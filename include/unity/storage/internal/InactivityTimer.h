@@ -18,54 +18,43 @@
 
 #pragma once
 
-#include <unity/storage/internal/ActivityNotifier.h>
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#include <OnlineAccounts/Manager>
-#include <QDBusConnection>
-#include <QDBusMessage>
+#pragma GCC diagnostic ignored "-Wswitch-default"
 #include <QTimer>
 #pragma GCC diagnostic pop
+
+#include <functional>
 
 namespace unity
 {
 namespace storage
 {
-namespace registry
-{
 namespace internal
 {
 
-class ListAccountsHandler : public QObject
+class InactivityTimer : public QObject
 {
     Q_OBJECT
 
 public:
-    ListAccountsHandler(QString const& prog_name,
-                        QDBusConnection const& conn,
-                        QDBusMessage const& msg,
-                        std::shared_ptr<storage::internal::InactivityTimer> const& timer);
-    ~ListAccountsHandler();
+    InactivityTimer(int timeout_ms, std::function<void()> timeout_func);
+    ~InactivityTimer();
+
+    void request_started();
+    void request_finished();
 
 private Q_SLOTS:
-    void manager_ready();
     void timeout();
 
 private:
-    void initialize_manager();
-
-    QDBusConnection const conn_;
-    QDBusMessage const msg_;
-    OnlineAccounts::Manager manager_;
+    int timeout_ms_;
+    std::function<void()> timeout_func_;
     QTimer timer_;
-    storage::internal::ActivityNotifier activity_notifier_;  // RAII guard variable
-
-    Q_DISABLE_COPY(ListAccountsHandler)
+    int32_t num_requests_;
 };
 
 }  // namespace internal
-}  // namespace registry
 }  // namespace storage
 }  // namespace unity
