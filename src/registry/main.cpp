@@ -17,15 +17,20 @@
  */
 
 #include <unity/storage/internal/TraceMessageHandler.h>
+#include <unity/storage/registry/internal/qdbus-last-error-msg.h>
 #include <unity/storage/registry/internal/RegistryAdaptor.h>
 #include <unity/storage/registry/Registry.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QCoreApplication>
-#include <QDBusConnection>
 #include <QDBusError>
 #include <QFileInfo>
+#pragma GCC diagnostic pop
 
 using namespace unity::storage;
+using namespace unity::storage::registry::internal;
 using namespace std;
 
 int main(int argc, char* argv[])
@@ -40,39 +45,27 @@ int main(int argc, char* argv[])
 
         QCoreApplication app(argc, argv);
 
-        auto bus = QDBusConnection::sessionBus();
+        auto conn = QDBusConnection::sessionBus();
 
-        registry::internal::RegistryInterface reg_intf;
-        if (!bus.registerObject(registry::OBJECT_PATH, &reg_intf))
+        RegistryAdaptor registry_adaptor(prog_name, conn);
+        if (!conn.registerObject(registry::OBJECT_PATH, &registry_adaptor))
         {
-            auto msg = bus.lastError().message().toStdString();
-            if (!msg.empty())
-            {
-                msg = string(": ") + msg;
-            }
-            throw runtime_error(string("Could not register object path ") + registry::OBJECT_PATH + msg);
+            auto msg = last_error_msg(conn);
+            throw runtime_error(string("Could not register object path ") + registry::OBJECT_PATH + msg.toStdString());
         }
 
-        if (!bus.registerService(registry::BUS_NAME))
+        if (!conn.registerService(registry::BUS_NAME))
         {
-            auto msg = bus.lastError().message().toStdString();
-            if (!msg.empty())
-            {
-                msg = string(": ") + msg;
-            }
-            throw runtime_error(string("Could acquire DBus name ") + registry::BUS_NAME + msg);
+            auto msg = last_error_msg(conn);
+            throw runtime_error(string("Could acquire DBus name ") + registry::BUS_NAME + msg.toStdString());
         }
 
         rc = app.exec();
 
-        if (!bus.unregisterService(registry::BUS_NAME))
+        if (!conn.unregisterService(registry::BUS_NAME))
         {
-            auto msg = bus.lastError().message().toStdString();
-            if (!msg.empty())
-            {
-                msg = string(": ") + msg;
-            }
-            throw runtime_error(string("Could not release DBus name ") + registry::BUS_NAME + msg);
+            auto msg = last_error_msg(conn);
+            throw runtime_error(string("Could not release DBus name ") + registry::BUS_NAME + msg.toStdString());
         }
 
         qDebug() << "Exiting";

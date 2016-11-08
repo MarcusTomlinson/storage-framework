@@ -1,11 +1,14 @@
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${ONLINEACCOUNTS_DEPS_INCLUDE_DIRS}
+)
 
 set(TARGET "storage-framework-registry")
 
 qt5_add_dbus_adaptor(adaptor_files
     ${CMAKE_SOURCE_DIR}/data/registry.xml
     unity/storage/registry/internal/RegistryAdaptor.h
-    unity::storage::registry::internal::RegistryInterface
+    unity::storage::registry::internal::RegistryAdaptor
 )
 
 set_source_files_properties(${adaptor_files} PROPERTIES
@@ -21,9 +24,11 @@ set_source_files_properties(${CMAKE_SOURCE_DIR}/data/registry.xml PROPERTIES
 add_custom_target(sf-registry-adaptor-files DEPENDS ${adaptor_files})
 
 add_executable(${TARGET}
-    ../internal/TraceMessageHandler.cpp  # TODO: Should put shared code into object library
+    internal/ListAccountsHandler.cpp
+    internal/qdbus-last-error-msg.cpp
     internal/RegistryAdaptor.cpp
     main.cpp
+    ${CMAKE_SOURCE_DIR}/include/unity/storage/registry/internal/ListAccountsHandler.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/registry/internal/RegistryAdaptor.h
     ${adaptor_files})
 
@@ -32,8 +37,10 @@ add_dependencies(${TARGET} sf-registry-adaptor-files)
 set_target_properties(${TARGET} PROPERTIES AUTOMOC TRUE)
 
 target_link_libraries(${TARGET}
+    storage-framework-common-internal
     Qt5::Core
     Qt5::DBus
+    ${ONLINEACCOUNTS_DEPS_LDFLAGS}
 )
 
 install(

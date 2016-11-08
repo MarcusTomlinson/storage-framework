@@ -18,6 +18,10 @@
 
 #include <unity/storage/registry/internal/RegistryAdaptor.h>
 
+#include <unity/storage/registry/internal/ListAccountsHandler.h>
+
+using namespace std;
+
 namespace unity
 {
 namespace storage
@@ -27,15 +31,19 @@ namespace registry
 namespace internal
 {
 
-RegistryInterface::RegistryInterface(QObject* parent)
+RegistryAdaptor::RegistryAdaptor(QString const& prog_name, QDBusConnection const& conn, QObject* parent)
     : QObject(parent)
+    , conn_(conn)
+    , prog_name_(prog_name)
 {
 }
 
-RegistryInterface::~RegistryInterface() = default;
+RegistryAdaptor::~RegistryAdaptor() = default;
 
-QList<unity::storage::internal::AccountDetails> RegistryInterface::List()
+QList<unity::storage::internal::AccountDetails> RegistryAdaptor::ListAccounts()
 {
+    new ListAccountsHandler(prog_name_, conn_, message());  // Handler deletes itself once done.
+    setDelayedReply(true);
     return QList<unity::storage::internal::AccountDetails>();
 }
 

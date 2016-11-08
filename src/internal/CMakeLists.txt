@@ -1,4 +1,5 @@
 set(src
+    AccountDetails.cpp
     dbusmarshal.cpp
     safe_strerror.cpp
     TraceMessageHandler.cpp

@@ -16,41 +16,34 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#pragma once
+#include <unity/storage/registry/internal/qdbus-last-error-msg.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Wswitch-default"
-#include <QDBusArgument>
+#include <QDBusError>
 #pragma GCC diagnostic pop
 
 namespace unity
 {
 namespace storage
 {
+namespace registry
+{
 namespace internal
 {
 
-struct AccountDetails
+QString last_error_msg(QDBusConnection const& conn)
 {
-    QString providerId;  // Used as the bus name
-    QString object_path;
-    qlonglong id;
-    QString serviceId;
-    QString displayName;
-    QString providerName;
-    QString iconName;
-};
-
-QDBusArgument& operator<<(QDBusArgument& argument, storage::internal::AccountDetails const& account);
-QDBusArgument const& operator>>(QDBusArgument const& argument, storage::internal::AccountDetails& account);
-
-QDBusArgument& operator<<(QDBusArgument& argument, QList<storage::internal::AccountDetails> const& acc_list);
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<storage::internal::AccountDetails>& acc_list);
+    auto msg = conn.lastError().message();
+    if (!msg.isEmpty())
+    {
+        msg = ": " + msg;
+    }
+    return msg;
+}
 
 }  // namespace internal
+}  // namespace registry
 }  // namespace storage
 }  // namespace unity
-
-Q_DECLARE_METATYPE(unity::storage::internal::AccountDetails)

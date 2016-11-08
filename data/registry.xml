@@ -16,15 +16,16 @@
         for the OnlineAccounts::Manager::availableAccounts() method.
 
         The returned values are structs with the following members:
-          - ID
-          - service ID
-          - display name
-          - provider ID
-          - translated provider name
+          - provider ID (e.g. "com.canonical.StorageFramework.Provider.OwnCloud", used as the bus name)
+          - DBus object path (e.g. "/provider/7")
+          - ID (e.g. 7, used for object path)
+          - service ID (e.g. "storage-provider-owncloud")
+          - display name (e.g. "michi.henning@canonical.com")
+          - translated provider name (e.g. "OwnCloud")
           - icon name
     -->
-    <method name="List">
-      <arg type="a(xsssss)" name="accounts" direction="out"/>
+    <method name="ListAccounts">
+      <arg type="a(ssxssss)" name="accounts" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;unity::storage::internal::AccountDetails&gt;"/>
     </method>
   </interface>

@@ -20,6 +20,13 @@
 
 #include <unity/storage/internal/AccountDetails.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#include <QDBusConnection>
+#include <QDBusContext>
+#pragma GCC diagnostic pop
+
 namespace unity
 {
 namespace storage
@@ -29,19 +36,22 @@ namespace registry
 namespace internal
 {
 
-class RegistryInterface : public QObject
+class RegistryAdaptor : public QObject, protected QDBusContext
 {
     Q_OBJECT
 
 public:
-    RegistryInterface(QObject* parent = nullptr);
-    ~RegistryInterface();
+    RegistryAdaptor(QString const& prog_name, QDBusConnection const& conn, QObject* parent = nullptr);
+    ~RegistryAdaptor();
 
 public Q_SLOTS:
-    QList<unity::storage::internal::AccountDetails> List();
+    QList<unity::storage::internal::AccountDetails> ListAccounts();
 
 private:
-    Q_DISABLE_COPY(RegistryInterface)
+    QDBusConnection conn_;
+    QString prog_name_;
+
+    Q_DISABLE_COPY(RegistryAdaptor)
 };
 
 }  // namespace internal
