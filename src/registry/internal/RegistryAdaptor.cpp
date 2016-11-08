@@ -32,7 +32,7 @@ namespace internal
 {
 
 RegistryAdaptor::RegistryAdaptor(QString const& prog_name,
-                                 QDBusConnection const& conn, 
+                                 QDBusConnection const& conn,
                                  shared_ptr<storage::internal::InactivityTimer> const& timer,
                                  QObject* parent)
     : QObject(parent)
