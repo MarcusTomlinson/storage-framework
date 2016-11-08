@@ -16,6 +16,7 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
+#include "registryadaptor.h"
 #include <unity/storage/internal/TraceMessageHandler.h>
 #include <unity/storage/registry/internal/qdbus-last-error-msg.h>
 #include <unity/storage/registry/internal/RegistryAdaptor.h>
@@ -25,6 +26,7 @@
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QCoreApplication>
+#include <QDBusArgument>
 #include <QDBusError>
 #include <QFileInfo>
 #pragma GCC diagnostic pop
@@ -47,17 +49,22 @@ int main(int argc, char* argv[])
 
         auto conn = QDBusConnection::sessionBus();
 
-        RegistryAdaptor registry_adaptor(prog_name, conn);
+        registry::internal::RegistryAdaptor registry_adaptor(prog_name, conn);
+        new ::RegistryAdaptor(&registry_adaptor);
+
         if (!conn.registerObject(registry::OBJECT_PATH, &registry_adaptor))
         {
             auto msg = last_error_msg(conn);
             throw runtime_error(string("Could not register object path ") + registry::OBJECT_PATH + msg.toStdString());
         }
 
+        qDBusRegisterMetaType<unity::storage::internal::AccountDetails>();
+        qDBusRegisterMetaType<QList<unity::storage::internal::AccountDetails>>();
+
         if (!conn.registerService(registry::BUS_NAME))
         {
             auto msg = last_error_msg(conn);
-            throw runtime_error(string("Could acquire DBus name ") + registry::BUS_NAME + msg.toStdString());
+            throw runtime_error(string("Could not acquire DBus name ") + registry::BUS_NAME + msg.toStdString());
         }
 
         rc = app.exec();
