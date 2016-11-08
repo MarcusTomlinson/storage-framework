@@ -1,0 +1,3 @@
+usr/lib/*/storage-framework-registry
+usr/share/dbus-1/services/com.canonical.StorageFramework.Registry.service
+
