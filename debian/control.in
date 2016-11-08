@@ -24,11 +24,21 @@ Build-Depends: cmake,
                qtbase5-dev,
                qtbase5-dev-tools,
                qtdeclarative5-dev,
+               ubuntu-system-settings-online-accounts
 Homepage: https://launchpad.net/storage-framework
 # if you don't have have commit access to this branch but would like to upload
 # directly to Ubuntu, don't worry: your changes will be merged back into the
 # upstream branch
 Vcs-Bzr: lp:storage-framework
+
+Package: storage-framework-runtime-1-0
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends},
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+Description: Runtime for storage framework
+ Common runtime for clients and providers.
 
 Package: libstorage-framework-provider-1-@PROVIDER_SOVERSION@
 Architecture: any
@@ -36,6 +46,7 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
+         storage-framework-runtime-1-0,
 Description: Library for Storage Framework providers
  Server-side runtime support for provider implementations.
 
@@ -54,6 +65,7 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
+         storage-framework-runtime-1-0,
 Description: Client library for the Storage Framework
  Runtime support for storage framework clients.
 
