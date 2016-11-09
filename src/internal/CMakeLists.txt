@@ -1,6 +1,7 @@
 set(src
     AccountDetails.cpp
     dbusmarshal.cpp
+    EnvVars.cpp
     InactivityTimer.cpp
     safe_strerror.cpp
     TraceMessageHandler.cpp

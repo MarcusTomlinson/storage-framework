@@ -17,6 +17,7 @@
  */
 
 #include "registryadaptor.h"
+#include <unity/storage/internal/EnvVars.h>
 #include <unity/storage/internal/InactivityTimer.h>
 #include <unity/storage/internal/TraceMessageHandler.h>
 #include <unity/storage/registry/internal/qdbus-last-error-msg.h>
@@ -50,7 +51,7 @@ int main(int argc, char* argv[])
 
         auto conn = QDBusConnection::sessionBus();
 
-        int const timeout_ms = 30000;  // TODO: should be configurable
+        int const timeout_ms = internal::EnvVars::registry_timeout_ms();
         auto timeout_func = [&app, timeout_ms]
         {
             qDebug().noquote().nospace() << "Idle timeout reached after " << QString::number(timeout_ms) << " ms";
