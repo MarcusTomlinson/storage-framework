@@ -4,11 +4,20 @@ set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES
     CLASSNAME ProviderInterface
     INCLUDE unity/storage/internal/dbusmarshal.h
 )
-
 qt5_add_dbus_interface(generated_files
     ${CMAKE_SOURCE_DIR}/data/provider.xml
     ProviderInterface
 )
+
+set_source_files_properties(${CMAKE_SOURCE_DIR}/data/registry.xml PROPERTIES
+    CLASSNAME RegistryInterface
+    INCLUDE unity/storage/internal/AccountDetails.h
+)
+qt5_add_dbus_interface(generated_files
+    ${CMAKE_SOURCE_DIR}/data/registry.xml
+    RegistryInterface
+)
+
 set_source_files_properties(${generated_files} dbusmarshal.cpp PROPERTIES
     COMPILE_FLAGS "-Wno-ctor-dtor-privacy -Wno-missing-field-initializers"
     GENERATED TRUE

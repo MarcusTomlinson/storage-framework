@@ -18,6 +18,7 @@
 
 #include <unity/storage/qt/internal/AccountsJobImpl.h>
 
+#include "RegistryInterface.h"
 #include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/RuntimeImpl.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
@@ -37,38 +38,23 @@ namespace qt
 namespace internal
 {
 
-namespace
-{
-
-// TODO: We retrieve the accounts directly from online accounts until we have a working registry.
-
-static map<QString, QString> const BUS_NAMES =
-{
-    { "google-drive-scope", "com.canonical.StorageFramework.Provider.ProviderTest" },
-    { "com.canonical.scopes.mcloud_mcloud_mcloud", "com.canonical.StorageFramework.Provider.McloudProvider" },
-    { "storage-provider-owncloud", "com.canonical.StorageFramework.Provider.OwnCloud" },
-    { "storage-provider-onedrive", "com.canonical.StorageFramework.Provider.OnedriveProvider" },
-};
-
-}  // namespace
-
-AccountsJobImpl::AccountsJobImpl(AccountsJob* public_instance, shared_ptr<RuntimeImpl> const& runtime_impl)
-    : public_instance_(public_instance)
-    , status_(AccountsJob::Status::Loading)
+AccountsJobImpl::AccountsJobImpl(shared_ptr<RuntimeImpl> const& runtime_impl,
+                                 QString const& method,
+                                 QDBusPendingReply<QList<storage::internal::AccountDetails>>& reply)
+    : status_(AccountsJob::Status::Loading)
+    , method_(method)
     , runtime_impl_(runtime_impl)
 {
-    assert(public_instance);
     assert(runtime_impl);
+    assert(!method.isEmpty());
 
-    initialize_accounts();
+    //initialize_accounts();
 }
 
-AccountsJobImpl::AccountsJobImpl(AccountsJob* public_instance, StorageError const& error)
-    : public_instance_(public_instance)
-    , status_(AccountsJob::Status::Loading)
+AccountsJobImpl::AccountsJobImpl(StorageError const& error)
+    : status_(AccountsJob::Status::Error)
     , error_(error)
 {
-    assert(public_instance);
     assert(error.type() != StorageError::Type::NoError);
 
     status_ = emit_status_changed(AccountsJob::Status::Error);
@@ -111,6 +97,28 @@ QVariantList AccountsJobImpl::accountsAsVariantList() const
         account_list.append(QVariant::fromValue(a));
     }
     return account_list;
+}
+
+AccountsJob* AccountsJobImpl::make_job(shared_ptr<RuntimeImpl> const& runtime,
+                                       QString const& method,
+                                       QDBusPendingReply<QList<storage::internal::AccountDetails>>& reply)
+{
+    unique_ptr<AccountsJobImpl> impl(new AccountsJobImpl(runtime, method, reply));
+    auto job = new AccountsJob(move(impl));
+    job->p_->public_instance_ = job;
+    return job;
+}
+
+AccountsJob* AccountsJobImpl::make_job(StorageError const& error)
+{
+    unique_ptr<AccountsJobImpl> impl(new AccountsJobImpl(error));
+    auto job = new AccountsJob(move(impl));
+    job->p_->public_instance_ = job;
+    QMetaObject::invokeMethod(job,
+                              "statusChanged",
+                              Qt::QueuedConnection,
+                              Q_ARG(unity::storage::qt::AccountsJob::Status, job->p_->status_));
+    return job;
 }
 
 void AccountsJobImpl::manager_ready()

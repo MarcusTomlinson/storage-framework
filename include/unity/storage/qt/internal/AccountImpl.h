@@ -50,6 +50,9 @@ public:
     QString busName() const;
     QString objectPath() const;
     QString displayName() const;
+    QString providerId() const;
+    QString providerName() const;
+    QString iconName() const;
 
     ItemListJob* roots(QStringList const& keys) const;
     ItemJob* get(QString const& itemId, QStringList const& keys) const;
@@ -87,6 +90,9 @@ private:
     QString id_;
     QString service_id_;
     QString display_name_;
+    QString provider_id_;
+    QString provider_name_;
+    QString icon_name_;
     std::weak_ptr<RuntimeImpl> runtime_impl_;
     std::shared_ptr<ProviderInterface> provider_;
 

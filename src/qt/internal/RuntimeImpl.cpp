@@ -18,15 +18,18 @@
 
 #include <unity/storage/qt/internal/RuntimeImpl.h>
 
+#include "RegistryInterface.h"
 #include <unity/storage/internal/dbusmarshal.h>
 #include <unity/storage/qt/AccountsJob.h>
 #include <unity/storage/qt/internal/AccountImpl.h>
+#include <unity/storage/qt/internal/AccountsJobImpl.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
 #include <unity/storage/qt/Item.h>
 #include <unity/storage/qt/ItemJob.h>
 #include <unity/storage/qt/ItemListJob.h>
 #include <unity/storage/qt/Runtime.h>
 #include <unity/storage/qt/VoidJob.h>
+#include <unity/storage/registry/Registry.h>
 
 #include <QDBusError>
 #include <QDBusMetaType>
@@ -66,9 +69,10 @@ RuntimeImpl::RuntimeImpl()
 {
 }
 
-RuntimeImpl::RuntimeImpl(QDBusConnection const& bus)
+RuntimeImpl::RuntimeImpl(QDBusConnection const& conn)
     : is_valid_(true)
-    , conn_(bus)
+    , conn_(conn)
+    , registry_(new RegistryInterface(registry::BUS_NAME, registry::OBJECT_PATH, conn_))
     , accounts_manager_(new OnlineAccounts::Manager("", conn_))
 {
     register_meta_types();
@@ -96,13 +100,17 @@ QDBusConnection RuntimeImpl::connection() const
 
 AccountsJob* RuntimeImpl::accounts() const
 {
+    QString const method = "Runtime::accounts()";
+
     if (!is_valid_)
     {
         QString msg = "Runtime::accounts(): Runtime was destroyed previously";
         return new AccountsJob(StorageErrorImpl::runtime_destroyed_error(msg));
     }
-    auto This = const_cast<RuntimeImpl*>(this);
-    return new AccountsJob(This->shared_from_this());
+
+    auto reply = registry_->ListAccounts();
+    auto This = const_pointer_cast<RuntimeImpl>(shared_from_this());
+    return AccountsJobImpl::make_job(This, method, reply);
 }
 
 StorageError RuntimeImpl::shutdown()

@@ -28,6 +28,8 @@
 #include <QDBusConnection>
 #pragma GCC diagnostic pop
 
+class RegistryInterface;
+
 namespace unity
 {
 namespace storage
@@ -45,7 +47,7 @@ class RuntimeImpl : public std::enable_shared_from_this<RuntimeImpl>
 {
 public:
     RuntimeImpl();
-    RuntimeImpl(QDBusConnection const& bus);
+    RuntimeImpl(QDBusConnection const& conn);
     RuntimeImpl(RuntimeImpl const&) = delete;
     RuntimeImpl(RuntimeImpl&&) = delete;
     ~RuntimeImpl();
@@ -70,6 +72,7 @@ private:
     bool is_valid_;
     StorageError error_;
     QDBusConnection conn_;
+    std::shared_ptr<RegistryInterface> registry_;
     std::shared_ptr<OnlineAccounts::Manager> accounts_manager_;
 
     friend class unity::storage::qt::Runtime;
