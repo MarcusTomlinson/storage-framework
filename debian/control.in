@@ -31,22 +31,12 @@ Homepage: https://launchpad.net/storage-framework
 # upstream branch
 Vcs-Bzr: lp:storage-framework
 
-Package: storage-framework-runtime-1-0
-Architecture: any
-Multi-Arch: same
-Pre-Depends: ${misc:Pre-Depends},
-Depends: ${misc:Depends},
-         ${shlibs:Depends},
-Description: Runtime for storage framework
- Common runtime for clients and providers.
-
 Package: libstorage-framework-provider-1-@PROVIDER_SOVERSION@
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-         storage-framework-runtime-1-0,
 Description: Library for Storage Framework providers
  Server-side runtime support for provider implementations.
 
@@ -65,7 +55,6 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-         storage-framework-runtime-1-0,
 Description: Client library for the Storage Framework
  Runtime support for storage framework clients.
 
