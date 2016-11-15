@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
     }
     catch (std::exception const& e)
     {
-        qCritical().noquote() << QString(e.what());
+        qCritical().noquote() << e.what();
     }
 
     return rc;
