@@ -45,8 +45,6 @@ int main(int argc, char* argv[])
     int rc = 1;
     try
     {
-        qDebug() << "Initializing";
-
         QCoreApplication app(argc, argv);
 
         auto conn = QDBusConnection::sessionBus();
@@ -54,7 +52,7 @@ int main(int argc, char* argv[])
         int const timeout_ms = internal::EnvVars::registry_timeout_ms();
         auto timeout_func = [&app, timeout_ms]
         {
-            qDebug().noquote().nospace() << "Idle timeout reached after " << QString::number(timeout_ms) << " ms";
+            qInfo().noquote().nospace() << "Exiting after " << QString::number(timeout_ms) << " ms of idle time";
             app.quit();
         };
         auto inactivity_timer = make_shared<unity::storage::internal::InactivityTimer>(timeout_ms, timeout_func);
@@ -63,7 +61,7 @@ int main(int argc, char* argv[])
         new ::RegistryAdaptor(&registry_adaptor);
 
         string const object_path = internal::EnvVars::registry_object_path();
-        if (!conn.registerObject(QString::fromStdString(object_path), &registry_adaptor))
+        if (!conn.registerObject(object_path.c_str(), &registry_adaptor))
         {
             auto msg = last_error_msg(conn);
             throw runtime_error(string("Could not register object path ") + object_path + msg.toStdString());
@@ -72,21 +70,20 @@ int main(int argc, char* argv[])
         qDBusRegisterMetaType<unity::storage::internal::AccountDetails>();
         qDBusRegisterMetaType<QList<unity::storage::internal::AccountDetails>>();
 
-        if (!conn.registerService(registry::BUS_NAME))
+        string const bus_name = internal::EnvVars::registry_bus_name();
+        if (!conn.registerService(bus_name.c_str()))
         {
             auto msg = last_error_msg(conn);
-            throw runtime_error(string("Could not acquire DBus name ") + registry::BUS_NAME + msg.toStdString());
+            throw runtime_error(string("Could not acquire DBus name ") + bus_name + msg.toStdString());
         }
 
         rc = app.exec();
 
-        if (!conn.unregisterService(registry::BUS_NAME))
+        if (!conn.unregisterService(bus_name.c_str()))
         {
             auto msg = last_error_msg(conn);
-            throw runtime_error(string("Could not release DBus name ") + registry::BUS_NAME + msg.toStdString());
+            throw runtime_error(string("Could not release DBus name ") + bus_name + msg.toStdString());
         }
-
-        qDebug() << "Exiting";
     }
     catch (std::exception const& e)
     {

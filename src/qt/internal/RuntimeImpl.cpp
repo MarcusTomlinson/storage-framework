@@ -74,8 +74,8 @@ RuntimeImpl::RuntimeImpl()
 RuntimeImpl::RuntimeImpl(QDBusConnection const& conn)
     : is_valid_(true)
     , conn_(conn)
-    , registry_(new RegistryInterface(registry::BUS_NAME,
-                                      QString::fromStdString(storage::internal::EnvVars::registry_object_path()),
+    , registry_(new RegistryInterface(storage::internal::EnvVars::registry_bus_name().c_str(),
+                                      storage::internal::EnvVars::registry_object_path().c_str(),
                                       conn_))
 {
     register_meta_types();

@@ -331,8 +331,7 @@ TEST_F(AccountTest, hash)
 
 TEST_F(AccountTest, accounts)
 {
-    Runtime runtime;
-    unique_ptr<AccountsJob> j(runtime.accounts());
+    unique_ptr<AccountsJob> j(runtime_->accounts());
     EXPECT_TRUE(j->isValid());
     EXPECT_EQ(AccountsJob::Status::Loading, j->status());
     EXPECT_EQ(StorageError::Type::NoError, j->error().type());
@@ -349,10 +348,21 @@ TEST_F(AccountTest, accounts)
     EXPECT_EQ(StorageError::Type::NoError, j->error().type());
 
     auto accounts = j->accounts();
+    EXPECT_GT(accounts.size(), 0);
 
-    // We don't check the contents of accounts here because we are using the real online accounts manager
-    // in this test. This means that the number and kind of accounts that are returned depends
-    // on what provider accounts the test user has configured.
+    // The fake online accounts service includes a "com.canonical.StorageFramework.Provider.ProviderTest" account.
+    bool found = false;
+    for (auto const& a : accounts)
+    {
+        if (a.providerId() == "com.canonical.StorageFramework.Provider.ProviderTest")
+        {
+            found = true;
+            EXPECT_EQ("Test Provider", a.providerName());
+            // TODO: add tests for the other account properties.
+            break;
+        }
+    }
+    EXPECT_TRUE(found);
 }
 
 TEST_F(AccountTest, runtime_destroyed)
