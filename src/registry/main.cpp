@@ -28,11 +28,14 @@
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QCoreApplication>
-#include <QDebug>
 #include <QDBusArgument>
 #include <QDBusError>
 #include <QFileInfo>
 #pragma GCC diagnostic pop
+
+#if QT_VERSION < 0x050500
+#define qInfo() qDebug()
+#endif
 
 using namespace unity::storage;
 using namespace unity::storage::registry::internal;
