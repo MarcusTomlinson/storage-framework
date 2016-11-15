@@ -28,6 +28,7 @@
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QCoreApplication>
+#include <QDebug>
 #include <QDBusArgument>
 #include <QDBusError>
 #include <QFileInfo>
