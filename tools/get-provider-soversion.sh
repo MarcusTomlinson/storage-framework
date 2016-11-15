@@ -33,8 +33,8 @@ case "$SERIES" in
         # New C++11 ABI, Boost 1.58
         echo 4
         ;;
-    yakkety)
-        # New C++11 ABI, Boost 1.60
+    yakkety|zesty)
+        # New C++11 ABI, Boost 1.61
         echo 5
         ;;
     *)
