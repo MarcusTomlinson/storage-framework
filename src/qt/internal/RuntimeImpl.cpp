@@ -20,6 +20,7 @@
 
 #include "RegistryInterface.h"
 #include <unity/storage/internal/dbusmarshal.h>
+#include <unity/storage/internal/EnvVars.h>
 #include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/AccountsJobImpl.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
@@ -58,6 +59,9 @@ void register_meta_types()
 
     qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
     qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();
+
+    qDBusRegisterMetaType<unity::storage::internal::AccountDetails>();
+    qDBusRegisterMetaType<QList<unity::storage::internal::AccountDetails>>();
 }
 
 }
@@ -70,7 +74,9 @@ RuntimeImpl::RuntimeImpl()
 RuntimeImpl::RuntimeImpl(QDBusConnection const& conn)
     : is_valid_(true)
     , conn_(conn)
-    , registry_(new RegistryInterface(registry::BUS_NAME, registry::OBJECT_PATH, conn_))
+    , registry_(new RegistryInterface(registry::BUS_NAME,
+                                      QString::fromStdString(storage::internal::EnvVars::registry_object_path()),
+                                      conn_))
 {
     register_meta_types();
 }

@@ -71,7 +71,7 @@ public:
                                       case StorageError::Type::NoError:
                                       {
                                           // LCOV_EXCL_START
-                                          QString msg = "impossible provider exception: " + e.errorString();
+                                          QString msg = "impossible service exception: " + e.errorString();
                                           qCritical().noquote() << msg;
                                           e = StorageErrorImpl::local_comms_error(msg);
                                           break;
@@ -82,7 +82,7 @@ public:
                                       case StorageError::Type::ResourceError:
                                       {
                                           // Log these errors because they are unexpected.
-                                          QString msg = "provider exception: " + e.errorString();
+                                          QString msg = "service exception: " + e.errorString();
                                           qCritical().noquote() << msg;
                                           break;
                                       }

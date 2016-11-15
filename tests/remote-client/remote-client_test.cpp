@@ -331,7 +331,8 @@ TEST_F(AccountTest, hash)
 
 TEST_F(AccountTest, accounts)
 {
-    unique_ptr<AccountsJob> j(runtime_->accounts());
+    Runtime runtime;
+    unique_ptr<AccountsJob> j(runtime.accounts());
     EXPECT_TRUE(j->isValid());
     EXPECT_EQ(AccountsJob::Status::Loading, j->status());
     EXPECT_EQ(StorageError::Type::NoError, j->error().type());
@@ -347,8 +348,6 @@ TEST_F(AccountTest, accounts)
     EXPECT_EQ(AccountsJob::Status::Finished, j->status());
     EXPECT_EQ(StorageError::Type::NoError, j->error().type());
 
-    EXPECT_TRUE(runtime_->connection().isConnected());  // Just for coverage.
-
     auto accounts = j->accounts();
 
     // We don't check the contents of accounts here because we are using the real online accounts manager
@@ -358,6 +357,8 @@ TEST_F(AccountTest, accounts)
 
 TEST_F(AccountTest, runtime_destroyed)
 {
+    EXPECT_TRUE(runtime_->connection().isConnected());  // Just for coverage.
+
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime.
 
     AccountsJob* j = runtime_->accounts();
@@ -1679,11 +1680,12 @@ TEST_F(CopyTest, wrong_account)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    auto test_account = runtime_->make_test_account(service_connection_->baseService(), object_path());
+    auto acc1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1);
+    auto acc2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 2);
 
     Item root1;
     {
-        unique_ptr<ItemJob> j(test_account.get("root_id"));
+        unique_ptr<ItemJob> j(acc1.get("root_id"));
         QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         spy.wait(SIGNAL_WAIT_TIME);
         root1 = j->item();
@@ -1692,7 +1694,7 @@ TEST_F(CopyTest, wrong_account)
 
     Item root2;
     {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        unique_ptr<ItemJob> j(acc2.get("root_id"));
         QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         spy.wait(SIGNAL_WAIT_TIME);
         root2 = j->item();
@@ -1701,7 +1703,7 @@ TEST_F(CopyTest, wrong_account)
 
     Item child;
     {
-        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        unique_ptr<ItemJob> j(acc2.get("child_id"));
         QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         spy.wait(SIGNAL_WAIT_TIME);
         child = j->item();

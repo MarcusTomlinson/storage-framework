@@ -62,10 +62,11 @@ int main(int argc, char* argv[])
         registry::internal::RegistryAdaptor registry_adaptor(prog_name, conn, inactivity_timer);
         new ::RegistryAdaptor(&registry_adaptor);
 
-        if (!conn.registerObject(registry::OBJECT_PATH, &registry_adaptor))
+        string const object_path = internal::EnvVars::registry_object_path();
+        if (!conn.registerObject(QString::fromStdString(object_path), &registry_adaptor))
         {
             auto msg = last_error_msg(conn);
-            throw runtime_error(string("Could not register object path ") + registry::OBJECT_PATH + msg.toStdString());
+            throw runtime_error(string("Could not register object path ") + object_path + msg.toStdString());
         }
 
         qDBusRegisterMetaType<unity::storage::internal::AccountDetails>();
