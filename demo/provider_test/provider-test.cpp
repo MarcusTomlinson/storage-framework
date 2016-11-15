@@ -314,7 +314,7 @@ boost::future<void> MyDownloadJob::finish()
 int main(int argc, char **argv)
 {
     const std::string bus_name = "com.canonical.StorageFramework.Provider.ProviderTest";
-    std::string account_service_id = "google-drive-scope";
+    std::string account_service_id = "storage-provider-test";
     if (argc > 1)
     {
         account_service_id = argv[1];

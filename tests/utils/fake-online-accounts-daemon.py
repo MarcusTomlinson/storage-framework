@@ -178,8 +178,8 @@ if __name__ == "__main__":
         Account(4, "Password host account", "password-host-service",
                 Password_Bug1628473("joe", "secret"),
                 {"host": "http://www.example.com/"}),
-        Account(42, "Fake google account", "google-drive-scope",
-                OAuth2("fake-google-access-token", 0, [])),
+        Account(42, "Fake test account", "storage-provider-test",
+                OAuth2("fake-test-access-token", 0, [])),
         Account(99, "Fake mcloud account", "com.canonical.scopes.mcloud_mcloud_mcloud",
                 OAuth2("fake-mcloud-access-token", 0, [])),
     ]
