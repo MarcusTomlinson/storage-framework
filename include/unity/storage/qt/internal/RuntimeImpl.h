@@ -24,7 +24,6 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#include <OnlineAccounts/Manager>
 #include <QDBusConnection>
 #pragma GCC diagnostic pop
 
@@ -60,20 +59,17 @@ public:
     AccountsJob* accounts() const;
     StorageError shutdown();
 
-    std::shared_ptr<OnlineAccounts::Manager> accounts_manager() const;
-
     Account make_test_account(QString const& bus_name,
                               QString const& object_path,
-                              QString const& owner_id,
-                              QString const& owner,
-                              QString const& description);
+                              qlonglong id,
+                              QString const& service_id,
+                              QString const& display_name);
 
 private:
     bool is_valid_;
     StorageError error_;
     QDBusConnection conn_;
     std::shared_ptr<RegistryInterface> registry_;
-    std::shared_ptr<OnlineAccounts::Manager> accounts_manager_;
 
     friend class unity::storage::qt::Runtime;
 };

@@ -19,10 +19,7 @@
 #pragma once
 
 #include <unity/storage/qt/Item.h>
-
-#include <QString>
-
-#include <memory>
+#include <unity/storage/internal/AccountDetails.h>
 
 class ProviderInterface;
 
@@ -70,29 +67,14 @@ public:
     std::shared_ptr<ProviderInterface> provider() const;
 
     static Account make_account(std::shared_ptr<RuntimeImpl> const& runtime_impl,
-                                QString const& bus_name,
-                                QString const& object_path,
-                                QString const& id,
-                                QString const& service_id,
-                                QString const& display_name);
+                                storage::internal::AccountDetails const& details);
 
 private:
     AccountImpl(std::shared_ptr<RuntimeImpl> const& runtime_impl,
-                QString const& bus_name,
-                QString const& object_path,
-                QString const& id,
-                QString const& service_id,
-                QString const& display_name);
+                storage::internal::AccountDetails const& details);
 
     bool is_valid_;
-    QString bus_name_;
-    QString object_path_;
-    QString id_;
-    QString service_id_;
-    QString display_name_;
-    QString provider_id_;
-    QString provider_name_;
-    QString icon_name_;
+    storage::internal::AccountDetails details_;
     std::weak_ptr<RuntimeImpl> runtime_impl_;
     std::shared_ptr<ProviderInterface> provider_;
 

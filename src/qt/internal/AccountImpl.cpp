@@ -48,37 +48,44 @@ AccountImpl::AccountImpl()
 }
 
 AccountImpl::AccountImpl(shared_ptr<RuntimeImpl> const& runtime_impl,
-                         QString const& bus_name,
-                         QString const& object_path,
-                         QString const& id,
-                         QString const& service_id,
-                         QString const& display_name)
+                         storage::internal::AccountDetails const& details)
     : is_valid_(true)
-    , bus_name_(bus_name)
-    , object_path_(object_path)
-    , id_(id)
-    , service_id_(service_id)
-    , display_name_(display_name)
+    , details_(details)
     , runtime_impl_(runtime_impl)
-    , provider_(new ProviderInterface(bus_name, object_path, runtime_impl->connection()))
+    , provider_(new ProviderInterface(details.providerId, details.objectPath, runtime_impl->connection()))
 {
-    assert(!bus_name.isEmpty());
-    assert(!object_path.isEmpty());
+    assert(!details.providerId.isEmpty());
+    assert(!details.objectPath.isEmpty());
 }
 
 QString AccountImpl::busName() const
 {
-    return is_valid_ ? bus_name_ : "";
+    return is_valid_ ? details_.providerId : "";
 }
 
 QString AccountImpl::objectPath() const
 {
-    return is_valid_ ? object_path_ : "";
+    return is_valid_ ? details_.objectPath : "";
 }
 
 QString AccountImpl::displayName() const
 {
-    return is_valid_ ? display_name_ : "";
+    return is_valid_ ? details_.displayName : "";
+}
+
+QString AccountImpl::providerId() const
+{
+    return is_valid_ ? details_.providerId : "";
+}
+
+QString AccountImpl::providerName() const
+{
+    return is_valid_ ? details_.providerName : "";
+}
+
+QString AccountImpl::iconName() const
+{
+    return is_valid_ ? details_.iconName : "";
 }
 
 ItemListJob* AccountImpl::roots(QStringList const& keys) const
@@ -141,10 +148,7 @@ bool AccountImpl::operator==(AccountImpl const& other) const
 {
     if (is_valid_)
     {
-        return    other.is_valid_
-               && id_ == other.id_
-               && service_id_ == other.service_id_
-               && display_name_ == other.display_name_;
+        return other.is_valid_ && details_ == other.details_;
     }
     return !other.is_valid_;
 }
@@ -164,24 +168,7 @@ bool AccountImpl::operator<(AccountImpl const& other) const
     {
         return false;
     }
-    assert(is_valid_ && other.is_valid_);
-    if (id_ < other.id_)
-    {
-        return true;
-    }
-    if (id_ > other.id_)
-    {
-        return false;
-    }
-    if (service_id_ < other.service_id_)
-    {
-        return true;
-    }
-    if (service_id_ > other.service_id_)
-    {
-        return false;
-    }
-    return display_name_ < other.display_name_;
+    return details_ < other.details_;
 }
 
 bool AccountImpl::operator<=(AccountImpl const& other) const
@@ -215,21 +202,16 @@ size_t AccountImpl::hash() const
     {
         return 0;
     }
-    size_t hash = 0;
-    boost::hash_combine(hash, qHash(service_id_));
-    boost::hash_combine(hash, qHash(id_));
-    boost::hash_combine(hash, qHash(display_name_));
+    size_t hash = details_.id;
+    boost::hash_combine(hash, qHash(details_.serviceId));
+    boost::hash_combine(hash, qHash(details_.displayName));
     return hash;
 }
 
 Account AccountImpl::make_account(shared_ptr<RuntimeImpl> const& runtime,
-                                  QString const& bus_name,
-                                  QString const& object_path,
-                                  QString const& id,
-                                  QString const& service_id,
-                                  QString const& display_name)
+                                  storage::internal::AccountDetails const& details)
 {
-    shared_ptr<AccountImpl> p(new AccountImpl(runtime, bus_name, object_path, id, service_id, display_name));
+    shared_ptr<AccountImpl> p(new AccountImpl(runtime, details));
     return Account(p);
 }
 

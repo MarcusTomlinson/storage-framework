@@ -121,7 +121,7 @@ TEST_F(AccountTest, basic)
 
     {
         auto acc = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                               "id", "sid", "displayName");
+                                               99, "sid", "displayName");
         EXPECT_TRUE(acc.isValid());
         EXPECT_EQ(service_connection_->baseService(), acc.busName());
         EXPECT_EQ(object_path(), acc.objectPath());
@@ -146,7 +146,7 @@ TEST_F(AccountTest, basic)
 
         // Moved-from object must be assignable
         auto a4 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              "id4", "sid4", "displayName4");
+                                              99, "sid4", "displayName4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a2.busName());
@@ -155,8 +155,8 @@ TEST_F(AccountTest, basic)
     }
 
     {
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "id", "sid", "dn");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "id2", "sid2", "dn2");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 99, "sid", "dn");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 100, "sid2", "dn2");
 
         // Copy assignment
         a1 = a2;
@@ -174,7 +174,7 @@ TEST_F(AccountTest, basic)
 
         // Move assignment
         auto a3 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              "id3", "sid3", "dn3");
+                                              101, "sid3", "dn3");
         a1 = move(a3);
         EXPECT_TRUE(a1.isValid());
         EXPECT_EQ(service_connection_->baseService(), a1.busName());
@@ -186,7 +186,7 @@ TEST_F(AccountTest, basic)
 
         // Moved-from object must be assignable
         auto a4 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              "id4", "sid4", "dn4");
+                                              102, "sid4", "dn4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a2.busName());
@@ -231,8 +231,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for ID
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "x", "x");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "b", "x", "x");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "x", "x");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 2, "x", "x");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -252,8 +252,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for service ID
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "x");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "b", "x");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "x");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "b", "x");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -273,8 +273,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for display name
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "b");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "a");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "b");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -294,8 +294,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 == a2
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "a");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "a");
 
         EXPECT_TRUE(a1 == a2);
         EXPECT_FALSE(a1 != a2);
@@ -323,7 +323,7 @@ TEST_F(AccountTest, hash)
     EXPECT_EQ(0, a1.hash());
     EXPECT_EQ(0, qHash(a1));
 
-    auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
+    auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "a");
     // Due to different return types (size_t vs uint), hash() and qHash() do not return the same value.
     EXPECT_NE(0, a2.hash());
     EXPECT_NE(0, qHash(a2));
@@ -1162,8 +1162,8 @@ TEST_F(ItemTest, comparison_and_hash)
     {
         // Both items valid with identical metadata, but different accounts (a1 < a2).
 
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "x", "x");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "b", "x", "x");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "x", "x");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 2, "x", "x");
 
         Item i1;
         Item i2;
@@ -1679,7 +1679,7 @@ TEST_F(CopyTest, wrong_account)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    auto test_account = runtime_->make_test_account(service_connection_->baseService(), object_path(), "test_account");
+    auto test_account = runtime_->make_test_account(service_connection_->baseService(), object_path());
 
     Item root1;
     {

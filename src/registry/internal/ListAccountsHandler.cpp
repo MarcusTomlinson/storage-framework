@@ -90,7 +90,7 @@ void ListAccountsHandler::manager_ready()
 
         storage::internal::AccountDetails ad;
         ad.providerId = it->second.provider_id;
-        ad.object_path = QStringLiteral("/provider/%1").arg(acct->id());
+        ad.objectPath = QStringLiteral("/provider/%1").arg(acct->id());
         ad.id = acct->id();
         ad.serviceId = acct->serviceId();
         ad.providerName = it->second.provider_name;

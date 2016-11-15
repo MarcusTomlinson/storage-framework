@@ -20,11 +20,9 @@
 
 #include "RegistryInterface.h"
 #include <unity/storage/internal/dbusmarshal.h>
-#include <unity/storage/qt/AccountsJob.h>
 #include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/AccountsJobImpl.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
-#include <unity/storage/qt/Item.h>
 #include <unity/storage/qt/ItemJob.h>
 #include <unity/storage/qt/ItemListJob.h>
 #include <unity/storage/qt/Runtime.h>
@@ -73,7 +71,6 @@ RuntimeImpl::RuntimeImpl(QDBusConnection const& conn)
     : is_valid_(true)
     , conn_(conn)
     , registry_(new RegistryInterface(registry::BUS_NAME, registry::OBJECT_PATH, conn_))
-    , accounts_manager_(new OnlineAccounts::Manager("", conn_))
 {
     register_meta_types();
 }
@@ -105,7 +102,7 @@ AccountsJob* RuntimeImpl::accounts() const
     if (!is_valid_)
     {
         QString msg = "Runtime::accounts(): Runtime was destroyed previously";
-        return new AccountsJob(StorageErrorImpl::runtime_destroyed_error(msg));
+        return AccountsJobImpl::make_job(StorageErrorImpl::runtime_destroyed_error(msg));
     }
 
     auto reply = registry_->ListAccounts();
@@ -124,23 +121,14 @@ StorageError RuntimeImpl::shutdown()
     return error_;
 }
 
-shared_ptr<OnlineAccounts::Manager> RuntimeImpl::accounts_manager() const
-{
-    return accounts_manager_;
-}
-
 Account RuntimeImpl::make_test_account(QString const& bus_name,
                                        QString const& object_path,
-                                       QString const& owner_id,
-                                       QString const& owner,
-                                       QString const& description)
+                                       qlonglong id,
+                                       QString const& service_id,
+                                       QString const& display_name)
 {
-    return AccountImpl::make_account(shared_from_this(),
-                                     bus_name,
-                                     object_path,
-                                     owner_id,
-                                     owner,
-                                     description);
+    storage::internal::AccountDetails ad{bus_name, object_path, id, service_id, display_name, "", ""};
+    return AccountImpl::make_account(shared_from_this(), ad);
 }
 
 }  // namespace internal

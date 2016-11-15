@@ -25,7 +25,6 @@
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QDBusPendingReply>
-#include <QTimer>
 #pragma GCC diagnostic pop
 
 namespace unity
@@ -37,12 +36,14 @@ namespace qt
 namespace internal
 {
 
+class RuntimeImpl;
+
 class AccountsJobImpl : public QObject
 {
     Q_OBJECT
 public:
     AccountsJobImpl(std::shared_ptr<RuntimeImpl> const& runtime_impl,
-                    std::string const& method,
+                    QString const& method,
                     QDBusPendingReply<QList<storage::internal::AccountDetails>>& reply);
     AccountsJobImpl(StorageError const& error);
     virtual ~AccountsJobImpl() = default;
@@ -58,20 +59,15 @@ public:
                                  QDBusPendingReply<QList<storage::internal::AccountDetails>>& reply);
     static AccountsJob* make_job(StorageError const& e);
 
-private Q_SLOTS:
-    void manager_ready();
-    void timeout();
-
 private:
     std::shared_ptr<RuntimeImpl> get_runtime_impl(QString const& method) const;
-    void initialize_accounts();
     AccountsJob::Status emit_status_changed(AccountsJob::Status new_status) const;
 
-    AccountsJob* const public_instance_;
+    AccountsJob* public_instance_;
     AccountsJob::Status status_;
     StorageError error_;
     std::weak_ptr<RuntimeImpl> const runtime_impl_;
-    QTimer timer_;
+    QList<Account> accounts_;
 
     friend class unity::storage::qt::AccountsJob;
 };

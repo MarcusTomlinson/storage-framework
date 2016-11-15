@@ -20,10 +20,9 @@
 
 #include "RegistryInterface.h"
 #include <unity/storage/qt/internal/AccountImpl.h>
+#include <unity/storage/qt/internal/Handler.h>
 #include <unity/storage/qt/internal/RuntimeImpl.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
-
-#include <OnlineAccounts/Account>
 
 #include <cassert>
 
@@ -42,13 +41,35 @@ AccountsJobImpl::AccountsJobImpl(shared_ptr<RuntimeImpl> const& runtime_impl,
                                  QString const& method,
                                  QDBusPendingReply<QList<storage::internal::AccountDetails>>& reply)
     : status_(AccountsJob::Status::Loading)
-    , method_(method)
     , runtime_impl_(runtime_impl)
 {
     assert(runtime_impl);
-    assert(!method.isEmpty());
 
-    //initialize_accounts();
+    auto process_reply = [this, method](decltype(reply)& r)
+    {
+        auto runtime = get_runtime_impl(method);
+        if (!runtime || !runtime->isValid())
+        {
+            return;
+        }
+
+        for (auto const& ad : r.value())
+        {
+            auto a = AccountImpl::make_account(runtime, ad);
+            accounts_.append(a);
+        }
+        status_ = AccountsJob::Status::Finished;
+        Q_EMIT public_instance_->statusChanged(status_);
+    };
+
+    auto process_error = [this](StorageError const& error)
+    {
+        error_ = error;
+        status_ = AccountsJob::Status::Error;
+        Q_EMIT public_instance_->statusChanged(status_);
+    };
+
+    new Handler<QList<storage::internal::AccountDetails>>(this, reply, process_reply, process_error);
 }
 
 AccountsJobImpl::AccountsJobImpl(StorageError const& error)
@@ -121,22 +142,6 @@ AccountsJob* AccountsJobImpl::make_job(StorageError const& error)
     return job;
 }
 
-void AccountsJobImpl::manager_ready()
-{
-    timer_.stop();
-    disconnect(this);
-    initialize_accounts();
-}
-
-// LCOV_EXCL_START
-void AccountsJobImpl::timeout()
-{
-    disconnect(this);
-    error_ = StorageErrorImpl::local_comms_error("AccountsJob(): timeout retrieving Online accounts");
-    status_ = emit_status_changed(AccountsJob::Status::Error);
-}
-// LCOV_EXCL_STOP
-
 AccountsJob::Status AccountsJobImpl::emit_status_changed(AccountsJob::Status new_status) const
 {
     if (status_ == AccountsJob::Status::Loading)  // Once in a final state, we don't emit the signal again.
@@ -160,41 +165,9 @@ shared_ptr<RuntimeImpl> AccountsJobImpl::get_runtime_impl(QString const& method)
         auto This = const_cast<AccountsJobImpl*>(this);
         This->error_ = StorageErrorImpl::runtime_destroyed_error(msg);
         This->status_ = emit_status_changed(AccountsJob::Status::Error);
+        return nullptr;
     }
     return runtime;
-}
-
-void AccountsJobImpl::initialize_accounts()
-{
-    auto runtime = get_runtime_impl("AccountsJob()");
-    assert(runtime);
-
-    auto manager = runtime->accounts_manager();
-    if (!manager->isReady())
-    {
-        connect(manager.get(), &OnlineAccounts::Manager::ready, this, &AccountsJobImpl::manager_ready);
-        connect(&timer_, &QTimer::timeout, this, &AccountsJobImpl::timeout);
-        timer_.setSingleShot(true);
-        timer_.start(30000);  // TODO: Need config for this eventually.
-        return;
-    }
-
-    for (auto const map_entry : BUS_NAMES)
-    {
-        auto service_id = map_entry.first;
-        for (auto const& a : manager->availableAccounts(service_id))
-        {
-            auto object_path = QStringLiteral("/provider/%1").arg(a->id());
-            auto bus_name = map_entry.second;
-            accounts_.append(AccountImpl::make_account(runtime,
-                                                       bus_name,
-                                                       object_path,
-                                                       QString::number(a->id()),
-                                                       a->serviceId(),
-                                                       a->displayName()));
-        }
-    }
-    status_ = emit_status_changed(AccountsJob::Status::Finished);
 }
 
 }  // namespace internal

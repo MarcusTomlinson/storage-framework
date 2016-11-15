@@ -66,7 +66,7 @@ public:
 
     Account make_test_account(QString const& bus_name,
                               QString const& object_path,
-                              QString const& id = "",
+                              qlonglong id = 999,
                               QString const& serviceId = "",
                               QString const& displayName = "") const;
 

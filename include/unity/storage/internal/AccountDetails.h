@@ -35,13 +35,20 @@ namespace internal
 struct AccountDetails
 {
     QString providerId;  // Used as the bus name
-    QString object_path;
+    QString objectPath;
     qlonglong id;
     QString serviceId;
     QString displayName;
     QString providerName;
     QString iconName;
 };
+
+bool operator==(AccountDetails const& lhs, AccountDetails const& rhs);
+bool operator!=(AccountDetails const& lhs, AccountDetails const& rhs);
+bool operator<(AccountDetails const& lhs, AccountDetails const& rhs);
+bool operator<=(AccountDetails const& lhs, AccountDetails const& rhs);
+bool operator>(AccountDetails const& lhs, AccountDetails const& rhs);
+bool operator>=(AccountDetails const& lhs, AccountDetails const& rhs);
 
 QDBusArgument& operator<<(QDBusArgument& argument, storage::internal::AccountDetails const& account);
 QDBusArgument const& operator>>(QDBusArgument const& argument, storage::internal::AccountDetails& account);

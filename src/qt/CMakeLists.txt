@@ -80,7 +80,6 @@ add_library(storage-framework-qt-client-v2 SHARED
 target_include_directories(storage-framework-qt-client-v2 PRIVATE
     ${Qt5DBus_INCLUDE_DIRS}
     ${Qt5Network_INCLUDE_DIRS}
-    ${ONLINEACCOUNTS_DEPS_INCLUDE_DIRS}
 )
 set_target_properties(storage-framework-qt-client-v2 PROPERTIES
     AUTOMOC TRUE
@@ -94,7 +93,6 @@ target_link_libraries(storage-framework-qt-client-v2
     Qt5::Core
     Qt5::DBus
     Qt5::Network
-    ${ONLINEACCOUNTS_DEPS_LDFLAGS}
 )
 install(
     TARGETS storage-framework-qt-client-v2
