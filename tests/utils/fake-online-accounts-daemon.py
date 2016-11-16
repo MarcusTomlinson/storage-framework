@@ -17,7 +17,6 @@
 
 """A fake version of the OnlineAccounts D-Bus service."""
 
-import os
 import sys
 
 import dbus.service
@@ -27,9 +26,6 @@ from gi.repository import GLib
 BUS_NAME = "com.ubuntu.OnlineAccounts.Manager"
 OBJECT_PATH = "/com/ubuntu/OnlineAccounts/Manager"
 OA_IFACE = "com.ubuntu.OnlineAccounts.Manager"
-
-INTERFACE_XML = os.path.join(os.path.dirname(__file__),
-                             "com.ubuntu.OnlineAccounts.Manager.xml")
 
 AUTH_OAUTH1 = 1
 AUTH_OAUTH2 = 2
