@@ -31,13 +31,11 @@ namespace registry
 namespace internal
 {
 
-RegistryAdaptor::RegistryAdaptor(QString const& prog_name,
-                                 QDBusConnection const& conn,
+RegistryAdaptor::RegistryAdaptor(QDBusConnection const& conn,
                                  shared_ptr<storage::internal::InactivityTimer> const& timer,
                                  QObject* parent)
     : QObject(parent)
     , conn_(conn)
-    , prog_name_(prog_name)
     , timer_(timer)
 {
 }
@@ -46,7 +44,7 @@ RegistryAdaptor::~RegistryAdaptor() = default;
 
 QList<unity::storage::internal::AccountDetails> RegistryAdaptor::ListAccounts()
 {
-    new ListAccountsHandler(prog_name_, conn_, message(), timer_);  // Handler deletes itself once done.
+    new ListAccountsHandler(conn_, message(), timer_);  // Handler deletes itself once done.
     setDelayedReply(true);
     return QList<unity::storage::internal::AccountDetails>();
 }
