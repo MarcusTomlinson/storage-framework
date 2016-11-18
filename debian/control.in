@@ -76,6 +76,7 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: libstorage-framework-qt-client-1-0 (= ${binary:Version}),
          libstorage-framework-qt-local-client-1-0 (= ${binary:Version}),
+         libstorage-framework-qt-client-2-0 (= ${binary:Version}),
          qtbase5-dev,
          ${misc:Depends},
 Description: Header files for the Storage Framework client libraries
