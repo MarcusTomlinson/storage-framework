@@ -43,8 +43,7 @@ class ListAccountsHandler : public QObject
     Q_OBJECT
 
 public:
-    ListAccountsHandler(QString const& prog_name,
-                        QDBusConnection const& conn,
+    ListAccountsHandler(QDBusConnection const& conn,
                         QDBusMessage const& msg,
                         std::shared_ptr<storage::internal::InactivityTimer> const& timer);
     ~ListAccountsHandler();

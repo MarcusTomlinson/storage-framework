@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
         };
         auto inactivity_timer = make_shared<unity::storage::internal::InactivityTimer>(timeout_ms, timeout_func);
 
-        registry::internal::RegistryAdaptor registry_adaptor(prog_name, conn, inactivity_timer);
+        registry::internal::RegistryAdaptor registry_adaptor(conn, inactivity_timer);
         new ::RegistryAdaptor(&registry_adaptor);
 
         string const object_path = internal::EnvVars::registry_object_path();

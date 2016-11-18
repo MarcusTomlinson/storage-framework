@@ -35,13 +35,12 @@ namespace registry
 namespace internal
 {
 
-ListAccountsHandler::ListAccountsHandler(QString const& prog_name,
-                                         QDBusConnection const& conn,
+ListAccountsHandler::ListAccountsHandler(QDBusConnection const& conn,
                                          QDBusMessage const& msg,
                                          shared_ptr<storage::internal::InactivityTimer> const& timer)
     : conn_(conn)
     , msg_(msg)
-    , manager_(prog_name, conn)
+    , manager_("", conn)
     , activity_notifier_(timer)
 {
     connect(&manager_, &OnlineAccounts::Manager::ready, this, &ListAccountsHandler::manager_ready);

@@ -50,8 +50,7 @@ class RegistryAdaptor : public QObject, protected QDBusContext
     Q_OBJECT
 
 public:
-    RegistryAdaptor(QString const& prog_name,
-                    QDBusConnection const& conn,
+    RegistryAdaptor(QDBusConnection const& conn,
                     std::shared_ptr<storage::internal::InactivityTimer> const& timer,
                     QObject* parent = nullptr);
     ~RegistryAdaptor();
@@ -61,7 +60,6 @@ public Q_SLOTS:
 
 private:
     QDBusConnection conn_;
-    QString prog_name_;
     std::shared_ptr<storage::internal::InactivityTimer> timer_;
 
     Q_DISABLE_COPY(RegistryAdaptor)
