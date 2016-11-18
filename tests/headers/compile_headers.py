@@ -52,7 +52,6 @@ import re
 import shlex
 import subprocess
 import sys
-import tempfile
 import concurrent.futures, multiprocessing
 
 #
@@ -74,15 +73,18 @@ def message(msg):
 #
 def run_compiler(hdr, compiler, copts, define, verbose, hdr_dir):
     try:
-        src = tempfile.NamedTemporaryFile(suffix='.cpp', dir='.')
+        compile_dir = "./.header_tests"
+        os.makedirs(compile_dir, exist_ok=True)
+        src_name = os.path.join(compile_dir, hdr) + ".cpp"
+
+        if not os.path.exists(src_name):
+            src_fd = os.open(src_name, os.O_WRONLY | os.O_CREAT)
+            src = os.fdopen(src_fd, 'w')
+            src.write("#include <" + hdr + ">" + "\n")
 
         # Add any extra defines to the command line.
         for flag in define:
             copts = "-D" + flag + " " + copts
-
-        src.write(bytes("#include <" + hdr + ">" + "\n", 'UTF-8'))
-        src.flush()                                                 # Need this to make the file visible
-        src_name = os.path.join('.', src.name)
 
         if verbose:
             print(compiler + " -c " + src_name + " " + copts)
@@ -91,13 +93,13 @@ def run_compiler(hdr, compiler, copts, define, verbose, hdr_dir):
         if status != 0:
             message("cannot compile \"" + hdr + "\"") # Yes, write to stdout because this is expected output
 
-        obj = os.path.splitext(src_name)[0] + ".o"
+        obj = hdr + ".o"
         try:
             os.unlink(obj)
         except:
             pass
 
-        gcov = os.path.splitext(src_name)[0] + ".gcno"
+        gcov = hdr + ".gcno"
         try:
             os.unlink(gcov)
         except:
