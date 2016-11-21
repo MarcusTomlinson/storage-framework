@@ -73,11 +73,6 @@ QString AccountImpl::name() const
     return is_valid_ ? details_.name : "";
 }
 
-QString AccountImpl::providerId() const
-{
-    return is_valid_ ? details_.serviceId : "";
-}
-
 QString AccountImpl::providerName() const
 {
     return is_valid_ ? details_.providerName : "";

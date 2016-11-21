@@ -47,7 +47,6 @@ class Q_DECL_EXPORT Account final
     Q_PROPERTY(QString busName READ busName FINAL)
     Q_PROPERTY(QString objectPath READ objectPath FINAL)
     Q_PROPERTY(QString name READ name FINAL)
-    Q_PROPERTY(QString providerId READ providerId FINAL)
     Q_PROPERTY(QString providerName READ providerName FINAL)
     Q_PROPERTY(QString iconName READ iconName FINAL)
 
@@ -63,7 +62,6 @@ public:
     QString busName() const;
     QString objectPath() const;
     QString name() const;
-    QString providerId() const;
     QString providerName() const;
     QString iconName() const;
 
