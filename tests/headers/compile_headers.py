@@ -81,6 +81,7 @@ def run_compiler(hdr, compiler, copts, define, verbose, hdr_dir):
             src_fd = os.open(src_name, os.O_WRONLY | os.O_CREAT)
             src = os.fdopen(src_fd, 'w')
             src.write("#include <" + hdr + ">" + "\n")
+            src.write("#include <" + hdr + ">" + "\n")  # To test that double-inclusion is safe
 
         # Add any extra defines to the command line.
         for flag in define:
