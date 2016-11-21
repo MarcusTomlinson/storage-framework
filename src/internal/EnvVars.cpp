@@ -64,16 +64,6 @@ int EnvVars::registry_timeout_ms()
     return dflt_val;
 }
 
-string EnvVars::registry_bus_name()
-{
-    auto const val = get(REGISTRY_BUS_NAME);
-    if (val.empty())
-    {
-        return REGISTRY_BUS_NAME_DFLT;
-    }
-    return val;
-}
-
 string EnvVars::registry_object_path()
 {
     auto const val = get(REGISTRY_OBJECT_PATH);

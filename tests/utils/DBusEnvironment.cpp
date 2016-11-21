@@ -17,7 +17,7 @@
  */
 
 #include "DBusEnvironment.h"
-#include <unity/storage/internal/EnvVars.h>
+#include <unity/storage/registry/Registry.h>
 
 #include <testsetup.h>
 
@@ -43,13 +43,8 @@ DBusEnvironment::DBusEnvironment()
                                 FAKE_ACCOUNTS_SERVICE, {}));
     runner_->registerService(accounts_service_);
 
-    // We use the real registry talking to the fake accounts service.
-    // We start it explicitly here with a different bus name, so it does not
-    // conflict with any real registry that may be installed.
-    auto const bus_name_env_var = unity::storage::internal::REGISTRY_BUS_NAME;
-    setenv(bus_name_env_var, REGISTRY_TEST_BUS_NAME, true);
     registry_service_.reset(new QtDBusTest::QProcessDBusService(
-                                REGISTRY_TEST_BUS_NAME, QDBusConnection::SessionBus,
+                                unity::storage::registry::BUS_NAME, QDBusConnection::SessionBus,
                                 REGISTRY_SERVICE, {}));
     runner_->registerService(registry_service_);
 }
