@@ -93,11 +93,6 @@ QString Account::name() const
     return p_->name();
 }
 
-QString Account::providerId() const
-{
-    return p_->providerId();
-}
-
 QString Account::providerName() const
 {
     return p_->providerName();

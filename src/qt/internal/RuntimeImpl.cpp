@@ -75,7 +75,7 @@ RuntimeImpl::RuntimeImpl(QDBusConnection const& conn)
     : is_valid_(true)
     , conn_(conn)
     , registry_(new RegistryInterface(storage::registry::BUS_NAME,
-                                      storage::internal::EnvVars::registry_object_path().c_str(),
+                                      storage::registry::OBJECT_PATH,
                                       conn_))
 {
     register_meta_types();
