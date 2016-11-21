@@ -52,10 +52,10 @@ AccountImpl::AccountImpl(shared_ptr<RuntimeImpl> const& runtime_impl,
     : is_valid_(true)
     , details_(details)
     , runtime_impl_(runtime_impl)
-    , provider_(new ProviderInterface(details.busName, details.objectPath, runtime_impl->connection()))
+    , provider_(new ProviderInterface(details.busName, details.objectPath.path(), runtime_impl->connection()))
 {
     assert(!details.busName.isEmpty());
-    assert(!details.objectPath.isEmpty());
+    assert(!details.objectPath.path().isEmpty());
 }
 
 QString AccountImpl::busName() const
@@ -65,7 +65,7 @@ QString AccountImpl::busName() const
 
 QString AccountImpl::objectPath() const
 {
-    return is_valid_ ? details_.objectPath : "";
+    return is_valid_ ? details_.objectPath.path() : QDBusObjectPath().path();
 }
 
 QString AccountImpl::name() const

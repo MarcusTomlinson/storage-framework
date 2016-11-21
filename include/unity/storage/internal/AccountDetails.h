@@ -35,7 +35,7 @@ namespace internal
 struct AccountDetails
 {
     QString busName;
-    QString objectPath;
+    QDBusObjectPath objectPath;
     quint32 id;
     QString serviceId;
     QString name;
