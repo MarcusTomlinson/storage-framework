@@ -69,7 +69,7 @@ private:
     bool is_valid_;
     StorageError error_;
     QDBusConnection conn_;
-    std::shared_ptr<RegistryInterface> registry_;
+    std::unique_ptr<RegistryInterface> registry_;
 
     friend class unity::storage::qt::Runtime;
 };
