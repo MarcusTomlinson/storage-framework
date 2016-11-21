@@ -41,14 +41,14 @@ foreach(dir ${subdirs})
     add_test(stand-alone-${location}-headers
         ${CMAKE_CURRENT_SOURCE_DIR}/compile_headers.py
             ${extra_defines}
-            ${public_inc_dir} ${CMAKE_CXX_COMPILER} "${CMAKE_CXX_COMPILER_ARG1} -fPIC -fsyntax-only -I${root_inc_dir} -I${public_inc_dir} ${other_inc_dirs} ${CMAKE_CXX_FLAGS} ${extra_inc_dirs}")
+            ${public_inc_dir} ${CMAKE_CXX_COMPILER} "${CMAKE_CXX_COMPILER_ARG1} -fPIC -I${root_inc_dir} -I${public_inc_dir} ${other_inc_dirs} ${CMAKE_CXX_FLAGS} ${extra_inc_dirs}")
 
     # Test that each internal header compiles stand-alone.
     if (IS_DIRECTORY ${internal_inc_dir})
         add_test(stand-alone-${location}-internal-headers
             ${CMAKE_CURRENT_SOURCE_DIR}/compile_headers.py
                 ${extra_defines}
-                ${internal_inc_dir} ${CMAKE_CXX_COMPILER} "${CMAKE_CXX_COMPILER_ARG1} -fPIC -fsyntax-only -I${root_inc_dir} -I${internal_inc_dir} ${other_inc_dirs} ${CMAKE_CXX_FLAGS} ${extra_inc_dirs}")
+                ${internal_inc_dir} ${CMAKE_CXX_COMPILER} "${CMAKE_CXX_COMPILER_ARG1} -fPIC -I${root_inc_dir} -I${internal_inc_dir} ${other_inc_dirs} ${CMAKE_CXX_FLAGS} ${extra_inc_dirs}")
     endif()
 
     if (NOT ${public_inc_dir} MATCHES "/internal/")
