@@ -53,9 +53,6 @@ bool operator>=(AccountDetails const& lhs, AccountDetails const& rhs);
 QDBusArgument& operator<<(QDBusArgument& argument, storage::internal::AccountDetails const& account);
 QDBusArgument const& operator>>(QDBusArgument const& argument, storage::internal::AccountDetails& account);
 
-QDBusArgument& operator<<(QDBusArgument& argument, QList<storage::internal::AccountDetails> const& acc_list);
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<storage::internal::AccountDetails>& acc_list);
-
 }  // namespace internal
 }  // namespace storage
 }  // namespace unity

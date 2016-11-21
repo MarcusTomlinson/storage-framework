@@ -103,31 +103,6 @@ QDBusArgument const& operator>>(QDBusArgument const& argument, storage::internal
     return argument;
 }
 
-QDBusArgument& operator<<(QDBusArgument& argument, QList<storage::internal::AccountDetails> const& acc_list)
-{
-    argument.beginArray(qMetaTypeId<storage::internal::AccountDetails>());
-    for (auto const& acc : acc_list)
-    {
-        argument << acc;
-    }
-    argument.endArray();
-    return argument;
-}
-
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<storage::internal::AccountDetails>& acc_list)
-{
-    acc_list.clear();
-    argument.beginArray();
-    while (!argument.atEnd())
-    {
-        AccountDetails acc;
-        argument >> acc;
-        acc_list.append(acc);
-    }
-    argument.endArray();
-    return argument;
-}
-
 }  // namespace internal
 }  // namespace storage
 }  // namespace unity

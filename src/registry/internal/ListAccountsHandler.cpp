@@ -58,7 +58,7 @@ namespace
 
 struct ProviderDetails
 {
-    char const* provider_id;
+    char const* bus_name;
     char const* provider_name;
 };
 
@@ -88,7 +88,7 @@ void ListAccountsHandler::manager_ready()
         }
 
         storage::internal::AccountDetails ad;
-        ad.busName = it->second.provider_id;
+        ad.busName = it->second.bus_name;
         ad.objectPath = QDBusObjectPath(QStringLiteral("/provider/%1").arg(acct->id()));
         ad.id = acct->id();
         ad.serviceId = acct->serviceId();

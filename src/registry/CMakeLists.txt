@@ -16,13 +16,6 @@ set_source_files_properties(${adaptor_files} PROPERTIES
     GENERATED TRUE
 )
 
-set_source_files_properties(${CMAKE_SOURCE_DIR}/data/registry.xml PROPERTIES
-    CLASSNAME RegistryAdaptor
-    INCLUDE unity/storage/internal/dbusmarshal.h
-)
-
-add_custom_target(sf-registry-adaptor-files DEPENDS ${adaptor_files})
-
 add_executable(${TARGET}
     internal/ListAccountsHandler.cpp
     internal/qdbus-last-error-msg.cpp
@@ -31,8 +24,6 @@ add_executable(${TARGET}
     ${CMAKE_SOURCE_DIR}/include/unity/storage/registry/internal/ListAccountsHandler.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/registry/internal/RegistryAdaptor.h
     ${adaptor_files})
-
-add_dependencies(${TARGET} sf-registry-adaptor-files)
 
 set_target_properties(${TARGET} PROPERTIES AUTOMOC TRUE)
 
@@ -45,7 +36,7 @@ target_link_libraries(${TARGET}
 
 install(
     TARGETS ${TARGET}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}
 )
 
 configure_file(com.canonical.StorageFramework.Registry.service.in com.canonical.StorageFramework.Registry.service)
