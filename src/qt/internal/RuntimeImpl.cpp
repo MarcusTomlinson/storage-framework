@@ -129,11 +129,11 @@ StorageError RuntimeImpl::shutdown()
 
 Account RuntimeImpl::make_test_account(QString const& bus_name,
                                        QString const& object_path,
-                                       qlonglong id,
+                                       quint32 id,
                                        QString const& service_id,
-                                       QString const& display_name)
+                                       QString const& name)
 {
-    storage::internal::AccountDetails ad{bus_name, object_path, id, service_id, display_name, "", ""};
+    storage::internal::AccountDetails ad{bus_name, object_path, id, service_id, name, "", ""};
     return AccountImpl::make_account(shared_from_this(), ad);
 }
 

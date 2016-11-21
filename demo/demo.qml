@@ -48,7 +48,7 @@ Item {
         for (var i = 0; i < accounts.length; i++) {
           console.log("Account " + i + ": busName =     " + accounts[i].busName());
           console.log("Account " + i + ": objectPath =  " + accounts[i].objectPath());
-          console.log("Account " + i + ": displayName = " + accounts[i].displayName);
+          console.log("Account " + i + ": name =        " + accounts[i].name);
         }
       }
     }

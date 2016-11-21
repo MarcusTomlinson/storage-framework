@@ -52,15 +52,15 @@ AccountImpl::AccountImpl(shared_ptr<RuntimeImpl> const& runtime_impl,
     : is_valid_(true)
     , details_(details)
     , runtime_impl_(runtime_impl)
-    , provider_(new ProviderInterface(details.providerId, details.objectPath, runtime_impl->connection()))
+    , provider_(new ProviderInterface(details.busName, details.objectPath, runtime_impl->connection()))
 {
-    assert(!details.providerId.isEmpty());
+    assert(!details.busName.isEmpty());
     assert(!details.objectPath.isEmpty());
 }
 
 QString AccountImpl::busName() const
 {
-    return is_valid_ ? details_.providerId : "";
+    return is_valid_ ? details_.busName : "";
 }
 
 QString AccountImpl::objectPath() const
@@ -68,14 +68,14 @@ QString AccountImpl::objectPath() const
     return is_valid_ ? details_.objectPath : "";
 }
 
-QString AccountImpl::displayName() const
+QString AccountImpl::name() const
 {
-    return is_valid_ ? details_.displayName : "";
+    return is_valid_ ? details_.name : "";
 }
 
 QString AccountImpl::providerId() const
 {
-    return is_valid_ ? details_.providerId : "";
+    return is_valid_ ? details_.serviceId : "";
 }
 
 QString AccountImpl::providerName() const
@@ -204,7 +204,7 @@ size_t AccountImpl::hash() const
     }
     size_t hash = details_.id;
     boost::hash_combine(hash, qHash(details_.serviceId));
-    boost::hash_combine(hash, qHash(details_.displayName));
+    boost::hash_combine(hash, qHash(details_.name));
     return hash;
 }
 

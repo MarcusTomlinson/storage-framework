@@ -31,7 +31,7 @@ bool operator==(AccountDetails const& lhs, AccountDetails const& rhs)
 {
    return    lhs.id == rhs.id
           && lhs.serviceId == rhs.serviceId
-          && lhs.displayName == rhs.displayName;
+          && lhs.name == rhs.name;
 }
 
 bool operator!=(AccountDetails const& lhs, AccountDetails const& rhs)
@@ -57,7 +57,7 @@ bool operator<(AccountDetails const& lhs, AccountDetails const& rhs)
     {
         return false;
     }
-    return lhs.displayName < rhs.displayName;
+    return lhs.name < rhs.name;
 }
 
 bool operator<=(AccountDetails const& lhs, AccountDetails const& rhs)
@@ -78,11 +78,11 @@ bool operator>=(AccountDetails const& lhs, AccountDetails const& rhs)
 QDBusArgument& operator<<(QDBusArgument& argument, storage::internal::AccountDetails const& account)
 {
     argument.beginStructure();
-    argument << account.providerId;
+    argument << account.busName;
     argument << account.objectPath;
     argument << account.id;
     argument << account.serviceId;
-    argument << account.displayName;
+    argument << account.name;
     argument << account.providerName;
     argument << account.iconName;
     argument.endStructure();
@@ -92,11 +92,11 @@ QDBusArgument& operator<<(QDBusArgument& argument, storage::internal::AccountDet
 QDBusArgument const& operator>>(QDBusArgument const& argument, storage::internal::AccountDetails& account)
 {
     argument.beginStructure();
-    argument >> account.providerId;
+    argument >> account.busName;
     argument >> account.objectPath;
     argument >> account.id;
     argument >> account.serviceId;
-    argument >> account.displayName;
+    argument >> account.name;
     argument >> account.providerName;
     argument >> account.iconName;
     argument.endStructure();

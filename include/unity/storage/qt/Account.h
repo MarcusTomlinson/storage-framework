@@ -46,7 +46,7 @@ class Q_DECL_EXPORT Account final
     Q_PROPERTY(bool isValid READ isValid FINAL)
     Q_PROPERTY(QString busName READ busName FINAL)
     Q_PROPERTY(QString objectPath READ objectPath FINAL)
-    Q_PROPERTY(QString displayName READ displayName FINAL)
+    Q_PROPERTY(QString name READ name FINAL)
     Q_PROPERTY(QString providerId READ providerId FINAL)
     Q_PROPERTY(QString providerName READ providerName FINAL)
     Q_PROPERTY(QString iconName READ iconName FINAL)
@@ -62,7 +62,7 @@ public:
     bool isValid() const;
     QString busName() const;
     QString objectPath() const;
-    QString displayName() const;
+    QString name() const;
     QString providerId() const;
     QString providerName() const;
     QString iconName() const;

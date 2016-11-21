@@ -34,11 +34,11 @@ namespace internal
 
 struct AccountDetails
 {
-    QString providerId;  // Used as the bus name
+    QString busName;
     QString objectPath;
-    qlonglong id;
+    quint32 id;
     QString serviceId;
-    QString displayName;
+    QString name;
     QString providerName;
     QString iconName;
 };
