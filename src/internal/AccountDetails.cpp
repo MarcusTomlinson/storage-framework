@@ -31,7 +31,7 @@ bool operator==(AccountDetails const& lhs, AccountDetails const& rhs)
 {
    return    lhs.id == rhs.id
           && lhs.serviceId == rhs.serviceId
-          && lhs.displayName == rhs.displayName;
+          && lhs.name == rhs.name;
 }
 
 bool operator!=(AccountDetails const& lhs, AccountDetails const& rhs)
@@ -57,7 +57,7 @@ bool operator<(AccountDetails const& lhs, AccountDetails const& rhs)
     {
         return false;
     }
-    return lhs.displayName < rhs.displayName;
+    return lhs.name < rhs.name;
 }
 
 bool operator<=(AccountDetails const& lhs, AccountDetails const& rhs)
@@ -78,11 +78,11 @@ bool operator>=(AccountDetails const& lhs, AccountDetails const& rhs)
 QDBusArgument& operator<<(QDBusArgument& argument, storage::internal::AccountDetails const& account)
 {
     argument.beginStructure();
-    argument << account.providerId;
+    argument << account.busName;
     argument << account.objectPath;
     argument << account.id;
     argument << account.serviceId;
-    argument << account.displayName;
+    argument << account.name;
     argument << account.providerName;
     argument << account.iconName;
     argument.endStructure();
@@ -92,39 +92,14 @@ QDBusArgument& operator<<(QDBusArgument& argument, storage::internal::AccountDet
 QDBusArgument const& operator>>(QDBusArgument const& argument, storage::internal::AccountDetails& account)
 {
     argument.beginStructure();
-    argument >> account.providerId;
+    argument >> account.busName;
     argument >> account.objectPath;
     argument >> account.id;
     argument >> account.serviceId;
-    argument >> account.displayName;
+    argument >> account.name;
     argument >> account.providerName;
     argument >> account.iconName;
     argument.endStructure();
-    return argument;
-}
-
-QDBusArgument& operator<<(QDBusArgument& argument, QList<storage::internal::AccountDetails> const& acc_list)
-{
-    argument.beginArray(qMetaTypeId<storage::internal::AccountDetails>());
-    for (auto const& acc : acc_list)
-    {
-        argument << acc;
-    }
-    argument.endArray();
-    return argument;
-}
-
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<storage::internal::AccountDetails>& acc_list)
-{
-    acc_list.clear();
-    argument.beginArray();
-    while (!argument.atEnd())
-    {
-        AccountDetails acc;
-        argument >> acc;
-        acc_list.append(acc);
-    }
-    argument.endArray();
     return argument;
 }
 

@@ -116,82 +116,82 @@ TEST_F(AccountTest, basic)
         EXPECT_FALSE(a.isValid());
         EXPECT_EQ("", a.busName());
         EXPECT_EQ("", a.objectPath());
-        EXPECT_EQ("", a.displayName());
+        EXPECT_EQ("", a.name());
     }
 
     {
         auto acc = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                               99, "sid", "displayName");
+                                               99, "sid", "name");
         EXPECT_TRUE(acc.isValid());
         EXPECT_EQ(service_connection_->baseService(), acc.busName());
         EXPECT_EQ(object_path(), acc.objectPath());
-        EXPECT_EQ("displayName", acc.displayName());
+        EXPECT_EQ("name", acc.name());
 
         // Copy constructor
         Account a2(acc);
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a2.busName());
         EXPECT_EQ(object_path(), a2.objectPath());
-        EXPECT_EQ("displayName", a2.displayName());
+        EXPECT_EQ("name", a2.name());
 
         // Move constructor
         Account a3(move(a2));
         EXPECT_TRUE(a3.isValid());
         EXPECT_EQ(service_connection_->baseService(), a3.busName());
         EXPECT_EQ(object_path(), a3.objectPath());
-        EXPECT_EQ("displayName", a3.displayName());
+        EXPECT_EQ("name", a3.name());
 
         // Moved-from object must be invalid
         EXPECT_FALSE(a2.isValid());
 
         // Moved-from object must be assignable
         auto a4 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              99, "sid4", "displayName4");
+                                              99, "sid4", "name4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a2.busName());
         EXPECT_EQ(object_path(), a2.objectPath());
-        EXPECT_EQ("displayName4", a2.displayName());
+        EXPECT_EQ("name4", a2.name());
     }
 
     {
         auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 99, "sid", "dn");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 100, "sid2", "dn2");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 100, "sid2", "n2");
 
         // Copy assignment
         a1 = a2;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a1.busName());
         EXPECT_EQ(object_path(), a1.objectPath());
-        EXPECT_EQ("dn2", a1.displayName());
+        EXPECT_EQ("n2", a1.name());
 
         // Self-assignment
         a2 = a2;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a1.busName());
         EXPECT_EQ(object_path(), a1.objectPath());
-        EXPECT_EQ("dn2", a1.displayName());
+        EXPECT_EQ("n2", a1.name());
 
         // Move assignment
         auto a3 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              101, "sid3", "dn3");
+                                              101, "sid3", "n3");
         a1 = move(a3);
         EXPECT_TRUE(a1.isValid());
         EXPECT_EQ(service_connection_->baseService(), a1.busName());
         EXPECT_EQ(object_path(), a1.objectPath());
-        EXPECT_EQ("dn3", a1.displayName());
+        EXPECT_EQ("n3", a1.name());
 
         // Moved-from object must be invalid
         EXPECT_FALSE(a3.isValid());
 
         // Moved-from object must be assignable
         auto a4 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              102, "sid4", "dn4");
+                                              102, "sid4", "n4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a2.busName());
         EXPECT_EQ(object_path(), a2.objectPath());
-        EXPECT_EQ("dn4", a2.displayName());
+        EXPECT_EQ("n4", a2.name());
     }
 }
 
@@ -354,7 +354,8 @@ TEST_F(AccountTest, accounts)
     bool found = false;
     for (auto const& a : accounts)
     {
-        if (a.providerId() == "com.canonical.StorageFramework.Provider.ProviderTest")
+        qDebug() << a.busName();
+        if (a.busName() == "com.canonical.StorageFramework.Provider.ProviderTest")
         {
             found = true;
             EXPECT_EQ("Test Provider", a.providerName());

@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
         qDBusRegisterMetaType<unity::storage::internal::AccountDetails>();
         qDBusRegisterMetaType<QList<unity::storage::internal::AccountDetails>>();
 
-        string const bus_name = internal::EnvVars::registry_bus_name();
+        string const bus_name = registry::BUS_NAME;
         if (!conn.registerService(bus_name.c_str()))
         {
             auto msg = last_error_msg(conn);

@@ -70,7 +70,7 @@ AccountsJob* Runtime::accounts() const
 
 Account Runtime::make_test_account(QString const& bus_name,
                                    QString const& object_path,
-                                   qlonglong id,
+                                   quint32 id,
                                    QString const& service_id,
                                    QString const& display_name) const
 {

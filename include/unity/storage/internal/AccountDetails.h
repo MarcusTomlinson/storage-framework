@@ -34,11 +34,11 @@ namespace internal
 
 struct AccountDetails
 {
-    QString providerId;  // Used as the bus name
-    QString objectPath;
-    qlonglong id;
+    QString busName;
+    QDBusObjectPath objectPath;
+    quint32 id;
     QString serviceId;
-    QString displayName;
+    QString name;
     QString providerName;
     QString iconName;
 };
@@ -52,9 +52,6 @@ bool operator>=(AccountDetails const& lhs, AccountDetails const& rhs);
 
 QDBusArgument& operator<<(QDBusArgument& argument, storage::internal::AccountDetails const& account);
 QDBusArgument const& operator>>(QDBusArgument const& argument, storage::internal::AccountDetails& account);
-
-QDBusArgument& operator<<(QDBusArgument& argument, QList<storage::internal::AccountDetails> const& acc_list);
-QDBusArgument const& operator>>(QDBusArgument const& argument, QList<storage::internal::AccountDetails>& acc_list);
 
 }  // namespace internal
 }  // namespace storage

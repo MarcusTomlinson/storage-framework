@@ -66,9 +66,9 @@ public:
 
     Account make_test_account(QString const& bus_name,
                               QString const& object_path,
-                              qlonglong id = 999,
-                              QString const& serviceId = "",
-                              QString const& displayName = "") const;
+                              quint32 id = 999,
+                              QString const& service_id = "",
+                              QString const& name = "") const;
 
 private:
     std::shared_ptr<internal::RuntimeImpl> p_;

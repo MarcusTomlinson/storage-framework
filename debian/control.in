@@ -24,7 +24,6 @@ Build-Depends: cmake,
                qtbase5-dev,
                qtbase5-dev-tools,
                qtdeclarative5-dev,
-               ubuntu-system-settings-online-accounts
 Homepage: https://launchpad.net/storage-framework
 # if you don't have have commit access to this branch but would like to upload
 # directly to Ubuntu, don't worry: your changes will be merged back into the
@@ -49,12 +48,23 @@ Depends: ${misc:Depends},
 Description: Client library for the Storage Framework (API v1, soon to be removed)
  Runtime support for storage framework clients.
 
+Package: storage-framework-registry
+Architecture: any
+Multi-Arch: foreign
+Pre-Depends: ${misc:Pre-Depends},
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+         ubuntu-system-settings-online-accounts
+Description: Registry for the Storage Framework
+ DBus service that provides access to provider account information.
+
 Package: libstorage-framework-qt-client-2-0
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
+         storage-framework-registry
 Description: Client library for the Storage Framework
  Runtime support for storage framework clients.
 

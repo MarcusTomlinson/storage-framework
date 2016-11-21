@@ -61,7 +61,7 @@ public:
 
     Account make_test_account(QString const& bus_name,
                               QString const& object_path,
-                              qlonglong id,
+                              quint32 id,
                               QString const& service_id,
                               QString const& display_name);
 
@@ -69,7 +69,7 @@ private:
     bool is_valid_;
     StorageError error_;
     QDBusConnection conn_;
-    std::shared_ptr<RegistryInterface> registry_;
+    std::unique_ptr<RegistryInterface> registry_;
 
     friend class unity::storage::qt::Runtime;
 };
