@@ -140,7 +140,7 @@ private:
     friend class internal::UploaderImpl;
 };
 
-// Note: qHash(Item) does *not* return the same hash value is std::hash<Item> because
+// Note: qHash(Item) does *not* return the same hash value as std::hash<Item> because
 //       std:hash() returns size_t (typically 64 bits), but qHash() returns uint (typically 32 bits).
 uint Q_DECL_EXPORT qHash(unity::storage::qt::Item const& i);
 
