@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <QString>
+
 namespace unity
 {
 namespace storage
@@ -25,8 +27,8 @@ namespace storage
 namespace registry
 {
 
-static const char BUS_NAME[] = "com.canonical.StorageFramework.Registry";
-static const char OBJECT_PATH[] = "/com/canonical/StorageFramework/Registry";
+static QString const BUS_NAME(QStringLiteral("com.canonical.StorageFramework.Registry"));
+static QString const OBJECT_PATH(QStringLiteral("/com/canonical/StorageFramework/Registry"));
 
 }  // namespace registry
 }  // namespace storage

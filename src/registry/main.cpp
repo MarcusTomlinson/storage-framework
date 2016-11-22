@@ -60,21 +60,22 @@ int main(int argc, char* argv[])
         registry::internal::RegistryAdaptor registry_adaptor(conn, inactivity_timer);
         new ::RegistryAdaptor(&registry_adaptor);
 
-        auto const object_path = registry::OBJECT_PATH;
+        auto const& object_path = registry::OBJECT_PATH;
         if (!conn.registerObject(object_path, &registry_adaptor))
         {
             auto msg = last_error_msg(conn);
-            throw runtime_error(string("Could not register object path ") + object_path + msg.toStdString());
+            throw runtime_error(string("Could not register object path ") +
+                                       object_path.toStdString() + msg.toStdString());
         }
 
         qDBusRegisterMetaType<unity::storage::internal::AccountDetails>();
         qDBusRegisterMetaType<QList<unity::storage::internal::AccountDetails>>();
 
-        auto const bus_name = registry::BUS_NAME;
+        auto const& bus_name = registry::BUS_NAME;
         if (!conn.registerService(bus_name))
         {
             auto msg = last_error_msg(conn);
-            throw runtime_error(string("Could not acquire DBus name ") + bus_name + msg.toStdString());
+            throw runtime_error(string("Could not acquire DBus name ") + bus_name.toStdString() + msg.toStdString());
         }
 
         rc = app.exec();
@@ -82,12 +83,12 @@ int main(int argc, char* argv[])
         if (!conn.unregisterService(bus_name))
         {
             auto msg = last_error_msg(conn);
-            throw runtime_error(string("Could not release DBus name ") + bus_name + msg.toStdString());
+            throw runtime_error(string("Could not release DBus name ") + bus_name.toStdString() + msg.toStdString());
         }
     }
     catch (std::exception const& e)
     {
-        qCritical().noquote() << QString(e.what());
+        qCritical().noquote() << e.what();
     }
 
     return rc;
