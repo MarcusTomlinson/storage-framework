@@ -87,7 +87,7 @@ boost::future<void> TestUploadJob::cancel()
 boost::future<Item> TestUploadJob::finish()
 {
     boost::promise<Item> p;
-    printf("TestUploadJob::finish(): %d read of expected %d\n", (int) bytes_read_, (int) size_);
+    printf("TestUploadJob::finish(): %d read of expected %d\n", int(bytes_read_), int(size_));
     notifier_.setEnabled(false);
     drain();
     if (bytes_read_ == size_)
@@ -139,7 +139,7 @@ void TestUploadJob::drain()
 
 void TestUploadJob::read_some()
 {
-    printf("TestUploadJob::read_some(): %d read of expected %d\n", (int) bytes_read_, (int) size_);
+    printf("TestUploadJob::read_some(): %d read of expected %d\n", int(bytes_read_), int(size_));
 
     char buf[5];
     ssize_t n_read = read(read_socket(), buf, sizeof(buf));
@@ -248,7 +248,7 @@ boost::future<void> TestDownloadJob::cancel()
 boost::future<void> TestDownloadJob::finish()
 {
     boost::promise<void> p;
-    if (bytes_written_ < (ssize_t)data_.size())
+    if (bytes_written_ < ssize_t(data_.size()))
     {
         p.set_exception(LogicException("Not all data read"));
     }
@@ -261,14 +261,14 @@ boost::future<void> TestDownloadJob::finish()
 
 void TestDownloadJob::write_some()
 {
-    if (bytes_written_ >= (ssize_t)data_.size()) {
+    if (bytes_written_ >= ssize_t(data_.size())) {
         report_complete();
         timer_.stop();
         return;
     }
 
     ssize_t n_written = write(write_socket(), data_.data() + bytes_written_,
-                              min(data_.size() - bytes_written_, (size_t)2));
+                              min(data_.size() - bytes_written_, size_t(2)));
     if (n_written < 0)
     {
         int error_code = errno;

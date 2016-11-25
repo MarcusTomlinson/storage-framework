@@ -22,7 +22,11 @@
 #include <utils/gtest_printer.h>
 #include <utils/ProviderFixture.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <gtest/gtest.h>
+#pragma GCC diagnostic pop
+
 #include <QSignalSpy>
 
 #include <unordered_set>
@@ -319,14 +323,14 @@ TEST_F(AccountTest, hash)
     unordered_set<Account>();  // Just to show that this works.
 
     Account a1;
-    EXPECT_EQ(0, hash<Account>()(a1));
-    EXPECT_EQ(0, a1.hash());
-    EXPECT_EQ(0, qHash(a1));
+    EXPECT_EQ(0u, hash<Account>()(a1));
+    EXPECT_EQ(0u, a1.hash());
+    EXPECT_EQ(0u, qHash(a1));
 
     auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
     // Due to different return types (size_t vs uint), hash() and qHash() do not return the same value.
-    EXPECT_NE(0, a2.hash());
-    EXPECT_NE(0, qHash(a2));
+    EXPECT_NE(0u, a2.hash());
+    EXPECT_NE(0u, qHash(a2));
 }
 
 TEST_F(AccountTest, accounts)
@@ -1144,9 +1148,9 @@ TEST_F(ItemTest, comparison_and_hash)
 
         unordered_set<Item>();  // Just to show that this works.
 
-        EXPECT_EQ(0, hash<Item>()(i1));
-        EXPECT_EQ(0, i1.hash());
-        EXPECT_EQ(0, qHash(i1));
+        EXPECT_EQ(0u, hash<Item>()(i1));
+        EXPECT_EQ(0u, i1.hash());
+        EXPECT_EQ(0u, qHash(i1));
     }
 
     {
@@ -1178,8 +1182,8 @@ TEST_F(ItemTest, comparison_and_hash)
         EXPECT_FALSE(i2 > i1);
         EXPECT_FALSE(i2 >= i1);
 
-        EXPECT_NE(0, i1.hash());
-        EXPECT_NE(0, qHash(i1));
+        EXPECT_NE(0u, i1.hash());
+        EXPECT_NE(0u, qHash(i1));
     }
 
     {
@@ -3057,7 +3061,7 @@ TEST_F(UploadTest, runtime_destroyed)
 
     unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 20));
     EXPECT_FALSE(uploader->isValid());
-    EXPECT_EQ(Downloader::Status::Error, uploader->status());
+    EXPECT_EQ(Uploader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::RuntimeDestroyed, uploader->error().type());
     EXPECT_EQ("RuntimeDestroyed: Item::createUploader(): Runtime was destroyed previously",
               uploader->error().errorString());
