@@ -52,6 +52,7 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account_impl,
             return;
         }
 
+        bool found_errors = false;
         QList<Item> items;
         auto metadata = r.value();
         for (auto const& md : metadata)
@@ -65,14 +66,20 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account_impl,
             catch (StorageError const&)
             {
                 // Bad metadata received from provider, validate_() or make_item() have logged it.
+                found_errors = true;
             }
         }
-        status_ = ItemListJob::Status::Finished;
-        if (!items.isEmpty())
+        if (!found_errors)
         {
-            Q_EMIT public_instance_->itemsReady(items);
+            status_ = ItemListJob::Status::Finished;
+        }
+        else
+        {
+            error_ = StorageErrorImpl::local_comms_error(method_ + ": received one or more items with invalid metadata");
+            status_ = ItemListJob::Status::Error;
         }
         Q_EMIT public_instance_->statusChanged(status_);
+        Q_EMIT public_instance_->itemsReady(items);
     };
 
     auto process_error = [this](StorageError const& error)

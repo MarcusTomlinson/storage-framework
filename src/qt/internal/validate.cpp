@@ -110,69 +110,81 @@ void validate(QString const& method, ItemMetadata const& md)
 {
     using namespace unity::storage::metadata;
 
-    QString prefix = method + ": received invalid metadata from provider: ";
-
-    // Basic sanity checks for mandatory fields.
-    if (md.item_id.isEmpty())
+    QString prefix = method + ": received invalid metadata from provider";
+    if (!md.item_id.isEmpty())
     {
-        throw StorageErrorImpl::local_comms_error(prefix + "item_id cannot be empty");
+        prefix += " (id = " + md.item_id + ")";
     }
-    if (md.type != ItemType::root)
+    prefix += ": ";
+
+    try
     {
-        if (md.parent_ids.isEmpty())
+        // Basic sanity checks for mandatory fields.
+        if (md.item_id.isEmpty())
         {
-            throw StorageErrorImpl::local_comms_error(prefix + "file or folder must have at least one parent ID");
+            throw StorageErrorImpl::local_comms_error(prefix + "item_id cannot be empty");
         }
-        for (int i = 0; i < md.parent_ids.size(); ++i)
+        if (md.type != ItemType::root)
         {
-            if (md.parent_ids.at(i).isEmpty())
+            if (md.parent_ids.isEmpty())
             {
-                throw StorageErrorImpl::local_comms_error(prefix + "parent_id of file or folder cannot be empty");
+                throw StorageErrorImpl::local_comms_error(prefix + "file or folder must have at least one parent ID");
+            }
+            for (int i = 0; i < md.parent_ids.size(); ++i)
+            {
+                if (md.parent_ids.at(i).isEmpty())
+                {
+                    throw StorageErrorImpl::local_comms_error(prefix + "parent_id of file or folder cannot be empty");
+                }
+            }
+        }
+        if (md.type == ItemType::root && !md.parent_ids.isEmpty())
+        {
+            throw StorageErrorImpl::local_comms_error(prefix + "parent_ids of root must be empty");
+        }
+        if (md.type != ItemType::root)  // Dropbox does not support metadata for roots.
+        {
+            if (md.name.isEmpty())
+            {
+                throw StorageErrorImpl::local_comms_error(prefix + "name cannot be empty");
+            }
+        }
+        if (md.type == ItemType::file && md.etag.isEmpty())  // WebDav doesn't do etag for folders.
+        {
+            throw StorageErrorImpl::local_comms_error(prefix + "etag of a file cannot be empty");
+        }
+
+        // Sanity check metadata to make sure only known metadata keys appear.
+        QMapIterator<QString, QVariant> actual(md.metadata);
+        while (actual.hasNext())
+        {
+            actual.next();
+            auto known = known_metadata.find(actual.key().toStdString());
+            if (known == known_metadata.end())
+            {
+                qWarning().noquote().nospace() << prefix << "unknown metadata key: \"" << actual.key() << "\"";
+            }
+            else
+            {
+                validate_type_and_value(prefix, actual, known);
+            }
+        }
+
+        // Sanity check metadata to make sure that mandatory fields are present.
+        if (md.type == ItemType::file)
+        {
+            if (!md.metadata.contains(metadata::SIZE_IN_BYTES) ||
+                !md.metadata.contains(metadata::LAST_MODIFIED_TIME))
+            {
+                QString msg = prefix + "missing key \"" + metadata::SIZE_IN_BYTES + "\" in metadata";
+                throw StorageErrorImpl::local_comms_error(msg);
             }
         }
     }
-    if (md.type == ItemType::root && !md.parent_ids.isEmpty())
+    catch (StorageError const& e)
     {
-        throw StorageErrorImpl::local_comms_error(prefix + "parent_ids of root must be empty");
-    }
-    if (md.type != ItemType::root)  // Dropbox does not support metadata for roots.
-    {
-        if (md.name.isEmpty())
-        {
-            throw StorageErrorImpl::local_comms_error(prefix + "name cannot be empty");
-        }
-    }
-    if (md.type == ItemType::file && md.etag.isEmpty())  // WebDav doesn't do etag for folders.
-    {
-        throw StorageErrorImpl::local_comms_error(prefix + "etag of a file cannot be empty");
-    }
-
-    // Sanity check metadata to make sure only known metadata keys appear.
-    QMapIterator<QString, QVariant> actual(md.metadata);
-    while (actual.hasNext())
-    {
-        actual.next();
-        auto known = known_metadata.find(actual.key().toStdString());
-        if (known == known_metadata.end())
-        {
-            qWarning().noquote().nospace() << prefix << "unknown metadata key: \"" << actual.key() << "\"";
-        }
-        else
-        {
-            validate_type_and_value(prefix, actual, known);
-        }
-    }
-
-    // Sanity check metadata to make sure that mandatory fields are present.
-    if (md.type == ItemType::file)
-    {
-        if (!md.metadata.contains(metadata::SIZE_IN_BYTES) ||
-            !md.metadata.contains(metadata::LAST_MODIFIED_TIME))
-        {
-            QString msg = prefix + "missing key \"" + metadata::SIZE_IN_BYTES + "\" "
-                          "in metadata for \"" + md.item_id + "\"";
-            throw StorageErrorImpl::local_comms_error(msg);
-        }
+        qCritical().noquote() << e.message();
+        throw;
     }
 }
 
