@@ -519,7 +519,7 @@ TEST_F(RootsTest, not_a_root)
 
     EXPECT_EQ(ItemListJob::Status::Error, j->status());
     EXPECT_EQ(StorageError::Type::LocalCommsError, j->error().type());
-    EXPECT_EQ("LocalCommsError: Account::roots(): received one or more items with invalid metadata",
+    EXPECT_EQ("LocalCommsError: Account::roots(): provider returned non-root item type: 0 (id = root_id)",
               j->error().errorString());
 }
 
@@ -2184,7 +2184,10 @@ TEST_F(ListTest, empty_list)
     QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
     QSignalSpy status_spy(j.get(), &ItemListJob::statusChanged);
     status_spy.wait(SIGNAL_WAIT_TIME);
-    ASSERT_EQ(0, ready_spy.count());
+    if (ready_spy.count() == 0)
+    {
+        ASSERT_TRUE(ready_spy.wait(SIGNAL_WAIT_TIME));
+    }
 
     EXPECT_EQ(ItemListJob::Status::Finished, j->status());
 

@@ -183,7 +183,7 @@ void validate(QString const& method, ItemMetadata const& md)
     }
     catch (StorageError const& e)
     {
-        qCritical().noquote() << e.message();
+        qCritical().noquote() << e.errorString();
         throw;
     }
 }
