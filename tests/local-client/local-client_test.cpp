@@ -21,7 +21,11 @@
 #include <unity/storage/qt/client/internal/local_client/boost_filesystem.h>
 #include <unity/storage/qt/client/internal/local_client/tmpfile_prefix.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <gtest/gtest.h>
+#pragma GCC diagnostic pop
+
 #include <QCoreApplication>
 #include <QFile>
 #include <QFutureWatcher>

@@ -16,7 +16,7 @@
         for the OnlineAccounts::Manager::availableAccounts() method.
 
         The returned values are structs with the following members:
-          - bus name (e.g. "com.canonical.StorageFramework.Provider.OwnCloud", used as the bus name)
+          - bus name (e.g. "com.canonical.StorageFramework.Provider.OwnCloud")
           - object path (e.g. "/provider/7")
           - ID (e.g. 7, used for object path)
           - service ID (e.g. "storage-provider-owncloud")

@@ -62,16 +62,14 @@ ItemListJobImpl::ItemListJobImpl(shared_ptr<AccountImpl> const& account_impl,
                 auto item = ItemImpl::make_item(method_, md, account_impl_);
                 items.append(item);
             }
-            catch (StorageError const&)
+            catch (StorageError const& e)
             {
                 // Bad metadata received from provider, validate_() or make_item() have logged it.
+                error_ = e;
             }
         }
-        status_ = ItemListJob::Status::Finished;
-        if (!items.isEmpty())
-        {
-            Q_EMIT public_instance_->itemsReady(items);
-        }
+        status_ = error_.type() == StorageError::NoError ? ItemListJob::Finished : ItemListJob::Error;
+        Q_EMIT public_instance_->itemsReady(items);
         Q_EMIT public_instance_->statusChanged(status_);
     };
 

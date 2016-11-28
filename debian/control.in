@@ -55,7 +55,7 @@ Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
 #        TODO: should be removed once online accounts is fixed: lp:1643421
-         ubuntu-system-settings-online-accounts
+         online-accounts-daemon,
 Description: Registry for the Storage Framework
  DBus service that provides access to provider account information.
 

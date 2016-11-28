@@ -86,10 +86,7 @@ MultiItemListJobImpl::MultiItemListJobImpl(shared_ptr<ItemImpl> const& item_impl
         {
             status_ = ItemListJob::Status::Finished;
         }
-        if (!items.isEmpty())
-        {
-            Q_EMIT public_instance_->itemsReady(items);
-        }
+        Q_EMIT public_instance_->itemsReady(items);
         if (token.isEmpty())
         {
             Q_EMIT public_instance_->statusChanged(status_);
