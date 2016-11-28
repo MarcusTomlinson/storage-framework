@@ -103,7 +103,8 @@ ItemListJob* AccountImpl::roots(QStringList const& keys) const
     {
         if (md.type != ItemType::root)
         {
-            QString msg = method + ": provider returned non-root item type: " + QString::number(int(md.type));
+            QString msg = method + ": provider returned non-root item type: " + QString::number(int(md.type)) +
+                          " (id = " + md.item_id + ")";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }

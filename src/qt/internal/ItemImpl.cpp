@@ -153,7 +153,7 @@ ItemListJob* ItemImpl::parents(QStringList const& keys) const
     {
         if (md.type == ItemType::file)
         {
-            QString msg = method + ": provider returned a file as a parent";
+            QString msg = method + ": provider returned a file as a parent (id = " + md.item_id + ")";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
@@ -178,7 +178,8 @@ ItemJob* ItemImpl::copy(Item const& newParent, QString const& newName, QStringLi
             ||
             (md_.type != ItemType::file && md.type == ItemType::file))
         {
-            QString msg = method + ": source and target item type differ";
+            QString msg = method + "provider error: source and target item type differ (source id = " +
+                          md_.item_id + ", target id = " + md.item_id + ")";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
@@ -203,7 +204,7 @@ ItemJob* ItemImpl::move(Item const& newParent, QString const& newName, QStringLi
     {
         if (md.type == ItemType::root)
         {
-            QString msg = method + ": impossible root item returned by provider";
+            QString msg = method + ": impossible root item returned by provider (id = " + md.item_id + ")";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
@@ -211,7 +212,8 @@ ItemJob* ItemImpl::move(Item const& newParent, QString const& newName, QStringLi
             ||
             (md_.type != ItemType::file && md.type == ItemType::file))
         {
-            QString msg = method + ": provider error: source and target item type differ";
+            QString msg = method + ": provider error: source and target item type differ (source id = " +
+                          md_.item_id + ", target id = " + md.item_id + ")";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
@@ -266,7 +268,7 @@ Uploader* ItemImpl::createUploader(Item::ConflictPolicy policy, qint64 sizeInByt
     {
         if (md.type != storage::ItemType::file)
         {
-            QString msg = method + ": impossible folder item returned by provider";
+            QString msg = method + ": impossible folder item returned by provider (id = " + md.item_id + ")";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
@@ -318,7 +320,7 @@ ItemListJob* ItemImpl::list(QStringList const& keys) const
     {
         if (md.type == storage::ItemType::root)
         {
-            QString msg = method + ": impossible root item returned by provider";
+            QString msg = method + ": impossible root item returned by provider (id = " + md.item_id + ")";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }
@@ -379,7 +381,7 @@ ItemJob* ItemImpl::createFolder(QString const& name, QStringList const& keys) co
         {
             return;
         }
-        QString msg = method + ": impossible file item returned by provider";
+        QString msg = method + ": impossible file item returned by provider (id = " + md.item_id + ")";
         qCritical().noquote() << msg;
         throw StorageErrorImpl::local_comms_error(msg);
     };
@@ -423,7 +425,7 @@ Uploader* ItemImpl::createFile(QString const& name,
     {
         if (md.type != storage::ItemType::file)
         {
-            QString msg = method + ": impossible folder item returned by provider";
+            QString msg = method + ": impossible folder item returned by provider (id = " + md.item_id + ")";
             qCritical().noquote() << msg;
             throw StorageErrorImpl::local_comms_error(msg);
         }

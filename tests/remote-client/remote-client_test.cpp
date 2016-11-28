@@ -22,7 +22,11 @@
 #include <utils/gtest_printer.h>
 #include <utils/ProviderFixture.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <gtest/gtest.h>
+#pragma GCC diagnostic pop
+
 #include <QSignalSpy>
 
 #include <unordered_set>
@@ -319,14 +323,14 @@ TEST_F(AccountTest, hash)
     unordered_set<Account>();  // Just to show that this works.
 
     Account a1;
-    EXPECT_EQ(0, hash<Account>()(a1));
-    EXPECT_EQ(0, a1.hash());
-    EXPECT_EQ(0, qHash(a1));
+    EXPECT_EQ(0u, hash<Account>()(a1));
+    EXPECT_EQ(0u, a1.hash());
+    EXPECT_EQ(0u, qHash(a1));
 
     auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "a");
     // Due to different return types (size_t vs uint), hash() and qHash() do not return the same value.
-    EXPECT_NE(0, a2.hash());
-    EXPECT_NE(0, qHash(a2));
+    EXPECT_NE(0u, a2.hash());
+    EXPECT_NE(0u, qHash(a2));
 }
 
 TEST_F(AccountTest, accounts)
@@ -516,11 +520,23 @@ TEST_F(RootsTest, not_a_root)
     QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
     QSignalSpy status_spy(j.get(), &ItemListJob::statusChanged);
     status_spy.wait(SIGNAL_WAIT_TIME);
-    auto arg = status_spy.takeFirst();
+    {
+        auto arg = status_spy.takeFirst();
+        EXPECT_EQ(ItemListJob::Status::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
+    }
 
-    // Bad metadata is ignored, so status is finished, and itemsReady was never called.
-    EXPECT_EQ(ItemListJob::Status::Finished, qvariant_cast<ItemListJob::Status>(arg.at(0)));
-    EXPECT_EQ(0, status_spy.count());
+    if (ready_spy.count() != 1)
+    {
+        ready_spy.wait(SIGNAL_WAIT_TIME);
+    }
+    auto arg = ready_spy.takeFirst();
+    auto items = qvariant_cast<QList<Item>>(arg.at(0));
+    EXPECT_EQ(0, items.size());
+
+    EXPECT_EQ(ItemListJob::Status::Error, j->status());
+    EXPECT_EQ(StorageError::Type::LocalCommsError, j->error().type());
+    EXPECT_EQ("LocalCommsError: Account::roots(): provider returned non-root item type: 0 (id = root_id)",
+              j->error().errorString());
 }
 
 TEST_F(GetTest, basic)
@@ -691,8 +707,9 @@ TEST_F(MetadataTest, no_parents)
     spy.wait(SIGNAL_WAIT_TIME);
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
-    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
-              "file or folder must have at least one parent ID", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider (id = child_id): "
+              "file or folder must have at least one parent ID"
+              , j->error().errorString());
 }
 
 TEST_F(MetadataTest, empty_parent)
@@ -705,8 +722,9 @@ TEST_F(MetadataTest, empty_parent)
     spy.wait(SIGNAL_WAIT_TIME);
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
-    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
-              "parent_id of file or folder cannot be empty", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider (id = child_id): "
+              "parent_id of file or folder cannot be empty",
+              j->error().errorString());
 }
 
 TEST_F(MetadataTest, root_with_parent)
@@ -719,8 +737,9 @@ TEST_F(MetadataTest, root_with_parent)
     spy.wait(SIGNAL_WAIT_TIME);
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
-    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
-              "parent_ids of root must be empty", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider (id = root_id): "
+              "parent_ids of root must be empty",
+              j->error().errorString());
 }
 
 TEST_F(MetadataTest, empty_name)
@@ -733,8 +752,9 @@ TEST_F(MetadataTest, empty_name)
     spy.wait(SIGNAL_WAIT_TIME);
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
-    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
-              "name cannot be empty", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider (id = child_id): "
+              "name cannot be empty",
+              j->error().errorString());
 }
 
 TEST_F(MetadataTest, empty_etag)
@@ -747,8 +767,9 @@ TEST_F(MetadataTest, empty_etag)
     spy.wait(SIGNAL_WAIT_TIME);
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
-    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
-              "etag of a file cannot be empty", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider (id = child_id): "
+              "etag of a file cannot be empty",
+              j->error().errorString());
 }
 
 TEST_F(MetadataTest, unknown_key)
@@ -774,8 +795,9 @@ TEST_F(MetadataTest, missing_size)
     spy.wait(SIGNAL_WAIT_TIME);
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
-    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: "
-              "missing key \"size_in_bytes\" in metadata for \"child_id\"", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider (id = child_id): "
+              "missing key \"size_in_bytes\" in metadata",
+              j->error().errorString());
 }
 
 TEST_F(MetadataTest, wrong_type_for_time)
@@ -788,8 +810,9 @@ TEST_F(MetadataTest, wrong_type_for_time)
     spy.wait(SIGNAL_WAIT_TIME);
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
-    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: last_modified_time: "
-              "expected value of type QString, but received value of type qlonglong", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider (id = child_id): "
+              "last_modified_time: expected value of type QString, but received value of type qlonglong",
+              j->error().errorString());
 }
 
 TEST_F(MetadataTest, bad_parse_for_time)
@@ -802,8 +825,9 @@ TEST_F(MetadataTest, bad_parse_for_time)
     spy.wait(SIGNAL_WAIT_TIME);
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
-    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: last_modified_time: "
-              "value \"xyz\" does not parse as ISO-8601 date", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider (id = child_id): "
+              "last_modified_time: value \"xyz\" does not parse as ISO-8601 date",
+              j->error().errorString());
 }
 
 TEST_F(MetadataTest, missing_timezone)
@@ -816,8 +840,9 @@ TEST_F(MetadataTest, missing_timezone)
     spy.wait(SIGNAL_WAIT_TIME);
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
-    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: last_modified_time: "
-              "value \"2007-04-05T14:30\" lacks a time zone specification", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider (id = child_id): "
+              "last_modified_time: value \"2007-04-05T14:30\" lacks a time zone specification",
+              j->error().errorString());
 }
 
 TEST_F(MetadataTest, wrong_type_for_size)
@@ -830,8 +855,9 @@ TEST_F(MetadataTest, wrong_type_for_size)
     spy.wait(SIGNAL_WAIT_TIME);
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
-    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: size_in_bytes: "
-              "expected value of type qlonglong, but received value of type QString", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider (id = child_id): "
+              "size_in_bytes: expected value of type qlonglong, but received value of type QString",
+              j->error().errorString());
 }
 
 TEST_F(MetadataTest, negative_size)
@@ -844,8 +870,9 @@ TEST_F(MetadataTest, negative_size)
     spy.wait(SIGNAL_WAIT_TIME);
 
     EXPECT_EQ(ItemJob::Status::Error, j->status());
-    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider: size_in_bytes: "
-              "expected value >= 0, but received -1", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Account::get(): received invalid metadata from provider (id = child_id): "
+              "size_in_bytes: expected value >= 0, but received -1",
+              j->error().errorString());
 }
 
 TEST_F(DeleteTest, basic)
@@ -1133,9 +1160,9 @@ TEST_F(ItemTest, comparison_and_hash)
 
         unordered_set<Item>();  // Just to show that this works.
 
-        EXPECT_EQ(0, hash<Item>()(i1));
-        EXPECT_EQ(0, i1.hash());
-        EXPECT_EQ(0, qHash(i1));
+        EXPECT_EQ(0u, hash<Item>()(i1));
+        EXPECT_EQ(0u, i1.hash());
+        EXPECT_EQ(0u, qHash(i1));
     }
 
     {
@@ -1167,8 +1194,8 @@ TEST_F(ItemTest, comparison_and_hash)
         EXPECT_FALSE(i2 > i1);
         EXPECT_FALSE(i2 >= i1);
 
-        EXPECT_NE(0, i1.hash());
-        EXPECT_NE(0, qHash(i1));
+        EXPECT_NE(0u, i1.hash());
+        EXPECT_NE(0u, qHash(i1));
     }
 
     {
@@ -1497,7 +1524,7 @@ TEST_F(ParentsTest, bad_metadata)
         auto arg = spy.takeFirst();
         EXPECT_EQ(ItemListJob::Status::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
 
-        EXPECT_EQ("Item::parents(): provider returned a file as a parent", j->error().message());
+        EXPECT_EQ("Item::parents(): provider returned a file as a parent (id = root_id)", j->error().message());
     }
 }
 
@@ -1764,7 +1791,9 @@ TEST_F(CopyTest, type_mismatch)
     EXPECT_FALSE(j->isValid());
     EXPECT_EQ(ItemJob::Status::Error, j->status());
     EXPECT_EQ(StorageError::Type::LocalCommsError, j->error().type());
-    EXPECT_EQ("LocalCommsError: Item::copy(): source and target item type differ", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Item::copy()provider error: source and target item type differ "
+              "(source id = child_id, target id = new_item_id)",
+              j->error().errorString());
 }
 
 TEST_F(MoveTest, basic)
@@ -1876,7 +1905,8 @@ TEST_F(MoveTest, root_returned)
     EXPECT_EQ(ItemJob::Status::Error, j->status());
     EXPECT_EQ(StorageError::Type::LocalCommsError, j->error().type());
     EXPECT_EQ("LocalCommsError", j->error().name());
-    EXPECT_EQ("LocalCommsError: Item::move(): impossible root item returned by provider", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Item::move(): impossible root item returned by provider (id = root_id)",
+              j->error().errorString());
 }
 
 TEST_F(MoveTest, type_mismatch)
@@ -1912,7 +1942,8 @@ TEST_F(MoveTest, type_mismatch)
     EXPECT_FALSE(j->isValid());
     EXPECT_EQ(ItemJob::Status::Error, j->status());
     EXPECT_EQ(StorageError::Type::LocalCommsError, j->error().type());
-    EXPECT_EQ("LocalCommsError: Item::move(): provider error: source and target item type differ",
+    EXPECT_EQ("LocalCommsError: Item::move(): provider error: source and target item type differ "
+              "(source id = child_id, target id = child_id)",
               j->error().errorString());
 }
 
@@ -2107,7 +2138,7 @@ TEST_F(CreateFolderTest, wrong_return_type)
     auto status = qvariant_cast<ItemJob::Status>(arg.at(0));
     EXPECT_EQ(ItemJob::Status::Error, status);
 
-    EXPECT_EQ("LocalCommsError: Item::createFolder(): impossible file item returned by provider",
+    EXPECT_EQ("LocalCommsError: Item::createFolder(): impossible file item returned by provider (id = new_folder_id)",
               j->error().errorString());
 }
 
@@ -2170,7 +2201,10 @@ TEST_F(ListTest, empty_list)
     QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
     QSignalSpy status_spy(j.get(), &ItemListJob::statusChanged);
     status_spy.wait(SIGNAL_WAIT_TIME);
-    ASSERT_EQ(0, ready_spy.count());
+    if (ready_spy.count() == 0)
+    {
+        ASSERT_TRUE(ready_spy.wait(SIGNAL_WAIT_TIME));
+    }
 
     EXPECT_EQ(ItemListJob::Status::Finished, j->status());
 
@@ -2316,7 +2350,8 @@ TEST_F(ListTest, wrong_return_type)
     auto arg = spy.takeFirst();
     EXPECT_EQ(ItemListJob::Status::Error, qvariant_cast<ItemListJob::Status>(arg.at(0)));
 
-    EXPECT_EQ("LocalCommsError: Item::list(): impossible root item returned by provider", j->error().errorString());
+    EXPECT_EQ("LocalCommsError: Item::list(): impossible root item returned by provider (id = child_id)",
+              j->error().errorString());
 }
 
 TEST_F(ListTest, runtime_destroyed_while_item_list_job_running)
@@ -3039,7 +3074,7 @@ TEST_F(UploadTest, runtime_destroyed)
 
     unique_ptr<Uploader> uploader(child.createUploader(Item::ConflictPolicy::IgnoreConflict, 20));
     EXPECT_FALSE(uploader->isValid());
-    EXPECT_EQ(Downloader::Status::Error, uploader->status());
+    EXPECT_EQ(Uploader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::RuntimeDestroyed, uploader->error().type());
     EXPECT_EQ("RuntimeDestroyed: Item::createUploader(): Runtime was destroyed previously",
               uploader->error().errorString());
@@ -3383,7 +3418,8 @@ TEST_F(UploadTest, wrong_return_type)
 
     EXPECT_EQ(Uploader::Status::Error, uploader->status());
     EXPECT_EQ(StorageError::Type::LocalCommsError, uploader->error().type());
-    EXPECT_EQ("Item::createUploader(): impossible folder item returned by provider", uploader->error().message());
+    EXPECT_EQ("Item::createUploader(): impossible folder item returned by provider (id = some_id)",
+              uploader->error().message());
 }
 
 TEST_F(UploadTest, cancel_success)
@@ -3715,7 +3751,8 @@ TEST_F(CreateFileTest, bad_return_type)
     EXPECT_EQ(Uploader::Status::Error, qvariant_cast<Uploader::Status>(arg.at(0)));
 
     EXPECT_EQ(StorageError::Type::LocalCommsError, uploader->error().type());
-    EXPECT_EQ("Item::createFile(): impossible folder item returned by provider", uploader->error().message());
+    EXPECT_EQ("Item::createFile(): impossible folder item returned by provider (id = some_id)",
+              uploader->error().message());
 }
 
 TEST_F(CreateFileTest, exists)
