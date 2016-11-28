@@ -68,9 +68,9 @@ QString AccountImpl::objectPath() const
     return is_valid_ ? details_.objectPath.path() : QDBusObjectPath().path();
 }
 
-QString AccountImpl::name() const
+QString AccountImpl::displayName() const
 {
-    return is_valid_ ? details_.name : "";
+    return is_valid_ ? details_.displayName : "";
 }
 
 QString AccountImpl::providerName() const
@@ -200,7 +200,7 @@ size_t AccountImpl::hash() const
     }
     size_t hash = details_.id;
     boost::hash_combine(hash, qHash(details_.serviceId));
-    boost::hash_combine(hash, qHash(details_.name));
+    boost::hash_combine(hash, qHash(details_.displayName));
     return hash;
 }
 

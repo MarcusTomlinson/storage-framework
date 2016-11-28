@@ -46,7 +46,7 @@ public:
 
     QString busName() const;
     QString objectPath() const;
-    QString name() const;
+    QString displayName() const;
     QString providerName() const;
     QString iconName() const;
 

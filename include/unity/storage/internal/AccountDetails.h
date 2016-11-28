@@ -38,7 +38,7 @@ struct AccountDetails
     QDBusObjectPath objectPath;
     quint32 id;
     QString serviceId;
-    QString name;
+    QString displayName;
     QString providerName;
     QString iconName;
 };

@@ -120,7 +120,7 @@ TEST_F(AccountTest, basic)
         EXPECT_FALSE(a.isValid());
         EXPECT_EQ("", a.busName());
         EXPECT_EQ("", a.objectPath());
-        EXPECT_EQ("", a.name());
+        EXPECT_EQ("", a.displayName());
     }
 
     {
@@ -129,21 +129,21 @@ TEST_F(AccountTest, basic)
         EXPECT_TRUE(acc.isValid());
         EXPECT_EQ(service_connection_->baseService(), acc.busName());
         EXPECT_EQ(object_path(), acc.objectPath());
-        EXPECT_EQ("name", acc.name());
+        EXPECT_EQ("name", acc.displayName());
 
         // Copy constructor
         Account a2(acc);
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a2.busName());
         EXPECT_EQ(object_path(), a2.objectPath());
-        EXPECT_EQ("name", a2.name());
+        EXPECT_EQ("name", a2.displayName());
 
         // Move constructor
         Account a3(move(a2));
         EXPECT_TRUE(a3.isValid());
         EXPECT_EQ(service_connection_->baseService(), a3.busName());
         EXPECT_EQ(object_path(), a3.objectPath());
-        EXPECT_EQ("name", a3.name());
+        EXPECT_EQ("name", a3.displayName());
 
         // Moved-from object must be invalid
         EXPECT_FALSE(a2.isValid());
@@ -155,7 +155,7 @@ TEST_F(AccountTest, basic)
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a2.busName());
         EXPECT_EQ(object_path(), a2.objectPath());
-        EXPECT_EQ("name4", a2.name());
+        EXPECT_EQ("name4", a2.displayName());
     }
 
     {
@@ -167,14 +167,14 @@ TEST_F(AccountTest, basic)
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a1.busName());
         EXPECT_EQ(object_path(), a1.objectPath());
-        EXPECT_EQ("n2", a1.name());
+        EXPECT_EQ("n2", a1.displayName());
 
         // Self-assignment
         a2 = a2;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a1.busName());
         EXPECT_EQ(object_path(), a1.objectPath());
-        EXPECT_EQ("n2", a1.name());
+        EXPECT_EQ("n2", a1.displayName());
 
         // Move assignment
         auto a3 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
@@ -183,7 +183,7 @@ TEST_F(AccountTest, basic)
         EXPECT_TRUE(a1.isValid());
         EXPECT_EQ(service_connection_->baseService(), a1.busName());
         EXPECT_EQ(object_path(), a1.objectPath());
-        EXPECT_EQ("n3", a1.name());
+        EXPECT_EQ("n3", a1.displayName());
 
         // Moved-from object must be invalid
         EXPECT_FALSE(a3.isValid());
@@ -195,7 +195,7 @@ TEST_F(AccountTest, basic)
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a2.busName());
         EXPECT_EQ(object_path(), a2.objectPath());
-        EXPECT_EQ("n4", a2.name());
+        EXPECT_EQ("n4", a2.displayName());
     }
 }
 

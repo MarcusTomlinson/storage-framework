@@ -92,7 +92,7 @@ void ListAccountsHandler::manager_ready()
         ad.objectPath = QDBusObjectPath(QStringLiteral("/provider/%1").arg(acct->id()));
         ad.id = acct->id();
         ad.serviceId = acct->serviceId();
-        ad.name = acct->displayName();
+        ad.displayName = acct->displayName();
         ad.providerName = it->second.provider_name;
         ad.iconName = "";
 

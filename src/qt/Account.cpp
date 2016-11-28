@@ -88,9 +88,9 @@ QString Account::objectPath() const
     return p_->objectPath();
 }
 
-QString Account::name() const
+QString Account::displayName() const
 {
-    return p_->name();
+    return p_->displayName();
 }
 
 QString Account::providerName() const
