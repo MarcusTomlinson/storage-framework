@@ -3,33 +3,30 @@
 <node xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
   <!--
       com.canonical.StorageFramework.Registry:
-      @short_description: Interface to query the backend registry
-
-      Inteface to query the repository of backends that are
-      available.
+      @short_description: Interface to retrieve providers that are configured in online accounts
   -->
   <interface name="com.canonical.StorageFramework.Registry">
-
     <!--
-        GetBackend:
-        @short_description: request access to a storage account
-        @service_id: if not empty, restrict results to accounts
-            matching this service ID.
-        @bus_name: the bus name of the storage provider
-        @path: the object path of the storage account at the provider
+        List:
+        @short_description: Get the list of accounts
+        @accounts: Returned list of accounts.
 
-        Interactively prompt the user to pick a storage account for
-        use by the application, and return the D-Bus endpoint that can
-        be used to communicate with the associated provider.
+        Returns the list of provider accounts that are available
+        in online accounts. In essence, this method is a proxy
+        for the OnlineAccounts::Manager::availableAccounts() method.
 
-        As this involves user interaction, the caller should use a
-        relatively long time out for this method call.
-        -->
-    <method name="GetProvider">
-      <arg type="s" name="service_id" direction="in" />
-
-      <arg type="s" name="bus_name" direction="out" />
-      <arg type="o" name="path" direction="out" />
+        The returned values are structs with the following members:
+          - bus name (e.g. "com.canonical.StorageFramework.Provider.OwnCloud")
+          - object path (e.g. "/provider/7")
+          - ID (e.g. 7, used for object path)
+          - service ID (e.g. "storage-provider-owncloud")
+          - display name (e.g. "michi.henning@canonical.com")
+          - translated provider name (e.g. "OwnCloud")
+          - icon name
+    -->
+    <method name="ListAccounts">
+      <arg type="a(soussss)" name="accounts" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;unity::storage::internal::AccountDetails&gt;"/>
     </method>
   </interface>
 </node>

@@ -86,16 +86,16 @@ class Password_Bug1628473(Password):
         }, signature="sv")
 
 class Account:
-    def __init__(self, account_id, display_name, service_id, credentials, settings=None):
+    def __init__(self, account_id, name, service_id, credentials, settings=None):
         self.account_id = account_id
-        self.display_name = display_name
+        self.name = name
         self.service_id = service_id
         self.credentials = credentials
         self.settings = settings
 
     def serialise(self):
         account_info = dbus.Dictionary({
-            "displayName": dbus.String(self.display_name),
+            "displayName": dbus.String(self.name),
             "serviceId": dbus.String(self.service_id),
             "authMethod": dbus.Int32(self.credentials.method),
         }, signature="sv")
@@ -174,8 +174,8 @@ if __name__ == "__main__":
         Account(4, "Password host account", "password-host-service",
                 Password_Bug1628473("joe", "secret"),
                 {"host": "http://www.example.com/"}),
-        Account(42, "Fake google account", "google-drive-scope",
-                OAuth2("fake-google-access-token", 0, [])),
+        Account(42, "Fake test account", "storage-provider-test",
+                OAuth2("fake-test-access-token", 0, [])),
         Account(99, "Fake mcloud account", "com.canonical.scopes.mcloud_mcloud_mcloud",
                 OAuth2("fake-mcloud-access-token", 0, [])),
     ]

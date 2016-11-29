@@ -18,62 +18,54 @@
 
 #pragma once
 
-#include <unity/storage/qt/Account.h>
-#include <unity/storage/qt/StorageError.h>
+#include <unity/storage/internal/AccountDetails.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <QDBusConnection>
+#include <QDBusContext>
 #pragma GCC diagnostic pop
 
 #include <memory>
-
-class QDBusConnection;
 
 namespace unity
 {
 namespace storage
 {
-namespace qt
+namespace internal
+{
+
+class InactivityTimer;
+
+}  // namespace internal
+
+namespace registry
 {
 namespace internal
 {
 
-class RuntimeImpl;
-
-}  // namespace internal
-
-class AccountsJob;
-
-class Q_DECL_EXPORT Runtime : public QObject
+class RegistryAdaptor : public QObject, protected QDBusContext
 {
     Q_OBJECT
-    Q_PROPERTY(bool isValid READ isValid FINAL)
-    Q_PROPERTY(unity::storage::qt::StorageError error READ error FINAL)
-    Q_PROPERTY(QDBusConnection connection READ connection CONSTANT FINAL)
 
 public:
-    Runtime(QObject* parent = nullptr);
-    Runtime(QDBusConnection const& bus, QObject* parent = nullptr);
-    virtual ~Runtime();
+    RegistryAdaptor(QDBusConnection const& conn,
+                    std::shared_ptr<storage::internal::InactivityTimer> const& timer,
+                    QObject* parent = nullptr);
+    ~RegistryAdaptor();
 
-    bool isValid() const;
-    StorageError error() const;
-    QDBusConnection connection() const;
-    StorageError shutdown();
-    Q_INVOKABLE unity::storage::qt::AccountsJob* accounts() const;
-
-    Account make_test_account(QString const& bus_name,
-                              QString const& object_path,
-                              quint32 id = 999,
-                              QString const& service_id = "",
-                              QString const& name = "") const;
+public Q_SLOTS:
+    QList<unity::storage::internal::AccountDetails> ListAccounts();
 
 private:
-    std::shared_ptr<internal::RuntimeImpl> p_;
+    QDBusConnection conn_;
+    std::shared_ptr<storage::internal::InactivityTimer> timer_;
+
+    Q_DISABLE_COPY(RegistryAdaptor)
 };
 
-}  // namespace qt
+}  // namespace internal
+}  // namespace registry
 }  // namespace storage
 }  // namespace unity

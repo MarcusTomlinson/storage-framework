@@ -24,9 +24,10 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#include <OnlineAccounts/Manager>
 #include <QDBusConnection>
 #pragma GCC diagnostic pop
+
+class RegistryInterface;
 
 namespace unity
 {
@@ -45,7 +46,7 @@ class RuntimeImpl : public std::enable_shared_from_this<RuntimeImpl>
 {
 public:
     RuntimeImpl();
-    RuntimeImpl(QDBusConnection const& bus);
+    RuntimeImpl(QDBusConnection const& conn);
     RuntimeImpl(RuntimeImpl const&) = delete;
     RuntimeImpl(RuntimeImpl&&) = delete;
     ~RuntimeImpl();
@@ -58,19 +59,17 @@ public:
     AccountsJob* accounts() const;
     StorageError shutdown();
 
-    std::shared_ptr<OnlineAccounts::Manager> accounts_manager() const;
-
     Account make_test_account(QString const& bus_name,
                               QString const& object_path,
-                              QString const& owner_id,
-                              QString const& owner,
-                              QString const& description);
+                              quint32 id,
+                              QString const& service_id,
+                              QString const& display_name);
 
 private:
     bool is_valid_;
     StorageError error_;
     QDBusConnection conn_;
-    std::shared_ptr<OnlineAccounts::Manager> accounts_manager_;
+    std::unique_ptr<RegistryInterface> registry_;
 
     friend class unity::storage::qt::Runtime;
 };

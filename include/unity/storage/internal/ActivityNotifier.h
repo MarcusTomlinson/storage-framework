@@ -16,54 +16,42 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/AccountsJob.h>
+#pragma once
 
-#include <unity/storage/qt/internal/AccountsJobImpl.h>
+#include <unity/storage/internal/InactivityTimer.h>
 
-#include <QVariant>
-
-using namespace unity::storage::qt;
-using namespace std;
+#include <cassert>
+#include <memory>
 
 namespace unity
 {
 namespace storage
 {
-namespace qt
+namespace internal
 {
 
-AccountsJob::AccountsJob(unique_ptr<internal::AccountsJobImpl> accounts_job_impl)
-    : p_(move(accounts_job_impl))
+class InactivityTimer;
+
+class ActivityNotifier
 {
-}
+public:
+    ActivityNotifier(std::shared_ptr<InactivityTimer> const& timer)
+        : timer_(timer)
+    {
+        assert(timer);
 
-AccountsJob::~AccountsJob() = default;
+        timer_->request_started();
+    }
 
-bool AccountsJob::isValid() const
-{
-    return p_->isValid();
-}
+    ~ActivityNotifier()
+    {
+        timer_->request_finished();
+    }
 
-AccountsJob::Status AccountsJob::status() const
-{
-    return p_->status();
-}
+private:
+    std::shared_ptr<InactivityTimer> timer_;
+};
 
-StorageError AccountsJob::error() const
-{
-    return p_->error();
-}
-
-QList<Account> AccountsJob::accounts() const
-{
-    return p_->accounts();
-}
-
-QVariantList AccountsJob::accountsAsVariantList() const
-{
-    return p_->accountsAsVariantList();
-}
-
-}  // namespace qt
+}  // namespace internal
 }  // namespace storage
 }  // namespace unity

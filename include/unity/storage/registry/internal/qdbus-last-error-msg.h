@@ -16,54 +16,26 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/AccountsJob.h>
+#pragma once
 
-#include <unity/storage/qt/internal/AccountsJobImpl.h>
-
-#include <QVariant>
-
-using namespace unity::storage::qt;
-using namespace std;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#include <QDBusConnection>
+#pragma GCC diagnostic pop
 
 namespace unity
 {
 namespace storage
 {
-namespace qt
+namespace registry
+{
+namespace internal
 {
 
-AccountsJob::AccountsJob(unique_ptr<internal::AccountsJobImpl> accounts_job_impl)
-    : p_(move(accounts_job_impl))
-{
-}
+QString last_error_msg(QDBusConnection const& conn);
 
-AccountsJob::~AccountsJob() = default;
-
-bool AccountsJob::isValid() const
-{
-    return p_->isValid();
-}
-
-AccountsJob::Status AccountsJob::status() const
-{
-    return p_->status();
-}
-
-StorageError AccountsJob::error() const
-{
-    return p_->error();
-}
-
-QList<Account> AccountsJob::accounts() const
-{
-    return p_->accounts();
-}
-
-QVariantList AccountsJob::accountsAsVariantList() const
-{
-    return p_->accountsAsVariantList();
-}
-
-}  // namespace qt
+}  // namespace internal
+}  // namespace registry
 }  // namespace storage
 }  // namespace unity

@@ -48,12 +48,24 @@ Depends: ${misc:Depends},
 Description: Client library for the Storage Framework (API v1, soon to be removed)
  Runtime support for storage framework clients.
 
+Package: storage-framework-registry
+Architecture: any
+Multi-Arch: foreign
+Pre-Depends: ${misc:Pre-Depends},
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+#        TODO: should be removed once online accounts is fixed: lp:1643421
+         online-accounts-daemon,
+Description: Registry for the Storage Framework
+ DBus service that provides access to provider account information.
+
 Package: libstorage-framework-qt-client-2-0
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
+         storage-framework-registry
 Description: Client library for the Storage Framework
  Runtime support for storage framework clients.
 

@@ -16,54 +16,36 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/AccountsJob.h>
+#pragma once
 
-#include <unity/storage/qt/internal/AccountsJobImpl.h>
+#include <unity/storage/registry/Registry.h>
 
-#include <QVariant>
-
-using namespace unity::storage::qt;
-using namespace std;
+#include <string>
 
 namespace unity
 {
 namespace storage
 {
-namespace qt
+namespace internal
 {
 
-AccountsJob::AccountsJob(unique_ptr<internal::AccountsJobImpl> accounts_job_impl)
-    : p_(move(accounts_job_impl))
+constexpr char const* REGISTRY_IDLE_TIMEOUT = "SF_REGISTRY_IDLE_TIMEOUT";  // Seconds, 0 means "never"
+constexpr int REGISTRY_IDLE_TIMEOUT_DFLT = 30;
+
+// Helper class to make retrieval of environment variables type-safe and
+// to sanity check the setting, if applicable. Also returns a default
+// setting, if applicable.
+
+class EnvVars
 {
-}
+public:
+    static int registry_timeout_ms();
 
-AccountsJob::~AccountsJob() = default;
+    // Returns value of var_name in the environment, if set, and an empty string otherwise.
+    // Can be used for any environment variable, not just the ones defined above.
+    static std::string get(char const* var_name);
+};
 
-bool AccountsJob::isValid() const
-{
-    return p_->isValid();
-}
-
-AccountsJob::Status AccountsJob::status() const
-{
-    return p_->status();
-}
-
-StorageError AccountsJob::error() const
-{
-    return p_->error();
-}
-
-QList<Account> AccountsJob::accounts() const
-{
-    return p_->accounts();
-}
-
-QVariantList AccountsJob::accountsAsVariantList() const
-{
-    return p_->accountsAsVariantList();
-}
-
-}  // namespace qt
+}  // namespace internal
 }  // namespace storage
 }  // namespace unity

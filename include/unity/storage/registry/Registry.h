@@ -16,54 +16,20 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/AccountsJob.h>
+#pragma once
 
-#include <unity/storage/qt/internal/AccountsJobImpl.h>
-
-#include <QVariant>
-
-using namespace unity::storage::qt;
-using namespace std;
+#include <QString>
 
 namespace unity
 {
 namespace storage
 {
-namespace qt
+namespace registry
 {
 
-AccountsJob::AccountsJob(unique_ptr<internal::AccountsJobImpl> accounts_job_impl)
-    : p_(move(accounts_job_impl))
-{
-}
+static QString const BUS_NAME(QStringLiteral("com.canonical.StorageFramework.Registry"));
+static QString const OBJECT_PATH(QStringLiteral("/com/canonical/StorageFramework/Registry"));
 
-AccountsJob::~AccountsJob() = default;
-
-bool AccountsJob::isValid() const
-{
-    return p_->isValid();
-}
-
-AccountsJob::Status AccountsJob::status() const
-{
-    return p_->status();
-}
-
-StorageError AccountsJob::error() const
-{
-    return p_->error();
-}
-
-QList<Account> AccountsJob::accounts() const
-{
-    return p_->accounts();
-}
-
-QVariantList AccountsJob::accountsAsVariantList() const
-{
-    return p_->accountsAsVariantList();
-}
-
-}  // namespace qt
+}  // namespace registry
 }  // namespace storage
 }  // namespace unity

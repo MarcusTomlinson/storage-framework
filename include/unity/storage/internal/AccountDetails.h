@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Canonical Ltd
+ * Copyright (C) 2016 Canonical Ltd
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -22,7 +22,7 @@
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #pragma GCC diagnostic ignored "-Wswitch-default"
-#include <QDebug>
+#include <QDBusArgument>
 #pragma GCC diagnostic pop
 
 namespace unity
@@ -32,19 +32,29 @@ namespace storage
 namespace internal
 {
 
-class TraceMessageHandler final
+struct AccountDetails
 {
-public:
-    TraceMessageHandler();
-    TraceMessageHandler(std::string const& prog_name);
-    TraceMessageHandler(QString const& prog_name);
-    TraceMessageHandler(char const* prog_name);
-    ~TraceMessageHandler();
-
-private:
-    QtMessageHandler old_message_handler_;
+    QString busName;
+    QDBusObjectPath objectPath;
+    quint32 id;
+    QString serviceId;
+    QString displayName;
+    QString providerName;
+    QString iconName;
 };
+
+bool operator==(AccountDetails const& lhs, AccountDetails const& rhs);
+bool operator!=(AccountDetails const& lhs, AccountDetails const& rhs);
+bool operator<(AccountDetails const& lhs, AccountDetails const& rhs);
+bool operator<=(AccountDetails const& lhs, AccountDetails const& rhs);
+bool operator>(AccountDetails const& lhs, AccountDetails const& rhs);
+bool operator>=(AccountDetails const& lhs, AccountDetails const& rhs);
+
+QDBusArgument& operator<<(QDBusArgument& argument, storage::internal::AccountDetails const& account);
+QDBusArgument const& operator>>(QDBusArgument const& argument, storage::internal::AccountDetails& account);
 
 }  // namespace internal
 }  // namespace storage
 }  // namespace unity
+
+Q_DECLARE_METATYPE(unity::storage::internal::AccountDetails)

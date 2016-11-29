@@ -125,77 +125,77 @@ TEST_F(AccountTest, basic)
 
     {
         auto acc = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                               "id", "sid", "displayName");
+                                               99, "sid", "name");
         EXPECT_TRUE(acc.isValid());
         EXPECT_EQ(service_connection_->baseService(), acc.busName());
         EXPECT_EQ(object_path(), acc.objectPath());
-        EXPECT_EQ("displayName", acc.displayName());
+        EXPECT_EQ("name", acc.displayName());
 
         // Copy constructor
         Account a2(acc);
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a2.busName());
         EXPECT_EQ(object_path(), a2.objectPath());
-        EXPECT_EQ("displayName", a2.displayName());
+        EXPECT_EQ("name", a2.displayName());
 
         // Move constructor
         Account a3(move(a2));
         EXPECT_TRUE(a3.isValid());
         EXPECT_EQ(service_connection_->baseService(), a3.busName());
         EXPECT_EQ(object_path(), a3.objectPath());
-        EXPECT_EQ("displayName", a3.displayName());
+        EXPECT_EQ("name", a3.displayName());
 
         // Moved-from object must be invalid
         EXPECT_FALSE(a2.isValid());
 
         // Moved-from object must be assignable
         auto a4 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              "id4", "sid4", "displayName4");
+                                              99, "sid4", "name4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a2.busName());
         EXPECT_EQ(object_path(), a2.objectPath());
-        EXPECT_EQ("displayName4", a2.displayName());
+        EXPECT_EQ("name4", a2.displayName());
     }
 
     {
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "id", "sid", "dn");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "id2", "sid2", "dn2");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 99, "sid", "dn");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 100, "sid2", "n2");
 
         // Copy assignment
         a1 = a2;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a1.busName());
         EXPECT_EQ(object_path(), a1.objectPath());
-        EXPECT_EQ("dn2", a1.displayName());
+        EXPECT_EQ("n2", a1.displayName());
 
         // Self-assignment
         a2 = a2;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a1.busName());
         EXPECT_EQ(object_path(), a1.objectPath());
-        EXPECT_EQ("dn2", a1.displayName());
+        EXPECT_EQ("n2", a1.displayName());
 
         // Move assignment
         auto a3 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              "id3", "sid3", "dn3");
+                                              101, "sid3", "n3");
         a1 = move(a3);
         EXPECT_TRUE(a1.isValid());
         EXPECT_EQ(service_connection_->baseService(), a1.busName());
         EXPECT_EQ(object_path(), a1.objectPath());
-        EXPECT_EQ("dn3", a1.displayName());
+        EXPECT_EQ("n3", a1.displayName());
 
         // Moved-from object must be invalid
         EXPECT_FALSE(a3.isValid());
 
         // Moved-from object must be assignable
         auto a4 = runtime_->make_test_account(service_connection_->baseService(), object_path(),
-                                              "id4", "sid4", "dn4");
+                                              102, "sid4", "n4");
         a2 = a4;
         EXPECT_TRUE(a2.isValid());
         EXPECT_EQ(service_connection_->baseService(), a2.busName());
         EXPECT_EQ(object_path(), a2.objectPath());
-        EXPECT_EQ("dn4", a2.displayName());
+        EXPECT_EQ("n4", a2.displayName());
     }
 }
 
@@ -235,8 +235,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for ID
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "x", "x");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "b", "x", "x");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "x", "x");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 2, "x", "x");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -256,8 +256,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for service ID
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "x");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "b", "x");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "x");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "b", "x");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -277,8 +277,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 < a2 for display name
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "b");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "a");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "b");
 
         EXPECT_FALSE(a1 == a2);
         EXPECT_TRUE(a1 != a2);
@@ -298,8 +298,8 @@ TEST_F(AccountTest, comparison)
 
     {
         // a1 == a2
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "a");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "a");
 
         EXPECT_TRUE(a1 == a2);
         EXPECT_FALSE(a1 != a2);
@@ -327,7 +327,7 @@ TEST_F(AccountTest, hash)
     EXPECT_EQ(0u, a1.hash());
     EXPECT_EQ(0u, qHash(a1));
 
-    auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "a", "a");
+    auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "a", "a");
     // Due to different return types (size_t vs uint), hash() and qHash() do not return the same value.
     EXPECT_NE(0u, a2.hash());
     EXPECT_NE(0u, qHash(a2));
@@ -351,17 +351,29 @@ TEST_F(AccountTest, accounts)
     EXPECT_EQ(AccountsJob::Status::Finished, j->status());
     EXPECT_EQ(StorageError::Type::NoError, j->error().type());
 
-    EXPECT_TRUE(runtime_->connection().isConnected());  // Just for coverage.
-
     auto accounts = j->accounts();
+    EXPECT_GT(accounts.size(), 0);
 
-    // We don't check the contents of accounts here because we are using the real online accounts manager
-    // in this test. This means that the number and kind of accounts that are returned depends
-    // on what provider accounts the test user has configured.
+    // The fake online accounts service includes a "com.canonical.StorageFramework.Provider.ProviderTest" account.
+    bool found = false;
+    for (auto const& a : accounts)
+    {
+        qDebug() << a.busName();
+        if (a.busName() == "com.canonical.StorageFramework.Provider.ProviderTest")
+        {
+            found = true;
+            EXPECT_EQ("Test Provider", a.providerName());
+            // TODO: add tests for the other account properties.
+            break;
+        }
+    }
+    EXPECT_TRUE(found);
 }
 
 TEST_F(AccountTest, runtime_destroyed)
 {
+    EXPECT_TRUE(runtime_->connection().isConnected());  // Just for coverage.
+
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime.
 
     AccountsJob* j = runtime_->accounts();
@@ -1189,8 +1201,8 @@ TEST_F(ItemTest, comparison_and_hash)
     {
         // Both items valid with identical metadata, but different accounts (a1 < a2).
 
-        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "a", "x", "x");
-        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), "b", "x", "x");
+        auto a1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1, "x", "x");
+        auto a2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 2, "x", "x");
 
         Item i1;
         Item i2;
@@ -1666,11 +1678,12 @@ TEST_F(CopyTest, wrong_account)
 {
     set_provider(unique_ptr<provider::ProviderBase>(new MockProvider()));
 
-    auto test_account = runtime_->make_test_account(service_connection_->baseService(), object_path(), "test_account");
+    auto acc1 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 1);
+    auto acc2 = runtime_->make_test_account(service_connection_->baseService(), object_path(), 2);
 
     Item root1;
     {
-        unique_ptr<ItemJob> j(test_account.get("root_id"));
+        unique_ptr<ItemJob> j(acc1.get("root_id"));
         QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         spy.wait(SIGNAL_WAIT_TIME);
         root1 = j->item();
@@ -1679,7 +1692,7 @@ TEST_F(CopyTest, wrong_account)
 
     Item root2;
     {
-        unique_ptr<ItemJob> j(acc_.get("root_id"));
+        unique_ptr<ItemJob> j(acc2.get("root_id"));
         QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         spy.wait(SIGNAL_WAIT_TIME);
         root2 = j->item();
@@ -1688,7 +1701,7 @@ TEST_F(CopyTest, wrong_account)
 
     Item child;
     {
-        unique_ptr<ItemJob> j(acc_.get("child_id"));
+        unique_ptr<ItemJob> j(acc2.get("child_id"));
         QSignalSpy spy(j.get(), &ItemJob::statusChanged);
         spy.wait(SIGNAL_WAIT_TIME);
         child = j->item();

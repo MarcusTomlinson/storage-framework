@@ -16,54 +16,45 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <unity/storage/qt/AccountsJob.h>
+#pragma once
 
-#include <unity/storage/qt/internal/AccountsJobImpl.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Wswitch-default"
+#include <QTimer>
+#pragma GCC diagnostic pop
 
-#include <QVariant>
-
-using namespace unity::storage::qt;
-using namespace std;
+#include <functional>
 
 namespace unity
 {
 namespace storage
 {
-namespace qt
+namespace internal
 {
 
-AccountsJob::AccountsJob(unique_ptr<internal::AccountsJobImpl> accounts_job_impl)
-    : p_(move(accounts_job_impl))
+class InactivityTimer : public QObject
 {
-}
+    Q_OBJECT
 
-AccountsJob::~AccountsJob() = default;
+public:
+    InactivityTimer(int timeout_ms, std::function<void()> timeout_func);
+    ~InactivityTimer();
 
-bool AccountsJob::isValid() const
-{
-    return p_->isValid();
-}
+    void request_started();
+    void request_finished();
 
-AccountsJob::Status AccountsJob::status() const
-{
-    return p_->status();
-}
+private Q_SLOTS:
+    void timeout();
 
-StorageError AccountsJob::error() const
-{
-    return p_->error();
-}
+private:
+    int timeout_ms_;
+    std::function<void()> timeout_func_;
+    QTimer timer_;
+    int32_t num_requests_;
+};
 
-QList<Account> AccountsJob::accounts() const
-{
-    return p_->accounts();
-}
-
-QVariantList AccountsJob::accountsAsVariantList() const
-{
-    return p_->accountsAsVariantList();
-}
-
-}  // namespace qt
+}  // namespace internal
 }  // namespace storage
 }  // namespace unity

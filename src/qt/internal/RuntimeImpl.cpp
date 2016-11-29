@@ -18,15 +18,17 @@
 
 #include <unity/storage/qt/internal/RuntimeImpl.h>
 
+#include "RegistryInterface.h"
 #include <unity/storage/internal/dbusmarshal.h>
-#include <unity/storage/qt/AccountsJob.h>
+#include <unity/storage/internal/EnvVars.h>
 #include <unity/storage/qt/internal/AccountImpl.h>
+#include <unity/storage/qt/internal/AccountsJobImpl.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
-#include <unity/storage/qt/Item.h>
 #include <unity/storage/qt/ItemJob.h>
 #include <unity/storage/qt/ItemListJob.h>
 #include <unity/storage/qt/Runtime.h>
 #include <unity/storage/qt/VoidJob.h>
+#include <unity/storage/registry/Registry.h>
 
 #include <QDBusError>
 #include <QDBusMetaType>
@@ -57,6 +59,9 @@ void register_meta_types()
 
     qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
     qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();
+
+    qDBusRegisterMetaType<unity::storage::internal::AccountDetails>();
+    qDBusRegisterMetaType<QList<unity::storage::internal::AccountDetails>>();
 }
 
 }
@@ -66,10 +71,12 @@ RuntimeImpl::RuntimeImpl()
 {
 }
 
-RuntimeImpl::RuntimeImpl(QDBusConnection const& bus)
+RuntimeImpl::RuntimeImpl(QDBusConnection const& conn)
     : is_valid_(true)
-    , conn_(bus)
-    , accounts_manager_(new OnlineAccounts::Manager("", conn_))
+    , conn_(conn)
+    , registry_(new RegistryInterface(storage::registry::BUS_NAME,
+                                      storage::registry::OBJECT_PATH,
+                                      conn_))
 {
     register_meta_types();
 }
@@ -96,13 +103,17 @@ QDBusConnection RuntimeImpl::connection() const
 
 AccountsJob* RuntimeImpl::accounts() const
 {
+    QString const method = "Runtime::accounts()";
+
     if (!is_valid_)
     {
         QString msg = "Runtime::accounts(): Runtime was destroyed previously";
-        return new AccountsJob(StorageErrorImpl::runtime_destroyed_error(msg));
+        return AccountsJobImpl::make_job(StorageErrorImpl::runtime_destroyed_error(msg));
     }
-    auto This = const_cast<RuntimeImpl*>(this);
-    return new AccountsJob(This->shared_from_this());
+
+    auto reply = registry_->ListAccounts();
+    auto This = const_pointer_cast<RuntimeImpl>(shared_from_this());
+    return AccountsJobImpl::make_job(This, method, reply);
 }
 
 StorageError RuntimeImpl::shutdown()
@@ -116,23 +127,14 @@ StorageError RuntimeImpl::shutdown()
     return error_;
 }
 
-shared_ptr<OnlineAccounts::Manager> RuntimeImpl::accounts_manager() const
-{
-    return accounts_manager_;
-}
-
 Account RuntimeImpl::make_test_account(QString const& bus_name,
                                        QString const& object_path,
-                                       QString const& owner_id,
-                                       QString const& owner,
-                                       QString const& description)
+                                       quint32 id,
+                                       QString const& service_id,
+                                       QString const& name)
 {
-    return AccountImpl::make_account(shared_from_this(),
-                                     bus_name,
-                                     object_path,
-                                     owner_id,
-                                     owner,
-                                     description);
+    storage::internal::AccountDetails ad{bus_name, QDBusObjectPath(object_path), id, service_id, name, "", ""};
+    return AccountImpl::make_account(shared_from_this(), ad);
 }
 
 }  // namespace internal

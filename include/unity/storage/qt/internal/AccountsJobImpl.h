@@ -18,9 +18,14 @@
 
 #pragma once
 
+#include <unity/storage/internal/AccountDetails.h>
 #include <unity/storage/qt/AccountsJob.h>
 
-#include <QTimer>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#include <QDBusPendingReply>
+#pragma GCC diagnostic pop
 
 namespace unity
 {
@@ -31,12 +36,16 @@ namespace qt
 namespace internal
 {
 
+class RuntimeImpl;
+
 class AccountsJobImpl : public QObject
 {
     Q_OBJECT
 public:
-    AccountsJobImpl(AccountsJob* public_instance, std::shared_ptr<RuntimeImpl> const& runtime_impl);
-    AccountsJobImpl(AccountsJob* public_instance, StorageError const& error);
+    AccountsJobImpl(std::shared_ptr<RuntimeImpl> const& runtime_impl,
+                    QString const& method,
+                    QDBusPendingReply<QList<storage::internal::AccountDetails>>& reply);
+    AccountsJobImpl(StorageError const& error);
     virtual ~AccountsJobImpl() = default;
 
     bool isValid() const;
@@ -45,21 +54,20 @@ public:
     QList<Account> accounts() const;
     QVariantList accountsAsVariantList() const;
 
-private Q_SLOTS:
-    void manager_ready();
-    void timeout();
+    static AccountsJob* make_job(std::shared_ptr<RuntimeImpl> const& runtime_impl,
+                                 QString const& method,
+                                 QDBusPendingReply<QList<storage::internal::AccountDetails>>& reply);
+    static AccountsJob* make_job(StorageError const& e);
 
 private:
     std::shared_ptr<RuntimeImpl> get_runtime_impl(QString const& method) const;
-    void initialize_accounts();
     AccountsJob::Status emit_status_changed(AccountsJob::Status new_status) const;
 
-    AccountsJob* const public_instance_;
+    AccountsJob* public_instance_;
     AccountsJob::Status status_;
     StorageError error_;
-    QList<unity::storage::qt::Account> accounts_;
     std::weak_ptr<RuntimeImpl> const runtime_impl_;
-    QTimer timer_;
+    QList<Account> accounts_;
 
     friend class unity::storage::qt::AccountsJob;
 };
