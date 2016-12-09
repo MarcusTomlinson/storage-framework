@@ -17,7 +17,6 @@
 
 """A fake version of the OnlineAccounts D-Bus service."""
 
-import os
 import sys
 
 import dbus.service
@@ -27,9 +26,6 @@ from gi.repository import GLib
 BUS_NAME = "com.ubuntu.OnlineAccounts.Manager"
 OBJECT_PATH = "/com/ubuntu/OnlineAccounts/Manager"
 OA_IFACE = "com.ubuntu.OnlineAccounts.Manager"
-
-INTERFACE_XML = os.path.join(os.path.dirname(__file__),
-                             "com.ubuntu.OnlineAccounts.Manager.xml")
 
 AUTH_OAUTH1 = 1
 AUTH_OAUTH2 = 2
@@ -90,16 +86,16 @@ class Password_Bug1628473(Password):
         }, signature="sv")
 
 class Account:
-    def __init__(self, account_id, display_name, service_id, credentials, settings=None):
+    def __init__(self, account_id, name, service_id, credentials, settings=None):
         self.account_id = account_id
-        self.display_name = display_name
+        self.name = name
         self.service_id = service_id
         self.credentials = credentials
         self.settings = settings
 
     def serialise(self):
         account_info = dbus.Dictionary({
-            "displayName": dbus.String(self.display_name),
+            "displayName": dbus.String(self.name),
             "serviceId": dbus.String(self.service_id),
             "authMethod": dbus.Int32(self.credentials.method),
         }, signature="sv")
@@ -114,12 +110,12 @@ class Manager(dbus.service.Object):
         self.accounts = accounts
 
     @dbus.service.method(dbus_interface=OA_IFACE,
-                         in_signature="a{sv}", out_signature="a(ua{sv})")
+                         in_signature="a{sv}", out_signature="a(ua{sv})aa{sv}")
     def GetAccounts(self, filters):
         #print("GetAccounts %r" % filters)
         sys.stdout.flush()
         return dbus.Array([a.serialise() for a in self.accounts],
-                          signature="a(ua{sv})")
+                          signature="a(ua{sv})"), dbus.Array(signature="a{sv}")
 
     @dbus.service.method(dbus_interface=OA_IFACE,
                          in_signature="usbba{sv}", out_signature="a{sv}")
@@ -178,8 +174,8 @@ if __name__ == "__main__":
         Account(4, "Password host account", "password-host-service",
                 Password_Bug1628473("joe", "secret"),
                 {"host": "http://www.example.com/"}),
-        Account(42, "Fake google account", "google-drive-scope",
-                OAuth2("fake-google-access-token", 0, [])),
+        Account(42, "Fake test account", "storage-provider-test",
+                OAuth2("fake-test-access-token", 0, [])),
         Account(99, "Fake mcloud account", "com.canonical.scopes.mcloud_mcloud_mcloud",
                 OAuth2("fake-mcloud-access-token", 0, [])),
     ]

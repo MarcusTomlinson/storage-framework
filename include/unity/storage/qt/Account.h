@@ -47,6 +47,8 @@ class Q_DECL_EXPORT Account final
     Q_PROPERTY(QString busName READ busName FINAL)
     Q_PROPERTY(QString objectPath READ objectPath FINAL)
     Q_PROPERTY(QString displayName READ displayName FINAL)
+    Q_PROPERTY(QString providerName READ providerName FINAL)
+    Q_PROPERTY(QString iconName READ iconName FINAL)
 
 public:
     Account();
@@ -60,7 +62,8 @@ public:
     QString busName() const;
     QString objectPath() const;
     QString displayName() const;
-    // TODO: add more methods to retrieve additional info, such as description, icon ID, and service name.
+    QString providerName() const;
+    QString iconName() const;
 
     Q_INVOKABLE unity::storage::qt::ItemListJob* roots(QStringList const& keys = QStringList()) const;
     Q_INVOKABLE unity::storage::qt::ItemJob* get(QString const& itemId, QStringList const& keys = QStringList()) const;

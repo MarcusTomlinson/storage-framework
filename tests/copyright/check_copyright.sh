@@ -22,6 +22,8 @@
 # Check that we have acceptable license information in our source files.
 #
 
+set -eu
+
 usage()
 {
     echo "usage: check_copyright dir [ignore_dir]" >&2
@@ -31,6 +33,9 @@ usage()
 [ $# -lt 1 ] && usage
 [ $# -gt 2 ] && usage
 
+source_dir="$1"
+ignore_dir="${2:-}"
+
 ignore_pat="\\.sci$|\\.swp$|\\.bzr|debian|qmldir|HACKING|ubsan-suppress|valgrind-suppress|\\.txt$|\\.xml$|\\.in$|\\.dox$|\\.yaml$"
 
 #
@@ -39,15 +44,16 @@ ignore_pat="\\.sci$|\\.swp$|\\.bzr|debian|qmldir|HACKING|ubsan-suppress|valgrind
 # the output with grep -F, so we don't get false positives from licensecheck.
 #
 
-[ $# -eq 2 ] && ignore_dir="$2"
-
-if [ -n "$ignore_dir" ]
-then
-    licensecheck -i "$ignore_pat" -r "$1" | grep -F "$ignore_dir" -v | grep 'No copyright'
+licensecheck -i "$ignore_pat" -r "$source_dir" > licensecheck.log
+if [ -n "$ignore_dir" ]; then
+    cat licensecheck.log | grep -v -F "$ignore_dir" | grep "No copyright" > filtered.log || :
 else
-    licensecheck -i "$ignore_pat" -r "$1" | grep 'No copyright'
+    cat licensecheck.log | grep "No copyright" > filtered.log || :
 fi
 
-[ $? -eq 0 ] && exit 1
+if [ -s filtered.log ]; then
+    cat filtered.log
+    exit 1
+fi
 
 exit 0

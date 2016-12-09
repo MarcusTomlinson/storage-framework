@@ -35,7 +35,10 @@ namespace internal
 class TraceMessageHandler final
 {
 public:
+    TraceMessageHandler();
     TraceMessageHandler(std::string const& prog_name);
+    TraceMessageHandler(QString const& prog_name);
+    TraceMessageHandler(char const* prog_name);
     ~TraceMessageHandler();
 
 private:

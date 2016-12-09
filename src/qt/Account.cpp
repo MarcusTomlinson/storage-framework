@@ -93,6 +93,16 @@ QString Account::displayName() const
     return p_->displayName();
 }
 
+QString Account::providerName() const
+{
+    return p_->providerName();
+}
+
+QString Account::iconName() const
+{
+    return p_->iconName();
+}
+
 ItemListJob* Account::roots(QStringList const& keys) const
 {
     return p_->roots(keys);

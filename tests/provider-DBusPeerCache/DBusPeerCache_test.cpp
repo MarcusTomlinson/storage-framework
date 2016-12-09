@@ -20,7 +20,11 @@
 
 #include <utils/DBusEnvironment.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <gtest/gtest.h>
+#pragma GCC diagnostic pop
+
 #include <OnlineAccounts/Account>
 #include <OnlineAccounts/Manager>
 #include <QCoreApplication>

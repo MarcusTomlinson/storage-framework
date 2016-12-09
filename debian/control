@@ -11,7 +11,6 @@ Standards-Version: 3.9.6
 Build-Depends: cmake,
                cmake-extras (>= 0.4),
                debhelper (>= 9),
-               devscripts,
                doxygen,
                google-mock,
                libapparmor-dev,
@@ -23,6 +22,7 @@ Build-Depends: cmake,
                libonline-accounts-qt-dev,
                libqtdbustest1-dev,
                libunity-api-dev,
+               licensecheck | devscripts (<< 2.16.6),
                lsb-release,
                python3-dbus,
                python3-gi,
@@ -53,12 +53,24 @@ Depends: ${misc:Depends},
 Description: Client library for the Storage Framework (API v1, soon to be removed)
  Runtime support for storage framework clients.
 
+Package: storage-framework-registry
+Architecture: any
+Multi-Arch: foreign
+Pre-Depends: ${misc:Pre-Depends},
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+#        TODO: should be removed once online accounts is fixed: lp:1643421
+         online-accounts-daemon,
+Description: Registry for the Storage Framework
+ DBus service that provides access to provider account information.
+
 Package: libstorage-framework-qt-client-2-0
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: ${misc:Depends},
          ${shlibs:Depends},
+         storage-framework-registry
 Description: Client library for the Storage Framework
  Runtime support for storage framework clients.
 
@@ -81,6 +93,7 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
 Depends: libstorage-framework-qt-client-1-0 (= ${binary:Version}),
          libstorage-framework-qt-local-client-1-0 (= ${binary:Version}),
+         libstorage-framework-qt-client-2-0 (= ${binary:Version}),
          qtbase5-dev,
          ${misc:Depends},
 Description: Header files for the Storage Framework client libraries
