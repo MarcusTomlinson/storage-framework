@@ -104,7 +104,7 @@ endif()
 include(CTest)
 enable_testing()
 
-include(EnableCoverageReport)
+find_package(CoverageReport)
 
 include(GNUInstallDirs)
 
@@ -138,6 +138,7 @@ enable_coverage_report(
         storage-framework-qt-local-client
         sf-provider-objects
         storage-framework-provider
+        storage-framework-registry
     FILTER
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_BINARY_DIR}/*

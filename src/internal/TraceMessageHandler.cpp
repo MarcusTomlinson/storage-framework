@@ -80,10 +80,27 @@ void trace_message_handler(QtMsgType type, const QMessageLogContext& /*context*/
 
 }  // namespace
 
+TraceMessageHandler::TraceMessageHandler()
+    : old_message_handler_(qInstallMessageHandler(trace_message_handler))
+{
+}
+
 TraceMessageHandler::TraceMessageHandler(string const& prog_name)
+    : TraceMessageHandler()
 {
     prefix = prog_name;
-    old_message_handler_ = qInstallMessageHandler(trace_message_handler);
+}
+
+TraceMessageHandler::TraceMessageHandler(QString const& prog_name)
+    : TraceMessageHandler()
+{
+    prefix = prog_name.toStdString();
+}
+
+TraceMessageHandler::TraceMessageHandler(char const* prog_name)
+    : TraceMessageHandler()
+{
+    prefix = prog_name;
 }
 
 TraceMessageHandler::~TraceMessageHandler()

@@ -18,7 +18,6 @@
 
 #include <unity/storage/qt/AccountsJob.h>
 
-#include <unity/storage/qt/Account.h>
 #include <unity/storage/qt/internal/AccountsJobImpl.h>
 
 #include <QVariant>
@@ -33,13 +32,8 @@ namespace storage
 namespace qt
 {
 
-AccountsJob::AccountsJob(shared_ptr<internal::RuntimeImpl> const& runtime)
-    : p_(new internal::AccountsJobImpl(this, runtime))
-{
-}
-
-AccountsJob::AccountsJob(StorageError const& error)
-    : p_(new internal::AccountsJobImpl(this, error))
+AccountsJob::AccountsJob(unique_ptr<internal::AccountsJobImpl> accounts_job_impl)
+    : p_(move(accounts_job_impl))
 {
 }
 

@@ -1,3 +1,12 @@
+storage-framework (0.2+17.04.20161104-0ubuntu2) UNRELEASED; urgency=medium
+
+  * Fix for lp:1644577, fail list job if metadata for any item is incorrect.
+  * Always emit itemsReady(), even if list is empty.
+  * Improvements to error logging and detail in error messages: lp:1644577
+  * Added separate registry service.
+
+ -- Michi Henning <michi.henning@canonical.com>  Fri, 09 Dec 2016 11:35:17 +1000
+
 storage-framework (0.2+17.04.20161104-0ubuntu1) zesty; urgency=medium
 
   [ Michi Henning ]

@@ -47,7 +47,7 @@ namespace
 
 static const map<QString, QString> BUS_NAMES =
 {
-    { "google-drive-scope", "com.canonical.StorageFramework.Provider.ProviderTest" },
+    { "storage-provider-test", "com.canonical.StorageFramework.Provider.ProviderTest" },
     { "com.canonical.scopes.mcloud_mcloud_mcloud", "com.canonical.StorageFramework.Provider.McloudProvider" },
     { "storage-provider-owncloud", "com.canonical.StorageFramework.Provider.OwnCloud" },
     { "storage-provider-onedrive", "com.canonical.StorageFramework.Provider.OnedriveProvider" },

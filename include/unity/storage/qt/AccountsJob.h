@@ -34,12 +34,10 @@ namespace internal
 {
 
 class AccountsJobImpl;
-class RuntimeImpl;
 
 }  // namespace internal
 
 class Account;
-class Runtime;
 class StorageError;
 
 class Q_DECL_EXPORT AccountsJob final : public QObject
@@ -65,14 +63,13 @@ Q_SIGNALS:
     void statusChanged(unity::storage::qt::AccountsJob::Status status) const;
 
 private:
-    AccountsJob(std::shared_ptr<internal::RuntimeImpl> const& runtime);
-    AccountsJob(StorageError const& error);
+    AccountsJob(std::unique_ptr<internal::AccountsJobImpl> accounts_job_impl);
 
     QVariantList accountsAsVariantList() const;
 
     std::unique_ptr<internal::AccountsJobImpl> const p_;
 
-    friend class internal::RuntimeImpl;
+    friend class internal::AccountsJobImpl;
 };
 
 }  // namespace qt
