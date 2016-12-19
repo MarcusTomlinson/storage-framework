@@ -26,6 +26,11 @@
 
 #include <stdexcept>
 
+namespace
+{
+constexpr int TIMEOUT = 30000;
+}
+
 using namespace std;
 
 namespace unity
@@ -52,6 +57,10 @@ ServerImpl::~ServerImpl() = default;
 void ServerImpl::init(int& argc, char **argv)
 {
     app_.reset(new QCoreApplication(argc, argv));
+    inactivity_timer_.reset(
+        new unity::storage::internal::InactivityTimer(TIMEOUT));
+    connect(inactivity_timer_.get(), &unity::storage::internal::InactivityTimer::timeout,
+            this, &ServerImpl::on_timeout);
     auto bus = QDBusConnection::sessionBus();
     dbus_peer_ = make_shared<DBusPeerCache>(bus);
 
@@ -94,6 +103,11 @@ void ServerImpl::account_manager_ready()
     }
     // TODO: claim bus name
     qDebug() << "Bus unique name:" << bus.baseService();
+}
+
+void ServerImpl::on_timeout()
+{
+    app_->quit();
 }
 
 }
