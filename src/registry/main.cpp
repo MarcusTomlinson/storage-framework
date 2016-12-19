@@ -50,12 +50,14 @@ int main(int argc, char* argv[])
         auto conn = QDBusConnection::sessionBus();
 
         int const timeout_ms = internal::EnvVars::registry_timeout_ms();
-        auto timeout_func = [&app, timeout_ms]
-        {
-            qInfo().noquote().nospace() << "Exiting after " << QString::number(timeout_ms) << " ms of idle time";
-            app.quit();
-        };
-        auto inactivity_timer = make_shared<unity::storage::internal::InactivityTimer>(timeout_ms, timeout_func);
+        auto inactivity_timer = make_shared<unity::storage::internal::InactivityTimer>(timeout_ms);
+        QObject::connect(
+            inactivity_timer.get(), &unity::storage::internal::InactivityTimer::timeout,
+            [&app, timeout_ms]
+            {
+                qInfo().noquote().nospace() << "Exiting after " << QString::number(timeout_ms) << " ms of idle time";
+                app.quit();
+            });
 
         registry::internal::RegistryAdaptor registry_adaptor(conn, inactivity_timer);
         new ::RegistryAdaptor(&registry_adaptor);
