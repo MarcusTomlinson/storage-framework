@@ -210,6 +210,7 @@ QString ProviderInterface::CreateFile(QString const& parent_id,
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
+                    job->p_->set_activity(account->inactivity_timer());
                     auto upload_id = QString::fromStdString(job->upload_id());
                     QDBusUnixFileDescriptor file_desc;
                     int fd = job->p_->take_write_socket();
@@ -241,6 +242,7 @@ QString ProviderInterface::Update(QString const& item_id,
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
+                    job->p_->set_activity(account->inactivity_timer());
                     auto upload_id = QString::fromStdString(job->upload_id());
                     QDBusUnixFileDescriptor file_desc;
                     int fd = job->p_->take_write_socket();
@@ -303,6 +305,7 @@ QString ProviderInterface::Download(QString const& item_id, QString const& match
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
+                    job->p_->set_activity(account->inactivity_timer());
                     auto download_id = QString::fromStdString(job->download_id());
                     QDBusUnixFileDescriptor file_desc;
                     int fd = job->p_->take_read_socket();

@@ -105,6 +105,11 @@ int DownloadJobImpl::take_read_socket()
     return sock;
 }
 
+void DownloadJobImpl::set_activity(std::shared_ptr<InactivityTimer> const& inactivity_timer)
+{
+    activity_ = ActivityNotifier(inactivity_timer);
+}
+
 void DownloadJobImpl::report_complete()
 {
     if (write_socket_ >= 0)
