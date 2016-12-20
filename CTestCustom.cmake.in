@@ -7,5 +7,21 @@
 #
 
 SET(CTEST_CUSTOM_MEMCHECK_IGNORE
+    clean-public-unity-storage-headers
+    clean-public-unity-storage-provider-headers
+    clean-public-unity-storage-qt-client-headers
+    clean-public-unity-storage-qt-headers
+    copyright
+    debian-version
+    stand-alone-unity-storage-headers
+    stand-alone-unity-storage-internal-headers
+    stand-alone-unity-storage-provider-headers
+    stand-alone-unity-storage-provider-internal-headers
+    stand-alone-unity-storage-qt-client-headers
+    stand-alone-unity-storage-qt-client-internal-headers
+    stand-alone-unity-storage-qt-client-internal-local_client-headers
+    stand-alone-unity-storage-qt-client-internal-remote_client-headers
+    stand-alone-unity-storage-qt-headers
+    stand-alone-unity-storage-qt-internal-headers
     whitespace
 )
