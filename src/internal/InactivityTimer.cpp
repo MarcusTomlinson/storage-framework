@@ -18,8 +18,6 @@
 
 #include <unity/storage/internal/InactivityTimer.h>
 
-#include <QDebug>
-
 #include <cassert>
 
 namespace unity
@@ -30,11 +28,11 @@ namespace internal
 {
 
 InactivityTimer::InactivityTimer(int timeout_ms)
-    : timeout_ms_(timeout_ms)
-    , num_requests_(0)
+    : num_requests_(0)
 {
-    assert(timeout_ms_ >= 0);
+    assert(timeout_ms >= 0);
 
+    timer_.setInterval(timeout_ms);
     timer_.setSingleShot(true);
     connect(&timer_, &QTimer::timeout, this, &InactivityTimer::timeout);
 }
@@ -57,7 +55,7 @@ void InactivityTimer::request_finished()
 
     if (--num_requests_ == 0)
     {
-        timer_.start(timeout_ms_);
+        timer_.start();
     }
 }
 

@@ -49,7 +49,6 @@ Q_SIGNALS:
     void timeout();
 
 private:
-    int timeout_ms_;
     QTimer timer_;
     int32_t num_requests_;
 };
