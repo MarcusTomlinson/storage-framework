@@ -50,7 +50,7 @@ Q_SIGNALS:
 
 private:
     QTimer timer_;
-    int32_t num_requests_;
+    int32_t num_requests_ = 0;
 };
 
 }  // namespace internal

@@ -28,7 +28,6 @@ namespace internal
 {
 
 InactivityTimer::InactivityTimer(int timeout_ms)
-    : num_requests_(0)
 {
     assert(timeout_ms >= 0);
 
