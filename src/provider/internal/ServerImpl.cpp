@@ -24,6 +24,8 @@
 #include <unity/storage/provider/internal/dbusmarshal.h>
 #include "provideradaptor.h"
 
+#include <QDebug>
+
 #include <stdexcept>
 
 namespace
@@ -108,6 +110,7 @@ void ServerImpl::account_manager_ready()
 
 void ServerImpl::on_timeout()
 {
+    qInfo() << "Exiting after" << TIMEOUT << "ms of idle time";
     app_->quit();
 }
 
