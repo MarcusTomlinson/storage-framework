@@ -17,6 +17,7 @@
  */
 
 #include <unity/storage/provider/internal/ServerImpl.h>
+#include <unity/storage/internal/EnvVars.h>
 #include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/internal/AccountData.h>
@@ -28,12 +29,9 @@
 
 #include <stdexcept>
 
-namespace
-{
-constexpr int TIMEOUT = 30000;
-}
-
 using namespace std;
+using unity::storage::internal::EnvVars;
+using unity::storage::internal::InactivityTimer;
 
 namespace unity
 {
@@ -59,9 +57,9 @@ ServerImpl::~ServerImpl() = default;
 void ServerImpl::init(int& argc, char **argv)
 {
     app_.reset(new QCoreApplication(argc, argv));
-    inactivity_timer_.reset(
-        new unity::storage::internal::InactivityTimer(TIMEOUT));
-    connect(inactivity_timer_.get(), &unity::storage::internal::InactivityTimer::timeout,
+    int const timeout = EnvVars::provider_timeout_ms();
+    inactivity_timer_ = make_shared<InactivityTimer>(timeout);
+    connect(inactivity_timer_.get(), &InactivityTimer::timeout,
             this, &ServerImpl::on_timeout);
     auto bus = QDBusConnection::sessionBus();
     dbus_peer_ = make_shared<DBusPeerCache>(bus);
@@ -110,7 +108,8 @@ void ServerImpl::account_manager_ready()
 
 void ServerImpl::on_timeout()
 {
-    qInfo() << "Exiting after" << TIMEOUT << "ms of idle time";
+    int const timeout = EnvVars::provider_timeout_ms();
+    qInfo() << "Exiting after" << timeout << "ms of idle time";
     app_->quit();
 }
 
