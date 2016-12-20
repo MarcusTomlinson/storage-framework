@@ -17,6 +17,7 @@
  */
 
 #include <unity/storage/provider/internal/TestServerImpl.h>
+#include <unity/storage/internal/InactivityTimer.h>
 #include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/internal/AccountData.h>
@@ -30,6 +31,12 @@
 #include <stdexcept>
 
 using namespace std;
+using unity::storage::internal::InactivityTimer;
+
+namespace
+{
+constexpr int TIMEOUT = 30000;
+}
 
 namespace unity
 {
@@ -44,14 +51,15 @@ TestServerImpl::TestServerImpl(shared_ptr<ProviderBase> const& provider,
                                OnlineAccounts::Account* account,
                                QDBusConnection const& connection,
                                string const& object_path)
-    : connection_(connection), object_path_(object_path)
+    : connection_(connection), object_path_(object_path),
+      inactivity_timer_(make_shared<InactivityTimer>(TIMEOUT))
 {
     qDBusRegisterMetaType<Item>();
     qDBusRegisterMetaType<std::vector<Item>>();
 
     auto peer_cache = make_shared<DBusPeerCache>(connection_);
     auto account_data = make_shared<AccountData>(
-        provider, peer_cache, connection_, account);
+        provider, peer_cache, inactivity_timer_, connection_, account);
     interface_.reset(new ProviderInterface(account_data));
     new ProviderAdaptor(interface_.get());
 

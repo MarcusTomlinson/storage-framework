@@ -17,6 +17,7 @@
  */
 
 #include <unity/storage/provider/ProviderBase.h>
+#include <unity/storage/internal/InactivityTimer.h>
 #include <unity/storage/provider/internal/AccountData.h>
 #include <unity/storage/provider/internal/DBusPeerCache.h>
 
@@ -36,6 +37,7 @@
 
 using namespace std;
 using namespace unity::storage::provider;
+using unity::storage::internal::InactivityTimer;
 
 class AccountDataTest : public ::testing::Test
 {
@@ -72,6 +74,7 @@ TEST_F(AccountDataTest, oauth1_credentials)
 
     internal::AccountData account(unique_ptr<ProviderBase>(),
                                   shared_ptr<internal::DBusPeerCache>(),
+                                  shared_ptr<InactivityTimer>(),
                                   connection(),
                                   accounts[0]);
 
@@ -99,6 +102,7 @@ TEST_F(AccountDataTest, oauth2_credentials)
 
     internal::AccountData account(unique_ptr<ProviderBase>(),
                                   shared_ptr<internal::DBusPeerCache>(),
+                                  shared_ptr<InactivityTimer>(),
                                   connection(),
                                   accounts[0]);
 
@@ -123,6 +127,7 @@ TEST_F(AccountDataTest, password_credentials)
 
     internal::AccountData account(unique_ptr<ProviderBase>(),
                                   shared_ptr<internal::DBusPeerCache>(),
+                                  shared_ptr<InactivityTimer>(),
                                   connection(),
                                   accounts[0]);
 
@@ -149,6 +154,7 @@ TEST_F(AccountDataTest, password_credentials_host)
 
     internal::AccountData account(unique_ptr<ProviderBase>(),
                                   shared_ptr<internal::DBusPeerCache>(),
+                                  shared_ptr<InactivityTimer>(),
                                   connection(),
                                   accounts[0]);
 
