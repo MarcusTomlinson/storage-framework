@@ -376,7 +376,7 @@ TEST_F(AccountTest, runtime_destroyed)
 
     EXPECT_EQ(StorageError::Type::NoError, runtime_->shutdown().type());  // Destroy runtime.
 
-    AccountsJob* j = runtime_->accounts();
+    unique_ptr<AccountsJob> j(runtime_->accounts());
     EXPECT_FALSE(j->isValid());
     EXPECT_EQ(AccountsJob::Status::Error, j->status());
     EXPECT_EQ(StorageError::Type::RuntimeDestroyed, j->error().type());
@@ -384,7 +384,7 @@ TEST_F(AccountTest, runtime_destroyed)
     EXPECT_EQ(QList<Account>(), j->accounts());
 
     // Signal must be received.
-    QSignalSpy spy(j, &AccountsJob::statusChanged);
+    QSignalSpy spy(j.get(), &AccountsJob::statusChanged);
     spy.wait(SIGNAL_WAIT_TIME);
     ASSERT_EQ(1, spy.count());
     auto arg = spy.takeFirst();
