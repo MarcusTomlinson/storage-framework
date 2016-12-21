@@ -34,34 +34,44 @@ namespace internal
 
 int EnvVars::registry_timeout_ms()
 {
-    int const dflt_val = REGISTRY_IDLE_TIMEOUT_DFLT * 1000;
+    return get_timeout_ms(REGISTRY_IDLE_TIMEOUT, REGISTRY_IDLE_TIMEOUT_DFLT);
+}
 
-    auto const val = get(REGISTRY_IDLE_TIMEOUT);
-    if (val.empty())
+int EnvVars::provider_timeout_ms()
+{
+    return get_timeout_ms(PROVIDER_IDLE_TIMEOUT, PROVIDER_IDLE_TIMEOUT_DFLT);
+}
+
+int EnvVars::get_timeout_ms(char const* var_name, int dflt)
+{
+    int timeout = dflt;
+
+    auto const val = get(var_name);
+    if (!val.empty())
     {
-        return dflt_val;
-    }
-    try
-    {
-        size_t pos;
-        auto int_val = stoi(val, &pos);
-        if (pos != val.size())
+        try
         {
-            throw invalid_argument("unexpected trailing character(s)");
+            size_t pos;
+            auto int_val = stoi(val, &pos);
+            if (pos != val.size())
+            {
+                throw invalid_argument("unexpected trailing character(s)");
+            }
+            if (int_val < 0)
+            {
+                throw invalid_argument("value must be >= 0");
+            }
+            timeout = int_val;
         }
-        if (int_val < 0)
+        catch (std::exception const& e)
         {
-            throw invalid_argument("value must be >= 0");
+            qWarning().noquote().nospace()
+                << "Invalid setting of env var " << var_name
+                << " (\"" << QString::fromStdString(val) << "\"): " << e.what();
+            qWarning().nospace() << "Using default value of " << dflt;
         }
-        return int_val;
     }
-    catch (std::exception const& e)
-    {
-        qWarning().noquote().nospace() << "Invalid setting of env var " << QString::fromStdString(REGISTRY_IDLE_TIMEOUT)
-                                       << " (\"" << QString::fromStdString(val) << "\"): " << e.what();
-        qWarning().nospace() << "Using default value of " << REGISTRY_IDLE_TIMEOUT_DFLT;
-    }
-    return dflt_val;
+    return timeout * 1000;
 }
 
 string EnvVars::get(char const* var_name)

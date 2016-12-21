@@ -18,8 +18,6 @@
 
 #include <unity/storage/internal/InactivityTimer.h>
 
-#include <QDebug>
-
 #include <cassert>
 
 namespace unity
@@ -29,14 +27,12 @@ namespace storage
 namespace internal
 {
 
-InactivityTimer::InactivityTimer(int timeout_ms, std::function<void()> timeout_func)
-    : timeout_ms_(timeout_ms)
-    , timeout_func_(timeout_func)
-    , num_requests_(0)
+InactivityTimer::InactivityTimer(int timeout_ms)
 {
-    assert(timeout_ms_ >= 0);
-    assert(timeout_func);
+    assert(timeout_ms >= 0);
 
+    timer_.setInterval(timeout_ms);
+    timer_.setSingleShot(true);
     connect(&timer_, &QTimer::timeout, this, &InactivityTimer::timeout);
 }
 
@@ -58,22 +54,7 @@ void InactivityTimer::request_finished()
 
     if (--num_requests_ == 0)
     {
-        timer_.start(timeout_ms_);
-    }
-}
-
-void InactivityTimer::timeout()
-{
-    timer_.stop();
-    disconnect(this);
-    try
-    {
-        timeout_func_();
-    }
-    catch (std::exception const& e)
-    {
-        auto msg = QString("InactivityTimer::timeout(): exception from timeout callback: ") + e.what();
-        qWarning().nospace() << msg;
+        timer_.start();
     }
 }
 

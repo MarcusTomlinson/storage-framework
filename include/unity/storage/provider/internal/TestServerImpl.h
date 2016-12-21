@@ -33,6 +33,12 @@ namespace unity
 {
 namespace storage
 {
+namespace internal
+{
+
+class InactivityTimer;
+
+}
 namespace provider
 {
 namespace internal
@@ -56,6 +62,7 @@ private:
     QDBusConnection connection_;
     std::string const object_path_;
 
+    std::shared_ptr<unity::storage::internal::InactivityTimer> inactivity_timer_;
     std::unique_ptr<ProviderInterface> interface_;
 };
 

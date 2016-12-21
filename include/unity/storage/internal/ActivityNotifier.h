@@ -35,6 +35,8 @@ class InactivityTimer;
 class ActivityNotifier
 {
 public:
+    ActivityNotifier() = default;
+
     ActivityNotifier(std::shared_ptr<InactivityTimer> const& timer)
         : timer_(timer)
     {
@@ -43,9 +45,26 @@ public:
         timer_->request_started();
     }
 
+    ActivityNotifier(ActivityNotifier&& other)
+        : timer_(std::move(other.timer_))
+    {
+    }
+
+    ActivityNotifier& operator=(ActivityNotifier&& other)
+    {
+        timer_ = std::move(other.timer_);
+        return *this;
+    }
+
+    ActivityNotifier(ActivityNotifier const&) = delete;
+    ActivityNotifier& operator=(ActivityNotifier const&) = delete;
+
     ~ActivityNotifier()
     {
-        timer_->request_finished();
+        if (timer_)
+        {
+            timer_->request_finished();
+        }
     }
 
 private:

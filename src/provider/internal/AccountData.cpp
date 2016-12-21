@@ -17,6 +17,7 @@
  */
 
 #include <unity/storage/provider/internal/AccountData.h>
+#include <unity/storage/internal/InactivityTimer.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/internal/DBusPeerCache.h>
 #include <unity/storage/provider/internal/PendingJobs.h>
@@ -25,6 +26,7 @@
 #include <QDebug>
 
 using namespace std;
+using unity::storage::internal::InactivityTimer;
 
 namespace unity {
 namespace storage {
@@ -33,11 +35,13 @@ namespace internal {
 
 AccountData::AccountData(shared_ptr<ProviderBase> const& provider,
                          shared_ptr<DBusPeerCache> const& dbus_peer,
+                         shared_ptr<InactivityTimer> const& inactivity_timer,
                          QDBusConnection const& bus,
                          OnlineAccounts::Account* account,
                          QObject* parent)
     : QObject(parent), provider_(provider), dbus_peer_(dbus_peer),
-      jobs_(new PendingJobs(bus)), account_(account)
+      inactivity_timer_(inactivity_timer), jobs_(new PendingJobs(bus)),
+      account_(account)
 {
     authenticate(false);
 }
@@ -52,6 +56,11 @@ ProviderBase& AccountData::provider()
 DBusPeerCache& AccountData::dbus_peer()
 {
     return *dbus_peer_;
+}
+
+shared_ptr<InactivityTimer> AccountData::inactivity_timer()
+{
+    return inactivity_timer_;
 }
 
 PendingJobs& AccountData::jobs()

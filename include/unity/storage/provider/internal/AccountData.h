@@ -37,6 +37,12 @@ namespace unity
 {
 namespace storage
 {
+namespace internal
+{
+
+class InactivityTimer;
+
+}
 namespace provider
 {
 
@@ -54,6 +60,7 @@ class AccountData : public QObject
 public:
     AccountData(std::shared_ptr<ProviderBase> const& provider,
                 std::shared_ptr<DBusPeerCache> const& dbus_peer,
+                std::shared_ptr<unity::storage::internal::InactivityTimer> const& inactivity_timer,
                 QDBusConnection const& bus,
                 OnlineAccounts::Account* account,
                 QObject* parent=nullptr);
@@ -65,6 +72,7 @@ public:
 
     ProviderBase& provider();
     DBusPeerCache& dbus_peer();
+    std::shared_ptr<unity::storage::internal::InactivityTimer> inactivity_timer();
     PendingJobs& jobs();
 
 Q_SIGNALS:
@@ -76,6 +84,7 @@ private Q_SLOTS:
 private:
     std::shared_ptr<ProviderBase> const provider_;
     std::shared_ptr<DBusPeerCache> const dbus_peer_;
+    std::shared_ptr<unity::storage::internal::InactivityTimer> const inactivity_timer_;
     std::unique_ptr<PendingJobs> const jobs_;
 
     QPointer<OnlineAccounts::Account> const account_;
