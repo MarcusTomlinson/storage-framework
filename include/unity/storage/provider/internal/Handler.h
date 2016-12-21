@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <unity/storage/internal/ActivityNotifier.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/internal/DBusPeerCache.h>
 
@@ -69,6 +70,7 @@ private:
     Callback const callback_;
     QDBusConnection const bus_;
     QDBusMessage const message_;
+    unity::storage::internal::ActivityNotifier activity_;
 
     boost::future<void> creds_future_;
     boost::future<void> reply_future_;

@@ -39,20 +39,18 @@ class InactivityTimer : public QObject
     Q_OBJECT
 
 public:
-    InactivityTimer(int timeout_ms, std::function<void()> timeout_func);
+    InactivityTimer(int timeout_ms);
     ~InactivityTimer();
 
     void request_started();
     void request_finished();
 
-private Q_SLOTS:
+Q_SIGNALS:
     void timeout();
 
 private:
-    int timeout_ms_;
-    std::function<void()> timeout_func_;
     QTimer timer_;
-    int32_t num_requests_;
+    int32_t num_requests_ = 0;
 };
 
 }  // namespace internal

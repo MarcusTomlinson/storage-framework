@@ -49,7 +49,8 @@ namespace internal
 Handler::Handler(shared_ptr<AccountData> const& account,
                  Callback const& callback,
                  QDBusConnection const& bus, QDBusMessage const& message)
-    : account_(account), callback_(callback), bus_(bus), message_(message)
+    : account_(account), callback_(callback), bus_(bus), message_(message),
+      activity_(account->inactivity_timer())
 {
 }
 
