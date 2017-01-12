@@ -3801,5 +3801,11 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
 
     ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    int rc = RUN_ALL_TESTS();
+
+    // Process any pending events to avoid bogus leak reports from valgrind.
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+
+    return rc;
 }
