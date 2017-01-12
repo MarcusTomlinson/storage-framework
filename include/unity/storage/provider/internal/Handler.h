@@ -58,6 +58,7 @@ public:
 private Q_SLOTS:
     void on_authenticated();
     void credentials_received();
+    void handle_unauthorized(std::exception_ptr ep);
     void send_reply();
 
 Q_SIGNALS:

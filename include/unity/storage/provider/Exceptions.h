@@ -105,6 +105,20 @@ public:
 };
 
 /**
+\brief Indicates that an operation failed because valid authorisation is required.
+
+Typically, this will cause the request to be retried after refreshing
+the authorisation information, but may be returned to the client on
+repeated failures.
+*/
+class UNITY_STORAGE_EXPORT UnauthorizedException : public StorageException
+{
+public:
+    UnauthorizedException(std::string const& error_message);
+    ~UnauthorizedException();
+};
+
+/**
 \brief Indicates that an operation failed because of a permission problem.
 */
 class UNITY_STORAGE_EXPORT PermissionException : public StorageException

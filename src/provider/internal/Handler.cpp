@@ -123,12 +123,25 @@ void Handler::credentials_received()
             {
                 reply_ = f.get();
             }
+            catch (UnauthorizedException const& e)
+            {
+                QMetaObject::invokeMethod(this, "handle_unauthorized",
+                                          Qt::QueuedConnection,
+                                          Q_ARG(std::exception_ptr, current_exception()));
+                return;
+            }
             catch (std::exception const& e)
             {
                 marshal_exception(current_exception());
             }
             QMetaObject::invokeMethod(this, "send_reply", Qt::QueuedConnection);
         });
+}
+
+void Handler::handle_unauthorized(exception_ptr ep)
+{
+    marshal_exception(ep);
+    send_reply();
 }
 
 void Handler::send_reply()
