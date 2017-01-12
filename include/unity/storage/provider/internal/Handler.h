@@ -53,10 +53,10 @@ public:
             Callback const& callback,
             QDBusConnection const& bus, QDBusMessage const& message);
 
-public Q_SLOTS:
     void begin();
 
 private Q_SLOTS:
+    void on_authenticated();
     void credentials_received();
     void send_reply();
 

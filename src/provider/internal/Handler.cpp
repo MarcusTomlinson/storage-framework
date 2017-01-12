@@ -56,6 +56,25 @@ Handler::Handler(shared_ptr<AccountData> const& account,
 
 void Handler::begin()
 {
+    // If we haven't retrieved the authentication details from
+    // OnlineAccounts, delay processing the handler until then.
+    if (account_->has_credentials())
+    {
+        on_authenticated();
+    }
+    else
+    {
+        account_->authenticate(true);
+        connect(account_.get(), &AccountData::authenticated,
+                this, &Handler::on_authenticated);
+    }
+}
+
+void Handler::on_authenticated()
+{
+    disconnect(account_.get(), &AccountData::authenticated,
+               this, &Handler::on_authenticated);
+
     // Need to put security check in here.
     auto peer_future = account_->dbus_peer().get(message_.service());
     creds_future_ = peer_future.then(
