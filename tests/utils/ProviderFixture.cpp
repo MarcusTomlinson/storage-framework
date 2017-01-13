@@ -46,6 +46,7 @@ void ProviderFixture::SetUp()
 void ProviderFixture::TearDown()
 {
     test_server_.reset();
+    account_manager_.reset();
     service_connection_.reset();
     QDBusConnection::disconnectFromBus(SERVICE_CONNECTION_NAME);
     dbus_.reset();
