@@ -65,9 +65,10 @@ struct ProviderDetails
 static map<QString, ProviderDetails> const BUS_NAMES =
 {
     { "storage-provider-test", { "com.canonical.StorageFramework.Provider.ProviderTest", "Test Provider" } },
-    { "com.canonical.scopes.mcloud_mcloud_mcloud", { "com.canonical.StorageFramework.Provider.McloudProvider", "mcloud" } },
+    { "storage-provider-mcloud", { "com.canonical.StorageFramework.Provider.McloudProvider", "mcloud" } },
     { "storage-provider-owncloud", { "com.canonical.StorageFramework.Provider.OwnCloud", "ownCloud" } },
     { "storage-provider-onedrive", { "com.canonical.StorageFramework.Provider.OnedriveProvider", "OneDrive" } },
+    { "storage-provider-gdrive", { "com.canonical.StorageFramework.Provider.GdriveProvider", "GDrive" } },
 };
 
 }  // namespace
