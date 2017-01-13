@@ -77,6 +77,7 @@ private:
     boost::future<void> reply_future_;
     Context context_;
     QDBusMessage reply_;
+    int retries_ = 0;
 
     Q_DISABLE_COPY(Handler)
 };

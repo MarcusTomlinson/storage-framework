@@ -66,7 +66,7 @@ public:
                 QObject* parent=nullptr);
     virtual ~AccountData();
 
-    void authenticate(bool interactive);
+    void authenticate(bool interactive, bool invalidate_cache=false);
     bool has_credentials();
     Credentials const& credentials();
 

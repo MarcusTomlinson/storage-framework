@@ -56,18 +56,20 @@ Handler::Handler(shared_ptr<AccountData> const& account,
 
 void Handler::begin()
 {
-    // If we haven't retrieved the authentication details from
-    // OnlineAccounts, delay processing the handler until then.
-    if (account_->has_credentials())
+    // If we have already retrieved credentials from OnlineAccounts,
+    // and we aren't retrying the request, go to on_authenticated
+    // immediately.
+    if (account_->has_credentials() && retries_ == 0)
     {
         on_authenticated();
+        return;
     }
-    else
-    {
-        account_->authenticate(true);
-        connect(account_.get(), &AccountData::authenticated,
-                this, &Handler::on_authenticated);
-    }
+
+    // Otherwise, try to authenticate and wait for the result.
+    bool invalidate_cache = retries_ > 0;
+    account_->authenticate(true, invalidate_cache);
+    connect(account_.get(), &AccountData::authenticated,
+            this, &Handler::on_authenticated);
 }
 
 void Handler::on_authenticated()
@@ -140,8 +142,15 @@ void Handler::credentials_received()
 
 void Handler::handle_unauthorized(exception_ptr ep)
 {
-    marshal_exception(ep);
-    send_reply();
+    if (retries_++ == 0)
+    {
+        begin();
+    }
+    else
+    {
+        marshal_exception(ep);
+        send_reply();
+    }
 }
 
 void Handler::send_reply()

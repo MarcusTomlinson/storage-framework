@@ -68,7 +68,7 @@ PendingJobs& AccountData::jobs()
     return *jobs_;
 }
 
-void AccountData::authenticate(bool interactive)
+void AccountData::authenticate(bool interactive, bool invalidate_cache)
 {
     // If there is an existing authenticating session running, use
     // that existing session (unless it is a non-interactive session
@@ -85,6 +85,10 @@ void AccountData::authenticate(bool interactive)
     OnlineAccounts::AuthenticationData auth_data(
         account_->authenticationMethod());
     auth_data.setInteractive(interactive);
+    if (invalidate_cache)
+    {
+        auth_data.invalidateCachedReply();
+    }
     OnlineAccounts::PendingCall call = account_->authenticate(auth_data);
     auth_watcher_.reset(new OnlineAccounts::PendingCallWatcher(call));
     connect(auth_watcher_.get(), &OnlineAccounts::PendingCallWatcher::finished,
