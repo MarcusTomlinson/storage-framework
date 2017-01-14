@@ -59,15 +59,14 @@ void Handler::begin()
     // If we have already retrieved credentials from OnlineAccounts,
     // and we aren't retrying the request, go to on_authenticated
     // immediately.
-    if (account_->has_credentials() && retries_ == 0)
+    if (account_->has_credentials() && !retry_)
     {
         on_authenticated();
         return;
     }
 
     // Otherwise, try to authenticate and wait for the result.
-    bool invalidate_cache = retries_ > 0;
-    account_->authenticate(true, invalidate_cache);
+    account_->authenticate(true, retry_);
     connect(account_.get(), &AccountData::authenticated,
             this, &Handler::on_authenticated);
 }
@@ -142,14 +141,17 @@ void Handler::credentials_received()
 
 void Handler::handle_unauthorized(exception_ptr ep)
 {
-    if (retries_++ == 0)
+    if (retry_)
     {
-        begin();
+        // We've already retried once, so send error out as is.
+        marshal_exception(ep);
+        send_reply();
     }
     else
     {
-        marshal_exception(ep);
-        send_reply();
+        // Otherwise, restart the request with the retry_ flag set.
+        retry_ = true;
+        begin();
     }
 }
 
