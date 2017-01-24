@@ -70,16 +70,37 @@ PendingJobs& AccountData::jobs()
 
 void AccountData::authenticate(bool interactive, bool invalidate_cache)
 {
-    // If there is an existing authenticating session running, use
-    // that existing session (unless it is a non-interactive session
-    // and we've requested interactivity).
-    if (auth_watcher_ && (authenticating_interactively_ || !interactive))
+    // If there is an existing authentication session running, check
+    // if it matches our requirements.
+    if (auth_watcher_)
     {
-        return;
+        if (invalidate_cache)
+        {
+            // If invalidate_cache has been requested, the existing
+            // session must also be invalidating the cache.
+            if (authenticating_invalidate_cache_)
+            {
+                return;
+            }
+        }
+        else if (interactive)
+        {
+            // If interactive has been requested, the existing session
+            // must also be interactive.
+            if (authenticating_interactively_)
+            {
+                return;
+            }
+        }
+        else
+        {
+            // Otherwise, any session will do.
+            return;
+        }
     }
 
     authenticating_interactively_ = interactive;
-    credentials_valid_ = false;
+    authenticating_invalidate_cache_ = invalidate_cache;
     credentials_ = boost::blank();
 
     OnlineAccounts::AuthenticationData auth_data(
@@ -97,7 +118,8 @@ void AccountData::authenticate(bool interactive, bool invalidate_cache)
 
 bool AccountData::has_credentials()
 {
-    return credentials_valid_;
+    // variant index 0 is boost::blank
+    return credentials_.which() != 0;
 }
 
 Credentials const& AccountData::credentials()
@@ -108,7 +130,6 @@ Credentials const& AccountData::credentials()
 void AccountData::on_authenticated()
 {
     credentials_ = boost::blank();
-    credentials_valid_ = true;
     switch (account_->authenticationMethod()) {
     case OnlineAccounts::AuthenticationMethodOAuth1:
     {

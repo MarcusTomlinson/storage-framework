@@ -75,10 +75,7 @@ void Handler::on_authenticated()
 {
     disconnect(account_.get(), &AccountData::authenticated,
                this, &Handler::on_authenticated);
-    // The first type in the credentials variant is boost::blank,
-    // which we don't want to pass on to the ProviderBase
-    // implementation.
-    if (account_->credentials().which() == 0)
+    if (!account_->has_credentials())
     {
         string msg = "Handler::begin(): could not retrieve account credentials";
         qDebug() << QString::fromStdString(msg);
