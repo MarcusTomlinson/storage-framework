@@ -86,3 +86,5 @@ private:
 }
 }
 }
+
+Q_DECLARE_METATYPE(std::exception_ptr)

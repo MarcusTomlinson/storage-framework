@@ -54,6 +54,7 @@ TestServerImpl::TestServerImpl(shared_ptr<ProviderBase> const& provider,
     : connection_(connection), object_path_(object_path),
       inactivity_timer_(make_shared<InactivityTimer>(TIMEOUT))
 {
+    qRegisterMetaType<std::exception_ptr>();
     qDBusRegisterMetaType<Item>();
     qDBusRegisterMetaType<std::vector<Item>>();
 
