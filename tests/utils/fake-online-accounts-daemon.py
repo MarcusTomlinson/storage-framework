@@ -196,6 +196,8 @@ if __name__ == "__main__":
                     interactive=Password("user", "interactive"),
                     refresh=Password("user", "refresh")),
                 {"host": "http://www.example.com/"}),
+        Account(11, "User cancel account", "user-cancel-service",
+                CredentialsError(AUTH_PASSWORD, "UserCanceled")),
         Account(42, "Fake test account", "storage-provider-test",
                 OAuth2("fake-test-access-token", 0, [])),
         Account(99, "Fake mcloud account", "com.canonical.scopes.mcloud_mcloud_mcloud",

@@ -24,6 +24,7 @@
 #include "TestProvider.h"
 
 #include <utils/ProviderFixture.h>
+#include <utils/gtest_printer.h>
 
 #include <gtest/gtest.h>
 #include <OnlineAccounts/Account>
@@ -868,6 +869,17 @@ TEST_F(ProviderInterfaceTest, always_unauthorized)
     // lookup() will always throw UnauthorizedException.  Rather than
     // looping endlessly, the exception is returned to the client.
     auto reply = client_->Lookup("parent_id", "name", QList<QString>());
+    wait_for(reply);
+    ASSERT_FALSE(reply.isValid());
+    EXPECT_EQ(PROVIDER_ERROR + "UnauthorizedException", reply.error().name());
+}
+
+TEST_F(ProviderInterfaceTest, user_canceled_auth)
+{
+    // Account #11 always returns a UserCanceled error when trying to
+    // authenticate.
+    set_provider(unique_ptr<ProviderBase>(new ReauthenticateProvider), 11);
+    auto reply = client_->Roots(QList<QString>());
     wait_for(reply);
     ASSERT_FALSE(reply.isValid());
     EXPECT_EQ(PROVIDER_ERROR + "UnauthorizedException", reply.error().name());
