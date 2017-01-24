@@ -817,10 +817,24 @@ class ReauthenticateProvider : public TestProvider
         }
         return p.get_future();
     }
+
+    boost::future<ItemList> lookup(string const& parent_id, string const& name,
+                                   vector<string> const& metadata_keys,
+                                   Context const& ctx) override
+    {
+        Q_UNUSED(parent_id);
+        Q_UNUSED(name);
+        Q_UNUSED(metadata_keys);
+        Q_UNUSED(ctx);
+        boost::promise<ItemList> p;
+        p.set_exception(UnauthorizedException("bad password"));
+        return p.get_future();
+    }
 };
 
 TEST_F(ProviderInterfaceTest, need_interactive_auth)
 {
+    // Account #10 fails to authenticate unless done interactively
     set_provider(unique_ptr<ProviderBase>(new ReauthenticateProvider), 10);
 
     auto reply = client_->Roots(QList<QString>());
@@ -828,6 +842,7 @@ TEST_F(ProviderInterfaceTest, need_interactive_auth)
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     EXPECT_EQ(1, reply.value().size());
     auto root = reply.value()[0];
+    // Password returned as item name
     EXPECT_EQ("interactive", root.name);
 }
 
@@ -835,11 +850,27 @@ TEST_F(ProviderInterfaceTest, unauthorized_exception_causes_refresh)
 {
     set_provider(unique_ptr<ProviderBase>(new ReauthenticateProvider), 10);
 
+    // The Metadata() call will throw UnauthorizedException unless the
+    // password is "refresh".  This will cause the request to be
+    // retried after authenticating a second time while invalidating
+    // stored credentials.
     auto reply = client_->Metadata("item_id", QList<QString>());
     wait_for(reply);
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
     auto item = reply.value();
+    // Password returned as item name
     EXPECT_EQ("refresh", item.name);
+}
+
+TEST_F(ProviderInterfaceTest, always_unauthorized)
+{
+    set_provider(unique_ptr<ProviderBase>(new ReauthenticateProvider), 10);
+    // lookup() will always throw UnauthorizedException.  Rather than
+    // looping endlessly, the exception is returned to the client.
+    auto reply = client_->Lookup("parent_id", "name", QList<QString>());
+    wait_for(reply);
+    ASSERT_FALSE(reply.isValid());
+    EXPECT_EQ(PROVIDER_ERROR + "UnauthorizedException", reply.error().name());
 }
 
 int main(int argc, char **argv)
