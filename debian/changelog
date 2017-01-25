@@ -1,6 +1,9 @@
 storage-framework (0.3-0ubuntu1) UNRELEASED; urgency=medium
 
   * Make providers exit after 30 seconds of inactivity. (LP: #1616758)
+  * Add UnauthorizedException to the provider library, so the provider
+    can trigger reauthentication of the account and have the request
+    restarted. (LP: #1616756)
 
  -- James Henstridge <james.henstridge@canonical.com>  Tue, 20 Dec 2016 11:46:21 +0800
 
