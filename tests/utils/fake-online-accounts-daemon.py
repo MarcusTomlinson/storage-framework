@@ -41,7 +41,7 @@ class OAuth1:
         self.token_secret = token_secret
         self.signature_method = signature_method
 
-    def serialise(self):
+    def serialise(self, interactive, invalidate):
         return dbus.Dictionary({
             "ConsumerKey": dbus.String(self.consumer_key),
             "ConsumerSecret": dbus.String(self.consumer_secret),
@@ -57,7 +57,7 @@ class OAuth2:
         self.expires_in = expires_in
         self.granted_scopes = granted_scopes
 
-    def serialise(self):
+    def serialise(self, interactive, invalidate):
         return dbus.Dictionary({
             "AccessToken": dbus.String(self.access_token),
             "ExpiresIn": dbus.Int32(self.expires_in),
@@ -70,20 +70,36 @@ class Password:
         self.username = username
         self.password = password
 
-    def serialise(self):
+    def serialise(self, interactive, invalidate):
         return dbus.Dictionary({
             "Username": dbus.String(self.username),
             "Password": dbus.String(self.password),
         }, signature="sv")
 
-# A version of Password that incorrectly serialises the credentials
-#   https://bugs.launchpad.net/bugs/1628473
-class Password_Bug1628473(Password):
-    def serialise(self):
-        return dbus.Dictionary({
-            "UserName": dbus.String(self.username),
-            "Secret": dbus.String(self.password),
-        }, signature="sv")
+class CredentialsError:
+    def __init__(self, method, error):
+        assert error in {"NoAccount", "UserCanceled",
+                         "PermissionDenied", "InteractionRequired"}
+        self.method = method
+        self.error = "com.ubuntu.OnlineAccounts.Error." + error
+
+    def serialise(self, interactive, invalidate):
+        raise dbus.DBusException("Error", name=self.error)
+
+class CredentialsByMode:
+    def __init__(self, noninteractive, interactive, refresh):
+        self.method = noninteractive.method
+        self.noninteractive = noninteractive
+        self.interactive = interactive
+        self.refresh = refresh
+
+    def serialise(self, interactive, invalidate):
+        if invalidate:
+            return self.refresh.serialise(interactive, invalidate)
+        elif interactive:
+            return self.interactive.serialise(interactive, invalidate)
+        else:
+            return self.noninteractive.serialise(interactive, invalidate)
 
 class Account:
     def __init__(self, account_id, name, service_id, credentials, settings=None):
@@ -124,7 +140,7 @@ class Manager(dbus.service.Object):
         sys.stdout.flush()
         for account in self.accounts:
             if account.account_id == account_id and account.service_id == service_id:
-                return account.credentials.serialise()
+                return account.credentials.serialise(interactive, invalidate)
         else:
             raise KeyError(repr((account_id, service_id)))
 
@@ -136,7 +152,7 @@ class Manager(dbus.service.Object):
         for account in self.accounts:
             if account.service_id == service_id:
                 return (account.serialise(),
-                        account.credentials.serialise())
+                        account.credentials.serialise(True, False))
         else:
             raise KeyError(service_id)
 
@@ -172,8 +188,16 @@ if __name__ == "__main__":
         Account(3, "Password account", "password-service",
                 Password("user", "pass")),
         Account(4, "Password host account", "password-host-service",
-                Password_Bug1628473("joe", "secret"),
+                Password("joe", "secret"),
                 {"host": "http://www.example.com/"}),
+        Account(10, "Mode dependent account", "mode-service",
+                CredentialsByMode(
+                    noninteractive=CredentialsError(AUTH_PASSWORD, "InteractionRequired"),
+                    interactive=Password("user", "interactive"),
+                    refresh=Password("user", "refresh")),
+                {"host": "http://www.example.com/"}),
+        Account(11, "User cancel account", "user-cancel-service",
+                CredentialsError(AUTH_PASSWORD, "UserCanceled")),
         Account(42, "Fake test account", "storage-provider-test",
                 OAuth2("fake-test-access-token", 0, [])),
         Account(99, "Fake mcloud account", "storage-provider-mcloud",

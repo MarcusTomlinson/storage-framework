@@ -66,7 +66,7 @@ public:
                 QObject* parent=nullptr);
     virtual ~AccountData();
 
-    void authenticate(bool interactive);
+    void authenticate(bool interactive, bool invalidate_cache=false);
     bool has_credentials();
     Credentials const& credentials();
 
@@ -90,9 +90,9 @@ private:
     QPointer<OnlineAccounts::Account> const account_;
     std::unique_ptr<OnlineAccounts::PendingCallWatcher> auth_watcher_;
     bool authenticating_interactively_ = false;
+    bool authenticating_invalidate_cache_ = false;
 
-    bool credentials_valid_ = false;
-    Credentials credentials_;
+    Credentials credentials_ = boost::blank();
 
     Q_DISABLE_COPY(AccountData)
 };

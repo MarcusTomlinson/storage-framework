@@ -48,7 +48,8 @@ static const QString ERROR_NAMES[StorageError::Type::__LAST_STORAGE_ERROR] =
     QStringLiteral("Cancelled"),
     QStringLiteral("LogicError"),
     QStringLiteral("InvalidArgument"),
-    QStringLiteral("ResourceError")
+    QStringLiteral("ResourceError"),
+    QStringLiteral("Unauthorized"),
 };
 
 }  // namespace

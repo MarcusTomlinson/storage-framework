@@ -53,11 +53,12 @@ public:
             Callback const& callback,
             QDBusConnection const& bus, QDBusMessage const& message);
 
-public Q_SLOTS:
     void begin();
 
 private Q_SLOTS:
+    void on_authenticated();
     void credentials_received();
+    void handle_unauthorized(std::exception_ptr ep);
     void send_reply();
 
 Q_SIGNALS:
@@ -76,6 +77,7 @@ private:
     boost::future<void> reply_future_;
     Context context_;
     QDBusMessage reply_;
+    bool retry_ = false;
 
     Q_DISABLE_COPY(Handler)
 };
@@ -84,3 +86,5 @@ private:
 }
 }
 }
+
+Q_DECLARE_METATYPE(std::exception_ptr)

@@ -48,6 +48,7 @@ ServerImpl::ServerImpl(ServerBase* server, string const& bus_name, string const&
     , service_id_(account_service_id)
     , trace_message_handler_("storage_provider")
 {
+    qRegisterMetaType<std::exception_ptr>();
     qDBusRegisterMetaType<Item>();
     qDBusRegisterMetaType<std::vector<Item>>();
 }

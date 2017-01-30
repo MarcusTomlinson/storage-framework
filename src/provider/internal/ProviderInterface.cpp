@@ -66,18 +66,7 @@ void ProviderInterface::queue_request(Handler::Callback callback)
         new Handler(account_, callback, connection(), message()));
     connect(handler.get(), &Handler::finished, this, &ProviderInterface::request_finished);
     setDelayedReply(true);
-    // If we haven't retrieved the authentication details from
-    // OnlineAccounts, delay processing the handler until then.
-    if (account_->has_credentials())
-    {
-        handler->begin();
-    }
-    else
-    {
-        account_->authenticate(true);
-        connect(account_.get(), &AccountData::authenticated,
-                handler.get(), &Handler::begin);
-    }
+    handler->begin();
     requests_.emplace(handler.get(), std::move(handler));
 }
 
