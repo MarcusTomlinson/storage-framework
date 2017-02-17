@@ -1,0 +1,70 @@
+name: storage-framework
+version: '0.2'
+summary: Service for accessing cloud-based storage providers.
+description: >
+  This snap provides a service to access cloud-based storage providers, such as
+  OneDrive, Owncloud, Google Drive, or mCloud, plus a client-side API for applications.
+  See lp:storage-framework for details on the framework, as well as
+  lp:storage-provider-onedrive, lp:storage-provider-webdav, lp:storage-provider-gdrive,
+  and lp:mcloud.
+grade: devel
+confinement: strict
+
+slots:
+  storage-framework:
+    interface: storage-framework
+  qt-client-lib:
+    interface: content
+    read: usr/lib/*/libstorage-framework-qt-client*
+
+plugs:
+  platform:
+    interface: content
+    content: ubuntu-app-platform1
+    target: ubuntu-app-platform
+    default-provider: ubuntu-app-platform
+
+apps:
+  storage-provider-owncloud:
+    command: desktop-launch $SNAP/usr/lib/*/storage-provider-owncloud
+    plugs:
+      - platform
+      - network
+      # TODO: This grants more privileges than we really need but, without this, apparmor
+      # denies access.
+      - network-manager
+
+parts:
+  storage-framework:
+    plugin: cmake
+    configflags:
+      - -DSNAP_BUILD=1
+    source: .
+    after:
+      - desktop-ubuntu-app-platform
+    filesets:
+      binaries:
+        - lib/*
+    prime:
+      - $binaries
+    install:
+      # Make sure we have a mount point for ubuntu-app-platform
+      mkdir -p $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
+  storage-provider-owncloud:
+    plugin: nil
+    stage-packages:
+      - storage-provider-owncloud
+    filesets:
+      binaries:
+        - usr/lib/*/storage-provider-webdav/*
+      accounts:
+        - usr/share/accounts/applications/storage-provider*
+      applications:
+        - usr/share/applications/storage-provider*
+      dbus:
+        - usr/share/dbus-1/services/com.canonical.StorageFramework.Provider.*
+    prime:
+      - $binaries
+      - $accounts
+      - $applications
+      - $dbus
