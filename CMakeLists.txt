@@ -106,6 +106,11 @@ enable_testing()
 
 find_package(CoverageReport)
 
+option(SNAP_BUILD "Build for snap release")
+if("${SNAP_BUILD}")
+add_definitions(-DSNAP_BUILD=1)
+endif()
+
 include(GNUInstallDirs)
 
 find_package(Boost 1.56 COMPONENTS filesystem system thread REQUIRED)
