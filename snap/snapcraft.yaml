@@ -41,7 +41,7 @@ apps:
     slots:
       - storage-framework
   storage-provider-owncloud:
-    command: snap-launch.sh $SNAP/lib/storage-framework/provider $SNAP/lib/storage-provider-webdav/storage-provider-owncloud
+    command: snap-launch $SNAP/lib/storage-framework/provider $SNAP/lib/storage-provider-webdav/storage-provider-owncloud
     plugs:
       - platform
       - network
@@ -71,6 +71,9 @@ parts:
       mkdir -p $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
       # Fix pkgconfig files to point at the parts subtree so
       # the providers will build correctly.
+      # TODO: Might be better to add SNAPCRAFT_PART_INSTALL to configflags above
+      #       and to then substitute conditionally for the *.pc.in files depending
+      #       on whether -DSNAP_BUILD is set or not.
       sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
           -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/provider@" \
           -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-provider-1.pc
@@ -95,6 +98,7 @@ parts:
     configflags:
       - -DSNAP_BUILD=1
     source: lp:storage-provider-webdav
+    #source: ../../storage-provider-webdav/snap-build
     after:
       - storage-framework
     organize:
