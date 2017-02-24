@@ -1,0 +1,10 @@
+#!/bin/bash
+
+[ $# -lt 2 ] && {
+    echo "usage: $(basename "$0") library_path program [args...]" >&2
+    exit 1
+}
+
+export LD_LIBRARY_PATH=${1}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+shift
+exec desktop-launch "$@"
