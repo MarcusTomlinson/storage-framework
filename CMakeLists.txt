@@ -134,21 +134,19 @@ add_subdirectory(plugins/Ubuntu/StorageFramework)
 add_subdirectory(tests)
 add_subdirectory(demo)
 
-if("${CoverageReport_FOUND")
-    enable_coverage_report(
-        TARGETS
-            qt-client-lib-common
-            storage-framework-common-internal
-            storage-framework-qt-client
-            storage-framework-qt-client-v2
-            storage-framework-qt-local-client
-            sf-provider-objects
-            storage-framework-provider
-            storage-framework-registry
-        FILTER
-            ${CMAKE_SOURCE_DIR}/tests/*
-            ${CMAKE_BINARY_DIR}/*
-        TESTS
-            ${UNIT_TEST_TARGETS}
-    )
-endif()
+enable_coverage_report(
+    TARGETS
+        qt-client-lib-common
+        storage-framework-common-internal
+        storage-framework-qt-client
+        storage-framework-qt-client-v2
+        storage-framework-qt-local-client
+        sf-provider-objects
+        storage-framework-provider
+        storage-framework-registry
+    FILTER
+        ${CMAKE_SOURCE_DIR}/tests/*
+        ${CMAKE_BINARY_DIR}/*
+    TESTS
+        ${UNIT_TEST_TARGETS}
+)
