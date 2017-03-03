@@ -54,10 +54,15 @@ public:
     void run();
 
 private Q_SLOTS:
-    void account_manager_ready();
+    void on_account_manager_ready();
+    void on_account_available(OnlineAccounts::Account* account);
+    void on_account_disabled();
     void on_timeout();
 
 private:
+    void add_account(OnlineAccounts::Account* account);
+    void remove_account(OnlineAccounts::Account* account);
+
     ServerBase* const server_;
     std::string const bus_name_;
     std::string const service_id_;
