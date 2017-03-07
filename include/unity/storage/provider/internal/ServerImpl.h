@@ -50,7 +50,7 @@ public:
     ServerImpl(ServerBase* server, std::string const& bus_name, std::string const& account_service_id);
     ~ServerImpl();
 
-    void init(int& argc, char **argv);
+    void init(int& argc, char **argv, QDBusConnection *bus = nullptr);
     void run();
 
 private Q_SLOTS:
@@ -58,6 +58,10 @@ private Q_SLOTS:
     void on_account_available(OnlineAccounts::Account* account);
     void on_account_disabled();
     void on_timeout();
+
+Q_SIGNALS:
+    void accountAdded();
+    void accountRemoved();
 
 private:
     void add_account(OnlineAccounts::Account* account);
@@ -69,6 +73,7 @@ private:
     unity::storage::internal::TraceMessageHandler trace_message_handler_;
 
     std::unique_ptr<QCoreApplication> app_;
+    std::unique_ptr<QDBusConnection> bus_;
     std::shared_ptr<unity::storage::internal::InactivityTimer> inactivity_timer_;
     std::unique_ptr<OnlineAccounts::Manager> manager_;
     std::shared_ptr<DBusPeerCache> dbus_peer_;

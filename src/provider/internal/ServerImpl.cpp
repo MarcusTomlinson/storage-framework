@@ -55,22 +55,29 @@ ServerImpl::ServerImpl(ServerBase* server, string const& bus_name, string const&
 
 ServerImpl::~ServerImpl() = default;
 
-void ServerImpl::init(int& argc, char **argv)
+void ServerImpl::init(int& argc, char **argv, QDBusConnection *bus)
 {
     app_.reset(new QCoreApplication(argc, argv));
     int const timeout = EnvVars::provider_timeout_ms();
     inactivity_timer_ = make_shared<InactivityTimer>(timeout);
     connect(inactivity_timer_.get(), &InactivityTimer::timeout,
             this, &ServerImpl::on_timeout);
-    auto bus = QDBusConnection::sessionBus();
-    dbus_peer_ = make_shared<DBusPeerCache>(bus);
+    if (bus)
+    {
+        bus_.reset(new QDBusConnection(*bus));
+    }
+    else
+    {
+        bus_.reset(new QDBusConnection(QDBusConnection::sessionBus()));
+    }
+    dbus_peer_ = make_shared<DBusPeerCache>(*bus_);
 
 #ifdef SF_SUPPORTS_EXECUTORS
     // Ensure the executor is instantiated in the main thread.
     MainLoopExecutor::instance();
 #endif
 
-    manager_.reset(new OnlineAccounts::Manager("", bus));
+    manager_.reset(new OnlineAccounts::Manager("", *bus_));
     connect(manager_.get(), &OnlineAccounts::Manager::ready,
             this, &ServerImpl::on_account_manager_ready);
     connect(manager_.get(), &OnlineAccounts::Manager::accountAvailable,
@@ -91,21 +98,22 @@ void ServerImpl::add_account(OnlineAccounts::Account* account)
     }
 
     qDebug() << "Found account" << account->id() << "for service" << account->serviceId();
-    auto bus = QDBusConnection::sessionBus();
     auto account_data = make_shared<AccountData>(
         server_->make_provider(), dbus_peer_, inactivity_timer_,
-        bus, account);
+        *bus_, account);
     unique_ptr<ProviderInterface> iface(
         new ProviderInterface(account_data));
     // this instance is managed by Qt's parent/child memory management
     new ProviderAdaptor(iface.get());
 
-    bus.registerObject(QStringLiteral("/provider/%1").arg(account->id()), iface.get());
+    bus_->registerObject(QStringLiteral("/provider/%1").arg(account->id()), iface.get());
     interfaces_.emplace(account->id(), std::move(iface));
 
     // watch for account disable signals.
     connect(account, &OnlineAccounts::Account::disabled,
             this, &ServerImpl::on_account_disabled);
+
+    Q_EMIT accountAdded();
 }
 
 void ServerImpl::remove_account(OnlineAccounts::Account* account)
@@ -117,9 +125,10 @@ void ServerImpl::remove_account(OnlineAccounts::Account* account)
     }
 
     qDebug() << "Disabled account" << account->id() << "for service" << account->serviceId();
-    auto bus = QDBusConnection::sessionBus();
-    bus.unregisterObject(QStringLiteral("/provider/%1").arg(account->id()));
+    bus_->unregisterObject(QStringLiteral("/provider/%1").arg(account->id()));
     interfaces_.erase(account->id());
+
+    Q_EMIT accountRemoved();
 }
 
 void ServerImpl::on_account_manager_ready()
@@ -129,14 +138,13 @@ void ServerImpl::on_account_manager_ready()
         add_account(account);
     }
 
-    auto bus = QDBusConnection::sessionBus();
-    if (!bus.registerService(QString::fromStdString(bus_name_)))
+    if (!bus_->registerService(QString::fromStdString(bus_name_)))
     {
-        string msg = string("Could not acquire bus name: ") + bus_name_ + ": " + bus.lastError().message().toStdString();
-        throw ResourceException(msg, int(bus.lastError().type()));
+        string msg = string("Could not acquire bus name: ") + bus_name_ + ": " + bus_->lastError().message().toStdString();
+        throw ResourceException(msg, int(bus_->lastError().type()));
     }
     // TODO: claim bus name
-    qDebug() << "Bus unique name:" << bus.baseService();
+    qDebug() << "Bus unique name:" << bus_->baseService();
 }
 
 void ServerImpl::on_account_available(OnlineAccounts::Account* account)
