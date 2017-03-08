@@ -122,7 +122,39 @@ TEST_F(ServerTest, accounts_available_on_start)
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 }
 
-TEST_F(ServerTest, removed_account_is_unexported)
+TEST_F(ServerTest, add_account)
+{
+    unique_ptr<Server<TestProvider>> server(
+        new Server<TestProvider>(BUS_NAME, SERVICE_ID));
+    unique_ptr<ServerImpl> impl(
+        new ServerImpl(server.get(), BUS_NAME, SERVICE_ID));
+
+    QSignalSpy added_spy(impl.get(), &ServerImpl::accountAdded);
+
+    char *argv[1];
+    int argc = 0;
+    impl->init(argc, argv, service_connection_.get());
+    if (added_spy.count() == 0)
+    {
+        added_spy.wait();
+    }
+
+    // Add a second account
+    added_spy.clear();
+    update_account(R"(Account(20, 'new account', 'oauth2-service',
+                              OAuth2('access_token', 0, [])))");
+    if (added_spy.count() == 0)
+    {
+        added_spy.wait();
+    }
+
+    ProviderClient client(BUS_NAME, "/provider/20", connection());
+    auto reply = client.Roots(QList<QString>());
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+}
+
+TEST_F(ServerTest, remove_account)
 {
     unique_ptr<Server<TestProvider>> server(
         new Server<TestProvider>(BUS_NAME, SERVICE_ID));

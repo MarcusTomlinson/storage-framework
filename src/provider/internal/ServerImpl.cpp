@@ -57,19 +57,22 @@ ServerImpl::~ServerImpl() = default;
 
 void ServerImpl::init(int& argc, char **argv, QDBusConnection *bus)
 {
-    app_.reset(new QCoreApplication(argc, argv));
-    int const timeout = EnvVars::provider_timeout_ms();
-    inactivity_timer_ = make_shared<InactivityTimer>(timeout);
-    connect(inactivity_timer_.get(), &InactivityTimer::timeout,
-            this, &ServerImpl::on_timeout);
     if (bus)
     {
         bus_.reset(new QDBusConnection(*bus));
     }
     else
     {
+        // Only initialise QCoreApplication if we haven't been passed
+        // in an existing bus connection.
+        app_.reset(new QCoreApplication(argc, argv));
         bus_.reset(new QDBusConnection(QDBusConnection::sessionBus()));
     }
+    int const timeout = EnvVars::provider_timeout_ms();
+    inactivity_timer_ = make_shared<InactivityTimer>(timeout);
+    connect(inactivity_timer_.get(), &InactivityTimer::timeout,
+            this, &ServerImpl::on_timeout);
+
     dbus_peer_ = make_shared<DBusPeerCache>(*bus_);
 
 #ifdef SF_SUPPORTS_EXECUTORS

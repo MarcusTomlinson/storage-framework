@@ -167,7 +167,7 @@ class Manager(dbus.service.Object):
     @dbus.service.method(dbus_interface=TEST_IFACE,
                          in_signature="s", out_signature="")
     def UpdateAccount(self, account_data):
-        account = evalexpr(account_data)
+        account = eval(account_data)
         key = (account.account_id, account.service_id)
         exists = key in self.accounts
         self.accounts[key] = account
