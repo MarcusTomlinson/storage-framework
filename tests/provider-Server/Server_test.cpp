@@ -46,6 +46,9 @@
 
 using namespace std;
 using unity::storage::ItemType;
+using unity::storage::provider::Context;
+using unity::storage::provider::ItemList;
+using unity::storage::provider::PasswordCredentials;
 using unity::storage::provider::Server;
 using unity::storage::provider::internal::ServerImpl;
 using unity::storage::provider::testing::TestServer;
@@ -190,6 +193,56 @@ TEST_F(ServerTest, remove_account)
     ASSERT_FALSE(reply.isValid());
     EXPECT_EQ("No such object path '/provider/2'",
               reply.error().message().toStdString());
+}
+
+class DataChangeProvider : public TestProvider
+{
+    boost::future<ItemList> roots(vector<string> const& metadata_keys,
+                                  Context const& ctx) override
+    {
+        Q_UNUSED(metadata_keys);
+        auto host = boost::get<PasswordCredentials>(ctx.credentials).host;
+        boost::promise<ItemList> p;
+        p.set_value({
+            {"root_id", {}, host, "etag", ItemType::root, {}}
+        });
+        return p.get_future();
+
+    }
+};
+
+TEST_F(ServerTest, account_data_changed)
+{
+    unique_ptr<Server<DataChangeProvider>> server(
+        new Server<DataChangeProvider>(BUS_NAME, "password-host-service"));
+    unique_ptr<ServerImpl> impl(
+        new ServerImpl(server.get(), BUS_NAME, "password-host-service"));
+
+    QSignalSpy added_spy(impl.get(), &ServerImpl::accountAdded);
+
+    char *argv[1];
+    int argc = 0;
+    impl->init(argc, argv, service_connection_.get());
+    if (added_spy.count() == 0)
+    {
+        added_spy.wait();
+    }
+
+    ProviderClient client(BUS_NAME, "/provider/4", connection());
+    auto reply = client.Roots(QList<QString>());
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+    ASSERT_EQ(1, reply.value().size());
+    EXPECT_EQ("http://www.example.com/", reply.value()[0].name);
+
+    update_account(R"(Account(4, 'description', 'password-host-service',
+                      Password('joe', 'secret'),
+                      {'host': 'http://new.example.com/'}))");
+    reply = client.Roots(QList<QString>());
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+    ASSERT_EQ(1, reply.value().size());
+    EXPECT_EQ("http://new.example.com/", reply.value()[0].name);
 }
 
 int main(int argc, char **argv)
