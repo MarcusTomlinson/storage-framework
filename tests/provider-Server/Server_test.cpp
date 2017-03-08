@@ -56,7 +56,10 @@ const auto SECOND_CONNECTION_NAME = QStringLiteral("second-bus-connection");
 
 const char BUS_NAME[] = "org.example.TestProvider";
 const char SERVICE_ID[] = "oauth2-service";
-const QString PROVIDER_ERROR = unity::storage::internal::DBUS_ERROR_PREFIX;
+
+const char OA_BUS_NAME[] = "com.ubuntu.OnlineAccounts.Manager";
+const char OA_OBJECT_PATH[] = "/com/ubuntu/OnlineAccounts/Manager";
+const char OA_TEST_IFACE[] = "com.canonical.StorageFramework.Testing";
 
 const string file_contents =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do "
@@ -71,17 +74,29 @@ const string file_contents =
 class ServerTest : public ProviderFixture
 {
 protected:
-    void SetUp() override
+    void update_account(const char* account_data)
     {
-        ProviderFixture::SetUp();
+        auto msg = QDBusMessage::createMethodCall(
+            OA_BUS_NAME, OA_OBJECT_PATH, OA_TEST_IFACE, "UpdateAccount");
+        msg << account_data;
+        QDBusPendingReply<void> reply = connection().asyncCall(msg);
+        wait_for(reply);
+        if (!reply.isValid()) {
+            throw runtime_error(reply.error().message().toStdString());
+        }
     }
 
-    void TearDown() override
+    void remove_account(uint32_t account_id, const char* service_id)
     {
-        ProviderFixture::TearDown();
+        auto msg = QDBusMessage::createMethodCall(
+            OA_BUS_NAME, OA_OBJECT_PATH, OA_TEST_IFACE, "RemoveAccount");
+        msg << account_id << service_id;
+        QDBusPendingReply<void> reply = connection().asyncCall(msg);
+        wait_for(reply);
+        if (!reply.isValid()) {
+            throw runtime_error(reply.error().message().toStdString());
+        }
     }
-
-    std::unique_ptr<ProviderClient> client_;
 };
 
 TEST_F(ServerTest, accounts_available_on_start)
@@ -105,6 +120,44 @@ TEST_F(ServerTest, accounts_available_on_start)
     auto reply = client.Roots(QList<QString>());
     wait_for(reply);
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+}
+
+TEST_F(ServerTest, removed_account_is_unexported)
+{
+    unique_ptr<Server<TestProvider>> server(
+        new Server<TestProvider>(BUS_NAME, SERVICE_ID));
+    unique_ptr<ServerImpl> impl(
+        new ServerImpl(server.get(), BUS_NAME, SERVICE_ID));
+
+    QSignalSpy added_spy(impl.get(), &ServerImpl::accountAdded);
+    QSignalSpy removed_spy(impl.get(), &ServerImpl::accountRemoved);
+
+    char *argv[1];
+    int argc = 0;
+    impl->init(argc, argv, service_connection_.get());
+    if (added_spy.count() == 0)
+    {
+        added_spy.wait();
+    }
+
+    ProviderClient client(BUS_NAME, "/provider/2", connection());
+    auto reply = client.Roots(QList<QString>());
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+
+    // Remove the account
+    remove_account(2, SERVICE_ID);
+    if (removed_spy.count() == 0)
+    {
+        removed_spy.wait();
+    }
+
+    // And note that new method calls are rejected
+    reply = client.Roots(QList<QString>());
+    wait_for(reply);
+    ASSERT_FALSE(reply.isValid());
+    EXPECT_EQ("No such object path '/provider/2'",
+              reply.error().message().toStdString());
 }
 
 int main(int argc, char **argv)
