@@ -23,6 +23,7 @@ add_library(sf-provider-objects OBJECT
   internal/AccountData.cpp
   internal/DBusPeerCache.cpp
   internal/DownloadJobImpl.cpp
+  internal/FixedAccountData.cpp
   internal/Handler.cpp
   internal/MainLoopExecutor.cpp
   internal/OnlineAccountData.cpp
@@ -35,6 +36,7 @@ add_library(sf-provider-objects OBJECT
   internal/dbusmarshal.cpp
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/AccountData.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/DownloadJobImpl.h
+  ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/FixedAccountData.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/Handler.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/MainLoopExecutor.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/OnlineAccountData.h

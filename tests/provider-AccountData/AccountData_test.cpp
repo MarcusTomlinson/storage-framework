@@ -20,6 +20,7 @@
 #include <unity/storage/internal/InactivityTimer.h>
 #include <unity/storage/provider/internal/AccountData.h>
 #include <unity/storage/provider/internal/DBusPeerCache.h>
+#include <unity/storage/provider/internal/FixedAccountData.h>
 #include <unity/storage/provider/internal/OnlineAccountData.h>
 
 #include <utils/DBusEnvironment.h>
@@ -170,6 +171,22 @@ TEST_F(AccountDataTest, password_credentials_host)
     EXPECT_EQ("joe", creds.username);
     EXPECT_EQ("secret", creds.password);
     EXPECT_EQ("http://www.example.com/", creds.host);
+}
+
+TEST_F(AccountDataTest, fixed_account_data)
+{
+    internal::FixedAccountData account(unique_ptr<ProviderBase>(),
+                                       shared_ptr<internal::DBusPeerCache>(),
+                                       shared_ptr<InactivityTimer>(),
+                                       connection());
+
+    QSignalSpy spy(&account, &internal::AccountData::authenticated);
+    account.authenticate(true);
+    ASSERT_TRUE(spy.wait());
+
+    ASSERT_TRUE(account.has_credentials());
+    auto creds = boost::get<boost::blank>(account.credentials());
+    ASSERT_EQ(boost::blank(), creds);
 }
 
 int main(int argc, char **argv)
