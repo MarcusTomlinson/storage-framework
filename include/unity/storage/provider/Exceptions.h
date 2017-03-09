@@ -95,7 +95,7 @@ private:
 };
 
 /**
-\brief Indicates that an upload detected a version mismatch.
+\brief Indicates that an upload or download detected a version mismatch.
 */
 class UNITY_STORAGE_EXPORT ConflictException : public StorageException
 {

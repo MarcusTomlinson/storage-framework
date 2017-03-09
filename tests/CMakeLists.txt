@@ -8,6 +8,7 @@ add_subdirectory(utils)
 set(unit_test_dirs
     registry
     local-client
+    local-provider
     remote-client
     remote-client-v1
     provider-AccountData

@@ -118,6 +118,7 @@ find_package(Qt5Test REQUIRED)
 
 include(FindPkgConfig)
 pkg_check_modules(APPARMOR_DEPS REQUIRED libapparmor)
+pkg_check_modules(GIO_DEPS REQUIRED gio-2.0 gio-unix-2.0)
 pkg_check_modules(GLIB_DEPS REQUIRED glib-2.0)
 pkg_check_modules(ONLINEACCOUNTS_DEPS REQUIRED OnlineAccountsQt)
 
@@ -131,6 +132,7 @@ add_subdirectory(demo)
 
 enable_coverage_report(
     TARGETS
+        local-provider-lib
         qt-client-lib-common
         storage-framework-common-internal
         storage-framework-qt-client
@@ -139,6 +141,7 @@ enable_coverage_report(
         sf-provider-objects
         storage-framework-provider
         storage-framework-registry
+        storage-provider-local
     FILTER
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_BINARY_DIR}/*
