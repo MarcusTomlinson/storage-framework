@@ -25,6 +25,7 @@ add_library(sf-provider-objects OBJECT
   internal/DownloadJobImpl.cpp
   internal/Handler.cpp
   internal/MainLoopExecutor.cpp
+  internal/OnlineAccountData.cpp
   internal/PendingJobs.cpp
   internal/ProviderInterface.cpp
   internal/ServerImpl.cpp
@@ -36,6 +37,7 @@ add_library(sf-provider-objects OBJECT
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/DownloadJobImpl.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/Handler.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/MainLoopExecutor.h
+  ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/OnlineAccountData.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/PendingJobs.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/ProviderInterface.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/ServerImpl.h

@@ -20,8 +20,8 @@
 #include <unity/storage/internal/EnvVars.h>
 #include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/ProviderBase.h>
-#include <unity/storage/provider/internal/AccountData.h>
 #include <unity/storage/provider/internal/MainLoopExecutor.h>
+#include <unity/storage/provider/internal/OnlineAccountData.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 #include "provideradaptor.h"
 
@@ -101,7 +101,7 @@ void ServerImpl::add_account(OnlineAccounts::Account* account)
     }
 
     qDebug() << "Found account" << account->id() << "for service" << account->serviceId();
-    auto account_data = make_shared<AccountData>(
+    auto account_data = make_shared<OnlineAccountData>(
         server_->make_provider(), dbus_peer_, inactivity_timer_,
         *bus_, account);
     unique_ptr<ProviderInterface> iface(

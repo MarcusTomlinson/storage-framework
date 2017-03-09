@@ -20,8 +20,8 @@
 #include <unity/storage/internal/InactivityTimer.h>
 #include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/ProviderBase.h>
-#include <unity/storage/provider/internal/AccountData.h>
 #include <unity/storage/provider/internal/DBusPeerCache.h>
+#include <unity/storage/provider/internal/OnlineAccountData.h>
 #include <unity/storage/provider/internal/ProviderInterface.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 #include "provideradaptor.h"
@@ -59,7 +59,7 @@ TestServerImpl::TestServerImpl(shared_ptr<ProviderBase> const& provider,
     qDBusRegisterMetaType<std::vector<Item>>();
 
     auto peer_cache = make_shared<DBusPeerCache>(connection_);
-    auto account_data = make_shared<AccountData>(
+    auto account_data = make_shared<OnlineAccountData>(
         provider, peer_cache, inactivity_timer_, connection_, account);
     interface_.reset(new ProviderInterface(account_data));
     new ProviderAdaptor(interface_.get());

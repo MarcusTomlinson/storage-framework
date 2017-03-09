@@ -20,6 +20,7 @@
 #include <unity/storage/internal/InactivityTimer.h>
 #include <unity/storage/provider/internal/AccountData.h>
 #include <unity/storage/provider/internal/DBusPeerCache.h>
+#include <unity/storage/provider/internal/OnlineAccountData.h>
 
 #include <utils/DBusEnvironment.h>
 
@@ -72,11 +73,11 @@ TEST_F(AccountDataTest, oauth1_credentials)
     auto accounts = manager.availableAccounts("oauth1-service");
     ASSERT_EQ(1, accounts.size());
 
-    internal::AccountData account(unique_ptr<ProviderBase>(),
-                                  shared_ptr<internal::DBusPeerCache>(),
-                                  shared_ptr<InactivityTimer>(),
-                                  connection(),
-                                  accounts[0]);
+    internal::OnlineAccountData account(unique_ptr<ProviderBase>(),
+                                        shared_ptr<internal::DBusPeerCache>(),
+                                        shared_ptr<InactivityTimer>(),
+                                        connection(),
+                                        accounts[0]);
 
     QSignalSpy spy(&account, &internal::AccountData::authenticated);
     account.authenticate(true);
@@ -100,11 +101,11 @@ TEST_F(AccountDataTest, oauth2_credentials)
     auto accounts = manager.availableAccounts("oauth2-service");
     ASSERT_EQ(1, accounts.size());
 
-    internal::AccountData account(unique_ptr<ProviderBase>(),
-                                  shared_ptr<internal::DBusPeerCache>(),
-                                  shared_ptr<InactivityTimer>(),
-                                  connection(),
-                                  accounts[0]);
+    internal::OnlineAccountData account(unique_ptr<ProviderBase>(),
+                                        shared_ptr<internal::DBusPeerCache>(),
+                                        shared_ptr<InactivityTimer>(),
+                                        connection(),
+                                        accounts[0]);
 
     QSignalSpy spy(&account, &internal::AccountData::authenticated);
     account.authenticate(true);
@@ -125,11 +126,11 @@ TEST_F(AccountDataTest, password_credentials)
     auto accounts = manager.availableAccounts("password-service");
     ASSERT_EQ(1, accounts.size());
 
-    internal::AccountData account(unique_ptr<ProviderBase>(),
-                                  shared_ptr<internal::DBusPeerCache>(),
-                                  shared_ptr<InactivityTimer>(),
-                                  connection(),
-                                  accounts[0]);
+    internal::OnlineAccountData account(unique_ptr<ProviderBase>(),
+                                        shared_ptr<internal::DBusPeerCache>(),
+                                        shared_ptr<InactivityTimer>(),
+                                        connection(),
+                                        accounts[0]);
 
     QSignalSpy spy(&account, &internal::AccountData::authenticated);
     account.authenticate(true);
@@ -152,11 +153,11 @@ TEST_F(AccountDataTest, password_credentials_host)
     auto accounts = manager.availableAccounts("password-host-service");
     ASSERT_EQ(1, accounts.size());
 
-    internal::AccountData account(unique_ptr<ProviderBase>(),
-                                  shared_ptr<internal::DBusPeerCache>(),
-                                  shared_ptr<InactivityTimer>(),
-                                  connection(),
-                                  accounts[0]);
+    internal::OnlineAccountData account(unique_ptr<ProviderBase>(),
+                                        shared_ptr<internal::DBusPeerCache>(),
+                                        shared_ptr<InactivityTimer>(),
+                                        connection(),
+                                        accounts[0]);
 
     QSignalSpy spy(&account, &internal::AccountData::authenticated);
     account.authenticate(true);
