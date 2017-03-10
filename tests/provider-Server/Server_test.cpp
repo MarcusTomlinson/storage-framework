@@ -245,6 +245,29 @@ TEST_F(ServerTest, account_data_changed)
     EXPECT_EQ("http://new.example.com/", reply.value()[0].name);
 }
 
+TEST_F(ServerTest, fixed_account)
+{
+    unique_ptr<Server<TestProvider>> server(
+        new Server<TestProvider>(BUS_NAME, ""));
+    unique_ptr<ServerImpl> impl(
+        new ServerImpl(server.get(), BUS_NAME, ""));
+
+    QSignalSpy added_spy(impl.get(), &ServerImpl::accountAdded);
+
+    char *argv[1];
+    int argc = 0;
+    impl->init(argc, argv, service_connection_.get());
+    if (added_spy.count() == 0)
+    {
+        added_spy.wait();
+    }
+
+    ProviderClient client(BUS_NAME, "/provider/0", connection());
+    auto reply = client.Roots(QList<QString>());
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+}
+
 int main(int argc, char **argv)
 {
     QCoreApplication app(argc, argv);

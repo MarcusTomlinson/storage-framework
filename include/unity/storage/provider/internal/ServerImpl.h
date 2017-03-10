@@ -64,6 +64,7 @@ Q_SIGNALS:
     void accountRemoved();
 
 private:
+    void register_bus_name();
     void add_account(OnlineAccounts::Account* account);
     void remove_account(OnlineAccounts::Account* account);
 

@@ -20,8 +20,9 @@
 #include <unity/storage/internal/EnvVars.h>
 #include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/ProviderBase.h>
-#include <unity/storage/provider/internal/AccountData.h>
+#include <unity/storage/provider/internal/FixedAccountData.h>
 #include <unity/storage/provider/internal/MainLoopExecutor.h>
+#include <unity/storage/provider/internal/OnlineAccountData.h>
 #include <unity/storage/provider/internal/dbusmarshal.h>
 #include "provideradaptor.h"
 
@@ -80,11 +81,23 @@ void ServerImpl::init(int& argc, char **argv, QDBusConnection *bus)
     MainLoopExecutor::instance();
 #endif
 
-    manager_.reset(new OnlineAccounts::Manager("", *bus_));
-    connect(manager_.get(), &OnlineAccounts::Manager::ready,
-            this, &ServerImpl::on_account_manager_ready);
-    connect(manager_.get(), &OnlineAccounts::Manager::accountAvailable,
-            this, &ServerImpl::on_account_available);
+    if (service_id_.empty())
+    {
+        // If we have an empty service ID, create a single instance of
+        // the provider which doesn't interact with online-accounts.
+        add_account(nullptr);
+        register_bus_name();
+    }
+    else
+    {
+        // Otherwise use online-accounts to discover all accounts
+        // providing the service ID.
+        manager_.reset(new OnlineAccounts::Manager("", *bus_));
+        connect(manager_.get(), &OnlineAccounts::Manager::ready,
+                this, &ServerImpl::on_account_manager_ready);
+        connect(manager_.get(), &OnlineAccounts::Manager::accountAvailable,
+                this, &ServerImpl::on_account_available);
+    }
 }
 
 void ServerImpl::run()
@@ -92,29 +105,55 @@ void ServerImpl::run()
     app_->exec();
 }
 
+void ServerImpl::register_bus_name()
+{
+    if (!bus_->registerService(QString::fromStdString(bus_name_)))
+    {
+        string msg = string("Could not acquire bus name: ") + bus_name_ + ": " + bus_->lastError().message().toStdString();
+        throw ResourceException(msg, int(bus_->lastError().type()));
+    }
+    // TODO: claim bus name
+    qDebug() << "Bus unique name:" << bus_->baseService();
+}
+
 void ServerImpl::add_account(OnlineAccounts::Account* account)
 {
-    // Ignore if we already have access to the account
-    if (interfaces_.find(account->id()) != interfaces_.end())
-    {
-        return;
-    }
+    OnlineAccounts::AccountId account_id = 0;
+    shared_ptr<AccountData> account_data;
 
-    qDebug() << "Found account" << account->id() << "for service" << account->serviceId();
-    auto account_data = make_shared<AccountData>(
-        server_->make_provider(), dbus_peer_, inactivity_timer_,
-        *bus_, account);
+    if (account)
+    {
+        account_id = account->id();
+        // Ignore if we already have access to the account
+        if (interfaces_.find(account_id) != interfaces_.end())
+        {
+            return;
+        }
+
+        qDebug() << "Found account" << account->id() << "for service" << account->serviceId();
+        account_data = make_shared<OnlineAccountData>(
+            server_->make_provider(), dbus_peer_, inactivity_timer_,
+            *bus_, account);
+    }
+    else
+    {
+        account_data = make_shared<FixedAccountData>(
+            server_->make_provider(), dbus_peer_, inactivity_timer_, *bus_);
+    }
     unique_ptr<ProviderInterface> iface(
         new ProviderInterface(account_data));
     // this instance is managed by Qt's parent/child memory management
     new ProviderAdaptor(iface.get());
 
-    bus_->registerObject(QStringLiteral("/provider/%1").arg(account->id()), iface.get());
-    interfaces_.emplace(account->id(), std::move(iface));
+    bus_->registerObject(QStringLiteral("/provider/%1").arg(account_id), iface.get());
+    interfaces_.emplace(account_id, std::move(iface));
 
     // watch for account disable signals.
-    connect(account, &OnlineAccounts::Account::disabled,
-            this, &ServerImpl::on_account_disabled);
+    if (account)
+    {
+        connect(account, &OnlineAccounts::Account::disabled,
+                this, &ServerImpl::on_account_disabled);
+    }
 
     Q_EMIT accountAdded();
 }
@@ -141,13 +180,7 @@ void ServerImpl::on_account_manager_ready()
         add_account(account);
     }
 
-    if (!bus_->registerService(QString::fromStdString(bus_name_)))
-    {
-        string msg = string("Could not acquire bus name: ") + bus_name_ + ": " + bus_->lastError().message().toStdString();
-        throw ResourceException(msg, int(bus_->lastError().type()));
-    }
-    // TODO: claim bus name
-    qDebug() << "Bus unique name:" << bus_->baseService();
+    register_bus_name();
 }
 
 void ServerImpl::on_account_available(OnlineAccounts::Account* account)
