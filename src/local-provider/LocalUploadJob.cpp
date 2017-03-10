@@ -70,7 +70,7 @@ LocalUploadJob::LocalUploadJob(shared_ptr<LocalProvider> const& provider,
     }
     catch (filesystem_error const& e)
     {
-        throw_exception(method_, e);
+        throw_storage_exception(method_, e);
     }
 }
 
@@ -95,7 +95,7 @@ LocalUploadJob::LocalUploadJob(shared_ptr<LocalProvider> const& provider,
     }
     catch (filesystem_error const& e)
     {
-        throw_exception(method_, e);
+        throw_storage_exception(method_, e);
     }
     if (!old_etag.empty())
     {
@@ -180,7 +180,7 @@ boost::future<Item> LocalUploadJob::finish()
     {
         // No clean-up here. If the caller calls finish() too early, it can continue to write
         // and still finish cleanly once it has written the correct number of bytes.
-        string msg = method_ + ": finish() method called too early, size was given as "
+        string msg = "finish() method called too early, size was given as "
                      + to_string(size_) + " but only "
                      + to_string(size_ - bytes_to_write_) + " bytes were received";
         return boost::make_exceptional_future<Item>(LogicException(msg));
@@ -189,86 +189,90 @@ boost::future<Item> LocalUploadJob::finish()
     // We are committed to finishing successfully or with an error now.
     state_ = finished;
 
-    // We check again for an etag mismatch or overwrite, in case the file was updated after the upload started.
-    if (!parent_id_.empty())
-    {
-        // create_file()
-        if (!allow_overwrite_ && boost::filesystem::exists(item_id_))
-        {
-            string msg = method_ + ": \"" + item_id_ + "\" exists already";
-            auto ex = ExistsException(msg, item_id_, boost::filesystem::path(item_id_).filename().native());
-            return boost::make_exceptional_future<Item>(ex);
-        }
-    }
-    else
-    {
-        // update()
-        int64_t mtime = get_mtime_nsecs(method_, item_id_);
-        if (to_string(mtime) != old_etag_)
-        {
-            return boost::make_exceptional_future<Item>(ConflictException(method_ + ": etag mismatch"));
-        }
-    }
-
-    if (!file_->flush())  // Make sure that all buffered data is written.
-    {
-        string msg = "finish(): cannot flush output file: " + file_->errorString().toStdString();
-        try
-        {
-            throw_exception("finish()", msg, file_->error());
-        }
-        catch (StorageException const&)
-        {
-            return boost::make_exceptional_future<Item>(current_exception());
-        }
-    }
-
-    // Link the anonymous tmp file into the file system.
-    using namespace unity::storage::internal;
-
-    if (use_linkat_)
-    {
-        auto old_path = string("/proc/self/fd/") + std::to_string(tmp_fd_.get());
-        ::unlink(item_id_.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
-        if (linkat(-1, old_path.c_str(), tmp_fd_.get(), item_id_.c_str(), AT_SYMLINK_FOLLOW) == -1)
-        {
-            // LCOV_EXCL_START
-            string msg = "finish(): linkat \"" + old_path + "\" to \"" + item_id_ + "\" failed: " + safe_strerror(errno);
-            return boost::make_exceptional_future<Item>(ResourceException(msg, errno));
-            // LCOV_EXCL_STOP
-        }
-    }
-    else
-    {
-        // LCOV_EXCL_START
-        auto old_path = file_->fileName().toStdString();
-        if (rename(old_path.c_str(), item_id_.c_str()) == -1)
-        {
-            string msg = "finish(): rename \"" + old_path + "\" to \"" + item_id_ + "\" failed: " + safe_strerror(errno);
-            return boost::make_exceptional_future<Item>(ResourceException(msg, errno));
-        }
-        // LCOV_EXCL_STOP
-    }
-
-    file_->close();
-    read_socket_.close();
-
     try
     {
+        // We check again for an etag mismatch or overwrite, in case the file was updated after the upload started.
+        if (!parent_id_.empty())
+        {
+            // create_file()
+            if (!allow_overwrite_ && boost::filesystem::exists(item_id_))
+            {
+                string msg = method_ + ": \"" + item_id_ + "\" exists already";
+                throw ExistsException(msg, item_id_, boost::filesystem::path(item_id_).filename().native());
+            }
+        }
+        else
+        {
+            // update()
+            int64_t mtime = get_mtime_nsecs(method_, item_id_);
+            if (to_string(mtime) != old_etag_)
+            {
+                throw ConflictException(method_ + ": etag mismatch");
+            }
+        }
+
+        if (!file_->flush())  // Make sure that all buffered data is written.
+        {
+            string msg = "finish(): cannot flush output file: " + file_->errorString().toStdString();
+            throw_storage_exception("finish()", msg, file_->error());
+        }
+
+        // Link the anonymous tmp file into the file system.
+        using namespace unity::storage::internal;
+
+        if (use_linkat_)
+        {
+            auto old_path = string("/proc/self/fd/") + std::to_string(tmp_fd_.get());
+            ::unlink(item_id_.c_str());  // linkat() will not remove existing file: http://lwn.net/Articles/559969/
+            if (linkat(-1, old_path.c_str(), tmp_fd_.get(), item_id_.c_str(), AT_SYMLINK_FOLLOW) == -1)
+            {
+                // LCOV_EXCL_START
+                string msg = "finish(): linkat \"" + old_path + "\" to \"" + item_id_ + "\" failed: "
+                             + safe_strerror(errno);
+                ResourceException(msg, errno);
+                // LCOV_EXCL_STOP
+            }
+        }
+        else
+        {
+            // LCOV_EXCL_START
+            auto old_path = file_->fileName().toStdString();
+            if (rename(old_path.c_str(), item_id_.c_str()) == -1)
+            {
+                string msg = "finish(): rename \"" + old_path + "\" to \"" + item_id_ + "\" failed: "
+                             + safe_strerror(errno);
+                throw ResourceException(msg, errno);
+            }
+            // LCOV_EXCL_STOP
+        }
+
+        file_->close();
+        read_socket_.close();
+
         auto st = boost::filesystem::status(item_id_);
         return boost::make_ready_future<Item>(provider_->make_item(method_, item_id_, st));
+    }
+    catch (StorageException const&)
+    {
+        return boost::make_exceptional_future<Item>(current_exception());
     }
     catch (boost::filesystem::filesystem_error const& e)
     {
         try
         {
-            throw;
+            throw_storage_exception("finish()", e);
         }
-        catch (StorageException const&)
+        catch (...)
         {
             return boost::make_exceptional_future<Item>(current_exception());
         }
     }
+    // LCOV_EXCL_START
+    catch (std::exception const& e)
+    {
+        return boost::make_exceptional_future<Item>(UnknownException(e.what()));
+    }
+    // LCOV_EXCL_STOP
 }
 
 void LocalUploadJob::on_bytes_ready()
@@ -294,7 +298,7 @@ void LocalUploadJob::on_bytes_ready()
             {
                 // LCOV_EXCL_START
                 string msg = "write error: " + file_->errorString().toStdString();
-                throw_exception(method_, msg, file_->error());
+                throw_storage_exception(method_, msg, file_->error());
                 // LCOV_EXCL_STOP
             }
             else if (bytes_written != buf.size())
@@ -302,7 +306,7 @@ void LocalUploadJob::on_bytes_ready()
                 // LCOV_EXCL_START
                 string msg = "write error, requested " + to_string(buf.size()) + " B, but wrote only "
                              + to_string(bytes_written) + " B.";
-                throw_exception(method_, msg, QFileDevice::FatalError);
+                throw_storage_exception(method_, msg, QFileDevice::FatalError);
                 // LCOV_EXCL_STOP
             }
         }

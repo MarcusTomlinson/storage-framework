@@ -36,10 +36,10 @@ bool is_reserved_path(boost::filesystem::path const& path);
 boost::filesystem::path sanitize(std::string const& method, std::string const& name);
 
 [[ noreturn ]]
-void throw_exception(std::string const& method, boost::filesystem::filesystem_error const& e);
+void throw_storage_exception(std::string const& method, boost::filesystem::filesystem_error const& e);
 
 [[ noreturn ]]
-void throw_exception(std::string const& method, std::string const& msg, QFileDevice::FileError e);
+void throw_storage_exception(std::string const& method, std::string const& msg, QFileDevice::FileError e);
 
 [[ noreturn ]]
-void throw_exception(std::string const& method, std::string const& msg, QLocalSocket::LocalSocketError e);
+void throw_storage_exception(std::string const& method, std::string const& msg, QLocalSocket::LocalSocketError e);

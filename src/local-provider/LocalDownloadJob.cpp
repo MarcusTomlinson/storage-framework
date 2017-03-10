@@ -52,7 +52,7 @@ LocalDownloadJob::LocalDownloadJob(shared_ptr<LocalProvider> const& provider,
     }
     catch (filesystem_error const& e)
     {
-        throw_exception(method, e);
+        throw_storage_exception(method, e);
     }
     if (!match_etag.empty())
     {
@@ -69,7 +69,7 @@ LocalDownloadJob::LocalDownloadJob(shared_ptr<LocalProvider> const& provider,
     if (!file_->open(QIODevice::ReadOnly))
     {
         // LCOV_EXCL_START
-        throw_exception(method, ": cannot open \"" + file_->errorString().toStdString(), file_->error());
+        throw_storage_exception(method, ": cannot open \"" + file_->errorString().toStdString(), file_->error());
         // LCOV_EXCL_STOP
     }
     bytes_to_write_ = file_->size();
@@ -155,7 +155,7 @@ void LocalDownloadJob::read_and_write_chunk()
         {
             // LCOV_EXCL_START
             string msg = string("\"") + item_id_ + "\": read error: " + file_->errorString().toStdString();
-            throw_exception(method, msg, file_->error());
+            throw_storage_exception(method, msg, file_->error());
             // LCOV_EXCL_STOP
         }
         buf.resize(bytes_read);
@@ -165,7 +165,7 @@ void LocalDownloadJob::read_and_write_chunk()
         {
             // LCOV_EXCL_START
             string msg = string("\"") + item_id_ + "\": socket error: " + write_socket_.errorString().toStdString();
-            throw_exception(method, msg, write_socket_.error());
+            throw_storage_exception(method, msg, write_socket_.error());
             // LCOV_EXCL_STOP
         }
         else if (bytes_written != bytes_read)
@@ -173,7 +173,7 @@ void LocalDownloadJob::read_and_write_chunk()
             // LCOV_EXCL_START
             string msg = string("\"") + item_id_ + "\": socket write error, requested " + to_string(bytes_read)
                          + " B, but wrote only " + to_string(bytes_written) + " B.";
-            throw_exception(method, msg, QLocalSocket::UnknownSocketError);
+            throw_storage_exception(method, msg, QLocalSocket::UnknownSocketError);
             // LCOV_EXCL_STOP
         }
     }

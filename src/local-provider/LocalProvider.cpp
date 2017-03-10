@@ -162,9 +162,6 @@ string get_content_type(string const& filename)
 
 }  // namespace
 
-// TODO: probably want to be able to instantiate more than one provider, each with different root, without
-//       having to muck around with env vars?
-
 LocalProvider::LocalProvider()
     : root_(boost::filesystem::canonical(get_data_dir("LocalProvider()")))
 {
@@ -224,7 +221,7 @@ boost::future<tuple<ItemList, string>> LocalProvider::list(string const& item_id
         }
         catch (filesystem_error const& e)
         {
-            throw_exception(method, e);
+            throw_storage_exception(method, e);
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)
@@ -265,7 +262,7 @@ boost::future<ItemList> LocalProvider::lookup(string const& parent_id,
         }
         catch (filesystem_error const& e)
         {
-            throw_exception(method, e);
+            throw_storage_exception(method, e);
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)
@@ -302,7 +299,7 @@ boost::future<Item> LocalProvider::metadata(string const& item_id,
         }
         catch (filesystem_error const& e)
         {
-            throw_exception(method, e);
+            throw_storage_exception(method, e);
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)
@@ -349,7 +346,7 @@ boost::future<Item> LocalProvider::create_folder(string const& parent_id,
         }
         catch (filesystem_error const& e)
         {
-            throw_exception(method, e);
+            throw_storage_exception(method, e);
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)
@@ -419,7 +416,7 @@ boost::future<void> LocalProvider::delete_item(string const& item_id, Context co
         }
         catch (filesystem_error const& e)
         {
-            throw_exception(method, e);
+            throw_storage_exception(method, e);
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)
@@ -474,7 +471,7 @@ boost::future<Item> LocalProvider::move(string const& item_id,
         }
         catch (filesystem_error const& e)
         {
-            throw_exception(method, e);
+            throw_storage_exception(method, e);
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)
@@ -548,7 +545,7 @@ boost::future<Item> LocalProvider::copy(string const& item_id,
         }
         catch (filesystem_error const& e)
         {
-            throw_exception(method, e);
+            throw_storage_exception(method, e);
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)
@@ -575,7 +572,7 @@ void LocalProvider::throw_if_not_valid(string const& method, string const& id) c
     }
     catch (filesystem_error const& e)
     {
-        throw_exception(method, e);
+        throw_storage_exception(method, e);
     }
 
     if (suspect_id != root_id && !boost::starts_with(suspect_id, root_id + "/"))

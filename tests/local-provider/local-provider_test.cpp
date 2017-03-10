@@ -17,18 +17,22 @@
  */
 
 #include "../../src/local-provider/LocalProvider.h"
+
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/Exceptions.h>
+#include <unity/storage/provider/Server.h>
+#include <unity/storage/qt/client-api.h>
 #include <utils/env_var_guard.h>
+#include <utils/ProviderFixture.h>
 
 #include <gtest/gtest.h>
 #include <QCoreApplication>
+#include <QSignalSpy>
 
 #include <chrono>
 #include <regex>
 
 using namespace unity::storage;
-using namespace unity::storage::provider;
 using namespace std;
 
 namespace
@@ -41,13 +45,26 @@ int64_t nanosecs_now()
 
 string const ROOT_DIR = TEST_DIR "/storage-framework";
 
-class LocalProviderTest : public ::testing::Test
+class LocalProviderTest : public ProviderFixture
 {
 protected:
-    virtual void SetUp() override
+    void SetUp() override
     {
         boost::filesystem::remove_all(ROOT_DIR);
+
+        ProviderFixture::SetUp();
+        runtime_.reset(new qt::Runtime(connection()));
+        acc_ = runtime_->make_test_account(service_connection_->baseService(), object_path());
     }
+
+    void TearDown() override
+    {
+        runtime_.reset();
+        ProviderFixture::TearDown();
+    }
+
+    unique_ptr<qt::Runtime> runtime_;
+    qt::Account acc_;
 };
 
 constexpr int SIGNAL_WAIT_TIME = 30000;
@@ -56,42 +73,148 @@ constexpr int SIGNAL_WAIT_TIME = 30000;
 
 TEST_F(LocalProviderTest, basic)
 {
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    // Basic sanity check, get the root.
+    unique_ptr<ItemListJob> j(acc_.roots());
+    EXPECT_TRUE(j->isValid());
+    QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
+    ASSERT_TRUE(ready_spy.wait(SIGNAL_WAIT_TIME));
+    ASSERT_EQ(1, ready_spy.count());
+#if 0
+    auto arg = ready_spy.takeFirst();
+    auto items = qvariant_cast<QList<Item>>(arg.at(0));
+    ASSERT_EQ(1, items.size());
+
+    // Check contents of returned item.
+    auto root = items[0];
+    EXPECT_TRUE(root.isValid());
+    EXPECT_EQ(Item::Type::Root, root.type());
+    EXPECT_EQ(TEST_DIR "/storage-framework", root.itemId());
+    EXPECT_EQ("/", root.name());
+    EXPECT_EQ("", root.etag());
+    EXPECT_EQ(QList<QString>(), root.parentIds());
+    qDebug() << root.lastModifiedTime();
+    EXPECT_TRUE(root.lastModifiedTime().isValid());
+    EXPECT_EQ(acc_, root.account());
+
+    ASSERT_EQ(5, root.metadata().size());
+    auto free_space_bytes = root.metadata().value("free_space_bytes").toULongLong();
+    cout << "free_space_bytes: " << free_space_bytes << endl;
+    EXPECT_GT(free_space_bytes, 0);
+    auto used_space_bytes = root.metadata().value("used_space_bytes").toULongLong();
+    cout << "used_space_bytes: " << used_space_bytes << endl;
+    EXPECT_GT(used_space_bytes, 0);
+    auto content_type = root.metadata().value("content_type").toString();
+    EXPECT_EQ("inode/directory", content_type);
+    auto writable = root.metadata().value("writable").toBool();
+    EXPECT_TRUE(writable);
+
+    // yyyy-mm-ddThh:mm:ssZ
+    string const date_time_fmt = "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z$";
+    string mtime = root.metadata().value("last_modified_time").toString().toStdString();
+    cout << "last_modified_time: " << mtime << endl;
+    regex re(date_time_fmt);
+    EXPECT_TRUE(regex_match(mtime, re));
+#endif
+}
+
+TEST_F(LocalProviderTest, xdg_dir)
+{
+#if 0
+    using namespace unity::storage::qt;
+
+    EnvVarGuard env("XDG_DATA_HOME", "/tmp");
+    ::rmdir("/tmp/storage-framework");
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    unique_ptr<ItemListJob> j(acc_.roots());
+    EXPECT_TRUE(j->isValid());
+    QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
+    ASSERT_TRUE(ready_spy.wait(SIGNAL_WAIT_TIME));
+    ASSERT_EQ(1, ready_spy.count());
+    auto arg = ready_spy.takeFirst();
+    auto items = qvariant_cast<QList<Item>>(arg.at(0));
+    ASSERT_EQ(1, items.size());
+#endif
+}
+#if 0
     {
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR);
+        EnvVarGuard env("XDG_DATA_HOME", "/tmp");
+
+        ::rmdir("/tmp/storage-framework");
 
         auto p = make_shared<LocalProvider>();
 
         auto fut = p->roots({}, Context());
         auto roots = fut.get();
         ASSERT_EQ(1, roots.size());
+        EXPECT_EQ("/tmp/storage-framework", roots[0].item_id);
+    }
+#endif
 
-        auto root = roots[0];
-        EXPECT_EQ(ROOT_DIR, root.item_id);
-        EXPECT_EQ(0, root.parent_ids.size());
-        EXPECT_EQ("/", root.name);
-        EXPECT_EQ("", root.etag);
-        EXPECT_EQ(ItemType::root, root.type);
+TEST(LocalProviderExceptions, constructor_exceptions)
+{
+    // These tests cause the constructor to throw, so we instantiate the provider directly.
 
-        ASSERT_EQ(5, root.metadata.size());
-        auto free_space_bytes = boost::get<int64_t>(root.metadata.at("free_space_bytes"));
-        cout << "free_space_bytes: " << free_space_bytes << endl;
-        EXPECT_GT(free_space_bytes, 0);
-        auto used_space_bytes = boost::get<int64_t>(root.metadata.at("used_space_bytes"));
-        cout << "used_space_bytes: " << used_space_bytes << endl;
-        EXPECT_GT(used_space_bytes, 0);
-        auto content_type = boost::get<string>(root.metadata.at("content_type"));
-        EXPECT_EQ("inode/directory", content_type);
-        auto writable = boost::get<int64_t>(root.metadata.at("writable"));
-        EXPECT_TRUE(writable);
+    {
+        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", "/no_such_dir");
 
-        // yyyy-mm-ddThh:mm:ssZ
-        string const date_time_fmt = "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z$";
-        string mtime = boost::get<string>(root.metadata.at("last_modified_time"));
-        cout << "last_modified_time: " << mtime << endl;
-        regex re(date_time_fmt);
-        EXPECT_TRUE(regex_match(mtime, re));
+        try
+        {
+            LocalProvider();
+            FAIL();
+        }
+        catch (provider::ResourceException const& e)
+        {
+            EXPECT_STREQ("ResourceException: LocalProvider(): Cannot stat /no_such_dir: No such file or directory",
+                         e.what());
+        }
     }
 
+    {
+        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR "/Makefile");
+
+        try
+        {
+            LocalProvider();
+            FAIL();
+        }
+        catch (provider::InvalidArgumentException const& e)
+        {
+            EXPECT_STREQ("InvalidArgumentException: LocalProvider(): Environment variable "
+                         "STORAGE_FRAMEWORK_ROOT must denote a directory",
+                         e.what());
+        }
+    }
+
+    {
+        ::mkdir(TEST_DIR "/noperm", 0555);
+
+        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR "/noperm");
+
+        try
+        {
+            LocalProvider();
+            ::rmdir(TEST_DIR "/noperm");
+            FAIL();
+        }
+        catch (provider::ResourceException const& e)
+        {
+            EXPECT_STREQ("ResourceException: LocalProvider(): Cannot create " TEST_DIR "/noperm: Permission denied",
+                         e.what());
+        }
+        ::rmdir(TEST_DIR "/noperm");
+    }
+
+}
+
+#if 0
+TEST_F(LocalProviderTest, basic)
+{
     {
         EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", "/no_such_dir");
 
@@ -499,18 +622,29 @@ TEST_F(LocalProviderTest, download)
         }
     }
 }
+#endif
 
 int main(int argc, char** argv)
 {
     setenv("LANG", "C", true);
+    setenv("STORAGE_FRAMEWORK_ROOT", TEST_DIR, true);
 
     QCoreApplication app(argc, argv);
 
     ::testing::InitGoogleTest(&argc, argv);
     int rc = RUN_ALL_TESTS();
+
+#if 0
+    // Process any pending events to avoid bogus leak reports from valgrind.
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+#endif
+
     if (rc == 0)
     {
-        boost::filesystem::remove_all(ROOT_DIR);
+        boost::system::error_code ec;
+        boost::filesystem::remove_all(ROOT_DIR, ec);
     }
+
     return rc;
 }

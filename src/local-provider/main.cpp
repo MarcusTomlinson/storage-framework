@@ -31,8 +31,8 @@ int main(int argc, char* argv[])
 {
     using namespace boost::filesystem;
 
-    string const bus_name = "com.canonical.StorageFramework.Provider.OwnCloud";
-    string const account_service_id = "storage-provider-local";
+    string const bus_name = "com.canonical.StorageFramework.Provider.Local";
+    string const account_service_id = "";
 
     string progname = argv[0];
 

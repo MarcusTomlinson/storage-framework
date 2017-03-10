@@ -86,7 +86,7 @@ boost::filesystem::path sanitize(string const& method, string const& name)
 
 // Throw a StorageException that corresponds to a boost::filesystem_error.
 
-void throw_exception(string const& method, boost::filesystem::filesystem_error const& e)
+void throw_storage_exception(string const& method, boost::filesystem::filesystem_error const& e)
 {
     using namespace boost::system::errc;
 
@@ -123,7 +123,7 @@ void throw_exception(string const& method, boost::filesystem::filesystem_error c
 
 // Throw a storage exception that corresponds to a FileError.
 
-void throw_exception(string const& method, string const& msg, QFileDevice::FileError e)
+void throw_storage_exception(string const& method, string const& msg, QFileDevice::FileError e)
 {
     string const error_msg = method + ": " + msg;
     switch (e)
@@ -140,7 +140,7 @@ void throw_exception(string const& method, string const& msg, QFileDevice::FileE
 
 // Throw a storage exception that corresponds to a LocalSocketError.
 
-void throw_exception(string const& method, string const& msg, QLocalSocket::LocalSocketError e)
+void throw_storage_exception(string const& method, string const& msg, QLocalSocket::LocalSocketError e)
 {
     throw ResourceException(method + ": " + msg + " (QLocalSocket error = " + to_string(e) + ")", e);
 }

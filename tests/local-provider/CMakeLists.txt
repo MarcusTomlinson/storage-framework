@@ -5,6 +5,8 @@ add_definitions(-DTEST_DIR="${CMAKE_CURRENT_BINARY_DIR}" -DBOOST_THREAD_VERSION=
 target_link_libraries(local-provider_test
     local-provider-lib
     storage-framework-provider
+    storage-framework-qt-client-v2
+    Qt5::Test
     ${Boost_LIBRARIES}
     ${GLIB_DEPS_LIBRARIES}
     ${GIO_DEPS_LIBRARIES}
