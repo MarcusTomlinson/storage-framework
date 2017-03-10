@@ -83,7 +83,6 @@ TEST_F(LocalProviderTest, basic)
     QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
     ASSERT_TRUE(ready_spy.wait(SIGNAL_WAIT_TIME));
     ASSERT_EQ(1, ready_spy.count());
-#if 0
     auto arg = ready_spy.takeFirst();
     auto items = qvariant_cast<QList<Item>>(arg.at(0));
     ASSERT_EQ(1, items.size());
@@ -118,15 +117,16 @@ TEST_F(LocalProviderTest, basic)
     cout << "last_modified_time: " << mtime << endl;
     regex re(date_time_fmt);
     EXPECT_TRUE(regex_match(mtime, re));
-#endif
 }
 
 TEST_F(LocalProviderTest, xdg_dir)
 {
-#if 0
+    // Check that we are paying attention to XDG_DATA_HOME.
+
     using namespace unity::storage::qt;
 
-    EnvVarGuard env("XDG_DATA_HOME", "/tmp");
+    EnvVarGuard env1("STORAGE_FRAMEWORK_ROOT", nullptr);
+    EnvVarGuard env2("XDG_DATA_HOME", "/tmp");
     ::rmdir("/tmp/storage-framework");
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
@@ -139,22 +139,10 @@ TEST_F(LocalProviderTest, xdg_dir)
     auto arg = ready_spy.takeFirst();
     auto items = qvariant_cast<QList<Item>>(arg.at(0));
     ASSERT_EQ(1, items.size());
-#endif
+
+    auto root = items[0];
+    EXPECT_EQ("/tmp/storage-framework", root.itemId());
 }
-#if 0
-    {
-        EnvVarGuard env("XDG_DATA_HOME", "/tmp");
-
-        ::rmdir("/tmp/storage-framework");
-
-        auto p = make_shared<LocalProvider>();
-
-        auto fut = p->roots({}, Context());
-        auto roots = fut.get();
-        ASSERT_EQ(1, roots.size());
-        EXPECT_EQ("/tmp/storage-framework", roots[0].item_id);
-    }
-#endif
 
 TEST(LocalProviderExceptions, constructor_exceptions)
 {
@@ -213,72 +201,6 @@ TEST(LocalProviderExceptions, constructor_exceptions)
 }
 
 #if 0
-TEST_F(LocalProviderTest, basic)
-{
-    {
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", "/no_such_dir");
-
-        try
-        {
-            make_shared<LocalProvider>();
-            FAIL();
-        }
-        catch (ResourceException const& e)
-        {
-            EXPECT_STREQ("ResourceException: LocalProvider(): Cannot stat /no_such_dir: No such file or directory",
-                         e.what());
-        }
-    }
-
-    {
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR "/Makefile");
-
-        try
-        {
-            make_shared<LocalProvider>();
-            FAIL();
-        }
-        catch (InvalidArgumentException const& e)
-        {
-            EXPECT_STREQ("InvalidArgumentException: LocalProvider(): Environment variable "
-                         "STORAGE_FRAMEWORK_ROOT must denote a directory",
-                         e.what());
-        }
-    }
-
-    {
-        ::mkdir(TEST_DIR "/noperm", 0555);
-
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR "/noperm");
-
-        try
-        {
-            make_shared<LocalProvider>();
-            ::rmdir(TEST_DIR "/noperm");
-            FAIL();
-        }
-        catch (ResourceException const& e)
-        {
-            EXPECT_STREQ("ResourceException: LocalProvider(): Cannot create " TEST_DIR "/noperm: Permission denied",
-                         e.what());
-        }
-        ::rmdir(TEST_DIR "/noperm");
-    }
-
-    {
-        EnvVarGuard env("XDG_DATA_HOME", "/tmp");
-
-        ::rmdir("/tmp/storage-framework");
-
-        auto p = make_shared<LocalProvider>();
-
-        auto fut = p->roots({}, Context());
-        auto roots = fut.get();
-        ASSERT_EQ(1, roots.size());
-        EXPECT_EQ("/tmp/storage-framework", roots[0].item_id);
-    }
-}
-
 TEST_F(LocalProviderTest, create_folder)
 {
     {
@@ -629,16 +551,17 @@ int main(int argc, char** argv)
     setenv("LANG", "C", true);
     setenv("STORAGE_FRAMEWORK_ROOT", TEST_DIR, true);
 
+    // Test test fixture repeatedly creates and tears down the dbus connection.
+    // The provider calls g_file_new_for_path() which talks to the GVfs backend
+    // via dbus. If the dbus connection disappears, that causes GIO to send a
+    // a SIGTERM, killing the test.
+    // Setting GIO_USE_VFS variable to "local" disables sending the signal.
+    setenv("GIO_USE_VFS", "local", true);
+
     QCoreApplication app(argc, argv);
 
     ::testing::InitGoogleTest(&argc, argv);
     int rc = RUN_ALL_TESTS();
-
-#if 0
-    // Process any pending events to avoid bogus leak reports from valgrind.
-    QCoreApplication::sendPostedEvents();
-    QCoreApplication::processEvents();
-#endif
 
     if (rc == 0)
     {
