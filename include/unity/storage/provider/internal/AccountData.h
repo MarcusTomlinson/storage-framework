@@ -81,6 +81,8 @@ Q_SIGNALS:
 private Q_SLOTS:
     void on_authenticated();
 
+    void on_changed();
+
 private:
     std::shared_ptr<ProviderBase> const provider_;
     std::shared_ptr<DBusPeerCache> const dbus_peer_;

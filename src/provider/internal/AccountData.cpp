@@ -43,6 +43,8 @@ AccountData::AccountData(shared_ptr<ProviderBase> const& provider,
       inactivity_timer_(inactivity_timer), jobs_(new PendingJobs(bus)),
       account_(account)
 {
+    connect(account_, &OnlineAccounts::Account::changed,
+            this, &AccountData::on_changed);
     authenticate(false);
 }
 
@@ -201,6 +203,18 @@ void AccountData::on_authenticated()
     auth_watcher_.reset();
 
     Q_EMIT authenticated();
+}
+
+void AccountData::on_changed()
+{
+    // Assume that if we're in the middle of authenticating that we'll
+    // receive valid credentials for the changed account.
+    if (auth_watcher_)
+    {
+        return;
+    }
+    // Otherwise, invalidate the credentials
+    credentials_ = boost::blank();
 }
 
 }
