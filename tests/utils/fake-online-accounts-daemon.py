@@ -27,10 +27,16 @@ BUS_NAME = "com.ubuntu.OnlineAccounts.Manager"
 OBJECT_PATH = "/com/ubuntu/OnlineAccounts/Manager"
 OA_IFACE = "com.ubuntu.OnlineAccounts.Manager"
 
+TEST_IFACE = "com.canonical.StorageFramework.Testing"
+
 AUTH_OAUTH1 = 1
 AUTH_OAUTH2 = 2
 AUTH_PASSWORD = 3
 AUTH_SASL = 4
+
+CHANGE_TYPE_ENABLED = 0
+CHANGE_TYPE_DISABLED = 1
+CHANGE_TYPE_CHANGED = 2
 
 class OAuth1:
     method = AUTH_OAUTH1
@@ -130,7 +136,7 @@ class Manager(dbus.service.Object):
     def GetAccounts(self, filters):
         #print("GetAccounts %r" % filters)
         sys.stdout.flush()
-        return dbus.Array([a.serialise() for a in self.accounts],
+        return dbus.Array([a.serialise() for a in self.accounts.values()],
                           signature="a(ua{sv})"), dbus.Array(signature="a{sv}")
 
     @dbus.service.method(dbus_interface=OA_IFACE,
@@ -138,27 +144,51 @@ class Manager(dbus.service.Object):
     def Authenticate(self, account_id, service_id, interactive, invalidate, parameters):
         #print("Authenticate %r %r %r %r %r" % (account_id, service_id, interactive, invalidate, parameters))
         sys.stdout.flush()
-        for account in self.accounts:
-            if account.account_id == account_id and account.service_id == service_id:
-                return account.credentials.serialise(interactive, invalidate)
-        else:
-            raise KeyError(repr((account_id, service_id)))
+        account = self.accounts[account_id, service_id]
+        return account.credentials.serialise(interactive, invalidate)
 
     @dbus.service.method(dbus_interface=OA_IFACE,
                          in_signature="sa{sv}", out_signature="(ua{sv})a{sv}")
     def RequestAccess(self, service_id, parameters):
         #print("RequestAccess %r %r" % (service_id, parameters))
         sys.stdout.flush()
-        for account in self.accounts:
+        for account in self.accounts.values():
             if account.service_id == service_id:
                 return (account.serialise(),
                         account.credentials.serialise(True, False))
         else:
             raise KeyError(service_id)
 
+    @dbus.service.signal(dbus_interface=OA_IFACE,
+                         signature="s(ua{sv})")
+    def AccountChanged(self, service_id, account):
+        pass
+
+    @dbus.service.method(dbus_interface=TEST_IFACE,
+                         in_signature="s", out_signature="")
+    def UpdateAccount(self, account_data):
+        account = eval(account_data)
+        key = (account.account_id, account.service_id)
+        exists = key in self.accounts
+        self.accounts[key] = account
+        info = account.serialise()
+        info[1]["changeType"] = dbus.UInt32(
+            CHANGE_TYPE_CHANGED if exists else CHANGE_TYPE_ENABLED)
+        self.AccountChanged(account.service_id, info)
+
+    @dbus.service.method(dbus_interface=TEST_IFACE,
+                         in_signature="us", out_signature="")
+    def RemoveAccount(self, account_id, service_id):
+        account = self.accounts.pop((account_id, service_id), None)
+        if account is not None:
+            info = account.serialise()
+            info[1]["changeType"] = dbus.UInt32(CHANGE_TYPE_DISABLED)
+            self.AccountChanged(account.service_id, info)
+
 class Server:
     def __init__(self, accounts):
-        self.accounts = accounts
+        self.accounts = dict(((a.account_id, a.service_id), a)
+                             for a in accounts)
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self.main_loop = GLib.MainLoop()
         self.connection = dbus.SessionBus()

@@ -4,8 +4,19 @@ storage-framework (0.3-0ubuntu1) UNRELEASED; urgency=medium
   * Add UnauthorizedException to the provider library, so the provider
     can trigger reauthentication of the account and have the request
     restarted. (LP: #1616756)
+  * Dynamically add and remove providers as the associated accounts
+    are enabled and disabled. (LP: #1616757)
 
  -- James Henstridge <james.henstridge@canonical.com>  Tue, 20 Dec 2016 11:46:21 +0800
+
+storage-framework (0.2+17.04.20161212.1-0ubuntu1) zesty; urgency=medium
+
+  * Fix for lp:1644577, fail list job if metadata for any item is incorrect.
+  * Always emit itemsReady(), even if list is empty.
+  * Improvements to error logging and detail in error messages: lp:1644577
+  * Added separate registry service.
+
+ -- Michi Henning <michi@triodia.com>  Mon, 12 Dec 2016 02:54:46 +0000
 
 storage-framework (0.2+17.04.20161104-0ubuntu1) zesty; urgency=medium
 
