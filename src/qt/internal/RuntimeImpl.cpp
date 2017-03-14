@@ -24,9 +24,11 @@
 #include <unity/storage/qt/internal/AccountImpl.h>
 #include <unity/storage/qt/internal/AccountsJobImpl.h>
 #include <unity/storage/qt/internal/StorageErrorImpl.h>
+#include <unity/storage/qt/Downloader.h>
 #include <unity/storage/qt/ItemJob.h>
 #include <unity/storage/qt/ItemListJob.h>
 #include <unity/storage/qt/Runtime.h>
+#include <unity/storage/qt/Uploader.h>
 #include <unity/storage/qt/VoidJob.h>
 #include <unity/storage/registry/Registry.h>
 
@@ -51,10 +53,12 @@ void register_meta_types()
     qRegisterMetaType<unity::storage::qt::AccountsJob::Status>();
     qRegisterMetaType<unity::storage::qt::Account>();
     qRegisterMetaType<QList<unity::storage::qt::Account>>();
+    qRegisterMetaType<unity::storage::qt::Downloader::Status>();
     qRegisterMetaType<unity::storage::qt::Item>();
     qRegisterMetaType<QList<unity::storage::qt::Item>>();
     qRegisterMetaType<unity::storage::qt::ItemJob::Status>();
     qRegisterMetaType<unity::storage::qt::ItemListJob::Status>();
+    qRegisterMetaType<unity::storage::qt::Uploader::Status>();
     qRegisterMetaType<unity::storage::qt::VoidJob::Status>();
 
     qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();

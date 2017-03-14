@@ -56,22 +56,17 @@ LocalUploadJob::LocalUploadJob(shared_ptr<LocalProvider> const& provider,
 
     provider_->throw_if_not_valid(method_, parent_id);
 
-    try
+    auto sanitized_name = sanitize(method_, name);
+    path p = parent_id;
+    p /= sanitized_name;
+    item_id_ = p.native();
+    if (!allow_overwrite && exists(item_id_))
     {
-        auto sanitized_name = sanitize(method_, name);
-        path p = parent_id;
-        p /= sanitized_name;
-        item_id_ = p.native();
-        if (!allow_overwrite && exists(item_id_))
-        {
-            string msg = method_ + ": \"" + item_id_ + "\" exists already";
-            throw ExistsException(msg, item_id_, sanitized_name.native());
-        }
+        string msg = method_ + ": \"" + item_id_ + "\" exists already";
+        throw ExistsException(msg, item_id_, sanitized_name.native());
     }
-    catch (filesystem_error const& e)
-    {
-        throw_storage_exception(method_, e);
-    }
+
+    prepare_channels();
 }
 
 LocalUploadJob::LocalUploadJob(shared_ptr<LocalProvider> const& provider,
@@ -82,7 +77,6 @@ LocalUploadJob::LocalUploadJob(shared_ptr<LocalProvider> const& provider,
 {
     using namespace boost::filesystem;
 
-    // Sanitize parameters.
     item_id_ = item_id;
     provider_->throw_if_not_valid(method_, item_id);
     try
@@ -93,10 +87,14 @@ LocalUploadJob::LocalUploadJob(shared_ptr<LocalProvider> const& provider,
             throw InvalidArgumentException(method_ + ": \"" + item_id + "\" is not a file");
         }
     }
+    // LCOV_EXCL_START
     catch (filesystem_error const& e)
     {
+        // The call to status could throw if the file is unlinked immediately
+        // after the call to throw_if_not_valid.
         throw_storage_exception(method_, e);
     }
+    // LCOV_EXCL_STOP
     if (!old_etag.empty())
     {
         int64_t mtime = get_mtime_nsecs(method_, item_id);
@@ -107,17 +105,25 @@ LocalUploadJob::LocalUploadJob(shared_ptr<LocalProvider> const& provider,
     }
     old_etag_ = old_etag;
 
+    prepare_channels();
+}
+
+LocalUploadJob::~LocalUploadJob() = default;
+
+void LocalUploadJob::prepare_channels()
+{
+    using namespace boost::filesystem;
+
     // Open tmp file for writing.
-    auto parent_path = path(item_id).parent_path();
+    auto parent_path = path(item_id_).parent_path();
     tmp_fd_.reset(open(parent_path.native().c_str(), O_TMPFILE | O_WRONLY, 0600));
     if (tmp_fd_.get() == -1)
     {
-        // LCOV_EXCL_START
         // Some kernels on the phones don't support O_TMPFILE and return various errno values when this fails.
         // So, if anything at all goes wrong, we fall back on conventional temp file creation and
         // produce a hard error if that doesn't work either.
         // Note that, in this case, the temp file retains its name in the file system. Not nice because,
-        // if the client dies at the wrong moment, we leave the temp file behind.
+        // if this process dies at the wrong moment, we leave the temp file behind.
         use_linkat_ = false;
         string tmpfile = parent_path.native() + "/" + TMPFILE_PREFIX + "-%%%%-%%%%-%%%%-%%%%";
         tmp_fd_.reset(mkstemp(const_cast<char*>(tmpfile.data())));
@@ -127,6 +133,7 @@ LocalUploadJob::LocalUploadJob(shared_ptr<LocalProvider> const& provider,
                          + unity::storage::internal::safe_strerror(errno);
             throw ResourceException(msg, errno);
         }
+        // LCOV_EXCL_START
         file_.reset(new QFile(QString::fromStdString(tmpfile)));
         file_->open(QIODevice::WriteOnly);
         // LCOV_EXCL_STOP
@@ -142,22 +149,20 @@ LocalUploadJob::LocalUploadJob(shared_ptr<LocalProvider> const& provider,
     int dup_fd = dup(read_socket());
     if (dup_fd == -1)
     {
+        // LCOV_EXCL_START
         string msg = method_ + ": dup() failed: " + unity::storage::internal::safe_strerror(errno);
         throw ResourceException(msg, errno);
+        // LCOV_EXCL_STOP
     }
     read_socket_.setSocketDescriptor(dup_fd, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
     connect(&read_socket_, &QLocalSocket::readyRead, this, &LocalUploadJob::on_bytes_ready);
     connect(&read_socket_, &QIODevice::readChannelFinished, this, &LocalUploadJob::on_read_channel_finished);
-
-    // Kick off the read-write cycle.
-    QMetaObject::invokeMethod(this, "read_and_write_chunk", Qt::QueuedConnection);
 }
 
 boost::future<void> LocalUploadJob::cancel()
 {
     if (state_ == in_progress)
     {
-        state_ = cancelled;
         abort_upload();
     }
     return boost::make_ready_future();
@@ -165,21 +170,8 @@ boost::future<void> LocalUploadJob::cancel()
 
 boost::future<Item> LocalUploadJob::finish()
 {
-    if (state_ == cancelled)
-    {
-        string msg = "finish(): upload was cancelled earlier";
-        return boost::make_exceptional_future<Item>(CancelledException(msg));
-    }
-    else if (state_ == finished)
-    {
-        string msg = "finish(): upload was completed earlier";
-        return boost::make_exceptional_future<Item>(LogicException(msg));
-    }
-
     if (bytes_to_write_ > 0)
     {
-        // No clean-up here. If the caller calls finish() too early, it can continue to write
-        // and still finish cleanly once it has written the correct number of bytes.
         string msg = "finish() method called too early, size was given as "
                      + to_string(size_) + " but only "
                      + to_string(size_ - bytes_to_write_) + " bytes were received";
@@ -198,23 +190,27 @@ boost::future<Item> LocalUploadJob::finish()
             if (!allow_overwrite_ && boost::filesystem::exists(item_id_))
             {
                 string msg = method_ + ": \"" + item_id_ + "\" exists already";
-                throw ExistsException(msg, item_id_, boost::filesystem::path(item_id_).filename().native());
+                boost::filesystem::path(item_id_).filename().native();
+                BOOST_THROW_EXCEPTION(
+                    ExistsException(msg, item_id_, boost::filesystem::path(item_id_).filename().native()));
             }
         }
-        else
+        else if (!old_etag_.empty())
         {
             // update()
             int64_t mtime = get_mtime_nsecs(method_, item_id_);
             if (to_string(mtime) != old_etag_)
             {
-                throw ConflictException(method_ + ": etag mismatch");
+                BOOST_THROW_EXCEPTION(ConflictException(method_ + ": etag mismatch"));
             }
         }
 
         if (!file_->flush())  // Make sure that all buffered data is written.
         {
+            // LCOV_EXCL_START
             string msg = "finish(): cannot flush output file: " + file_->errorString().toStdString();
             throw_storage_exception("finish()", msg, file_->error());
+            // LCOV_EXCL_STOP
         }
 
         // Link the anonymous tmp file into the file system.
@@ -229,7 +225,7 @@ boost::future<Item> LocalUploadJob::finish()
                 // LCOV_EXCL_START
                 string msg = "finish(): linkat \"" + old_path + "\" to \"" + item_id_ + "\" failed: "
                              + safe_strerror(errno);
-                ResourceException(msg, errno);
+                BOOST_THROW_EXCEPTION(ResourceException(msg, errno));
                 // LCOV_EXCL_STOP
             }
         }
@@ -241,7 +237,7 @@ boost::future<Item> LocalUploadJob::finish()
             {
                 string msg = "finish(): rename \"" + old_path + "\" to \"" + item_id_ + "\" failed: "
                              + safe_strerror(errno);
-                throw ResourceException(msg, errno);
+                BOOST_THROW_EXCEPTION(ResourceException(msg, errno));
             }
             // LCOV_EXCL_STOP
         }
@@ -254,20 +250,20 @@ boost::future<Item> LocalUploadJob::finish()
     }
     catch (StorageException const&)
     {
-        return boost::make_exceptional_future<Item>(current_exception());
+        return boost::make_exceptional_future<Item>(boost::current_exception());
     }
+    // LCOV_EXCL_START
     catch (boost::filesystem::filesystem_error const& e)
     {
         try
         {
             throw_storage_exception("finish()", e);
         }
-        catch (...)
+        catch (StorageException const&)
         {
-            return boost::make_exceptional_future<Item>(current_exception());
+            return boost::make_exceptional_future<Item>(boost::current_exception());
         }
     }
-    // LCOV_EXCL_START
     catch (std::exception const& e)
     {
         return boost::make_exceptional_future<Item>(UnknownException(e.what()));
@@ -279,7 +275,7 @@ void LocalUploadJob::on_bytes_ready()
 {
     if (bytes_to_write_ < 0)
     {
-        return;  // We received too many bytes earlier.
+        return;  // LCOV_EXCL_LINE  // We received too many bytes earlier.
     }
 
     try
@@ -325,13 +321,16 @@ void LocalUploadJob::on_read_channel_finished()
 
 void LocalUploadJob::abort_upload()
 {
+    state_ = cancelled;
     disconnect(&read_socket_, nullptr, this, nullptr);
     read_socket_.abort();
     file_->close();
     if (!use_linkat_)
     {
+        // LCOV_EXCL_START
         string filename = file_->fileName().toStdString();
         ::unlink(filename.c_str());  // Don't leave any temp file behind.
+        // LCOV_EXCL_STOP
     }
     bytes_to_write_ = 0;
 }

@@ -16,7 +16,9 @@
  * Authors: Michi Henning <michi.henning@canonical.com>
  */
 
+#include "../../src/local-provider/LocalDownloadJob.h"
 #include "../../src/local-provider/LocalProvider.h"
+#include "../../src/local-provider/LocalUploadJob.h"
 
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/Exceptions.h>
@@ -25,12 +27,15 @@
 #include <utils/env_var_guard.h>
 #include <utils/ProviderFixture.h>
 
+#include <boost/algorithm/string.hpp>
 #include <gtest/gtest.h>
 #include <QCoreApplication>
 #include <QSignalSpy>
 
 #include <chrono>
 #include <regex>
+
+#include <fcntl.h>
 
 using namespace unity::storage;
 using namespace std;
@@ -69,7 +74,118 @@ protected:
 
 constexpr int SIGNAL_WAIT_TIME = 30000;
 
+template <typename Job>
+void wait(Job* job)
+{
+    QSignalSpy spy(job, &Job::statusChanged);
+    while (job->status() == Job::Loading)
+    {
+        if (!spy.wait(SIGNAL_WAIT_TIME))
+        {
+            throw runtime_error("Wait for statusChanged signal timed out");
+        }
+    }
+}
+
+qt::Item get_root(qt::Account const& account)
+{
+    unique_ptr<qt::ItemListJob> j(account.roots());
+    assert(j->isValid());
+    QSignalSpy ready_spy(j.get(), &qt::ItemListJob::itemsReady);
+    assert(ready_spy.wait(SIGNAL_WAIT_TIME));
+    auto arg = ready_spy.takeFirst();
+    auto items = qvariant_cast<QList<qt::Item>>(arg.at(0));
+    assert(items.size() == 1);
+    return items[0];
+}
+
+QList<qt::Item> get_items(qt::ItemListJob *job)
+{
+    QList<qt::Item> items;
+    auto connection = QObject::connect(
+        job, &qt::ItemListJob::itemsReady,
+        [&](QList<qt::Item> const& new_items)
+        {
+            items.append(new_items);
+        });
+    try
+    {
+        wait(job);
+    }
+    catch (...)
+    {
+        QObject::disconnect(connection);
+        throw;
+    }
+    QObject::disconnect(connection);
+    return items;
+}
+
+const string file_contents =
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do "
+    "eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut "
+    "enim ad minim veniam, quis nostrud exercitation ullamco laboris "
+    "nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor "
+    "in reprehenderit in voluptate velit esse cillum dolore eu fugiat "
+    "nulla pariatur. Excepteur sint occaecat cupidatat non proident, "
+    "sunt in culpa qui officia deserunt mollit anim id est laborum.\n";
+
 }  // namespace
+
+TEST(LocalProviderExceptions, constructor_exceptions)
+{
+    // These tests cause the constructor to throw, so we instantiate the provider directly.
+
+    {
+        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", "/no_such_dir");
+
+        try
+        {
+            LocalProvider();
+            FAIL();
+        }
+        catch (provider::ResourceException const& e)
+        {
+            EXPECT_STREQ("ResourceException: LocalProvider(): Cannot stat /no_such_dir: No such file or directory",
+                         e.what());
+        }
+    }
+
+    {
+        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR "/Makefile");
+
+        try
+        {
+            LocalProvider();
+            FAIL();
+        }
+        catch (provider::InvalidArgumentException const& e)
+        {
+            EXPECT_STREQ("InvalidArgumentException: LocalProvider(): Environment variable "
+                         "STORAGE_FRAMEWORK_ROOT must denote a directory",
+                         e.what());
+        }
+    }
+
+    {
+        ::mkdir(TEST_DIR "/noperm", 0555);
+
+        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR "/noperm");
+
+        try
+        {
+            LocalProvider();
+            ::rmdir(TEST_DIR "/noperm");
+            FAIL();
+        }
+        catch (provider::ResourceException const& e)
+        {
+            EXPECT_STREQ("ResourceException: LocalProvider(): Cannot create " TEST_DIR "/noperm: Permission denied",
+                         e.what());
+        }
+        ::rmdir(TEST_DIR "/noperm");
+    }
+}
 
 TEST_F(LocalProviderTest, basic)
 {
@@ -144,407 +260,1161 @@ TEST_F(LocalProviderTest, xdg_dir)
     EXPECT_EQ("/tmp/storage-framework", root.itemId());
 }
 
-TEST(LocalProviderExceptions, constructor_exceptions)
-{
-    // These tests cause the constructor to throw, so we instantiate the provider directly.
-
-    {
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", "/no_such_dir");
-
-        try
-        {
-            LocalProvider();
-            FAIL();
-        }
-        catch (provider::ResourceException const& e)
-        {
-            EXPECT_STREQ("ResourceException: LocalProvider(): Cannot stat /no_such_dir: No such file or directory",
-                         e.what());
-        }
-    }
-
-    {
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR "/Makefile");
-
-        try
-        {
-            LocalProvider();
-            FAIL();
-        }
-        catch (provider::InvalidArgumentException const& e)
-        {
-            EXPECT_STREQ("InvalidArgumentException: LocalProvider(): Environment variable "
-                         "STORAGE_FRAMEWORK_ROOT must denote a directory",
-                         e.what());
-        }
-    }
-
-    {
-        ::mkdir(TEST_DIR "/noperm", 0555);
-
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR "/noperm");
-
-        try
-        {
-            LocalProvider();
-            ::rmdir(TEST_DIR "/noperm");
-            FAIL();
-        }
-        catch (provider::ResourceException const& e)
-        {
-            EXPECT_STREQ("ResourceException: LocalProvider(): Cannot create " TEST_DIR "/noperm: Permission denied",
-                         e.what());
-        }
-        ::rmdir(TEST_DIR "/noperm");
-    }
-
-}
-
-#if 0
 TEST_F(LocalProviderTest, create_folder)
 {
     {
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR);
+        using namespace unity::storage::qt;
 
-        auto p = make_shared<LocalProvider>();
+        set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-        Item root;
-        {
-            auto fut = p->roots({}, Context());
-            auto roots = fut.get();
-            root = roots.at(0);
-        }
+        auto root = get_root(acc_);
+        unique_ptr<ItemJob> job(root.createFolder("child"));
+        wait(job.get());
+        ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
 
-        Item child;
-        {
-            auto fut = p->create_folder(root.item_id, "child", {}, Context());
-            child = fut.get();
-        }
-
-        EXPECT_EQ("child", child.name);
-        ASSERT_EQ(1, child.parent_ids.size());
-        EXPECT_EQ(root.item_id, child.parent_ids[0]);
-        EXPECT_EQ("", child.etag);
-        EXPECT_EQ(ItemType::folder, child.type);
-
-        ASSERT_EQ(5, child.metadata.size());
+        Item child = job->item();
+        EXPECT_EQ(ROOT_DIR + "/child", child.itemId().toStdString());
+        EXPECT_EQ("child", child.name().toStdString());
+        ASSERT_EQ(1, child.parentIds().size());
+        EXPECT_EQ(ROOT_DIR, child.parentIds().at(0).toStdString());
+        EXPECT_EQ("", child.etag());
+        EXPECT_EQ(Item::Type::Folder, child.type());
+        EXPECT_EQ(5, child.metadata().size());
 
         struct stat st;
-        ASSERT_EQ(0, stat(child.item_id.c_str(), &st));
+        ASSERT_EQ(0, stat(child.itemId().toStdString().c_str(), &st));
         EXPECT_TRUE(S_ISDIR(st.st_mode));
+
+        // Again, to get coverage for a StorageException caught in invoke_async().
+        job.reset(root.createFolder("child"));
+        wait(job.get());
+        ASSERT_EQ(ItemJob::Error, job->status()) << job->error().errorString().toStdString();
+        EXPECT_EQ(string("Exists: create_folder(): \"") + ROOT_DIR + "/child\" exists already",
+                  job->error().errorString().toStdString());
+
+        // Again, without write permission on the root dir, to get coverage for a filesystem_error in invoke_async().
+        ASSERT_EQ(0, ::rmdir((ROOT_DIR + "/child").c_str()));
+        ASSERT_EQ(0, ::chmod(ROOT_DIR.c_str(), 0555));
+        job.reset(root.createFolder("child"));
+        wait(job.get());
+        ::chmod(ROOT_DIR.c_str(), 0755);
+        ASSERT_EQ(ItemJob::Error, job->status()) << job->error().errorString().toStdString();
+        EXPECT_EQ(string("PermissionDenied: create_folder(): \"") + ROOT_DIR
+                  + "/child\": boost::filesystem::create_directory: Permission denied: \"" + ROOT_DIR + "/child\"",
+                  job->error().errorString().toStdString());
     }
+}
 
+TEST_F(LocalProviderTest, delete_item)
+{
     {
-        // Bad directory names.
+        using namespace unity::storage::qt;
 
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR);
+        set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-        auto p = make_shared<LocalProvider>();
+        auto root = get_root(acc_);
+        unique_ptr<ItemJob> job(root.createFolder("child"));
+        wait(job.get());
+        ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
 
-        Item root;
-        {
-            auto fut = p->roots({}, Context());
-            auto roots = fut.get();
-            root = roots.at(0);
-        }
+        Item child = job->item();
+        unique_ptr<VoidJob> delete_job(child.deleteItem());
+        wait(delete_job.get());
+        ASSERT_EQ(ItemJob::Finished, delete_job->status()) << delete_job->error().errorString().toStdString();
 
-        try
-        {
-            // Empty name
-            auto fut = p->create_folder(root.item_id, "", {}, Context());
-            fut.get();
-            FAIL();
-        }
-        catch (InvalidArgumentException const& e)
-        {
-            EXPECT_STREQ("InvalidArgumentException: create_folder(): invalid name: \"\"", e.what());
-        }
+        struct stat st;
+        ASSERT_EQ(-1, stat(child.itemId().toStdString().c_str(), &st));
+        EXPECT_EQ(ENOENT, errno);
+    }
+}
 
-        try
-        {
-            // "."
-            auto fut = p->create_folder(root.item_id, ".", {}, Context());
-            fut.get();
-            FAIL();
-        }
-        catch (InvalidArgumentException const& e)
-        {
-            EXPECT_STREQ("InvalidArgumentException: create_folder(): invalid name: \".\"", e.what());
-        }
+TEST_F(LocalProviderTest, delete_item_noperm)
+{
+    {
+        using namespace unity::storage::qt;
 
-        try
-        {
-            // ".."
-            auto fut = p->create_folder(root.item_id, "..", {}, Context());
-            fut.get();
-            FAIL();
-        }
-        catch (InvalidArgumentException const& e)
-        {
-            EXPECT_STREQ("InvalidArgumentException: create_folder(): invalid name: \"..\"", e.what());
-        }
+        set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-        try
-        {
-            // Trailing slash
-            auto fut = p->create_folder(root.item_id, "abc/", {}, Context());
-            fut.get();
-            FAIL();
-        }
-        catch (InvalidArgumentException const& e)
-        {
-            EXPECT_STREQ("InvalidArgumentException: create_folder(): name \"abc/\" cannot contain a slash",
-                         e.what());
-        }
+        auto root = get_root(acc_);
+        unique_ptr<ItemJob> job(root.createFolder("child"));
+        wait(job.get());
+        ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
+    }
+}
 
-        try
-        {
-            // Leading slash
-            auto fut = p->create_folder(root.item_id, "/abc", {}, Context());
-            fut.get();
-            FAIL();
-        }
-        catch (InvalidArgumentException const& e)
-        {
-            EXPECT_STREQ("InvalidArgumentException: create_folder(): name \"/abc\" cannot contain a slash",
-                         e.what());
-        }
+TEST_F(LocalProviderTest, delete_root)
+{
+    // Client-side API does not allow us to try to delete the root, so we talk to the provider directly.
+    auto p = make_shared<LocalProvider>();
 
-        try
-        {
-            // Reserved name
-            auto fut = p->create_folder(root.item_id, ".storage-framework", {}, Context());
-            fut.get();
-            FAIL();
-        }
-        catch (InvalidArgumentException const& e)
-        {
-            EXPECT_STREQ("InvalidArgumentException: create_folder(): names beginning with "
-                         "\".storage-framework\" are reserved",
-                         e.what());
-        }
-
-        // Force permission error.
-        ASSERT_EQ(0, chmod(ROOT_DIR.c_str(), 0555));
-        try
-        {
-            auto fut = p->create_folder(root.item_id, "abc", {}, Context());
-            fut.get();
-            chmod(ROOT_DIR.c_str(), 0755);
-            FAIL();
-        }
-        catch (PermissionException const& e)
-        {
-            chmod(ROOT_DIR.c_str(), 0755);
-            EXPECT_EQ(string("PermissionException: create_folder(): \"") + ROOT_DIR + "/abc\": "
-                      "boost::filesystem::create_directory: Permission denied: \"" + ROOT_DIR + "/abc\"",
-                      e.what());
-        }
-
-        // Non-existent parent
-        try
-        {
-            auto fut = p->create_folder(ROOT_DIR + "/no_such_parent", "abc", {}, Context());
-            fut.get();
-            FAIL();
-        }
-        catch (NotExistsException const& e)
-        {
-            EXPECT_EQ(string("NotExistsException: create_folder(): \"") + ROOT_DIR + "/no_such_parent\": "
-                      "boost::filesystem::canonical: No such file or directory: \"" + ROOT_DIR + "/no_such_parent\"",
-                      e.what());
-        }
-
-        // Directory exists.
-        try
-        {
-            auto fut = p->create_folder(ROOT_DIR, "child", {}, Context());
-            fut.get();
-            FAIL();
-        }
-        catch (ExistsException const& e)
-        {
-            string item_path = ROOT_DIR + "/child";
-            EXPECT_EQ("ExistsException: create_folder(): \"" + item_path + "\" exists already", e.what());
-            EXPECT_EQ(item_path, e.native_identity());
-            EXPECT_EQ("child", e.name());
-        }
-
-        // Parent ID outside root.
-        try
-        {
-            auto fut = p->create_folder(ROOT_DIR + "/..", "abc", {}, Context());
-            fut.get();
-            FAIL();
-        }
-        catch (InvalidArgumentException const& e)
-        {
-            EXPECT_EQ(string("InvalidArgumentException: create_folder(): invalid id: \"") + ROOT_DIR + "/..\"", e.what());
-        }
-
-        // Parent ID different from root.
-        try
-        {
-            auto fut = p->create_folder("/tmp", "abc", {}, Context());
-            fut.get();
-            FAIL();
-        }
-        catch (InvalidArgumentException const& e)
-        {
-            EXPECT_STREQ("InvalidArgumentException: create_folder(): invalid id: \"/tmp\"", e.what());
-        }
+    auto fut = p->delete_item(ROOT_DIR, provider::Context());
+    try
+    {
+        fut.get();
+        FAIL();
+    }
+    catch (provider::LogicException const& e)
+    {
+        EXPECT_STREQ("LogicException: delete_item(): cannot delete root", e.what());
     }
 }
 
 TEST_F(LocalProviderTest, metadata)
 {
+    // Client-side API does not call the Metadata DBus method (except as part of parents()),
+    // so we talk to the provider directly.
+    auto p = make_shared<LocalProvider>();
+
+    auto fut = p->metadata(ROOT_DIR, {}, provider::Context());
+    auto item = fut.get();
+    EXPECT_EQ(5, item.metadata.size());
+
+    // Again, to get coverage for the "not file or folder" case in make_item().
+    ASSERT_EQ(0, mknod((ROOT_DIR + "/pipe").c_str(), S_IFIFO | 06666, 0));
+    try
     {
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR);
+        auto fut = p->metadata(ROOT_DIR + "/pipe", {}, provider::Context());
+        fut.get();
+        FAIL();
+    }
+    catch (provider::NotExistsException const& e)
+    {
+        EXPECT_EQ(string("NotExistsException: metadata(): \"") + ROOT_DIR + "/pipe\" is neither a file nor a folder",
+                  e.what());
+    }
+}
 
-        auto p = make_shared<LocalProvider>();
+TEST_F(LocalProviderTest, lookup)
+{
+    using namespace unity::storage::qt;
 
-        // Make a file
-        auto cmd = string("echo hello >") + ROOT_DIR + "/hello";
-        auto start_time = nanosecs_now();
-        ASSERT_EQ(0, system(cmd.c_str()));
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-        Item hello;
-        {
-            auto fut = p->metadata(ROOT_DIR + "/hello", {}, Context());
-            hello = fut.get();
-        }
-
-        EXPECT_EQ("hello", hello.name);
-        ASSERT_EQ(1, hello.parent_ids.size());
-        EXPECT_EQ(ROOT_DIR, hello.parent_ids[0]);
-        EXPECT_EQ(ItemType::file, hello.type);
-
-        ASSERT_EQ(6, hello.metadata.size());
-        auto free_space_bytes = boost::get<int64_t>(hello.metadata.at("free_space_bytes"));
-        cout << "free_space_bytes: " << free_space_bytes << endl;
-        EXPECT_GT(free_space_bytes, 0);
-        auto used_space_bytes = boost::get<int64_t>(hello.metadata.at("used_space_bytes"));
-        cout << "used_space_bytes: " << used_space_bytes << endl;
-        EXPECT_GT(used_space_bytes, 0);
-        auto content_type = boost::get<string>(hello.metadata.at("content_type"));
-        EXPECT_EQ("application/octet-stream", content_type);
-        auto writable = boost::get<int64_t>(hello.metadata.at("writable"));
-        EXPECT_TRUE(writable);
-        auto size = boost::get<int64_t>(hello.metadata.at("size_in_bytes"));
-        EXPECT_EQ(6, size);
-
-        // yyyy-mm-ddThh:mm:ssZ
-        string const date_time_fmt = "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z$";
-        string date_time = boost::get<string>(hello.metadata.at("last_modified_time"));
-        cout << "last_modified_time: " << date_time << endl;
-        regex re(date_time_fmt);
-        EXPECT_TRUE(regex_match(date_time, re));
-
-        // Check that the file was modified in the last two seconds.
-        // Because the system clock can tick a lot more frequently than the file system time stamp,
-        // we allow the mtime to be up to one second *earlier* than the time we started the operation.
-        char* end;
-        int64_t mtime = strtoll(hello.etag.c_str(), &end, 10);
-        EXPECT_LE(start_time - 1000000000, mtime);
-        EXPECT_LT(mtime, start_time + 2000000000);
+    auto root = get_root(acc_);
+    {
+        unique_ptr<ItemJob> job(root.createFolder("child"));
+        wait(job.get());
+        ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
     }
 
+    unique_ptr<ItemListJob> job(root.lookup("child"));
+    auto items = get_items(job.get());
+    ASSERT_EQ(1, items.size());
+    auto child = items.at(0);
+
+    EXPECT_EQ(ROOT_DIR + "/child", child.itemId().toStdString());
+    EXPECT_EQ("child", child.name().toStdString());
+    ASSERT_EQ(1, child.parentIds().size());
+    EXPECT_EQ(ROOT_DIR, child.parentIds().at(0).toStdString());
+    EXPECT_EQ("", child.etag());
+    EXPECT_EQ(Item::Type::Folder, child.type());
+    EXPECT_EQ(5, child.metadata().size());
+}
+
+TEST_F(LocalProviderTest, list)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto root = get_root(acc_);
     {
-        // Force permission error.
-
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR);
-
-        auto p = make_shared<LocalProvider>();
-
-        ASSERT_EQ(0, chmod((ROOT_DIR).c_str(), 0444));
-
-        try
-        {
-            auto fut = p->metadata(ROOT_DIR + "/hello", {}, Context());
-            fut.get();
-            chmod((ROOT_DIR).c_str(), 0755);
-            FAIL();
-        }
-        catch (PermissionException const& e)
-        {
-            chmod((ROOT_DIR).c_str(), 0755);
-            EXPECT_EQ(string("PermissionException: metadata(): \"") + ROOT_DIR + "/hello\": "
-                      "boost::filesystem::canonical: Permission denied: \"" + ROOT_DIR + "/hello\"",
-                      e.what());
-        }
+        unique_ptr<ItemJob> job(root.createFolder("child"));
+        wait(job.get());
+        ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
     }
 
+    // Make a weird item that will be ignored (for coverage).
+    ASSERT_EQ(0, mknod((ROOT_DIR + "/pipe").c_str(), S_IFIFO | 06666, 0));
+
+    // Make a file that starts with the temp file prefix (for coverage).
+    int fd = creat((ROOT_DIR + "/.storage-framework").c_str(), 0755);
+    ASSERT_GT(fd, 0);
+    close(fd);
+
+    unique_ptr<ItemListJob> job(root.list());
+    auto items = get_items(job.get());
+    ASSERT_EQ(1, items.size());
+    auto child = items.at(0);
+
+    EXPECT_EQ(ROOT_DIR + "/child", child.itemId().toStdString());
+    EXPECT_EQ("child", child.name().toStdString());
+    ASSERT_EQ(1, child.parentIds().size());
+    EXPECT_EQ(ROOT_DIR, child.parentIds().at(0).toStdString());
+    EXPECT_EQ("", child.etag());
+    EXPECT_EQ(Item::Type::Folder, child.type());
+    EXPECT_EQ(5, child.metadata().size());
+}
+
+void make_hierarchy()
+{
+    // Make a small tree so we have something to test with for move() and copy().
+    ASSERT_EQ(0, mkdir((ROOT_DIR + "/a").c_str(), 0755));
+    ASSERT_EQ(0, mkdir((ROOT_DIR + "/a/b").c_str(), 0755));
+    string cmd = string("echo hello >") + ROOT_DIR + "/hello";
+    ASSERT_EQ(0, system(cmd.c_str()));
+    cmd = string("echo text >") + ROOT_DIR + "/a/foo.txt";
+    ASSERT_EQ(0, system(cmd.c_str()));
+    ASSERT_EQ(0, mknod((ROOT_DIR + "/a/pipe").c_str(), S_IFIFO | 06666, 0));
+    ASSERT_EQ(0, mkdir((ROOT_DIR + "/a/.storage-framework-").c_str(), 0755));
+    ASSERT_EQ(0, mkdir((ROOT_DIR + "/a/b/.storage-framework-").c_str(), 0755));
+    ASSERT_EQ(0, mknod((ROOT_DIR + "/a/b/pipe").c_str(), S_IFIFO | 06666, 0));
+}
+
+TEST_F(LocalProviderTest, move)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto start_time = nanosecs_now();
+
+    make_hierarchy();
+
+    auto root = get_root(acc_);
+
+    qt::Item hello;
     {
-        // Try with a named pipe (neither file nor folder).
+        unique_ptr<ItemListJob> job(root.lookup("hello"));
+        auto items = get_items(job.get());
+        ASSERT_EQ(ItemListJob::Finished, job->status()) << job->error().errorString().toStdString();
+        ASSERT_EQ(1, items.size());
+        hello = items.at(0);
+    }
 
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR);
+    struct stat st;
+    ASSERT_EQ(0, stat(hello.itemId().toStdString().c_str(), &st));
+    auto old_ino = st.st_ino;
 
-        auto p = make_shared<LocalProvider>();
+    // Check metadata.
+    EXPECT_EQ("hello", hello.name());
+    ASSERT_EQ(1, hello.parentIds().size());
+    EXPECT_EQ(ROOT_DIR, hello.parentIds().at(0).toStdString());
+    EXPECT_EQ(Item::Type::File, hello.type());
 
-        // Make a named pipe.
-        ASSERT_EQ(0, mknod((ROOT_DIR + "/pipe").c_str(), S_IFIFO|06666, 0));
+    ASSERT_EQ(6, hello.metadata().size());
+    auto free_space_bytes = hello.metadata().value("free_space_bytes").toLongLong();
+    cout << "free_space_bytes: " << free_space_bytes << endl;
+    EXPECT_GT(free_space_bytes, 0);
+    auto used_space_bytes = hello.metadata().value("used_space_bytes").toLongLong();
+    cout << "used_space_bytes: " << used_space_bytes << endl;
+    EXPECT_GT(used_space_bytes, 0);
+    auto content_type = hello.metadata().value("content_type").toString();
+    EXPECT_EQ("application/octet-stream", content_type);
+    auto writable = hello.metadata().value("writable").toBool();
+    EXPECT_TRUE(writable);
+    auto size = hello.metadata().value("size_in_bytes").toLongLong();
+    EXPECT_EQ(6, size);
 
-        try
-        {
-            auto fut = p->metadata(ROOT_DIR + "/pipe", {}, Context());
-            fut.get();
-            FAIL();
-        }
-        catch (NotExistsException const& e)
-        {
-            EXPECT_EQ(string("NotExistsException: metadata(): \"") + ROOT_DIR + "/pipe\" is neither a file nor a folder",
-                      e.what());
-        }
+    // yyyy-mm-ddThh:mm:ssZ
+    string const date_time_fmt = "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z$";
+    string date_time = hello.metadata().value("last_modified_time").toString().toStdString();
+    cout << "last_modified_time: " << date_time << endl;
+    regex re(date_time_fmt);
+    EXPECT_TRUE(regex_match(date_time, re));
+
+    // Check that the file was modified in the last two seconds.
+    // Because the system clock can tick a lot more frequently than the file system time stamp,
+    // we allow the mtime to be up to one second *earlier* than the time we started the operation.
+    string mtime_str = hello.etag().toStdString();
+    char* end;
+    int64_t mtime = strtoll(mtime_str.c_str(), &end, 10);
+    EXPECT_LE(start_time - 1000000000, mtime);
+    EXPECT_LT(mtime, start_time + 2000000000);
+
+    // Move hello -> world
+    qt::Item world;
+    {
+        unique_ptr<ItemJob> job(hello.move(root, "world"));
+        wait(job.get());
+        ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
+        world = job->item();
+    }
+    EXPECT_FALSE(boost::filesystem::exists(hello.itemId().toStdString()));
+    EXPECT_EQ(ROOT_DIR + "/world", world.itemId().toStdString());
+
+    ASSERT_EQ(0, stat(world.itemId().toStdString().c_str(), &st));
+    auto new_ino = st.st_ino;
+    EXPECT_EQ(old_ino, new_ino);
+
+    // For coverage: try moving world -> a (which must fail)
+    unique_ptr<ItemJob> job(world.move(root, "a"));
+    wait(job.get());
+    ASSERT_EQ(ItemJob::Error, job->status()) << job->error().errorString().toStdString();
+    EXPECT_EQ(string("Exists: move(): \"") + ROOT_DIR + "/a\" exists already",
+              job->error().errorString().toStdString());
+}
+
+TEST_F(LocalProviderTest, copy_file)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    make_hierarchy();
+
+    auto root = get_root(acc_);
+
+    // Copy hello -> world
+    qt::Item hello;
+    {
+        unique_ptr<ItemListJob> job(root.lookup("hello"));
+        auto items = get_items(job.get());
+        ASSERT_EQ(ItemListJob::Finished, job->status()) << job->error().errorString().toStdString();
+        ASSERT_EQ(1, items.size());
+        hello = items.at(0);
+    }
+
+    struct stat st;
+    ASSERT_EQ(0, stat(hello.itemId().toStdString().c_str(), &st));
+    auto old_ino = st.st_ino;
+
+    qt::Item world;
+    {
+        unique_ptr<ItemJob> job(hello.copy(root, "world"));
+        wait(job.get());
+        ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
+        world = job->item();
+    }
+    EXPECT_TRUE(boost::filesystem::exists(hello.itemId().toStdString()));
+    EXPECT_EQ(ROOT_DIR + "/world", world.itemId().toStdString());
+
+    ASSERT_EQ(0, stat(world.itemId().toStdString().c_str(), &st));
+    auto new_ino = st.st_ino;
+    EXPECT_NE(old_ino, new_ino);
+}
+
+TEST_F(LocalProviderTest, copy_tree)
+{
+    using namespace unity::storage::qt;
+    using namespace boost::filesystem;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    make_hierarchy();
+
+    auto root = get_root(acc_);
+
+    // Copy a -> c
+    qt::Item a;
+    {
+        unique_ptr<ItemListJob> job(root.lookup("a"));
+        auto items = get_items(job.get());
+        ASSERT_EQ(ItemListJob::Finished, job->status()) << job->error().errorString().toStdString();
+        ASSERT_EQ(1, items.size());
+        a = items.at(0);
+    }
+
+    qt::Item c;
+    {
+        unique_ptr<ItemJob> job(a.copy(root, "c"));
+        wait(job.get());
+        ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
+        c = job->item();
+    }
+    EXPECT_TRUE(exists(c.itemId().toStdString()));
+
+    // Check that we only copied regular files and directories, but not a pipe or anything starting with
+    // the temp file prefix.
+    EXPECT_TRUE(exists(ROOT_DIR + "/c/b"));
+    EXPECT_TRUE(exists(ROOT_DIR + "/c/foo.txt"));
+    EXPECT_FALSE(exists(ROOT_DIR + "/c/pipe"));
+    EXPECT_FALSE(exists(ROOT_DIR + "/c/storage-framework-"));
+    EXPECT_FALSE(exists(ROOT_DIR + "/c/b/pipe"));
+    EXPECT_FALSE(exists(ROOT_DIR + "/c/b/storage-framework-"));
+
+    // Copy c -> a. This must fail because a exists.
+    {
+        unique_ptr<ItemJob> job(c.copy(root, "a"));
+        wait(job.get());
+        ASSERT_EQ(ItemJob::Error, job->status()) << job->error().errorString().toStdString();
+        EXPECT_EQ(string("Exists: copy(): \"") + ROOT_DIR + "/a\" exists already",
+                  job->error().errorString().toStdString());
     }
 }
 
 TEST_F(LocalProviderTest, download)
 {
-#if 0
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    int const segments = 10000;
+    string large_contents;
+    large_contents.reserve(file_contents.size() * segments);
+    for (int i = 0; i < segments; i++)
     {
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR);
-
-        auto p = make_shared<LocalProvider>();
-
-        // Make a file
-        auto const file_path = ROOT_DIR + "/hello";
-        auto cmd = string("echo hello >") + file_path;
-        ASSERT_EQ(0, system(cmd.c_str()));
-        chmod(file_path.c_str(), 0000);
-
-        try
-        {
-            auto job = p->download(file_path, "", Context());
-            FAIL();
-        }
-        catch (NotExistsException const& e)
-        {
-            EXPECT_EQ(string("NotExistsException: download(): \"") + file_path + "\": "
-                         "boost::filesystem::canonical: No such file or directory: \"/bad_id\"",
-                         e.what());
-        }
+        large_contents += file_contents;
     }
-#endif
-
+    string const full_path = ROOT_DIR + "/foo.txt";
     {
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR);
+        int fd = open(full_path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0644);
+        ASSERT_GT(fd, 0);
+        ASSERT_EQ(ssize_t(large_contents.size()), write(fd, &large_contents[0], large_contents.size())) << strerror(errno);
+        ASSERT_EQ(0, close(fd));
+    }
 
-        auto p = make_shared<LocalProvider>();
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    EXPECT_TRUE(job->isValid());
 
-        try
+    auto file = job->item();
+    unique_ptr<Downloader> downloader(file.createDownloader(Item::ErrorIfConflict));
+
+    int64_t n_read = 0;
+    QObject::connect(downloader.get(), &QIODevice::readyRead,
+                     [&]() {
+                         auto bytes = downloader->readAll();
+                         string const expected = large_contents.substr(n_read, bytes.size());
+                         EXPECT_EQ(expected, bytes.toStdString());
+                         n_read += bytes.size();
+                     });
+    QSignalSpy read_finished_spy(downloader.get(), &QIODevice::readChannelFinished);
+    ASSERT_TRUE(read_finished_spy.wait(SIGNAL_WAIT_TIME));
+
+    QSignalSpy status_spy(downloader.get(), &Downloader::statusChanged);
+    downloader->close();
+    while (downloader->status() == Downloader::Ready)
+    {
+        ASSERT_TRUE(status_spy.wait(SIGNAL_WAIT_TIME));
+    }
+    ASSERT_EQ(Downloader::Finished, downloader->status()) << downloader->error().errorString().toStdString();
+
+    EXPECT_EQ(int64_t(large_contents.size()), n_read);
+}
+
+TEST_F(LocalProviderTest, download_short_read)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    int const segments = 10000;
+    string const full_path = ROOT_DIR + "/foo.txt";
+    {
+        int fd = open(full_path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0644);
+        ASSERT_GT(fd, 0);
+        for (int i = 0; i < segments; i++)
         {
-            auto job = p->download("/bad_id", "", Context());
-            FAIL();
+            ASSERT_EQ(ssize_t(file_contents.size()), write(fd, &file_contents[0], file_contents.size())) << strerror(errno);
         }
-        catch (NotExistsException const& e)
-        {
-            EXPECT_STREQ("NotExistsException: download(): \"/bad_id\": "
-                         "boost::filesystem::canonical: No such file or directory: \"/bad_id\"",
-                         e.what());
-        }
+        ASSERT_EQ(0, close(fd));
+    }
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
+
+    auto file = job->item();
+    unique_ptr<Downloader> downloader(file.createDownloader(Item::ErrorIfConflict));
+
+    QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+    while (downloader->status() == Downloader::Loading)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+
+    downloader->close();
+    while (downloader->status() == Downloader::Ready)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    ASSERT_EQ(Downloader::Error, downloader->status()) << downloader->error().errorString().toStdString();
+
+    auto error = downloader->error();
+    EXPECT_EQ(qt::StorageError::LogicError, error.type());
+    cout << error.message().toStdString() << endl;
+    EXPECT_TRUE(boost::starts_with(error.message().toStdString(),
+                                   "finish() method called too early, file \""
+                                   + full_path + "\" has size 4460000 but only"));
+}
+
+TEST_F(LocalProviderTest, download_etag_mismatch)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    string const full_path = ROOT_DIR + "/foo.txt";
+    string cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
+
+    auto file = job->item();
+
+    sleep(1);
+    cmd = string("touch ") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<Downloader> downloader(file.createDownloader(Item::ErrorIfConflict));
+
+    QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+    while (downloader->status() != Downloader::Error)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+
+    auto error = downloader->error();
+    EXPECT_EQ(qt::StorageError::Conflict, error.type());
+    EXPECT_EQ("download(): etag mismatch", error.message().toStdString());
+}
+
+TEST_F(LocalProviderTest, download_wrong_file_type)
+{
+    // We can't try a download for a directory via the client API, so we use the LocalDownloadJob directly.
+
+    auto p = make_shared<LocalProvider>();
+
+    string const dir = ROOT_DIR + "/dir";
+    ASSERT_EQ(0, mkdir(dir.c_str(), 0755));
+
+    try
+    {
+        LocalDownloadJob(p, dir, "some_etag");
+        FAIL();
+    }
+    catch (provider::InvalidArgumentException const& e)
+    {
+        EXPECT_EQ(string("InvalidArgumentException: download(): \"" + dir + "\" is not a file"), e.what());
     }
 }
-#endif
+
+TEST_F(LocalProviderTest, download_no_permission)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    string const full_path = ROOT_DIR + "/foo.txt";
+    string cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
+
+    auto file = job->item();
+
+    ASSERT_EQ(0, chmod(full_path.c_str(), 0244));
+
+    unique_ptr<Downloader> downloader(file.createDownloader(Item::ErrorIfConflict));
+
+    QSignalSpy spy(downloader.get(), &Downloader::statusChanged);
+    while (downloader->status() != Downloader::Error)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+
+    auto error = downloader->error();
+    EXPECT_EQ(qt::StorageError::ResourceError, error.type());
+    EXPECT_EQ(string("download(): : cannot open \"") + full_path + "\": Permission denied (QFileDevice::FileError = 5)",
+              error.message().toStdString());
+}
+
+TEST_F(LocalProviderTest, download_no_such_file)
+{
+    // We can't try a download for a non-existent file via the client API, so we use the LocalDownloadJob directly.
+
+    auto p = make_shared<LocalProvider>();
+
+    try
+    {
+        LocalDownloadJob(p, "no_such_file", "some_etag");
+        FAIL();
+    }
+    catch (provider::NotExistsException const&)
+    {
+    }
+}
+
+TEST_F(LocalProviderTest, update)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto full_path = ROOT_DIR + "/foo.txt";
+    auto cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    EXPECT_TRUE(job->isValid());
+
+    auto file = job->item();
+    auto old_etag = file.etag();
+
+    int const segments = 50;
+    unique_ptr<Uploader> uploader(file.createUploader(Item::ErrorIfConflict, file_contents.size() * segments));
+
+    int count = 0;
+    QTimer timer;
+    timer.setSingleShot(false);
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&] {
+            uploader->write(&file_contents[0], file_contents.size());
+            count++;
+            if (count == segments)
+            {
+                uploader->close();
+            }
+        });
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    timer.start();
+    while (uploader->status() == Uploader::Loading ||
+           uploader->status() == Uploader::Ready)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    ASSERT_EQ(Uploader::Finished, uploader->status()) << uploader->error().errorString().toStdString();
+
+    file = uploader->item();
+    EXPECT_NE(old_etag, file.etag());
+    EXPECT_EQ(int64_t(file_contents.size() * segments), file.sizeInBytes());
+}
+
+TEST_F(LocalProviderTest, update_empty)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto full_path = ROOT_DIR + "/foo.txt";
+    auto cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    EXPECT_TRUE(job->isValid());
+
+    auto file = job->item();
+    auto old_etag = file.etag();
+
+    sleep(1);  // Make sure mtime changes.
+    unique_ptr<Uploader> uploader(file.createUploader(Item::ErrorIfConflict, 0));
+    {
+        QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+        while (uploader->status() != Uploader::Ready)
+        {
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
+    }
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    uploader->close();
+    while (uploader->status() != Uploader::Finished)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+
+    file = uploader->item();
+    EXPECT_NE(old_etag, file.etag());
+    EXPECT_EQ(int64_t(0), file.sizeInBytes());
+}
+
+TEST_F(LocalProviderTest, update_cancel)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto full_path = ROOT_DIR + "/foo.txt";
+    auto cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    EXPECT_TRUE(job->isValid());
+
+    auto file = job->item();
+    auto old_etag = file.etag();
+
+    int const segments = 50;
+    unique_ptr<Uploader> uploader(file.createUploader(Item::ErrorIfConflict, file_contents.size() * segments));
+
+    int count = 0;
+    QTimer timer;
+    timer.setSingleShot(false);
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&] {
+            uploader->write(&file_contents[0], file_contents.size());
+            count++;
+            if (count == segments / 2)
+            {
+                uploader->cancel();
+            }
+            else if (count == segments)
+            {
+                uploader->close();
+            }
+        });
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    timer.start();
+    while (uploader->status() != Uploader::Cancelled)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+}
+
+TEST_F(LocalProviderTest, update_file_touched_before_uploading)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto full_path = ROOT_DIR + "/foo.txt";
+    auto cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    EXPECT_TRUE(job->isValid());
+
+    auto file = job->item();
+    auto old_etag = file.etag();
+
+    sleep(1);  // Make sure mtime changes.
+    cmd = string("touch ") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+    unique_ptr<Uploader> uploader(file.createUploader(Item::ErrorIfConflict, 0));
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    while (uploader->status() != Uploader::Error)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    EXPECT_EQ("update(): etag mismatch", uploader->error().message().toStdString());
+}
+
+TEST_F(LocalProviderTest, update_file_touched_while_uploading)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto full_path = ROOT_DIR + "/foo.txt";
+    auto cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    EXPECT_TRUE(job->isValid());
+
+    auto file = job->item();
+    auto old_etag = file.etag();
+
+    int const segments = 50;
+    unique_ptr<Uploader> uploader(file.createUploader(Item::ErrorIfConflict, file_contents.size() * segments));
+
+    int count = 0;
+    QTimer timer;
+    timer.setSingleShot(false);
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&] {
+            uploader->write(&file_contents[0], file_contents.size());
+            count++;
+            if (count == segments / 2)
+            {
+                sleep(1);
+                cmd = string("touch ") + full_path;
+                ASSERT_EQ(0, system(cmd.c_str()));
+            }
+            else if (count == segments)
+            {
+                uploader->close();
+            }
+        });
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    timer.start();
+    while (uploader->status() != Uploader::Error)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    ASSERT_EQ(Uploader::Error, uploader->status());
+    EXPECT_EQ("update(): etag mismatch", uploader->error().message().toStdString());
+}
+
+TEST_F(LocalProviderTest, update_ignore_etag_mismatch)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto full_path = ROOT_DIR + "/foo.txt";
+    auto cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    EXPECT_TRUE(job->isValid());
+
+    auto file = job->item();
+    auto old_etag = file.etag();
+
+    sleep(1);  // Make sure mtime changes.
+    cmd = string("touch ") + full_path;
+    unique_ptr<Uploader> uploader(file.createUploader(Item::IgnoreConflict, 0));
+    {
+        QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+        while (uploader->status() != Uploader::Ready)
+        {
+            ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+        }
+    }
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    uploader->close();
+    while (uploader->status() != Uploader::Finished)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+
+    file = uploader->item();
+    EXPECT_NE(old_etag, file.etag());
+    EXPECT_EQ(int64_t(0), file.sizeInBytes());
+}
+
+TEST_F(LocalProviderTest, update_close_too_soon)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto full_path = ROOT_DIR + "/foo.txt";
+    auto cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    EXPECT_TRUE(job->isValid());
+
+    auto file = job->item();
+    auto old_etag = file.etag();
+
+    int const segments = 50;
+    unique_ptr<Uploader> uploader(file.createUploader(Item::ErrorIfConflict, file_contents.size() * segments));
+
+    int count = 0;
+    QTimer timer;
+    timer.setSingleShot(false);
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&] {
+            uploader->write(&file_contents[0], file_contents.size());
+            count++;
+            if (count == segments - 1)
+            {
+                uploader->close();
+            }
+        });
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    timer.start();
+    while (uploader->status() != Uploader::Error)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    ASSERT_EQ(Uploader::Error, uploader->status()) << uploader->error().errorString().toStdString();
+    EXPECT_EQ("LogicError: finish() method called too early, size was given as 22300 but only 21854 bytes were received",
+              uploader->error().errorString().toStdString());
+}
+
+TEST_F(LocalProviderTest, update_write_too_much)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto full_path = ROOT_DIR + "/foo.txt";
+    auto cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    EXPECT_TRUE(job->isValid());
+
+    auto file = job->item();
+    auto old_etag = file.etag();
+
+    int const segments = 50;
+    // We write more than this many bytes below.
+    unique_ptr<Uploader> uploader(file.createUploader(Item::ErrorIfConflict, file_contents.size() * segments - 1));
+
+    int count = 0;
+    QTimer timer;
+    timer.setSingleShot(false);
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&] {
+            uploader->write(&file_contents[0], file_contents.size());
+            count++;
+            if (count == segments)
+            {
+                uploader->close();
+            }
+        });
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    timer.start();
+    while (uploader->status() != Uploader::Error)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    ASSERT_EQ(Uploader::Error, uploader->status());
+    EXPECT_EQ("update(): received more than the expected number (22299) of bytes",
+              uploader->error().message().toStdString());
+}
+
+TEST_F(LocalProviderTest, upload_wrong_file_type)
+{
+    // We can't try an upload for a directory via the client API, so we use the LocalUploadJob directly.
+
+    auto p = make_shared<LocalProvider>();
+
+    string const dir = ROOT_DIR + "/dir";
+    ASSERT_EQ(0, mkdir(dir.c_str(), 0755));
+
+    try
+    {
+        LocalUploadJob(p, dir, 0, "");
+        FAIL();
+    }
+    catch (provider::InvalidArgumentException const& e)
+    {
+        EXPECT_EQ(string("InvalidArgumentException: update(): \"" + dir + "\" is not a file"), e.what());
+    }
+}
+
+TEST_F(LocalProviderTest, upload_root_noperm)
+{
+    // Force an error in prepare_channels when creating temp file.
+
+    auto p = make_shared<LocalProvider>();
+
+    ASSERT_EQ(0, chmod(ROOT_DIR.c_str(), 0644));
+
+    try
+    {
+        LocalUploadJob(p, ROOT_DIR, "name", 0, true);
+        chmod(ROOT_DIR.c_str(), 0755);
+        FAIL();
+    }
+    catch (provider::ResourceException const& e)
+    {
+        EXPECT_EQ(string("ResourceException: create_file(): cannot create temp file \"") + ROOT_DIR
+                         + "/.storage-framework-%%%%-%%%%-%%%%-%%%%\": Invalid argument",
+                  e.what());
+    }
+    chmod(ROOT_DIR.c_str(), 0755);
+}
+
+TEST_F(LocalProviderTest, sanitize)
+{
+    // Force various errors in sanitize() for coverage.
+
+    auto p = make_shared<LocalProvider>();
+
+    try
+    {
+        LocalUploadJob(p, ROOT_DIR, "a/b", 0, true);
+        FAIL();
+    }
+    catch (provider::InvalidArgumentException const& e)
+    {
+        EXPECT_STREQ("InvalidArgumentException: create_file(): name \"a/b\" cannot contain a slash", e.what());
+    }
+
+    try
+    {
+        LocalUploadJob(p, ROOT_DIR, "..", 0, true);
+        FAIL();
+    }
+    catch (provider::InvalidArgumentException const& e)
+    {
+        EXPECT_STREQ("InvalidArgumentException: create_file(): invalid name: \"..\"", e.what());
+    }
+
+    try
+    {
+        LocalUploadJob(p, ROOT_DIR, ".storage-framework", 0, true);
+        FAIL();
+    }
+    catch (provider::InvalidArgumentException const& e)
+    {
+        EXPECT_STREQ("InvalidArgumentException: create_file(): names beginning with \".storage-framework\" are reserved",
+                     e.what());
+    }
+}
+
+TEST_F(LocalProviderTest, throw_if_not_valid)
+{
+    // Make sure that we can't escape the root.
+
+    auto p = make_shared<LocalProvider>();
+
+    try
+    {
+        LocalUploadJob(p, ROOT_DIR + "/..", "a", 0, true);
+        FAIL();
+    }
+    catch (provider::InvalidArgumentException const& e)
+    {
+        EXPECT_EQ(string("InvalidArgumentException: create_file(): invalid id: \"") + ROOT_DIR + "/..\"", e.what());
+    }
+}
+
+TEST_F(LocalProviderTest, create_file)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto root = get_root(acc_);
+    int const segments = 50;
+    unique_ptr<Uploader> uploader(root.createFile("foo.txt", Item::ErrorIfConflict,
+                                                  file_contents.size() * segments, "text/plain"));
+
+    int count = 0;
+    QTimer timer;
+    timer.setSingleShot(false);
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&] {
+            uploader->write(&file_contents[0], file_contents.size());
+            count++;
+            if (count == segments)
+            {
+                uploader->close();
+            }
+        });
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    while (uploader->status() != Uploader::Ready)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    timer.start();
+    while (uploader->status() != Uploader::Finished)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+
+    auto file = uploader->item();
+    EXPECT_EQ(int64_t(file_contents.size() * segments), file.sizeInBytes());
+}
+
+TEST_F(LocalProviderTest, create_file_ignore_conflict)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto full_path = ROOT_DIR + "/foo.txt";
+    auto cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    auto root = get_root(acc_);
+    int const segments = 50;
+    unique_ptr<Uploader> uploader(root.createFile("foo.txt", Item::IgnoreConflict,
+                                                  file_contents.size() * segments, "text/plain"));
+
+    int count = 0;
+    QTimer timer;
+    timer.setSingleShot(false);
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&] {
+            uploader->write(&file_contents[0], file_contents.size());
+            count++;
+            if (count == segments)
+            {
+                uploader->close();
+            }
+        });
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    while (uploader->status() != Uploader::Ready)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    timer.start();
+    while (uploader->status() != Uploader::Finished)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+
+    auto file = uploader->item();
+    EXPECT_EQ(int64_t(file_contents.size() * segments), file.sizeInBytes());
+}
+
+TEST_F(LocalProviderTest, create_file_error_if_conflict)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto full_path = ROOT_DIR + "/foo.txt";
+    auto cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    auto root = get_root(acc_);
+    int const segments = 50;
+    unique_ptr<Uploader> uploader(root.createFile("foo.txt", Item::ErrorIfConflict,
+                                                  file_contents.size() * segments, "text/plain"));
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    while (uploader->status() != Uploader::Error)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    EXPECT_EQ(string("create_file(): \"") + full_path + "\" exists already",
+              uploader->error().message().toStdString());
+}
+
+TEST_F(LocalProviderTest, create_file_created_during_upload)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto root = get_root(acc_);
+    int const segments = 50;
+    string full_path = ROOT_DIR + "/foo.txt";
+    unique_ptr<Uploader> uploader(root.createFile("foo.txt", Item::ErrorIfConflict,
+                                                  file_contents.size() * segments, "text/plain"));
+
+    int count = 0;
+    QTimer timer;
+    timer.setSingleShot(false);
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&] {
+            uploader->write(&file_contents[0], file_contents.size());
+            count++;
+            if (count == segments / 2)
+            {
+                string cmd = "touch " + full_path;
+                ASSERT_EQ(0, system(cmd.c_str()));
+            }
+            else if (count == segments)
+            {
+                uploader->close();
+            }
+        });
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    while (uploader->status() != Uploader::Ready)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    timer.start();
+    while (uploader->status() != Uploader::Error)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    EXPECT_EQ(string("create_file(): \"") + full_path + "\" exists already",
+              uploader->error().message().toStdString());
+}
 
 int main(int argc, char** argv)
 {
@@ -562,6 +1432,10 @@ int main(int argc, char** argv)
 
     ::testing::InitGoogleTest(&argc, argv);
     int rc = RUN_ALL_TESTS();
+
+    // Process any pending events to avoid bogus leak reports from valgrind.
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
 
     if (rc == 0)
     {

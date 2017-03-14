@@ -48,7 +48,7 @@ public:
                    std::string const& item_id,
                    int64_t size,
                    std::string const& old_etag);
-    virtual ~LocalUploadJob() = default;
+    virtual ~LocalUploadJob();
 
     virtual boost::future<void> cancel() override;
     virtual boost::future<unity::storage::provider::Item> finish() override;
@@ -60,7 +60,7 @@ private Q_SLOTS:
 private:
     enum State { in_progress, finished, cancelled };
 
-    void read_and_write_chunk();
+    void prepare_channels();
     void abort_upload();
 
     std::shared_ptr<LocalProvider> const provider_;

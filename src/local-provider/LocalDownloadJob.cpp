@@ -36,7 +36,6 @@ LocalDownloadJob::LocalDownloadJob(shared_ptr<LocalProvider> const& provider,
     : DownloadJob(to_string(++next_download_id))
     , provider_(provider)
     , item_id_(item_id)
-    , state_(in_progress)
 {
     using namespace boost::filesystem;
 
@@ -50,10 +49,12 @@ LocalDownloadJob::LocalDownloadJob(shared_ptr<LocalProvider> const& provider,
             throw InvalidArgumentException(method + ": \"" + item_id_ + "\" is not a file");
         }
     }
+    // LCOV_EXCL_START  // Too small a window to hit with a test.
     catch (filesystem_error const& e)
     {
         throw_storage_exception(method, e);
     }
+    // LCOV_EXCL_STOP
     if (!match_etag.empty())
     {
         int64_t mtime = get_mtime_nsecs(method, item_id_);
@@ -68,9 +69,9 @@ LocalDownloadJob::LocalDownloadJob(shared_ptr<LocalProvider> const& provider,
     file_.reset(new QFile(filename));
     if (!file_->open(QIODevice::ReadOnly))
     {
-        // LCOV_EXCL_START
-        throw_storage_exception(method, ": cannot open \"" + file_->errorString().toStdString(), file_->error());
-        // LCOV_EXCL_STOP
+        throw_storage_exception(method,
+                                ": cannot open \"" + item_id + "\": " + file_->errorString().toStdString(),
+                                file_->error());
     }
     bytes_to_write_ = file_->size();
 
@@ -78,8 +79,10 @@ LocalDownloadJob::LocalDownloadJob(shared_ptr<LocalProvider> const& provider,
     int dup_fd = dup(write_socket());
     if (dup_fd == -1)
     {
+        // LCOV_EXCL_START
         string msg = "LocalDownloadJob(): dup() failed: " + unity::storage::internal::safe_strerror(errno);
         throw ResourceException(msg, errno);
+        // LCOV_EXCL_STOP
     }
     write_socket_.setSocketDescriptor(dup_fd, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
     connect(&write_socket_, &QIODevice::bytesWritten, this, &LocalDownloadJob::on_bytes_written);
@@ -88,43 +91,31 @@ LocalDownloadJob::LocalDownloadJob(shared_ptr<LocalProvider> const& provider,
     QMetaObject::invokeMethod(this, "read_and_write_chunk", Qt::QueuedConnection);
 }
 
+LocalDownloadJob::~LocalDownloadJob() = default;
+
 boost::future<void> LocalDownloadJob::cancel()
 {
-    if (state_ == in_progress)
-    {
-        state_ = cancelled;
-        disconnect(&write_socket_, nullptr, this, nullptr);
-        write_socket_.abort();
-        file_->close();
-    }
+    disconnect(&write_socket_, nullptr, this, nullptr);
+    write_socket_.abort();
+    file_->close();
     return boost::make_ready_future();
 }
 
 boost::future<void> LocalDownloadJob::finish()
 {
-    if (state_ == cancelled)
-    {
-        string msg = "finish(): download was cancelled earlier";
-        return boost::make_exceptional_future<void>(CancelledException(msg));
-    }
-    else if (state_ == finished)
-    {
-        string msg = "finish(): download was completed earlier";
-        return boost::make_exceptional_future<void>(LogicException(msg));
-    }
-
-    // No clean-up here. If the caller calls finish() too early, it can continue to read
-    // and still finish cleanly once it has read the correct number of bytes.
     if (bytes_to_write_ > 0)
     {
         auto file_size = file_->size();
         auto written = file_size - bytes_to_write_;
         string msg = "finish() method called too early, file \"" + item_id_ + "\" has size "
                      + to_string(file_size) + " but only " + to_string(written) + " bytes were consumed";
+        cancel();
         return boost::make_exceptional_future<void>(LogicException(msg));
     }
-    state_ = finished;
+    // LCOV_EXCL_START
+    // Not reachable because we call report_complete() in read_and_write_chunk().
     return boost::make_ready_future();
+    // LCOV_EXCL_STOP
 }
 
 void LocalDownloadJob::on_bytes_written(qint64 bytes)
@@ -177,10 +168,12 @@ void LocalDownloadJob::read_and_write_chunk()
             // LCOV_EXCL_STOP
         }
     }
+    // LCOV_EXCL_START
     catch (std::exception const&)
     {
         write_socket_.abort();
         file_->close();
         report_error(current_exception());
     }
+    // LCOV_EXCL_STOP
 }

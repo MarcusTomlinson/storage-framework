@@ -36,23 +36,19 @@ public:
     LocalDownloadJob(std::shared_ptr<LocalProvider> const& provider,
                      std::string const& item_id,
                      std::string const& match_etag);
-    virtual ~LocalDownloadJob() = default;
+    virtual ~LocalDownloadJob();
 
     virtual boost::future<void> cancel() override;
     virtual boost::future<void> finish() override;
 
 private Q_SLOTS:
     void on_bytes_written(qint64 bytes);
-
-private:
-    enum State { in_progress, finished, cancelled };
-
     void read_and_write_chunk();
 
+private:
     std::shared_ptr<LocalProvider> const provider_;
     std::string const item_id_;
     std::unique_ptr<QFile> file_;
     QLocalSocket write_socket_;
     int64_t bytes_to_write_;
-    State state_;
 };

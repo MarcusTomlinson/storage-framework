@@ -75,7 +75,6 @@ public:
         unity::storage::provider::Context const& ctx) override;
 
     void throw_if_not_valid(std::string const& method, std::string const& id) const;
-    boost::filesystem::path root() const;
     unity::storage::provider::Item make_item(std::string const& method,
                                              boost::filesystem::path const& item_path,
                                              boost::filesystem::file_status const& st) const;

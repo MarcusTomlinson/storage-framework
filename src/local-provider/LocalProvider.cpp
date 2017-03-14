@@ -138,7 +138,6 @@ string get_content_type(string const& filename)
     static string const unknown_content_type = "application/octet-stream";
 
     auto file = unique_gobject(g_file_new_for_path(filename.c_str()));
-    //gobj_ptr<GFile> file(g_file_new_for_path(filename.c_str()));
     assert(file);  // Cannot fail according to doc.
 
     GError* err = nullptr;
@@ -160,6 +159,38 @@ string get_content_type(string const& filename)
     return content_type;
 }
 
+// Simple wrapper template that deals with exception handling so we don't
+// have to repeat ourselves endlessly in the various lambdas below.
+// The auto deduction of the return type requires C++ 14.
+
+template<typename F>
+auto invoke_async(string const& method, F& functor)
+{
+    auto lambda = [method, functor]
+    {
+        try
+        {
+            return functor();
+        }
+        catch (StorageException const& e)
+        {
+            throw;
+        }
+        catch (boost::filesystem::filesystem_error const& e)
+        {
+            throw_storage_exception(method, e);
+        }
+        // LCOV_EXCL_START
+        catch (std::exception const& e)
+        {
+            throw boost::enable_current_exception(UnknownException(e.what()));
+        }
+        // LCOV_EXCL_STOP
+    };
+    // TODO: boost::async is potentially expensive for some operations. Consider boost::asio thread pool?
+    return boost::async(boost::launch::async, lambda);
+}
+
 }  // namespace
 
 LocalProvider::LocalProvider()
@@ -175,63 +206,44 @@ boost::future<ItemList> LocalProvider::roots(vector<string> const& /* keys */, C
     return boost::make_ready_future(roots);
 }
 
-// TODO: boost::async is potentially expensive for some operations. Consider boost::asio thread pool?
-
 boost::future<tuple<ItemList, string>> LocalProvider::list(string const& item_id,
                                                            string const& page_token,
                                                            vector<string> const& /* keys */,
                                                            Context const& /* context */)
 {
+    string const method = "list()";
+
     auto This = dynamic_pointer_cast<LocalProvider>(shared_from_this());
-    auto do_list = [This, item_id, page_token]
+    auto do_list = [This, method, item_id, page_token]
     {
         using namespace boost::filesystem;
 
-        string const method = "list()";
-
-        try
+        This->throw_if_not_valid(method, item_id);
+        vector<Item> items;
+        for (directory_iterator it(item_id); it != directory_iterator(); ++it)
         {
-            This->throw_if_not_valid(method, item_id);
-            vector<Item> items;
-            for (directory_iterator it(item_id); it != directory_iterator(); ++it)
+            auto dirent = *it;
+            auto path = dirent.path();
+            if (is_reserved_path(path))
             {
-                auto dirent = *it;
-                auto path = dirent.path();
-                if (is_reserved_path(path))
-                {
-                    continue;  // Hide temp files that we create during copy() and move().
-                }
+                continue;  // Hide temp files that we create during copy() and move().
+            }
+            Item i;
+            try
+            {
                 auto st = dirent.status();
-                Item i;
-                try
-                {
-                    i = This->make_item(method, dirent.path(), st);
-                }
-                catch (std::exception const&)
-                {
-                    // We ignore weird errors (such as entries that are not files or folders).
-                }
+                i = This->make_item(method, path, st);
                 items.push_back(i);
             }
-            return tuple<ItemList, string>(items, "");
+            catch (std::exception const&)
+            {
+                // We ignore weird errors (such as entries that are not files or folders).
+            }
         }
-        catch (StorageException const& e)
-        {
-            throw;
-        }
-        catch (filesystem_error const& e)
-        {
-            throw_storage_exception(method, e);
-        }
-        // LCOV_EXCL_START
-        catch (std::exception const& e)
-        {
-            throw boost::enable_current_exception(UnknownException(e.what()));
-        }
-        // LCOV_EXCL_STOP
+        return tuple<ItemList, string>(items, "");
     };
 
-    return boost::async(boost::launch::async, do_list);
+    return invoke_async(method, do_list);
 }
 
 boost::future<ItemList> LocalProvider::lookup(string const& parent_id,
@@ -239,77 +251,43 @@ boost::future<ItemList> LocalProvider::lookup(string const& parent_id,
                                               vector<string> const& /* keys */,
                                               Context const& /* context */)
 {
+    string const method = "lookup()";
+
     auto This = dynamic_pointer_cast<LocalProvider>(shared_from_this());
-    auto do_lookup = [This, parent_id, name]
+    auto do_lookup = [This, method, parent_id, name]
     {
         using namespace boost::filesystem;
 
-        string const method = "lookup()";
-
-        try
-        {
-            This->throw_if_not_valid(method, parent_id);
-            auto sanitized_name = sanitize(method, name);
-            path p = parent_id;
-            p /= sanitized_name;
-            auto st = status(p);
-            vector<Item> items{ This->make_item(method, p, st) };
-            return items;
-        }
-        catch (StorageException const& e)
-        {
-            throw;
-        }
-        catch (filesystem_error const& e)
-        {
-            throw_storage_exception(method, e);
-        }
-        // LCOV_EXCL_START
-        catch (std::exception const& e)
-        {
-            throw boost::enable_current_exception(UnknownException(e.what()));
-        }
-        // LCOV_EXCL_STOP
+        This->throw_if_not_valid(method, parent_id);
+        auto sanitized_name = sanitize(method, name);
+        path p = parent_id;
+        p /= sanitized_name;
+        auto st = status(p);
+        vector<Item> items{ This->make_item(method, p, st) };
+        return items;
     };
 
-    return boost::async(boost::launch::async, do_lookup);
+    return invoke_async(method, do_lookup);
 }
 
 boost::future<Item> LocalProvider::metadata(string const& item_id,
                                             vector<string> const& /* keys */,
                                             Context const& /* context */)
 {
+    string const method = "metadata()";
+
     auto This = dynamic_pointer_cast<LocalProvider>(shared_from_this());
-    auto do_metadata = [This, item_id]
+    auto do_metadata = [This, method, item_id]
     {
         using namespace boost::filesystem;
 
-        string const method = "metadata()";
-
-        try
-        {
-            This->throw_if_not_valid(method, item_id);
-            path p = item_id;
-            auto st = status(p);
-            return This->make_item(method, p, st);
-        }
-        catch (StorageException const& e)
-        {
-            throw;
-        }
-        catch (filesystem_error const& e)
-        {
-            throw_storage_exception(method, e);
-        }
-        // LCOV_EXCL_START
-        catch (std::exception const& e)
-        {
-            throw boost::enable_current_exception(UnknownException(e.what()));
-        }
-        // LCOV_EXCL_STOP
+        This->throw_if_not_valid(method, item_id);
+        path p = item_id;
+        auto st = status(p);
+        return This->make_item(method, p, st);
     };
 
-    return boost::async(boost::launch::async, do_metadata);
+    return invoke_async(method, do_metadata);
 }
 
 boost::future<Item> LocalProvider::create_folder(string const& parent_id,
@@ -317,46 +295,29 @@ boost::future<Item> LocalProvider::create_folder(string const& parent_id,
                                                  vector<string> const& /* keys */,
                                                  Context const& /* context */)
 {
+    string const method = "create_folder()";
+
     auto This = dynamic_pointer_cast<LocalProvider>(shared_from_this());
-    auto do_create = [This, parent_id, name]
+    auto do_create = [This, method, parent_id, name]
     {
         using namespace boost::filesystem;
 
-        string const method = "create_folder()";
-
-        try
+        This->throw_if_not_valid(method, parent_id);
+        auto sanitized_name = sanitize(method, name);
+        path p = parent_id;
+        p /= sanitized_name;
+        // create_directory() succeeds if the directory exists already, so we need to check explicitly.
+        if (exists(p))
         {
-            This->throw_if_not_valid(method, parent_id);
-            auto sanitized_name = sanitize(method, name);
-            path p = parent_id;
-            p /= sanitized_name;
-            // create_directory() succeeds if the directory exists already, so we need to check explicitly.
-            if (exists(p))
-            {
-                string msg = method + ": \"" + p.native() + "\" exists already";
-                throw boost::enable_current_exception(ExistsException(msg, p.native(), name));
-            }
-            create_directory(p);
-            auto st = status(p);
-            return This->make_item(method, p, st);
+            string msg = method + ": \"" + p.native() + "\" exists already";
+            throw boost::enable_current_exception(ExistsException(msg, p.native(), name));
         }
-        catch (StorageException const& e)
-        {
-            throw;
-        }
-        catch (filesystem_error const& e)
-        {
-            throw_storage_exception(method, e);
-        }
-        // LCOV_EXCL_START
-        catch (std::exception const& e)
-        {
-            throw boost::enable_current_exception(UnknownException(e.what()));
-        }
-        // LCOV_EXCL_STOP
+        create_directory(p);
+        auto st = status(p);
+        return This->make_item(method, p, st);
     };
 
-    return boost::async(boost::launch::async, do_create);
+    return invoke_async(method, do_create);
 }
 
 boost::future<unique_ptr<UploadJob>> LocalProvider::create_file(string const& parent_id,
@@ -398,35 +359,23 @@ boost::future<unique_ptr<DownloadJob>> LocalProvider::download(string const& ite
 
 boost::future<void> LocalProvider::delete_item(string const& item_id, Context const& /* context */)
 {
+    string const method = "delete_item()";
+
     auto This = dynamic_pointer_cast<LocalProvider>(shared_from_this());
-    auto do_delete = [This, item_id]
+    auto do_delete = [This, method, item_id]
     {
         using namespace boost::filesystem;
 
-        string const method = "delete_item()";
-
-        try
+        This->throw_if_not_valid(method, item_id);
+        if (canonical(item_id).native() == This->root_)
         {
-            This->throw_if_not_valid(method, item_id);
-            remove_all(item_id);
+            string msg = method + ": cannot delete root";
+            throw boost::enable_current_exception(LogicException(msg));
         }
-        catch (StorageException const& e)
-        {
-            throw;
-        }
-        catch (filesystem_error const& e)
-        {
-            throw_storage_exception(method, e);
-        }
-        // LCOV_EXCL_START
-        catch (std::exception const& e)
-        {
-            throw boost::enable_current_exception(UnknownException(e.what()));
-        }
-        // LCOV_EXCL_STOP
+        remove_all(item_id);
     };
 
-    return boost::async(boost::launch::async, do_delete);
+    return invoke_async(method, do_delete);
 }
 
 boost::future<Item> LocalProvider::move(string const& item_id,
@@ -435,53 +384,36 @@ boost::future<Item> LocalProvider::move(string const& item_id,
                                         vector<string> const& /* keys */,
                                         Context const& /* context */)
 {
+    string const method = "move()";
+
     auto This = dynamic_pointer_cast<LocalProvider>(shared_from_this());
-    auto do_move = [This, item_id, new_parent_id, new_name]
+    auto do_move = [This, method, item_id, new_parent_id, new_name]
     {
         using namespace boost::filesystem;
 
-        string const method = "move()";
+        This->throw_if_not_valid(method, item_id);
+        This->throw_if_not_valid(method, new_parent_id);
+        auto sanitized_name = sanitize(method, new_name);
 
-        try
-        {
-            This->throw_if_not_valid(method, item_id);
-            This->throw_if_not_valid(method, new_parent_id);
-            auto sanitized_name = sanitize(method, new_name);
+        path parent_path = new_parent_id;
+        path target_path = parent_path / sanitized_name;
 
-            path parent_path = new_parent_id;
-            path target_path = parent_path / sanitized_name;
+        if (exists(target_path))
+        {
+            string msg = method + ": \"" + target_path.native() + "\" exists already";
+            throw boost::enable_current_exception(ExistsException(msg, target_path.native(), new_name));
+        }
 
-            if (exists(target_path))
-            {
-                string msg = method + ": \"" + target_path.native() + "\" exists already";
-                throw boost::enable_current_exception(ExistsException(msg, target_path.native(), new_name));
-            }
-
-            // Small race condition here: if exists() above said that the target does not exist, it is
-            // possible for it to have been created since. If so, if the target is a file, it will be
-            // removed. If target is an empty directory, that directory will be removed. In practice,
-            // this is unlikely to happen and, if it does, it's not the end of the world.
-            rename(item_id, target_path);
-            auto st = status(target_path);
-            return This->make_item(method, target_path, st);
-        }
-        catch (StorageException const& e)
-        {
-            throw;
-        }
-        catch (filesystem_error const& e)
-        {
-            throw_storage_exception(method, e);
-        }
-        // LCOV_EXCL_START
-        catch (std::exception const& e)
-        {
-            throw boost::enable_current_exception(UnknownException(e.what()));
-        }
-        // LCOV_EXCL_STOP
+        // Small race condition here: if exists() just said that the target does not exist, it is
+        // possible for it to have been created since. If so, if the target is a file or an empty
+        // directory, it will be removed. In practice, this is unlikely to happen and, if it does,
+        // it is not the end of the world.
+        rename(item_id, target_path);
+        auto st = status(target_path);
+        return This->make_item(method, target_path, st);
     };
 
-    return boost::async(boost::launch::async, do_move);
+    return invoke_async(method, do_move);
 }
 
 boost::future<Item> LocalProvider::copy(string const& item_id,
@@ -490,72 +422,61 @@ boost::future<Item> LocalProvider::copy(string const& item_id,
                                         vector<string> const& /* keys */,
                                         Context const& /* context */)
 {
+    string const method = "copy()";
+
     auto This = dynamic_pointer_cast<LocalProvider>(shared_from_this());
-    auto do_copy = [This, item_id, new_parent_id, new_name]
+    auto do_copy = [This, method, item_id, new_parent_id, new_name]
     {
         using namespace boost::filesystem;
 
-        string const method = "copy()";
+        This->throw_if_not_valid(method, item_id);
+        This->throw_if_not_valid(method, new_parent_id);
+        auto sanitized_name = sanitize(method, new_name);
 
-        try
+        path parent_path = new_parent_id;
+        path target_path = parent_path / sanitized_name;
+
+        if (is_directory(item_id))
         {
-            This->throw_if_not_valid(method, item_id);
-            This->throw_if_not_valid(method, new_parent_id);
-            auto sanitized_name = sanitize(method, new_name);
-
-            path parent_path = new_parent_id;
-            path target_path = parent_path / sanitized_name;
-
-            if (is_directory(item_id))
+            if (exists(target_path))
             {
-                // For recursive copy, we create a temporary directory in lieu of target_path and recursively copy
-                // everything into the temporary directory. This ensures that we don't invalidate directory iterators
-                // by creating things while we are iterating, potentially getting trapped in an infinite loop.
-                path tmp_path = canonical(parent_path);
-                tmp_path /= unique_path(string(TMPFILE_PREFIX) + "-%%%%-%%%%-%%%%-%%%%");
-                create_directories(tmp_path);
-                for (directory_iterator it(item_id); it != directory_iterator(); ++it)
+                string msg = method + ": \"" + target_path.native() + "\" exists already";
+                throw boost::enable_current_exception(ExistsException(msg, target_path.native(), new_name));
+            }
+
+            // For recursive copy, we create a temporary directory in lieu of target_path and recursively copy
+            // everything into the temporary directory. This ensures that we don't invalidate directory iterators
+            // by creating things while we are iterating, potentially getting trapped in an infinite loop.
+            path tmp_path = canonical(parent_path);
+            tmp_path /= unique_path(string(TMPFILE_PREFIX) + "-%%%%-%%%%-%%%%-%%%%");
+            create_directories(tmp_path);
+            for (directory_iterator it(item_id); it != directory_iterator(); ++it)
+            {
+                if (is_reserved_path(it->path()))
                 {
-                    if (is_reserved_path(it->path()))
-                    {
-                        continue;  // Don't recurse into the temporary directory
-                    }
-                    file_status s = it->status();
-                    if (is_directory(s) || is_regular_file(s))
-                    {
-                        path source_entry = it->path();
-                        path target_entry = tmp_path;
-                        target_entry /= source_entry.filename();
-                        copy_recursively(source_entry, target_entry);
-                    }
+                    continue;  // Don't recurse into the temporary directory
                 }
-                rename(tmp_path, target_path);
+                file_status s = it->status();
+                if (is_directory(s) || is_regular_file(s))
+                {
+                    path source_entry = it->path();
+                    path target_entry = tmp_path;
+                    target_entry /= source_entry.filename();
+                    copy_recursively(source_entry, target_entry);
+                }
             }
-            else
-            {
-                copy_file(item_id, target_path);
-            }
+            rename(tmp_path, target_path);
+        }
+        else
+        {
+            copy_file(item_id, target_path);
+        }
 
-            auto st = status(target_path);
-            return This->make_item(method, target_path, st);
-        }
-        catch (StorageException const& e)
-        {
-            throw;
-        }
-        catch (filesystem_error const& e)
-        {
-            throw_storage_exception(method, e);
-        }
-        // LCOV_EXCL_START
-        catch (std::exception const& e)
-        {
-            throw boost::enable_current_exception(UnknownException(e.what()));
-        }
-        // LCOV_EXCL_STOP
+        auto st = status(target_path);
+        return This->make_item(method, target_path, st);
     };
 
-    return boost::async(boost::launch::async, do_copy);
+    return invoke_async(method, do_copy);
 }
 
 // Make sure that id does not point outside the root.
@@ -579,11 +500,6 @@ void LocalProvider::throw_if_not_valid(string const& method, string const& id) c
     {
         throw boost::enable_current_exception(InvalidArgumentException(method + ": invalid id: \"" + id + "\""));
     }
-}
-
-boost::filesystem::path LocalProvider::root() const
-{
-    return root_;
 }
 
 // Return an Item initialized from item_path and st.

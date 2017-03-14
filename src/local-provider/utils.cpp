@@ -95,7 +95,7 @@ void throw_storage_exception(string const& method, boost::filesystem::filesystem
     string path2 = e.path2().native();
     if (!path2.empty())
     {
-        msg += "src = \"" + path1 + "\", target = \"" + path2 + "\"";
+        msg += "src = \"" + path1 + "\", target = \"" + path2 + "\"";  // LCOV_EXCL_LINE
     }
     else
     {
@@ -109,10 +109,10 @@ void throw_storage_exception(string const& method, boost::filesystem::filesystem
             throw boost::enable_current_exception(PermissionException(msg));
         case no_such_file_or_directory:
             throw boost::enable_current_exception(NotExistsException(msg, e.path1().native()));
+        // LCOV_EXCL_START
         case file_exists:
             throw boost::enable_current_exception(
                     ExistsException(msg, e.path1().native(), e.path1().filename().native()));
-        // LCOV_EXCL_START
         case no_space_on_device:
             throw boost::enable_current_exception(QuotaException(msg));
         default:
@@ -129,18 +129,18 @@ void throw_storage_exception(string const& method, string const& msg, QFileDevic
     switch (e)
     {
         case QFileDevice::NoError:
-            abort();  // Precondition violation
+            abort();  // LCOV_EXCL_LINE  // Precondition violation
             break;
-        case QFileDevice::PermissionsError:
-            throw PermissionException(error_msg);
         default:
-            throw ResourceException(error_msg + " (QIODevice error = " + to_string(e) + ")", e);
+            throw ResourceException(error_msg + " (QFileDevice::FileError = " + to_string(e) + ")", e);
     }
 }
 
 // Throw a storage exception that corresponds to a LocalSocketError.
 
+// LCOV_EXCL_START
 void throw_storage_exception(string const& method, string const& msg, QLocalSocket::LocalSocketError e)
 {
-    throw ResourceException(method + ": " + msg + " (QLocalSocket error = " + to_string(e) + ")", e);
+    throw ResourceException(method + ": " + msg + " (QLocalSocket::LocalSocketError = " + to_string(e) + ")", e);
 }
+// LCOV_EXCL_STOP
