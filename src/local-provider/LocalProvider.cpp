@@ -22,10 +22,10 @@
 #include "LocalUploadJob.h"
 #include "utils.h"
 
+#include <unity/storage/internal/gobj_memory.h>
 #include <unity/storage/provider/Exceptions.h>
 
 #include <boost/algorithm/string.hpp>
-#include <unity/util/GObjectMemory.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
@@ -133,19 +133,19 @@ string make_iso_date(int64_t nsecs_since_epoch)
 
 string get_content_type(string const& filename)
 {
-    using namespace unity::util;
+    using namespace unity::storage::internal;
 
     static string const unknown_content_type = "application/octet-stream";
 
-    auto file = unique_gobject(g_file_new_for_path(filename.c_str()));
+    gobj_ptr<GFile> file(g_file_new_for_path(filename.c_str()));
     assert(file);  // Cannot fail according to doc.
 
     GError* err = nullptr;
-    auto full_info = unique_gobject(g_file_query_info(file.get(),
-                                    G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
-                                    G_FILE_QUERY_INFO_NONE,
-                                    /* cancellable */ NULL,
-                                    &err));
+    gobj_ptr<GFileInfo> full_info(g_file_query_info(file.get(),
+                                                    G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
+                                                    G_FILE_QUERY_INFO_NONE,
+                                                    /* cancellable */ NULL,
+                                                    &err));
     if (!full_info)
     {
         return unknown_content_type;  // LCOV_EXCL_LINE
