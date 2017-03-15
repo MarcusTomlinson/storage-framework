@@ -1,1 +1,2 @@
 usr/lib/*/libstorage-framework-provider-*.so.*
+usr/lib/*/storage-framework/storage-provider-local
