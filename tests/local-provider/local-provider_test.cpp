@@ -409,6 +409,16 @@ TEST_F(LocalProviderTest, lookup)
     EXPECT_EQ("", child.etag());
     EXPECT_EQ(Item::Type::Folder, child.type());
     EXPECT_EQ(5, child.metadata().size());
+
+    // Remove the child again and try the lookup once more.
+    ASSERT_EQ(0, rmdir((ROOT_DIR + "/child").c_str()));
+
+    job.reset(root.lookup("child"));
+    wait(job.get());
+    EXPECT_EQ(ItemJob::Error, job->status());
+    EXPECT_EQ(string("NotExists: lookup(): \"") + ROOT_DIR + "/child\": boost::filesystem::canonical: "
+              + "No such file or directory: \"" + ROOT_DIR + "/child\"",
+              job->error().errorString().toStdString());
 }
 
 TEST_F(LocalProviderTest, list)
@@ -822,7 +832,7 @@ TEST_F(LocalProviderTest, download_no_such_file)
 
     try
     {
-        LocalDownloadJob(p, "no_such_file", "some_etag");
+        LocalDownloadJob(p, ROOT_DIR + "/no_such_file", "some_etag");
         FAIL();
     }
     catch (provider::NotExistsException const&)
@@ -1263,6 +1273,16 @@ TEST_F(LocalProviderTest, throw_if_not_valid)
     catch (provider::InvalidArgumentException const& e)
     {
         EXPECT_EQ(string("InvalidArgumentException: create_file(): invalid id: \"") + ROOT_DIR + "/..\"", e.what());
+    }
+
+    try
+    {
+        LocalUploadJob(p, "/bin" , "a", 0, true);
+        FAIL();
+    }
+    catch (provider::InvalidArgumentException const& e)
+    {
+        EXPECT_STREQ("InvalidArgumentException: create_file(): invalid id: \"/bin\"", e.what());
     }
 }
 

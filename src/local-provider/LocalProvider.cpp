@@ -172,7 +172,7 @@ auto invoke_async(string const& method, F& functor)
         {
             return functor();
         }
-        catch (StorageException const& e)
+        catch (StorageException const&)
         {
             throw;
         }
@@ -262,9 +262,9 @@ boost::future<ItemList> LocalProvider::lookup(string const& parent_id,
         auto sanitized_name = sanitize(method, name);
         path p = parent_id;
         p /= sanitized_name;
+        This->throw_if_not_valid(method, p.native());
         auto st = status(p);
-        vector<Item> items{ This->make_item(method, p, st) };
-        return items;
+        return vector<Item>{ This->make_item(method, p, st) };
     };
 
     return invoke_async(method, do_lookup);
@@ -330,8 +330,7 @@ boost::future<unique_ptr<UploadJob>> LocalProvider::create_file(string const& pa
 {
     auto This = dynamic_pointer_cast<LocalProvider>(shared_from_this());
     boost::promise<unique_ptr<UploadJob>> p;
-    string old_etag = allow_overwrite ? "" : "no_such_tag";
-    p.set_value(unique_ptr<UploadJob>(new LocalUploadJob(This, parent_id, name, size, allow_overwrite)));
+    p.set_value(make_unique<LocalUploadJob>(This, parent_id, name, size, allow_overwrite));
     return p.get_future();
 }
 
@@ -343,7 +342,7 @@ boost::future<unique_ptr<UploadJob>> LocalProvider::update(string const& item_id
 {
     auto This = dynamic_pointer_cast<LocalProvider>(shared_from_this());
     boost::promise<unique_ptr<UploadJob>> p;
-    p.set_value(unique_ptr<UploadJob>(new LocalUploadJob(This, item_id, size, old_etag)));
+    p.set_value(make_unique<LocalUploadJob>(This, item_id, size, old_etag));
     return p.get_future();
 }
 
@@ -353,7 +352,7 @@ boost::future<unique_ptr<DownloadJob>> LocalProvider::download(string const& ite
 {
     auto This = dynamic_pointer_cast<LocalProvider>(shared_from_this());
     boost::promise<unique_ptr<DownloadJob>> p;
-    p.set_value(unique_ptr<DownloadJob>(new LocalDownloadJob(This, item_id, match_etag)));
+    p.set_value(make_unique<LocalDownloadJob>(This, item_id, match_etag));
     return p.get_future();
 }
 
@@ -408,6 +407,7 @@ boost::future<Item> LocalProvider::move(string const& item_id,
         // possible for it to have been created since. If so, if the target is a file or an empty
         // directory, it will be removed. In practice, this is unlikely to happen and, if it does,
         // it is not the end of the world.
+        // TODO: deal with EXDEV
         rename(item_id, target_path);
         auto st = status(target_path);
         return This->make_item(method, target_path, st);
@@ -485,7 +485,6 @@ void LocalProvider::throw_if_not_valid(string const& method, string const& id) c
 {
     using namespace boost::filesystem;
 
-    auto const root_id = root_.native();
     string suspect_id;
     try
     {
@@ -496,7 +495,15 @@ void LocalProvider::throw_if_not_valid(string const& method, string const& id) c
         throw_storage_exception(method, e);
     }
 
-    if (suspect_id != root_id && !boost::starts_with(suspect_id, root_id + "/"))
+    // Disallow things such as <root>/storage-framework/../storage-framework even though they
+    // lead to the correct path.
+    if (suspect_id != id)
+    {
+        throw boost::enable_current_exception(InvalidArgumentException(method + ": invalid id: \"" + id + "\""));
+    }
+    // id must denote the root or have the root as a prefix.
+    auto const root_id = root_.native();
+    if (id != root_id && !boost::starts_with(id, root_id + "/"))
     {
         throw boost::enable_current_exception(InvalidArgumentException(method + ": invalid id: \"" + id + "\""));
     }

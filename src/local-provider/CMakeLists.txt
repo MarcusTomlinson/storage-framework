@@ -1,8 +1,3 @@
-include_directories(
-    ${CMAKE_CURRENT_BINARY_DIR}
-    ${Qt5Network_INCLUDE_DIRS}
-)
-
 add_definitions(-DBOOST_THREAD_VERSION=4)
 
 add_library(local-provider-lib STATIC
@@ -13,6 +8,7 @@ add_library(local-provider-lib STATIC
 )
 
 target_include_directories(local-provider-lib PRIVATE
+    ${Qt5Network_INCLUDE_DIRS}
     ${GLIB_DEPS_INCLUDE_DIRS}
     ${GIO_DEPS_INCLUDE_DIRS}
 )
@@ -22,13 +18,11 @@ set_target_properties(local-provider-lib PROPERTIES
     POSITION_INDEPENDENT_CODE TRUE
 )
 
-set(TARGET storage-provider-local)
-
-add_executable(${TARGET}
+add_executable(storage-provider-local
     main.cpp
 )
 
-target_link_libraries(${TARGET}
+target_link_libraries(storage-provider-local
     local-provider-lib
     storage-framework-provider
     Qt5::Network
@@ -37,6 +31,6 @@ target_link_libraries(${TARGET}
 )
 
 install(
-    TARGETS ${TARGET}
+    TARGETS storage-provider-local
     RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}
 )

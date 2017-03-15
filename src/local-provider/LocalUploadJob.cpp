@@ -170,6 +170,8 @@ boost::future<void> LocalUploadJob::cancel()
 
 boost::future<Item> LocalUploadJob::finish()
 {
+    on_bytes_ready();  // Read any remaining unread buffered data.
+
     if (bytes_to_write_ > 0)
     {
         string msg = "finish() method called too early, size was given as "
@@ -280,7 +282,7 @@ void LocalUploadJob::on_bytes_ready()
 
     try
     {
-        auto buf = read_socket_.read(read_socket_.bytesAvailable());
+        auto buf = read_socket_.readAll();
         if (buf.size() != 0)
         {
             bytes_to_write_ -= buf.size();
