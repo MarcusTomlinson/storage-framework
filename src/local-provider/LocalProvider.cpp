@@ -39,46 +39,56 @@ using namespace std;
 namespace
 {
 
-// Return ${STORAGE_FRAMEWORK_ROOT}/storage-framework. If STORAGE_FRAMEWORK_ROOT
-// is not set, return ${XDG_DATA_HOME}/storage-framework.
-// ${STORAGE_FRAMEWORK_ROOT} or ${XDG_DATA_HOME} must exist and be a directory.
-// If the storage-framework underneath that data directory does not exist, it is created.
+// Return the root directory where we store files.
+// If STORAGE_FRAMEWORK_ROOT is set (used for testing), any files are created
+// directly under the root. E.g., if we do root.createFile("foo.txt", ...), the file
+// will be created as ${STORAGE_FRAMEWORK_ROOT/foo.txt. STORAGE_FRAMEWORK_ROOT must
+// be a pre-existing directory.
+//
+// Otherwise, the root is determined by SNAP_USER_COMMON or, if that is not set,
+// by XDG_DATA_HOME. Either way, files are created in a storage-framework/local
+// subdirectory. E.g., if SNAP_USER_COMMON or XDG_DATA_HOME is set to "/tmp" and
+// we do root.createFile("foo.txt", ...), the file will be created as
+// /tmp/storage-framework/local/foo.txt. If /tmp/storage-framework/local does not exist,
+// the directory will be created.
 
-string get_data_dir(string const& method)
+string get_root_dir(string const& method)
 {
+    using namespace boost::filesystem;
+
     char const* dir = getenv("STORAGE_FRAMEWORK_ROOT");
-    if (!dir || *dir == '\0')
+    if (dir && *dir != '\0')
     {
-        dir = g_get_user_data_dir();  // Never fails.
-    }
-
-    boost::system::error_code ec;
-
-    // The directory must exist.
-    bool is_dir = boost::filesystem::is_directory(dir, ec);
-    if (ec)
-    {
-        string msg = method + ": Cannot stat " + dir + ": " + ec.message();
-        throw ResourceException(msg, errno);
-    }
-    if (!is_dir)
-    {
-        string msg = method + ": Environment variable STORAGE_FRAMEWORK_ROOT must denote a directory";
-        throw InvalidArgumentException(msg);
-    }
-
-    // Create the storage-framework directory if it doesn't exist yet.
-    string data_dir(dir);
-    data_dir += "/storage-framework";
-    if (!boost::filesystem::exists(data_dir))
-    {
-        boost::filesystem::create_directories(data_dir, ec);
-        if (ec)
+        boost::system::error_code ec;
+        if (!exists(dir, ec) || !is_directory(dir, ec))
         {
-            string msg = method + ": Cannot create " + dir + ": " + ec.message();
-            throw ResourceException(msg, ec.value());
+            string msg = method + ": Environment variable STORAGE_FRAMEWORK_ROOT must denote an existing directory";
+            throw InvalidArgumentException(msg);
         }
+        return dir;
     }
+
+    string data_dir;
+    dir = getenv("SNAP_USER_COMMON");
+    if (dir && *dir != '\0')
+    {
+        data_dir = dir;
+    }
+    else
+    {
+        data_dir = g_get_user_data_dir();  // Never fails.
+    }
+    data_dir += "/storage-framework/local";
+
+    try
+    {
+        create_directories(data_dir);
+    }
+    catch (filesystem_error const& e)
+    {
+        throw_storage_exception(method, e);
+    }
+
     return data_dir;
 }
 
@@ -194,7 +204,7 @@ auto invoke_async(string const& method, F& functor)
 }  // namespace
 
 LocalProvider::LocalProvider()
-    : root_(boost::filesystem::canonical(get_data_dir("LocalProvider()")))
+    : root_(boost::filesystem::canonical(get_root_dir("LocalProvider()")))
 {
 }
 
@@ -495,8 +505,7 @@ void LocalProvider::throw_if_not_valid(string const& method, string const& id) c
         throw_storage_exception(method, e);
     }
 
-    // Disallow things such as <root>/storage-framework/../storage-framework even though they
-    // lead to the correct path.
+    // Disallow things such as <root>/blah/../blah even though they lead to the correct path.
     if (suspect_id != id)
     {
         throw boost::enable_current_exception(InvalidArgumentException(method + ": invalid id: \"" + id + "\""));

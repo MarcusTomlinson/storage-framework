@@ -48,7 +48,7 @@ int64_t nanosecs_now()
     return chrono::system_clock::now().time_since_epoch() / chrono::nanoseconds(1);
 }
 
-string const ROOT_DIR = TEST_DIR "/storage-framework";
+string const ROOT_DIR = TEST_DIR "/data";
 
 class LocalProviderTest : public ProviderFixture
 {
@@ -56,6 +56,7 @@ protected:
     void SetUp() override
     {
         boost::filesystem::remove_all(ROOT_DIR);
+        boost::filesystem::create_directory(ROOT_DIR);
 
         ProviderFixture::SetUp();
         runtime_.reset(new qt::Runtime(connection()));
@@ -132,7 +133,7 @@ const string file_contents =
 
 }  // namespace
 
-TEST(LocalProviderExceptions, constructor_exceptions)
+TEST(Directories, env_vars)
 {
     // These tests cause the constructor to throw, so we instantiate the provider directly.
 
@@ -144,9 +145,10 @@ TEST(LocalProviderExceptions, constructor_exceptions)
             LocalProvider();
             FAIL();
         }
-        catch (provider::ResourceException const& e)
+        catch (provider::InvalidArgumentException const& e)
         {
-            EXPECT_STREQ("ResourceException: LocalProvider(): Cannot stat /no_such_dir: No such file or directory",
+            EXPECT_STREQ("InvalidArgumentException: LocalProvider(): Environment variable "
+                         "STORAGE_FRAMEWORK_ROOT must denote an existing directory",
                          e.what());
         }
     }
@@ -162,28 +164,57 @@ TEST(LocalProviderExceptions, constructor_exceptions)
         catch (provider::InvalidArgumentException const& e)
         {
             EXPECT_STREQ("InvalidArgumentException: LocalProvider(): Environment variable "
-                         "STORAGE_FRAMEWORK_ROOT must denote a directory",
+                         "STORAGE_FRAMEWORK_ROOT must denote an existing directory",
                          e.what());
         }
     }
 
     {
-        ::mkdir(TEST_DIR "/noperm", 0555);
+        string const dir = TEST_DIR "/noperm";
 
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR "/noperm");
+        mkdir(dir.c_str(), 0555);
+        ASSERT_EQ(0, chmod(dir.c_str(), 0555));  // In case dir was there already.
+
+        EnvVarGuard env1("STORAGE_FRAMEWORK_ROOT", nullptr);
+        EnvVarGuard env2("XDG_DATA_HOME", dir.c_str());
+
+        using namespace boost::filesystem;
 
         try
         {
             LocalProvider();
-            ::rmdir(TEST_DIR "/noperm");
+            ASSERT_EQ(0, chmod(dir.c_str(), 0775));
+            remove_all(dir);
             FAIL();
         }
-        catch (provider::ResourceException const& e)
+        catch (provider::PermissionException const& e)
         {
-            EXPECT_STREQ("ResourceException: LocalProvider(): Cannot create " TEST_DIR "/noperm: Permission denied",
-                         e.what());
+            EXPECT_EQ(string("PermissionException: LocalProvider(): \"") + dir + "/storage-framework\": "
+                      "boost::filesystem::create_directories: Permission denied: \"" + dir + "/storage-framework\"",
+                      e.what());
         }
-        ::rmdir(TEST_DIR "/noperm");
+
+        ASSERT_EQ(0, chmod(dir.c_str(), 0775));
+        ASSERT_TRUE(remove_all(dir));
+
+        // Try again, which must succeed now (for coverage).
+        LocalProvider();
+        ASSERT_TRUE(is_directory(dir + "/storage-framework/local"));
+        ASSERT_TRUE(remove_all(dir));
+    }
+
+    {
+        string const dir = TEST_DIR "/snap_user_common";
+        mkdir(dir.c_str(), 0775);
+
+        EnvVarGuard env1("STORAGE_FRAMEWORK_ROOT", nullptr);
+        EnvVarGuard env2("SNAP_USER_COMMON", dir.c_str());
+
+        using namespace boost::filesystem;
+
+        LocalProvider();
+        ASSERT_TRUE(exists(dir + "/storage-framework/local"));
+        ASSERT_TRUE(remove_all(dir));
     }
 }
 
@@ -207,7 +238,7 @@ TEST_F(LocalProviderTest, basic)
     auto root = items[0];
     EXPECT_TRUE(root.isValid());
     EXPECT_EQ(Item::Type::Root, root.type());
-    EXPECT_EQ(TEST_DIR "/storage-framework", root.itemId());
+    EXPECT_EQ(ROOT_DIR, root.itemId().toStdString());
     EXPECT_EQ("/", root.name());
     EXPECT_EQ("", root.etag());
     EXPECT_EQ(QList<QString>(), root.parentIds());
@@ -233,31 +264,6 @@ TEST_F(LocalProviderTest, basic)
     cout << "last_modified_time: " << mtime << endl;
     regex re(date_time_fmt);
     EXPECT_TRUE(regex_match(mtime, re));
-}
-
-TEST_F(LocalProviderTest, xdg_dir)
-{
-    // Check that we are paying attention to XDG_DATA_HOME.
-
-    using namespace unity::storage::qt;
-
-    EnvVarGuard env1("STORAGE_FRAMEWORK_ROOT", nullptr);
-    EnvVarGuard env2("XDG_DATA_HOME", "/tmp");
-    ::rmdir("/tmp/storage-framework");
-
-    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
-
-    unique_ptr<ItemListJob> j(acc_.roots());
-    EXPECT_TRUE(j->isValid());
-    QSignalSpy ready_spy(j.get(), &ItemListJob::itemsReady);
-    ASSERT_TRUE(ready_spy.wait(SIGNAL_WAIT_TIME));
-    ASSERT_EQ(1, ready_spy.count());
-    auto arg = ready_spy.takeFirst();
-    auto items = qvariant_cast<QList<Item>>(arg.at(0));
-    ASSERT_EQ(1, items.size());
-
-    auto root = items[0];
-    EXPECT_EQ("/tmp/storage-framework", root.itemId());
 }
 
 TEST_F(LocalProviderTest, create_folder)
@@ -1439,7 +1445,7 @@ TEST_F(LocalProviderTest, create_file_created_during_upload)
 int main(int argc, char** argv)
 {
     setenv("LANG", "C", true);
-    setenv("STORAGE_FRAMEWORK_ROOT", TEST_DIR, true);
+    setenv("STORAGE_FRAMEWORK_ROOT", ROOT_DIR.c_str(), true);
 
     // Test test fixture repeatedly creates and tears down the dbus connection.
     // The provider calls g_file_new_for_path() which talks to the GVfs backend
