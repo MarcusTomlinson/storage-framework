@@ -58,36 +58,34 @@ parts:
     after:
       - desktop-ubuntu-app-platform
     organize:
-      share/: usr/share/
-      lib/libstorage-framework-qt*: lib/storage-framework/client/
-      lib/libstorage-framework-provider*: lib/storage-framework/provider/
+      lib/libstorage-framework-qt*: lib/storage-framework/client/lib/
+      lib/libstorage-framework-provider*: lib/storage-framework/provider/lib/
     filesets:
       binaries:
         - bin/snap-launch
         - lib/storage-framework/*
         - -lib/pkgconfig
       dbus:
-        - usr/share/dbus-1/services/com.canonical.StorageFramework.*
+        - share/dbus-1/services/com.canonical.StorageFramework.*
     install: |
       # Make sure we have a mount point for ubuntu-app-platform
       mkdir -p $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
       # Fix pkgconfig files to point at the parts subtree so
       # the providers will build correctly.
       sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
-          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/provider@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/provider/lib@" \
           -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-provider-1.pc
       sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
-          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client/lib@" \
           -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-qt-local-client-1.pc
       sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
-          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client/lib@" \
           -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-qt-client-1.pc
       sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
-          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client/lib@" \
           -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-qt-client-2.pc
     prime:
       - $binaries
-      - $dbus
       - ubuntu-app-platform
 
     build-packages:
@@ -119,21 +117,10 @@ parts:
     source: lp:storage-provider-webdav
     after:
       - storage-framework
-    organize:
-      share/: usr/share/
     filesets:
       binaries:
         - lib/storage-provider-webdav/*
-      accounts:
-        - usr/share/accounts/applications/storage-provider*
-      applications:
-        - usr/share/applications/storage-provider*
-      dbus:
-        - usr/share/dbus-1/services/com.canonical.StorageFramework.Provider.*
     prime:
       - $binaries
-      - $accounts
-      - $applications
-      - $dbus
 
 # TODO: Add other providers (OneDrive, Google Drive, mCloud)
