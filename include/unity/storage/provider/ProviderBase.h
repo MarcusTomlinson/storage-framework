@@ -21,6 +21,7 @@
 #include <unity/storage/common.h>
 #include <unity/storage/visibility.h>
 #include <unity/storage/provider/Credentials.h>
+#include <unity/storage/provider/Item.h>
 
 #include <boost/thread/future.hpp>
 #include <boost/variant.hpp>
@@ -49,22 +50,6 @@ struct UNITY_STORAGE_EXPORT Context
 
     Credentials credentials;
 };
-
-// Note: When growing the set of supported variant types, add new types
-// to the *end* of the list, and update the marshaling code in dbusmarshal.cpp.
-typedef boost::variant<std::string, int64_t> MetadataValue;
-
-struct UNITY_STORAGE_EXPORT Item
-{
-    std::string item_id;
-    std::vector<std::string> parent_ids;
-    std::string name;
-    std::string etag;
-    unity::storage::ItemType type;
-    std::map<std::string, MetadataValue> metadata;
-};
-
-typedef std::vector<Item> ItemList;
 
 class UNITY_STORAGE_EXPORT ProviderBase : public std::enable_shared_from_this<ProviderBase>
 {

@@ -22,7 +22,6 @@
 #include "utils.h"
 #include <unity/storage/internal/safe_strerror.h>
 #include <unity/storage/provider/Exceptions.h>
-#include <unity/storage/provider/ProviderBase.h>  // TODO: Should not be needed
 
 #include <fcntl.h>
 
