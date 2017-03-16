@@ -51,7 +51,7 @@ public:
     ~ServerImpl();
 
     void init(int& argc, char **argv, QDBusConnection *bus = nullptr);
-    void run();
+    int run();
 
 private Q_SLOTS:
     void on_account_manager_ready();
