@@ -48,6 +48,8 @@ using namespace std;
 using unity::storage::ItemType;
 using unity::storage::provider::ProviderBase;
 using unity::storage::provider::Context;
+using unity::storage::provider::Item;
+using unity::storage::provider::ItemList;
 using unity::storage::provider::PasswordCredentials;
 using unity::storage::provider::UnauthorizedException;
 using unity::storage::provider::testing::TestServer;
