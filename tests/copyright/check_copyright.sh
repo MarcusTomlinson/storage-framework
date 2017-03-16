@@ -36,7 +36,7 @@ usage()
 source_dir="$1"
 ignore_dir="${2:-}"
 
-ignore_pat="\\.sci$|\\.swp$|~$|\\.bzr|debian|qmldir|HACKING|ubsan-suppress|valgrind-suppress|\\.txt$|\\.xml$|\\.in$|\\.dox$|\\.yaml$"
+ignore_pat="/parts/|/stage/|/prime/|\\.sci$|\\.swp$|\\.bzr|debian|qmldir|HACKING|ubsan-suppress|valgrind-suppress|\\.txt$|\\.xml$|\\.in$|\\.dox$|\\.yaml$"
 
 #
 # We don't use the -i option of licensecheck to add ignore_dir to the pattern because Jenkins creates directories
