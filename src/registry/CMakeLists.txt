@@ -17,23 +17,29 @@ set_source_files_properties(${adaptor_files} PROPERTIES
     GENERATED TRUE
 )
 
-add_executable(${TARGET}
+add_library(registry-static STATIC
     internal/ListAccountsHandler.cpp
     internal/qdbus-last-error-msg.cpp
     internal/RegistryAdaptor.cpp
-    main.cpp
     ${CMAKE_SOURCE_DIR}/include/unity/storage/registry/internal/ListAccountsHandler.h
     ${CMAKE_SOURCE_DIR}/include/unity/storage/registry/internal/RegistryAdaptor.h
     ${adaptor_files})
 
-set_target_properties(${TARGET} PROPERTIES AUTOMOC TRUE)
+set_target_properties(registry-static PROPERTIES AUTOMOC TRUE)
 
-target_link_libraries(${TARGET}
+target_link_libraries(registry-static
     storage-framework-common-internal
     Qt5::Core
     Qt5::DBus
     ${GLIB_DEPS_LDFLAGS}
     ${ONLINEACCOUNTS_DEPS_LDFLAGS}
+)
+
+add_executable(${TARGET}
+    main.cpp
+)
+target_link_libraries(${TARGET}
+    registry-static
 )
 
 install(
