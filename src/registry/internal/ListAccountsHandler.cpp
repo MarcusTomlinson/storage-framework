@@ -100,6 +100,17 @@ void ListAccountsHandler::manager_ready()
         accounts.append(ad);
     }
 
+    // Add an entry for the local provider, which Online Accounts doesn't know about.
+    storage::internal::AccountDetails ad;
+    ad.busName = "com.canonical.StorageFramework.Provider.Local";
+    ad.objectPath = QDBusObjectPath(QStringLiteral("/provider/"));
+    ad.id = numeric_limits<decltype(ad.id)>::max();
+    ad.serviceId = "";
+    ad.displayName = "Local Provider";
+    ad.providerName = "Local Provider";
+    ad.iconName = "";
+    accounts.append(ad);
+
     if (!conn_.send(msg_.createReply(QVariant::fromValue(accounts))))
     {
         auto msg = last_error_msg(conn_);
