@@ -43,7 +43,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(include)
 include_directories(${CMAKE_BINARY_DIR}/include)  # For generated headers
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC --std=c++11 -Wall -pedantic -Wextra -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC --std=c++14 -Wall -pedantic -Wextra -fvisibility=hidden")
 
 # Some additional warnings not included by the general flags set above.
 set(EXTRA_C_WARNINGS "-Wcast-align -Wcast-qual -Wformat -Wredundant-decls -Wswitch-default")
@@ -123,6 +123,7 @@ find_package(Qt5Test REQUIRED)
 
 include(FindPkgConfig)
 pkg_check_modules(APPARMOR_DEPS REQUIRED libapparmor)
+pkg_check_modules(GIO_DEPS REQUIRED gio-2.0 gio-unix-2.0)
 pkg_check_modules(GLIB_DEPS REQUIRED glib-2.0)
 pkg_check_modules(ONLINEACCOUNTS_DEPS REQUIRED OnlineAccountsQt)
 
@@ -137,6 +138,7 @@ add_subdirectory(tools)
 
 enable_coverage_report(
     TARGETS
+        local-provider-lib
         qt-client-lib-common
         storage-framework-common-internal
         storage-framework-qt-client
@@ -145,6 +147,7 @@ enable_coverage_report(
         sf-provider-objects
         storage-framework-provider
         storage-framework-registry
+        storage-provider-local
     FILTER
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_BINARY_DIR}/*
