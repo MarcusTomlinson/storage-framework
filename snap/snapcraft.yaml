@@ -1,0 +1,126 @@
+name: storage-framework-service
+version: '0.2'
+summary: Service for accessing cloud-based storage providers.
+description: >
+  This snap provides a service to access cloud-based storage providers, such as
+  OneDrive, Owncloud, Google Drive, or mCloud, plus a client-side API for applications.
+  See lp:storage-framework for details on the framework, as well as
+  lp:storage-provider-onedrive, lp:storage-provider-webdav, lp:storage-provider-gdrive,
+  and lp:mcloud.
+grade: devel
+confinement: strict
+
+slots:
+  storage-framework-service:
+    interface: storage-framework-service
+  # Allow clients access to the client library
+  client-libs:
+    interface: content
+    content: client-libs
+    read:
+      - $SNAP/lib/storage-framework/client
+  # Allow providers access to the provider library
+  provider-libs:
+    interface: content
+    content: provider-libs
+    read:
+      - $SNAP/lib/storage-framework/provider
+
+plugs:
+  platform:
+    interface: content
+    content: ubuntu-app-platform1
+    target: ubuntu-app-platform
+    default-provider: ubuntu-app-platform
+
+apps:
+  storage-framework-registry:
+    command: desktop-launch $SNAP/lib/storage-framework/storage-framework-registry
+    plugs:
+      - platform
+    slots:
+      - storage-framework-service
+  storage-provider-owncloud:
+    # snap-launch sets LD_LIBRARY_PATH to include the provider directory (exposed via content interface).
+    command: snap-launch $SNAP/lib/storage-framework/provider $SNAP/lib/storage-provider-webdav/storage-provider-owncloud
+    plugs:
+      - platform
+      - network
+    slots:
+      - storage-framework-service
+
+parts:
+  storage-framework:
+    plugin: cmake
+    configflags:
+      - -DSNAP_BUILD=1
+    source: .
+    after:
+      - desktop-ubuntu-app-platform
+    organize:
+      lib/libstorage-framework-qt*: lib/storage-framework/client/lib/
+      lib/libstorage-framework-provider*: lib/storage-framework/provider/lib/
+    filesets:
+      binaries:
+        - bin/snap-launch
+        - lib/storage-framework/*
+        - -lib/pkgconfig
+      dbus:
+        - share/dbus-1/services/com.canonical.StorageFramework.*
+    install: |
+      # Make sure we have a mount point for ubuntu-app-platform
+      mkdir -p $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
+      # Fix pkgconfig files to point at the parts subtree so
+      # the providers will build correctly.
+      sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/provider/lib@" \
+          -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-provider-1.pc
+      sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client/lib@" \
+          -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-qt-local-client-1.pc
+      sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client/lib@" \
+          -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-qt-client-1.pc
+      sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client/lib@" \
+          -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-qt-client-2.pc
+    prime:
+      - $binaries
+      - ubuntu-app-platform
+
+    build-packages:
+      - cmake-extras
+      - doxygen
+      - google-mock
+      - libapparmor-dev
+      - libboost-filesystem-dev
+      - libboost-system-dev
+      - libboost-thread-dev
+      - libglib2.0-dev
+      - libgtest-dev
+      - libonline-accounts-qt-dev
+      - libqtdbustest1-dev
+      - libunity-api-dev
+      - lsb-release
+      - python3-dbus
+      - python3-gi
+      - qtbase5-dev
+      - qtbase5-dev-tools
+      - qtdeclarative5-dev
+
+  # For now, the providers are part of the storage-framework snap. Eventually, they will have to each
+  # live inside their own snap.
+  storage-provider-owncloud:
+    plugin: cmake
+    configflags:
+      - -DSNAP_BUILD=1
+    source: lp:storage-provider-webdav
+    after:
+      - storage-framework
+    filesets:
+      binaries:
+        - lib/storage-provider-webdav/*
+    prime:
+      - $binaries
+
+# TODO: Add other providers (OneDrive, Google Drive, mCloud)

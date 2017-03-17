@@ -321,5 +321,5 @@ int main(int argc, char **argv)
     }
     Server<MyProvider> server(bus_name, account_service_id);
     server.init(argc, argv);
-    server.run();
+    return server.run();
 }

@@ -18,7 +18,6 @@
 
 #include <unity/storage/provider/internal/ServerImpl.h>
 #include <unity/storage/internal/EnvVars.h>
-#include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/internal/FixedAccountData.h>
 #include <unity/storage/provider/internal/MainLoopExecutor.h>
@@ -27,8 +26,6 @@
 #include "provideradaptor.h"
 
 #include <QDebug>
-
-#include <stdexcept>
 
 using namespace std;
 using unity::storage::internal::EnvVars;
@@ -100,17 +97,24 @@ void ServerImpl::init(int& argc, char **argv, QDBusConnection *bus)
     }
 }
 
-void ServerImpl::run()
+int ServerImpl::run()
 {
-    app_->exec();
+    return app_->exec();
 }
 
 void ServerImpl::register_bus_name()
 {
     if (!bus_->registerService(QString::fromStdString(bus_name_)))
     {
-        string msg = string("Could not acquire bus name: ") + bus_name_ + ": " + bus_->lastError().message().toStdString();
-        throw ResourceException(msg, int(bus_->lastError().type()));
+        QString msg = "Could not acquire bus name: " + QString::fromStdString(bus_name_);
+        QString last_error = bus_->lastError().message();
+        if (!last_error.isEmpty())
+        {
+            msg += ": " + last_error;
+        }
+        qCritical().noquote() << msg;
+        app_->exit(1);
+        return;
     }
     // TODO: claim bus name
     qDebug() << "Bus unique name:" << bus_->baseService();
