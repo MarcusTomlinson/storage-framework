@@ -1,4 +1,4 @@
-name: storage-framework
+name: storage-framework-service
 version: '0.2'
 summary: Service for accessing cloud-based storage providers.
 description: >
@@ -11,8 +11,8 @@ grade: devel
 confinement: strict
 
 slots:
-  storage-framework:
-    interface: storage-framework
+  storage-framework-service:
+    interface: storage-framework-service
   # Allow clients access to the client library
   client-libs:
     interface: content
@@ -39,7 +39,7 @@ apps:
     plugs:
       - platform
     slots:
-      - storage-framework
+      - storage-framework-service
   storage-provider-owncloud:
     # snap-launch sets LD_LIBRARY_PATH to include the provider directory (exposed via content interface).
     command: snap-launch $SNAP/lib/storage-framework/provider $SNAP/lib/storage-provider-webdav/storage-provider-owncloud
@@ -47,7 +47,7 @@ apps:
       - platform
       - network
     slots:
-      - storage-framework
+      - storage-framework-service
 
 parts:
   storage-framework:
