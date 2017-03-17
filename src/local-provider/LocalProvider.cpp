@@ -40,9 +40,9 @@ namespace
 {
 
 // Return the root directory where we store files.
-// If STORAGE_FRAMEWORK_ROOT is set (used for testing), any files are created
+// If SF_LOCAL_PROVIDER_ROOT is set (used for testing), any files are created
 // directly under the root. E.g., if we do root.createFile("foo.txt", ...), the file
-// will be created as ${STORAGE_FRAMEWORK_ROOT/foo.txt. STORAGE_FRAMEWORK_ROOT must
+// will be created as ${SF_LOCAL_PROVIDER_ROOT/foo.txt. SF_LOCAL_PROVIDER_ROOT must
 // be a pre-existing directory.
 //
 // Otherwise, the root is determined by SNAP_USER_COMMON or, if that is not set,
@@ -56,13 +56,13 @@ string get_root_dir(string const& method)
 {
     using namespace boost::filesystem;
 
-    char const* dir = getenv("STORAGE_FRAMEWORK_ROOT");
+    char const* dir = getenv("SF_LOCAL_PROVIDER_ROOT");
     if (dir && *dir != '\0')
     {
         boost::system::error_code ec;
         if (!exists(dir, ec) || !is_directory(dir, ec))
         {
-            string msg = method + ": Environment variable STORAGE_FRAMEWORK_ROOT must denote an existing directory";
+            string msg = method + ": Environment variable SF_LOCAL_PROVIDER_ROOT must denote an existing directory";
             throw InvalidArgumentException(msg);
         }
         return dir;

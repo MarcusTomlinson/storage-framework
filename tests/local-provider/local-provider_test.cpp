@@ -138,7 +138,7 @@ TEST(Directories, env_vars)
     // These tests cause the constructor to throw, so we instantiate the provider directly.
 
     {
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", "/no_such_dir");
+        EnvVarGuard env("SF_LOCAL_PROVIDER_ROOT", "/no_such_dir");
 
         try
         {
@@ -148,13 +148,13 @@ TEST(Directories, env_vars)
         catch (provider::InvalidArgumentException const& e)
         {
             EXPECT_STREQ("InvalidArgumentException: LocalProvider(): Environment variable "
-                         "STORAGE_FRAMEWORK_ROOT must denote an existing directory",
+                         "SF_LOCAL_PROVIDER_ROOT must denote an existing directory",
                          e.what());
         }
     }
 
     {
-        EnvVarGuard env("STORAGE_FRAMEWORK_ROOT", TEST_DIR "/Makefile");
+        EnvVarGuard env("SF_LOCAL_PROVIDER_ROOT", TEST_DIR "/Makefile");
 
         try
         {
@@ -164,7 +164,7 @@ TEST(Directories, env_vars)
         catch (provider::InvalidArgumentException const& e)
         {
             EXPECT_STREQ("InvalidArgumentException: LocalProvider(): Environment variable "
-                         "STORAGE_FRAMEWORK_ROOT must denote an existing directory",
+                         "SF_LOCAL_PROVIDER_ROOT must denote an existing directory",
                          e.what());
         }
     }
@@ -175,7 +175,7 @@ TEST(Directories, env_vars)
         mkdir(dir.c_str(), 0555);
         ASSERT_EQ(0, chmod(dir.c_str(), 0555));  // In case dir was there already.
 
-        EnvVarGuard env1("STORAGE_FRAMEWORK_ROOT", nullptr);
+        EnvVarGuard env1("SF_LOCAL_PROVIDER_ROOT", nullptr);
         EnvVarGuard env2("XDG_DATA_HOME", dir.c_str());
 
         using namespace boost::filesystem;
@@ -207,7 +207,7 @@ TEST(Directories, env_vars)
         string const dir = TEST_DIR "/snap_user_common";
         mkdir(dir.c_str(), 0775);
 
-        EnvVarGuard env1("STORAGE_FRAMEWORK_ROOT", nullptr);
+        EnvVarGuard env1("SF_LOCAL_PROVIDER_ROOT", nullptr);
         EnvVarGuard env2("SNAP_USER_COMMON", dir.c_str());
 
         using namespace boost::filesystem;
@@ -1445,7 +1445,7 @@ TEST_F(LocalProviderTest, create_file_created_during_upload)
 int main(int argc, char** argv)
 {
     setenv("LANG", "C", true);
-    setenv("STORAGE_FRAMEWORK_ROOT", ROOT_DIR.c_str(), true);
+    setenv("SF_LOCAL_PROVIDER_ROOT", ROOT_DIR.c_str(), true);
 
     // Test test fixture repeatedly creates and tears down the dbus connection.
     // The provider calls g_file_new_for_path() which talks to the GVfs backend
