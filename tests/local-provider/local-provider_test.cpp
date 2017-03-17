@@ -48,15 +48,14 @@ int64_t nanosecs_now()
     return chrono::system_clock::now().time_since_epoch() / chrono::nanoseconds(1);
 }
 
-string const ROOT_DIR = TEST_DIR "/data";
-
 class LocalProviderTest : public ProviderFixture
 {
 protected:
     void SetUp() override
     {
-        boost::filesystem::remove_all(ROOT_DIR);
-        boost::filesystem::create_directory(ROOT_DIR);
+        tmp_dir_.reset(new QTemporaryDir(TEST_DIR "/data.XXXXXX"));
+        ASSERT_TRUE(tmp_dir_->isValid());
+        setenv("SF_LOCAL_PROVIDER_ROOT", ROOT_DIR().c_str(), true);
 
         ProviderFixture::SetUp();
         runtime_.reset(new qt::Runtime(connection()));
@@ -67,8 +66,19 @@ protected:
     {
         runtime_.reset();
         ProviderFixture::TearDown();
+        if (HasFailure())
+        {
+            tmp_dir_->setAutoRemove(false);
+        }
+        tmp_dir_.reset();
     }
 
+    std::string ROOT_DIR() const
+    {
+        return tmp_dir_->path().toStdString();
+    }
+
+    std::unique_ptr<QTemporaryDir> tmp_dir_;
     unique_ptr<qt::Runtime> runtime_;
     qt::Account acc_;
 };
@@ -238,7 +248,7 @@ TEST_F(LocalProviderTest, basic)
     auto root = items[0];
     EXPECT_TRUE(root.isValid());
     EXPECT_EQ(Item::Type::Root, root.type());
-    EXPECT_EQ(ROOT_DIR, root.itemId().toStdString());
+    EXPECT_EQ(ROOT_DIR(), root.itemId().toStdString());
     EXPECT_EQ("/", root.name());
     EXPECT_EQ("", root.etag());
     EXPECT_EQ(QList<QString>(), root.parentIds());
@@ -279,10 +289,10 @@ TEST_F(LocalProviderTest, create_folder)
         ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
 
         Item child = job->item();
-        EXPECT_EQ(ROOT_DIR + "/child", child.itemId().toStdString());
+        EXPECT_EQ(ROOT_DIR() + "/child", child.itemId().toStdString());
         EXPECT_EQ("child", child.name().toStdString());
         ASSERT_EQ(1, child.parentIds().size());
-        EXPECT_EQ(ROOT_DIR, child.parentIds().at(0).toStdString());
+        EXPECT_EQ(ROOT_DIR(), child.parentIds().at(0).toStdString());
         EXPECT_EQ("", child.etag());
         EXPECT_EQ(Item::Type::Folder, child.type());
         EXPECT_EQ(5, child.metadata().size());
@@ -295,18 +305,18 @@ TEST_F(LocalProviderTest, create_folder)
         job.reset(root.createFolder("child"));
         wait(job.get());
         ASSERT_EQ(ItemJob::Error, job->status()) << job->error().errorString().toStdString();
-        EXPECT_EQ(string("Exists: create_folder(): \"") + ROOT_DIR + "/child\" exists already",
+        EXPECT_EQ(string("Exists: create_folder(): \"") + ROOT_DIR() + "/child\" exists already",
                   job->error().errorString().toStdString());
 
         // Again, without write permission on the root dir, to get coverage for a filesystem_error in invoke_async().
-        ASSERT_EQ(0, ::rmdir((ROOT_DIR + "/child").c_str()));
-        ASSERT_EQ(0, ::chmod(ROOT_DIR.c_str(), 0555));
+        ASSERT_EQ(0, ::rmdir((ROOT_DIR() + "/child").c_str()));
+        ASSERT_EQ(0, ::chmod(ROOT_DIR().c_str(), 0555));
         job.reset(root.createFolder("child"));
         wait(job.get());
-        ::chmod(ROOT_DIR.c_str(), 0755);
+        ::chmod(ROOT_DIR().c_str(), 0755);
         ASSERT_EQ(ItemJob::Error, job->status()) << job->error().errorString().toStdString();
-        EXPECT_EQ(string("PermissionDenied: create_folder(): \"") + ROOT_DIR
-                  + "/child\": boost::filesystem::create_directory: Permission denied: \"" + ROOT_DIR + "/child\"",
+        EXPECT_EQ(string("PermissionDenied: create_folder(): \"") + ROOT_DIR()
+                  + "/child\": boost::filesystem::create_directory: Permission denied: \"" + ROOT_DIR() + "/child\"",
                   job->error().errorString().toStdString());
     }
 }
@@ -353,7 +363,7 @@ TEST_F(LocalProviderTest, delete_root)
     // Client-side API does not allow us to try to delete the root, so we talk to the provider directly.
     auto p = make_shared<LocalProvider>();
 
-    auto fut = p->delete_item(ROOT_DIR, provider::Context());
+    auto fut = p->delete_item(ROOT_DIR(), provider::Context());
     try
     {
         fut.get();
@@ -371,21 +381,21 @@ TEST_F(LocalProviderTest, metadata)
     // so we talk to the provider directly.
     auto p = make_shared<LocalProvider>();
 
-    auto fut = p->metadata(ROOT_DIR, {}, provider::Context());
+    auto fut = p->metadata(ROOT_DIR(), {}, provider::Context());
     auto item = fut.get();
     EXPECT_EQ(5, item.metadata.size());
 
     // Again, to get coverage for the "not file or folder" case in make_item().
-    ASSERT_EQ(0, mknod((ROOT_DIR + "/pipe").c_str(), S_IFIFO | 06666, 0));
+    ASSERT_EQ(0, mknod((ROOT_DIR() + "/pipe").c_str(), S_IFIFO | 06666, 0));
     try
     {
-        auto fut = p->metadata(ROOT_DIR + "/pipe", {}, provider::Context());
+        auto fut = p->metadata(ROOT_DIR() + "/pipe", {}, provider::Context());
         fut.get();
         FAIL();
     }
     catch (provider::NotExistsException const& e)
     {
-        EXPECT_EQ(string("NotExistsException: metadata(): \"") + ROOT_DIR + "/pipe\" is neither a file nor a folder",
+        EXPECT_EQ(string("NotExistsException: metadata(): \"") + ROOT_DIR() + "/pipe\" is neither a file nor a folder",
                   e.what());
     }
 }
@@ -408,22 +418,22 @@ TEST_F(LocalProviderTest, lookup)
     ASSERT_EQ(1, items.size());
     auto child = items.at(0);
 
-    EXPECT_EQ(ROOT_DIR + "/child", child.itemId().toStdString());
+    EXPECT_EQ(ROOT_DIR() + "/child", child.itemId().toStdString());
     EXPECT_EQ("child", child.name().toStdString());
     ASSERT_EQ(1, child.parentIds().size());
-    EXPECT_EQ(ROOT_DIR, child.parentIds().at(0).toStdString());
+    EXPECT_EQ(ROOT_DIR(), child.parentIds().at(0).toStdString());
     EXPECT_EQ("", child.etag());
     EXPECT_EQ(Item::Type::Folder, child.type());
     EXPECT_EQ(5, child.metadata().size());
 
     // Remove the child again and try the lookup once more.
-    ASSERT_EQ(0, rmdir((ROOT_DIR + "/child").c_str()));
+    ASSERT_EQ(0, rmdir((ROOT_DIR() + "/child").c_str()));
 
     job.reset(root.lookup("child"));
     wait(job.get());
     EXPECT_EQ(ItemJob::Error, job->status());
-    EXPECT_EQ(string("NotExists: lookup(): \"") + ROOT_DIR + "/child\": boost::filesystem::canonical: "
-              + "No such file or directory: \"" + ROOT_DIR + "/child\"",
+    EXPECT_EQ(string("NotExists: lookup(): \"") + ROOT_DIR() + "/child\": boost::filesystem::canonical: "
+              + "No such file or directory: \"" + ROOT_DIR() + "/child\"",
               job->error().errorString().toStdString());
 }
 
@@ -441,10 +451,10 @@ TEST_F(LocalProviderTest, list)
     }
 
     // Make a weird item that will be ignored (for coverage).
-    ASSERT_EQ(0, mknod((ROOT_DIR + "/pipe").c_str(), S_IFIFO | 06666, 0));
+    ASSERT_EQ(0, mknod((ROOT_DIR() + "/pipe").c_str(), S_IFIFO | 06666, 0));
 
     // Make a file that starts with the temp file prefix (for coverage).
-    int fd = creat((ROOT_DIR + "/.storage-framework").c_str(), 0755);
+    int fd = creat((ROOT_DIR() + "/.storage-framework").c_str(), 0755);
     ASSERT_GT(fd, 0);
     close(fd);
 
@@ -453,28 +463,28 @@ TEST_F(LocalProviderTest, list)
     ASSERT_EQ(1, items.size());
     auto child = items.at(0);
 
-    EXPECT_EQ(ROOT_DIR + "/child", child.itemId().toStdString());
+    EXPECT_EQ(ROOT_DIR() + "/child", child.itemId().toStdString());
     EXPECT_EQ("child", child.name().toStdString());
     ASSERT_EQ(1, child.parentIds().size());
-    EXPECT_EQ(ROOT_DIR, child.parentIds().at(0).toStdString());
+    EXPECT_EQ(ROOT_DIR(), child.parentIds().at(0).toStdString());
     EXPECT_EQ("", child.etag());
     EXPECT_EQ(Item::Type::Folder, child.type());
     EXPECT_EQ(5, child.metadata().size());
 }
 
-void make_hierarchy()
+void make_hierarchy(string const& root_dir)
 {
     // Make a small tree so we have something to test with for move() and copy().
-    ASSERT_EQ(0, mkdir((ROOT_DIR + "/a").c_str(), 0755));
-    ASSERT_EQ(0, mkdir((ROOT_DIR + "/a/b").c_str(), 0755));
-    string cmd = string("echo hello >") + ROOT_DIR + "/hello";
+    ASSERT_EQ(0, mkdir((root_dir + "/a").c_str(), 0755));
+    ASSERT_EQ(0, mkdir((root_dir + "/a/b").c_str(), 0755));
+    string cmd = string("echo hello >") + root_dir + "/hello";
     ASSERT_EQ(0, system(cmd.c_str()));
-    cmd = string("echo text >") + ROOT_DIR + "/a/foo.txt";
+    cmd = string("echo text >") + root_dir + "/a/foo.txt";
     ASSERT_EQ(0, system(cmd.c_str()));
-    ASSERT_EQ(0, mknod((ROOT_DIR + "/a/pipe").c_str(), S_IFIFO | 06666, 0));
-    ASSERT_EQ(0, mkdir((ROOT_DIR + "/a/.storage-framework-").c_str(), 0755));
-    ASSERT_EQ(0, mkdir((ROOT_DIR + "/a/b/.storage-framework-").c_str(), 0755));
-    ASSERT_EQ(0, mknod((ROOT_DIR + "/a/b/pipe").c_str(), S_IFIFO | 06666, 0));
+    ASSERT_EQ(0, mknod((root_dir + "/a/pipe").c_str(), S_IFIFO | 06666, 0));
+    ASSERT_EQ(0, mkdir((root_dir + "/a/.storage-framework-").c_str(), 0755));
+    ASSERT_EQ(0, mkdir((root_dir + "/a/b/.storage-framework-").c_str(), 0755));
+    ASSERT_EQ(0, mknod((root_dir + "/a/b/pipe").c_str(), S_IFIFO | 06666, 0));
 }
 
 TEST_F(LocalProviderTest, move)
@@ -485,7 +495,7 @@ TEST_F(LocalProviderTest, move)
 
     auto start_time = nanosecs_now();
 
-    make_hierarchy();
+    make_hierarchy(ROOT_DIR());
 
     auto root = get_root(acc_);
 
@@ -505,7 +515,7 @@ TEST_F(LocalProviderTest, move)
     // Check metadata.
     EXPECT_EQ("hello", hello.name());
     ASSERT_EQ(1, hello.parentIds().size());
-    EXPECT_EQ(ROOT_DIR, hello.parentIds().at(0).toStdString());
+    EXPECT_EQ(ROOT_DIR(), hello.parentIds().at(0).toStdString());
     EXPECT_EQ(Item::Type::File, hello.type());
 
     ASSERT_EQ(6, hello.metadata().size());
@@ -547,7 +557,7 @@ TEST_F(LocalProviderTest, move)
         world = job->item();
     }
     EXPECT_FALSE(boost::filesystem::exists(hello.itemId().toStdString()));
-    EXPECT_EQ(ROOT_DIR + "/world", world.itemId().toStdString());
+    EXPECT_EQ(ROOT_DIR() + "/world", world.itemId().toStdString());
 
     ASSERT_EQ(0, stat(world.itemId().toStdString().c_str(), &st));
     auto new_ino = st.st_ino;
@@ -557,7 +567,7 @@ TEST_F(LocalProviderTest, move)
     unique_ptr<ItemJob> job(world.move(root, "a"));
     wait(job.get());
     ASSERT_EQ(ItemJob::Error, job->status()) << job->error().errorString().toStdString();
-    EXPECT_EQ(string("Exists: move(): \"") + ROOT_DIR + "/a\" exists already",
+    EXPECT_EQ(string("Exists: move(): \"") + ROOT_DIR() + "/a\" exists already",
               job->error().errorString().toStdString());
 }
 
@@ -567,7 +577,7 @@ TEST_F(LocalProviderTest, copy_file)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    make_hierarchy();
+    make_hierarchy(ROOT_DIR());
 
     auto root = get_root(acc_);
 
@@ -593,7 +603,7 @@ TEST_F(LocalProviderTest, copy_file)
         world = job->item();
     }
     EXPECT_TRUE(boost::filesystem::exists(hello.itemId().toStdString()));
-    EXPECT_EQ(ROOT_DIR + "/world", world.itemId().toStdString());
+    EXPECT_EQ(ROOT_DIR() + "/world", world.itemId().toStdString());
 
     ASSERT_EQ(0, stat(world.itemId().toStdString().c_str(), &st));
     auto new_ino = st.st_ino;
@@ -607,7 +617,7 @@ TEST_F(LocalProviderTest, copy_tree)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    make_hierarchy();
+    make_hierarchy(ROOT_DIR());
 
     auto root = get_root(acc_);
 
@@ -632,19 +642,19 @@ TEST_F(LocalProviderTest, copy_tree)
 
     // Check that we only copied regular files and directories, but not a pipe or anything starting with
     // the temp file prefix.
-    EXPECT_TRUE(exists(ROOT_DIR + "/c/b"));
-    EXPECT_TRUE(exists(ROOT_DIR + "/c/foo.txt"));
-    EXPECT_FALSE(exists(ROOT_DIR + "/c/pipe"));
-    EXPECT_FALSE(exists(ROOT_DIR + "/c/storage-framework-"));
-    EXPECT_FALSE(exists(ROOT_DIR + "/c/b/pipe"));
-    EXPECT_FALSE(exists(ROOT_DIR + "/c/b/storage-framework-"));
+    EXPECT_TRUE(exists(ROOT_DIR() + "/c/b"));
+    EXPECT_TRUE(exists(ROOT_DIR() + "/c/foo.txt"));
+    EXPECT_FALSE(exists(ROOT_DIR() + "/c/pipe"));
+    EXPECT_FALSE(exists(ROOT_DIR() + "/c/storage-framework-"));
+    EXPECT_FALSE(exists(ROOT_DIR() + "/c/b/pipe"));
+    EXPECT_FALSE(exists(ROOT_DIR() + "/c/b/storage-framework-"));
 
     // Copy c -> a. This must fail because a exists.
     {
         unique_ptr<ItemJob> job(c.copy(root, "a"));
         wait(job.get());
         ASSERT_EQ(ItemJob::Error, job->status()) << job->error().errorString().toStdString();
-        EXPECT_EQ(string("Exists: copy(): \"") + ROOT_DIR + "/a\" exists already",
+        EXPECT_EQ(string("Exists: copy(): \"") + ROOT_DIR() + "/a\" exists already",
                   job->error().errorString().toStdString());
     }
 }
@@ -662,7 +672,7 @@ TEST_F(LocalProviderTest, download)
     {
         large_contents += file_contents;
     }
-    string const full_path = ROOT_DIR + "/foo.txt";
+    string const full_path = ROOT_DIR() + "/foo.txt";
     {
         int fd = open(full_path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0644);
         ASSERT_GT(fd, 0);
@@ -706,7 +716,7 @@ TEST_F(LocalProviderTest, download_short_read)
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
     int const segments = 10000;
-    string const full_path = ROOT_DIR + "/foo.txt";
+    string const full_path = ROOT_DIR() + "/foo.txt";
     {
         int fd = open(full_path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0644);
         ASSERT_GT(fd, 0);
@@ -751,7 +761,7 @@ TEST_F(LocalProviderTest, download_etag_mismatch)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    string const full_path = ROOT_DIR + "/foo.txt";
+    string const full_path = ROOT_DIR() + "/foo.txt";
     string cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -784,7 +794,7 @@ TEST_F(LocalProviderTest, download_wrong_file_type)
 
     auto p = make_shared<LocalProvider>();
 
-    string const dir = ROOT_DIR + "/dir";
+    string const dir = ROOT_DIR() + "/dir";
     ASSERT_EQ(0, mkdir(dir.c_str(), 0755));
 
     try
@@ -804,7 +814,7 @@ TEST_F(LocalProviderTest, download_no_permission)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    string const full_path = ROOT_DIR + "/foo.txt";
+    string const full_path = ROOT_DIR() + "/foo.txt";
     string cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -838,7 +848,7 @@ TEST_F(LocalProviderTest, download_no_such_file)
 
     try
     {
-        LocalDownloadJob(p, ROOT_DIR + "/no_such_file", "some_etag");
+        LocalDownloadJob(p, ROOT_DIR() + "/no_such_file", "some_etag");
         FAIL();
     }
     catch (provider::NotExistsException const&)
@@ -852,7 +862,7 @@ TEST_F(LocalProviderTest, update)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    auto full_path = ROOT_DIR + "/foo.txt";
+    auto full_path = ROOT_DIR() + "/foo.txt";
     auto cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -899,7 +909,7 @@ TEST_F(LocalProviderTest, update_empty)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    auto full_path = ROOT_DIR + "/foo.txt";
+    auto full_path = ROOT_DIR() + "/foo.txt";
     auto cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -938,7 +948,7 @@ TEST_F(LocalProviderTest, update_cancel)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    auto full_path = ROOT_DIR + "/foo.txt";
+    auto full_path = ROOT_DIR() + "/foo.txt";
     auto cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -983,7 +993,7 @@ TEST_F(LocalProviderTest, update_file_touched_before_uploading)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    auto full_path = ROOT_DIR + "/foo.txt";
+    auto full_path = ROOT_DIR() + "/foo.txt";
     auto cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -1012,7 +1022,7 @@ TEST_F(LocalProviderTest, update_file_touched_while_uploading)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    auto full_path = ROOT_DIR + "/foo.txt";
+    auto full_path = ROOT_DIR() + "/foo.txt";
     auto cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -1061,7 +1071,7 @@ TEST_F(LocalProviderTest, update_ignore_etag_mismatch)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    auto full_path = ROOT_DIR + "/foo.txt";
+    auto full_path = ROOT_DIR() + "/foo.txt";
     auto cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -1101,7 +1111,7 @@ TEST_F(LocalProviderTest, update_close_too_soon)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    auto full_path = ROOT_DIR + "/foo.txt";
+    auto full_path = ROOT_DIR() + "/foo.txt";
     auto cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -1145,7 +1155,7 @@ TEST_F(LocalProviderTest, update_write_too_much)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    auto full_path = ROOT_DIR + "/foo.txt";
+    auto full_path = ROOT_DIR() + "/foo.txt";
     auto cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -1190,7 +1200,7 @@ TEST_F(LocalProviderTest, upload_wrong_file_type)
 
     auto p = make_shared<LocalProvider>();
 
-    string const dir = ROOT_DIR + "/dir";
+    string const dir = ROOT_DIR() + "/dir";
     ASSERT_EQ(0, mkdir(dir.c_str(), 0755));
 
     try
@@ -1210,21 +1220,21 @@ TEST_F(LocalProviderTest, upload_root_noperm)
 
     auto p = make_shared<LocalProvider>();
 
-    ASSERT_EQ(0, chmod(ROOT_DIR.c_str(), 0644));
+    ASSERT_EQ(0, chmod(ROOT_DIR().c_str(), 0644));
 
     try
     {
-        LocalUploadJob(p, ROOT_DIR, "name", 0, true);
-        chmod(ROOT_DIR.c_str(), 0755);
+        LocalUploadJob(p, ROOT_DIR(), "name", 0, true);
+        chmod(ROOT_DIR().c_str(), 0755);
         FAIL();
     }
     catch (provider::ResourceException const& e)
     {
-        EXPECT_EQ(string("ResourceException: create_file(): cannot create temp file \"") + ROOT_DIR
+        EXPECT_EQ(string("ResourceException: create_file(): cannot create temp file \"") + ROOT_DIR()
                          + "/.storage-framework-%%%%-%%%%-%%%%-%%%%\": Invalid argument",
                   e.what());
     }
-    chmod(ROOT_DIR.c_str(), 0755);
+    chmod(ROOT_DIR().c_str(), 0755);
 }
 
 TEST_F(LocalProviderTest, sanitize)
@@ -1235,7 +1245,7 @@ TEST_F(LocalProviderTest, sanitize)
 
     try
     {
-        LocalUploadJob(p, ROOT_DIR, "a/b", 0, true);
+        LocalUploadJob(p, ROOT_DIR(), "a/b", 0, true);
         FAIL();
     }
     catch (provider::InvalidArgumentException const& e)
@@ -1245,7 +1255,7 @@ TEST_F(LocalProviderTest, sanitize)
 
     try
     {
-        LocalUploadJob(p, ROOT_DIR, "..", 0, true);
+        LocalUploadJob(p, ROOT_DIR(), "..", 0, true);
         FAIL();
     }
     catch (provider::InvalidArgumentException const& e)
@@ -1255,7 +1265,7 @@ TEST_F(LocalProviderTest, sanitize)
 
     try
     {
-        LocalUploadJob(p, ROOT_DIR, ".storage-framework", 0, true);
+        LocalUploadJob(p, ROOT_DIR(), ".storage-framework", 0, true);
         FAIL();
     }
     catch (provider::InvalidArgumentException const& e)
@@ -1273,12 +1283,12 @@ TEST_F(LocalProviderTest, throw_if_not_valid)
 
     try
     {
-        LocalUploadJob(p, ROOT_DIR + "/..", "a", 0, true);
+        LocalUploadJob(p, ROOT_DIR() + "/..", "a", 0, true);
         FAIL();
     }
     catch (provider::InvalidArgumentException const& e)
     {
-        EXPECT_EQ(string("InvalidArgumentException: create_file(): invalid id: \"") + ROOT_DIR + "/..\"", e.what());
+        EXPECT_EQ(string("InvalidArgumentException: create_file(): invalid id: \"") + ROOT_DIR() + "/..\"", e.what());
     }
 
     try
@@ -1337,7 +1347,7 @@ TEST_F(LocalProviderTest, create_file_ignore_conflict)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    auto full_path = ROOT_DIR + "/foo.txt";
+    auto full_path = ROOT_DIR() + "/foo.txt";
     auto cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -1380,7 +1390,7 @@ TEST_F(LocalProviderTest, create_file_error_if_conflict)
 
     set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
 
-    auto full_path = ROOT_DIR + "/foo.txt";
+    auto full_path = ROOT_DIR() + "/foo.txt";
     auto cmd = string("echo hello >") + full_path;
     ASSERT_EQ(0, system(cmd.c_str()));
 
@@ -1406,7 +1416,7 @@ TEST_F(LocalProviderTest, create_file_created_during_upload)
 
     auto root = get_root(acc_);
     int const segments = 50;
-    string full_path = ROOT_DIR + "/foo.txt";
+    string full_path = ROOT_DIR() + "/foo.txt";
     unique_ptr<Uploader> uploader(root.createFile("foo.txt", Item::ErrorIfConflict,
                                                   file_contents.size() * segments, "text/plain"));
 
@@ -1445,7 +1455,6 @@ TEST_F(LocalProviderTest, create_file_created_during_upload)
 int main(int argc, char** argv)
 {
     setenv("LANG", "C", true);
-    setenv("SF_LOCAL_PROVIDER_ROOT", ROOT_DIR.c_str(), true);
 
     // Test test fixture repeatedly creates and tears down the dbus connection.
     // The provider calls g_file_new_for_path() which talks to the GVfs backend
@@ -1462,12 +1471,6 @@ int main(int argc, char** argv)
     // Process any pending events to avoid bogus leak reports from valgrind.
     QCoreApplication::sendPostedEvents();
     QCoreApplication::processEvents();
-
-    if (rc == 0)
-    {
-        boost::system::error_code ec;
-        boost::filesystem::remove_all(ROOT_DIR, ec);
-    }
 
     return rc;
 }
