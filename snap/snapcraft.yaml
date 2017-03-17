@@ -18,13 +18,13 @@ slots:
     interface: content
     content: client-libs
     read:
-      - $SNAP/lib/storage-framework/client
+      - $SNAP/client
   # Allow providers access to the provider library
   provider-libs:
     interface: content
     content: provider-libs
     read:
-      - $SNAP/lib/storage-framework/provider
+      - $SNAP/provider
 
 plugs:
   platform:
@@ -42,7 +42,7 @@ apps:
       - storage-framework-service
   storage-provider-owncloud:
     # snap-launch sets LD_LIBRARY_PATH to include the provider directory (exposed via content interface).
-    command: snap-launch $SNAP/lib/storage-framework/provider $SNAP/lib/storage-provider-webdav/storage-provider-owncloud
+    command: snap-launch $SNAP/provider/lib $SNAP/lib/storage-provider-webdav/storage-provider-owncloud
     plugs:
       - platform
       - network
@@ -58,12 +58,14 @@ parts:
     after:
       - desktop-ubuntu-app-platform
     organize:
-      lib/libstorage-framework-qt*: lib/storage-framework/client/lib/
-      lib/libstorage-framework-provider*: lib/storage-framework/provider/lib/
+      lib/libstorage-framework-qt*: client/lib/
+      lib/libstorage-framework-provider*: provider/lib/
     filesets:
       binaries:
         - bin/snap-launch
         - lib/storage-framework/*
+        - client/*
+        - provider/*
         - -lib/pkgconfig
       dbus:
         - share/dbus-1/services/com.canonical.StorageFramework.*
@@ -73,16 +75,16 @@ parts:
       # Fix pkgconfig files to point at the parts subtree so
       # the providers will build correctly.
       sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
-          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/provider/lib@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/provider/lib@" \
           -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-provider-1.pc
       sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
-          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client/lib@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/client/lib@" \
           -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-qt-local-client-1.pc
       sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
-          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client/lib@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/client/lib@" \
           -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-qt-client-1.pc
       sed -e "s@-I/include@-I${SNAPCRAFT_PART_INSTALL}/include@" \
-          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/lib/storage-framework/client/lib@" \
+          -e "s@-L/lib@-L${SNAPCRAFT_PART_INSTALL}/client/lib@" \
           -i $SNAPCRAFT_PART_INSTALL/lib/pkgconfig/storage-framework-qt-client-2.pc
     prime:
       - $binaries
