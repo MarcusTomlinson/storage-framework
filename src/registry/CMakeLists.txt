@@ -1,9 +1,3 @@
-include_directories(
-    ${CMAKE_CURRENT_BINARY_DIR}
-    ${GLIB_DEPS_INCLUDE_DIRS}
-    ${ONLINEACCOUNTS_DEPS_INCLUDE_DIRS}
-)
-
 set(TARGET "storage-framework-registry")
 
 qt5_add_dbus_adaptor(adaptor_files
@@ -27,7 +21,12 @@ add_library(registry-static STATIC
 
 set_target_properties(registry-static PROPERTIES AUTOMOC TRUE)
 
-target_link_libraries(registry-static
+target_include_directories(registry-static PUBLIC
+    ${GLIB_DEPS_INCLUDE_DIRS}
+    ${ONLINEACCOUNTS_DEPS_INCLUDE_DIRS}
+)
+
+target_link_libraries(registry-static PUBLIC
     storage-framework-common-internal
     Qt5::Core
     Qt5::DBus

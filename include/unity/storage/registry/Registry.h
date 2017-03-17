@@ -29,6 +29,7 @@ namespace registry
 
 static QString const BUS_NAME(QStringLiteral("com.canonical.StorageFramework.Registry"));
 static QString const OBJECT_PATH(QStringLiteral("/com/canonical/StorageFramework/Registry"));
+static QString const INTERFACE(QStringLiteral("com.canonical.StorageFramework.Registry"));
 
 }  // namespace registry
 }  // namespace storage

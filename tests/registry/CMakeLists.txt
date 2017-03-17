@@ -1,4 +1,8 @@
 add_executable(registry_test registry_test.cpp)
+# for the generated D-Bus skeleton adaptor
+target_include_directories(registry_test PRIVATE
+  ${CMAKE_BINARY_DIR}/src/registry
+)
 target_link_libraries(registry_test
   registry-static
   Qt5::DBus
