@@ -24,6 +24,7 @@
 #include <boost/variant.hpp>
 
 #include <map>
+#include <vector>
 
 namespace unity
 {
