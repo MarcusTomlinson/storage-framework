@@ -21,6 +21,11 @@
 #include <unity/storage/internal/AccountDetails.h>
 #include <unity/storage/registry/internal/qdbus-last-error-msg.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#include <glib.h>
+#pragma GCC diagnostic pop
+
 #include <OnlineAccounts/Account>
 #include <QDebug>
 
@@ -103,9 +108,9 @@ void ListAccountsHandler::manager_ready()
     // Add an entry for the local provider, which Online Accounts doesn't know about.
     storage::internal::AccountDetails ad;
     ad.busName = "com.canonical.StorageFramework.Provider.Local";
-    ad.objectPath = QDBusObjectPath(QStringLiteral("/provider/"));
-    ad.id = numeric_limits<decltype(ad.id)>::max();
-    ad.serviceId = "";
+    ad.objectPath = QDBusObjectPath(QStringLiteral("/provider/0"));
+    ad.id = 0;
+    ad.serviceId = g_get_user_name();
     ad.displayName = "Local Provider";
     ad.providerName = "Local Provider";
     ad.iconName = "";

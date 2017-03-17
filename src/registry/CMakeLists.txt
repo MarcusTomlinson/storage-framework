@@ -1,5 +1,6 @@
 include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}
+    ${GLIB_DEPS_INCLUDE_DIRS}
     ${ONLINEACCOUNTS_DEPS_INCLUDE_DIRS}
 )
 
@@ -31,6 +32,7 @@ target_link_libraries(${TARGET}
     storage-framework-common-internal
     Qt5::Core
     Qt5::DBus
+    ${GLIB_DEPS_LDFLAGS}
     ${ONLINEACCOUNTS_DEPS_LDFLAGS}
 )
 
