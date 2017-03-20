@@ -1,3 +1,7 @@
 build
 debian/libstorage-framework-provider-1-*.install
 debian/libstorage-framework-provider-1-*.shlibs
+./parts
+./prime
+./stage
+./storage-framework*.snap

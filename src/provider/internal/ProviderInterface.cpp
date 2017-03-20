@@ -66,18 +66,7 @@ void ProviderInterface::queue_request(Handler::Callback callback)
         new Handler(account_, callback, connection(), message()));
     connect(handler.get(), &Handler::finished, this, &ProviderInterface::request_finished);
     setDelayedReply(true);
-    // If we haven't retrieved the authentication details from
-    // OnlineAccounts, delay processing the handler until then.
-    if (account_->has_credentials())
-    {
-        handler->begin();
-    }
-    else
-    {
-        account_->authenticate(true);
-        connect(account_.get(), &AccountData::authenticated,
-                handler.get(), &Handler::begin);
-    }
+    handler->begin();
     requests_.emplace(handler.get(), std::move(handler));
 }
 
@@ -210,6 +199,7 @@ QString ProviderInterface::CreateFile(QString const& parent_id,
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
+                    job->p_->set_activity(account->inactivity_timer());
                     auto upload_id = QString::fromStdString(job->upload_id());
                     QDBusUnixFileDescriptor file_desc;
                     int fd = job->p_->take_write_socket();
@@ -241,6 +231,7 @@ QString ProviderInterface::Update(QString const& item_id,
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
+                    job->p_->set_activity(account->inactivity_timer());
                     auto upload_id = QString::fromStdString(job->upload_id());
                     QDBusUnixFileDescriptor file_desc;
                     int fd = job->p_->take_write_socket();
@@ -303,6 +294,7 @@ QString ProviderInterface::Download(QString const& item_id, QString const& match
                 EXEC_IN_MAIN
                 [account, message](decltype(f) f) -> QDBusMessage {
                     auto job = f.get();
+                    job->p_->set_activity(account->inactivity_timer());
                     auto download_id = QString::fromStdString(job->download_id());
                     QDBusUnixFileDescriptor file_desc;
                     int fd = job->p_->take_read_socket();

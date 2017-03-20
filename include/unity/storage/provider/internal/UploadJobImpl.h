@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <unity/storage/internal/ActivityNotifier.h>
 #include <unity/storage/provider/ProviderBase.h>
 
 #include <boost/thread/future.hpp>
@@ -28,6 +29,7 @@
 #pragma GCC diagnostic pop
 
 #include <exception>
+#include <memory>
 #include <mutex>
 #include <string>
 
@@ -52,6 +54,7 @@ public:
     std::string const& upload_id() const;
     int read_socket() const;
     int take_write_socket();
+    void set_activity(std::shared_ptr<unity::storage::internal::InactivityTimer> const& inactivity_timer);
 
     void report_error(std::exception_ptr p);
     boost::future<Item> finish(UploadJob& job);
@@ -68,6 +71,8 @@ protected:
     std::mutex completion_lock_;
     bool completed_ = false;
     boost::promise<Item> completion_promise_;
+
+    unity::storage::internal::ActivityNotifier activity_;
 
     Q_DISABLE_COPY(UploadJobImpl)
 };

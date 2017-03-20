@@ -46,6 +46,7 @@ void ProviderFixture::SetUp()
 void ProviderFixture::TearDown()
 {
     test_server_.reset();
+    account_manager_.reset();
     service_connection_.reset();
     QDBusConnection::disconnectFromBus(SERVICE_CONNECTION_NAME);
     dbus_.reset();
@@ -56,10 +57,11 @@ QDBusConnection const& ProviderFixture::connection() const
     return dbus_->connection();
 }
 
-void ProviderFixture::set_provider(unique_ptr<ProviderBase>&& provider)
+void ProviderFixture::set_provider(unique_ptr<ProviderBase>&& provider,
+                                   unsigned int account_id)
 {
     account_manager_->waitForReady();
-    OnlineAccounts::Account* account = account_manager_->account(2, "oauth2-service");
+    OnlineAccounts::Account* account = account_manager_->account(account_id);
     ASSERT_NE(nullptr, account);
 
     test_server_.reset(

@@ -42,9 +42,9 @@ void ServerBase::init(int& argc, char** argv)
     p_->init(argc, argv);
 }
 
-void ServerBase::run()
+int ServerBase::run()
 {
-    p_->run();
+    return p_->run();
 }
 
 }

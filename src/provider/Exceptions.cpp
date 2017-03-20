@@ -97,6 +97,13 @@ ConflictException::ConflictException(string const& error_message)
 
 ConflictException::~ConflictException() = default;
 
+UnauthorizedException::UnauthorizedException(string const& error_message)
+    : StorageException("UnauthorizedException", error_message)
+{
+}
+
+UnauthorizedException::~UnauthorizedException() = default;
+
 PermissionException::PermissionException(string const& error_message)
     : StorageException("PermissionException", error_message)
 {

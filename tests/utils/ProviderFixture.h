@@ -41,7 +41,8 @@ public:
     virtual void TearDown() override;
 
     QDBusConnection const& connection() const;
-    void set_provider(std::unique_ptr<unity::storage::provider::ProviderBase>&& provider);
+    void set_provider(std::unique_ptr<unity::storage::provider::ProviderBase>&& provider,
+                      unsigned int account_id = 2);
     void wait_for(QDBusPendingCall const& call);
     QString bus_name() const;
     QString object_path() const;

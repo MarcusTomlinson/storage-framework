@@ -17,12 +17,14 @@
  */
 
 #include <unity/storage/internal/dbus_error.h>
+#include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/ProviderBase.h>
 #include <unity/storage/provider/testing/TestServer.h>
 
 #include "TestProvider.h"
 
 #include <utils/ProviderFixture.h>
+#include <utils/gtest_printer.h>
 
 #include <gtest/gtest.h>
 #include <OnlineAccounts/Account>
@@ -45,6 +47,11 @@
 using namespace std;
 using unity::storage::ItemType;
 using unity::storage::provider::ProviderBase;
+using unity::storage::provider::Context;
+using unity::storage::provider::Item;
+using unity::storage::provider::ItemList;
+using unity::storage::provider::PasswordCredentials;
+using unity::storage::provider::UnauthorizedException;
 using unity::storage::provider::testing::TestServer;
 
 namespace {
@@ -781,6 +788,104 @@ TEST_F(ProviderInterfaceTest, copy)
     EXPECT_EQ(ItemType::file, item.type);
 }
 
+class ReauthenticateProvider : public TestProvider
+{
+    boost::future<ItemList> roots(vector<string> const& metadata_keys,
+                                  Context const& ctx) override
+    {
+        Q_UNUSED(metadata_keys);
+        auto password = boost::get<PasswordCredentials>(ctx.credentials).password;
+        boost::promise<ItemList> p;
+        p.set_value({
+            {"root_id", {}, password, "etag", ItemType::root, {}}
+        });
+        return p.get_future();
+    }
+
+    boost::future<Item> metadata(string const& item_id,
+                                 vector<string> const& metadata_keys,
+                                 Context const& ctx) override
+    {
+        Q_UNUSED(metadata_keys);
+        auto password = boost::get<PasswordCredentials>(ctx.credentials).password;
+        boost::promise<Item> p;
+        if (password != "refresh")
+        {
+            p.set_exception(UnauthorizedException("bad password"));
+        }
+        else
+        {
+            p.set_value(
+                {item_id, {"root_id"}, password, "etag", ItemType::file, {}});
+        }
+        return p.get_future();
+    }
+
+    boost::future<ItemList> lookup(string const& parent_id, string const& name,
+                                   vector<string> const& metadata_keys,
+                                   Context const& ctx) override
+    {
+        Q_UNUSED(parent_id);
+        Q_UNUSED(name);
+        Q_UNUSED(metadata_keys);
+        Q_UNUSED(ctx);
+        boost::promise<ItemList> p;
+        p.set_exception(UnauthorizedException("bad password"));
+        return p.get_future();
+    }
+};
+
+TEST_F(ProviderInterfaceTest, need_interactive_auth)
+{
+    // Account #10 fails to authenticate unless done interactively
+    set_provider(unique_ptr<ProviderBase>(new ReauthenticateProvider), 10);
+
+    auto reply = client_->Roots(QList<QString>());
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+    EXPECT_EQ(1, reply.value().size());
+    auto root = reply.value()[0];
+    // Password returned as item name
+    EXPECT_EQ("interactive", root.name);
+}
+
+TEST_F(ProviderInterfaceTest, unauthorized_exception_causes_refresh)
+{
+    set_provider(unique_ptr<ProviderBase>(new ReauthenticateProvider), 10);
+
+    // The Metadata() call will throw UnauthorizedException unless the
+    // password is "refresh".  This will cause the request to be
+    // retried after authenticating a second time while invalidating
+    // stored credentials.
+    auto reply = client_->Metadata("item_id", QList<QString>());
+    wait_for(reply);
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
+    auto item = reply.value();
+    // Password returned as item name
+    EXPECT_EQ("refresh", item.name);
+}
+
+TEST_F(ProviderInterfaceTest, always_unauthorized)
+{
+    set_provider(unique_ptr<ProviderBase>(new ReauthenticateProvider), 10);
+    // lookup() will always throw UnauthorizedException.  Rather than
+    // looping endlessly, the exception is returned to the client.
+    auto reply = client_->Lookup("parent_id", "name", QList<QString>());
+    wait_for(reply);
+    ASSERT_FALSE(reply.isValid());
+    EXPECT_EQ(PROVIDER_ERROR + "UnauthorizedException", reply.error().name());
+}
+
+TEST_F(ProviderInterfaceTest, user_canceled_auth)
+{
+    // Account #11 always returns a UserCanceled error when trying to
+    // authenticate.
+    set_provider(unique_ptr<ProviderBase>(new ReauthenticateProvider), 11);
+    auto reply = client_->Roots(QList<QString>());
+    wait_for(reply);
+    ASSERT_FALSE(reply.isValid());
+    EXPECT_EQ(PROVIDER_ERROR + "UnauthorizedException", reply.error().name());
+}
 
 int main(int argc, char **argv)
 {
@@ -788,5 +893,11 @@ int main(int argc, char **argv)
     qDBusRegisterMetaType<unity::storage::internal::ItemMetadata>();
     qDBusRegisterMetaType<QList<unity::storage::internal::ItemMetadata>>();
     ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    int rc = RUN_ALL_TESTS();
+
+    // Process any pending events to avoid bogus leak reports from valgrind.
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+
+    return rc;
 }
