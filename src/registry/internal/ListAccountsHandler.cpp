@@ -110,8 +110,8 @@ void ListAccountsHandler::manager_ready()
     ad.busName = "com.canonical.StorageFramework.Provider.Local";
     ad.objectPath = QDBusObjectPath(QStringLiteral("/provider/0"));
     ad.id = 0;
-    ad.serviceId = g_get_user_name();
-    ad.displayName = "Local Provider";
+    ad.serviceId = "";
+    ad.displayName = g_get_user_name();
     ad.providerName = "Local Provider";
     ad.iconName = "";
     accounts.append(ad);

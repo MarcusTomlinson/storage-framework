@@ -146,6 +146,7 @@ enable_coverage_report(
         storage-framework-qt-local-client
         sf-provider-objects
         storage-framework-provider
+        registry-static
         storage-framework-registry
         storage-provider-local
     FILTER

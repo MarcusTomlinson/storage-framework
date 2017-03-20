@@ -1,11 +1,21 @@
 storage-framework (0.3-0ubuntu1) UNRELEASED; urgency=medium
 
+  [ James Henstridge ]
   * Make providers exit after 30 seconds of inactivity. (LP: #1616758)
   * Add UnauthorizedException to the provider library, so the provider
     can trigger reauthentication of the account and have the request
     restarted. (LP: #1616756)
   * Dynamically add and remove providers as the associated accounts
     are enabled and disabled. (LP: #1616757)
+  * Allow creation of storage providers that don't use online-accounts.
+    Thisis likely only of interest to the local storage provider.
+
+  [ Michi Henning ]
+  * Add a storage provider backed by the local file system.
+  * Move unity::storage::provider::Item to its own header file. (LP:
+    #1668872)
+  * If a provider can't acquire its D-Bus well known name, exit rather
+    than throwing a (usually uncaught) exception. (LP: #1604640)
 
  -- James Henstridge <james.henstridge@canonical.com>  Tue, 20 Dec 2016 11:46:21 +0800
 
