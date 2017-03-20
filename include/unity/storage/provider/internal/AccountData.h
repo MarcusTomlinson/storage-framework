@@ -24,19 +24,20 @@
 #pragma GCC diagnostic ignored "-Wcast-align"
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #pragma GCC diagnostic ignored "-Wswitch-default"
-#include <OnlineAccounts/Account>
-#include <OnlineAccounts/PendingCallWatcher>
 #include <QObject>
 #include <QDBusConnection>
-#include <QPointer>
 #pragma GCC diagnostic pop
-
-#include <string>
 
 namespace unity
 {
 namespace storage
 {
+namespace internal
+{
+
+class InactivityTimer;
+
+}
 namespace provider
 {
 
@@ -54,36 +55,28 @@ class AccountData : public QObject
 public:
     AccountData(std::shared_ptr<ProviderBase> const& provider,
                 std::shared_ptr<DBusPeerCache> const& dbus_peer,
+                std::shared_ptr<unity::storage::internal::InactivityTimer> const& inactivity_timer,
                 QDBusConnection const& bus,
-                OnlineAccounts::Account* account,
                 QObject* parent=nullptr);
     virtual ~AccountData();
 
-    void authenticate(bool interactive);
-    bool has_credentials();
-    Credentials const& credentials();
+    virtual void authenticate(bool interactive, bool invalidate_cache=false) = 0;
+    virtual bool has_credentials() = 0;
+    virtual Credentials const& credentials() = 0;
 
     ProviderBase& provider();
     DBusPeerCache& dbus_peer();
+    std::shared_ptr<unity::storage::internal::InactivityTimer> inactivity_timer();
     PendingJobs& jobs();
 
 Q_SIGNALS:
     void authenticated();
 
-private Q_SLOTS:
-    void on_authenticated();
-
 private:
     std::shared_ptr<ProviderBase> const provider_;
     std::shared_ptr<DBusPeerCache> const dbus_peer_;
+    std::shared_ptr<unity::storage::internal::InactivityTimer> const inactivity_timer_;
     std::unique_ptr<PendingJobs> const jobs_;
-
-    QPointer<OnlineAccounts::Account> const account_;
-    std::unique_ptr<OnlineAccounts::PendingCallWatcher> auth_watcher_;
-    bool authenticating_interactively_ = false;
-
-    bool credentials_valid_ = false;
-    Credentials credentials_;
 
     Q_DISABLE_COPY(AccountData)
 };

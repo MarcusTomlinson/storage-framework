@@ -95,7 +95,7 @@ private:
 };
 
 /**
-\brief Indicates that an upload detected a version mismatch.
+\brief Indicates that an upload or download detected a version mismatch.
 */
 class UNITY_STORAGE_EXPORT ConflictException : public StorageException
 {
@@ -105,7 +105,37 @@ public:
 };
 
 /**
+\brief Indicates that an operation failed because the authentication credentials are invalid or expired.
+
+A provider implementation must throw this exception if it cannot reach
+its provider because the credentials are invalid. Do not throw this
+exception if the credentials are valid, but an operation failed due to
+insufficient permission for an item (such as an attempt to write to a
+read-only file).
+
+Typically, this will cause the request to be retried after refreshing
+the authentication credentials, but may be returned to the client on
+repeated failures.
+
+\see PermissionException
+*/
+class UNITY_STORAGE_EXPORT UnauthorizedException : public StorageException
+{
+public:
+    UnauthorizedException(std::string const& error_message);
+    ~UnauthorizedException();
+};
+
+/**
 \brief Indicates that an operation failed because of a permission problem.
+
+A provider implementation must throw this exception if it can
+authenticate with its provider, but the provider denied the operation
+due to insufficient permission for an item (such as an attempt to
+write to a read-only file). Do not throw this exception for failure to
+authenticate with the provider.
+
+\see UnauthorizedException
 */
 class UNITY_STORAGE_EXPORT PermissionException : public StorageException
 {

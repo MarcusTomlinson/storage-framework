@@ -30,6 +30,8 @@
 
 using namespace std;
 using namespace unity::storage::internal;
+using unity::storage::internal::ActivityNotifier;
+using unity::storage::internal::InactivityTimer;
 
 namespace unity
 {
@@ -104,6 +106,11 @@ int UploadJobImpl::take_write_socket()
     int sock = write_socket_;
     write_socket_ = -1;
     return sock;
+}
+
+void UploadJobImpl::set_activity(std::shared_ptr<InactivityTimer> const& inactivity_timer)
+{
+    activity_ = ActivityNotifier(inactivity_timer);
 }
 
 void UploadJobImpl::report_error(exception_ptr p)

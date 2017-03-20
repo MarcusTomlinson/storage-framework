@@ -82,6 +82,7 @@ static const map<QString, function<StorageError(QDBusPendingCallWatcher const& c
     { "NotExistsException",       make_error<StorageError::Type::NotExists> },
     { "ExistsException",          make_error<StorageError::Type::Exists> },
     { "ConflictException",        make_error<StorageError::Type::Conflict> },
+    { "UnauthorizedException",    make_error<StorageError::Type::Unauthorized> },
     { "PermissionException",      make_error<StorageError::Type::PermissionDenied> },
     { "CancelledException",       make_error<StorageError::Type::Cancelled> },
     { "LogicException",           make_error<StorageError::Type::LogicError> },

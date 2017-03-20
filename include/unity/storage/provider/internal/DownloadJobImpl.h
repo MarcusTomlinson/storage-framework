@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <unity/storage/internal/ActivityNotifier.h>
+
 #include <QObject>
 
 #include <boost/thread/future.hpp>
@@ -47,6 +49,7 @@ public:
     std::string const& download_id() const;
     int write_socket() const;
     int take_read_socket();
+    void set_activity(std::shared_ptr<unity::storage::internal::InactivityTimer> const& inactivity_timer);
 
     void report_complete();
     void report_error(std::exception_ptr p);
@@ -64,6 +67,8 @@ protected:
     std::mutex completion_lock_;
     bool completed_ = false;
     boost::promise<void> completion_promise_;
+
+    unity::storage::internal::ActivityNotifier activity_;
 
     Q_DISABLE_COPY(DownloadJobImpl)
 };

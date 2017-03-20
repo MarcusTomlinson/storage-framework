@@ -44,7 +44,7 @@ public:
     virtual ~ServerBase();
 
     void init(int& argc, char** argv);
-    void run();
+    int run();
 
 protected:
     virtual std::shared_ptr<ProviderBase> make_provider() = 0;

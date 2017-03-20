@@ -21,6 +21,11 @@
 #include <unity/storage/internal/AccountDetails.h>
 #include <unity/storage/registry/internal/qdbus-last-error-msg.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#include <glib.h>
+#pragma GCC diagnostic pop
+
 #include <OnlineAccounts/Account>
 #include <QDebug>
 
@@ -65,9 +70,10 @@ struct ProviderDetails
 static map<QString, ProviderDetails> const BUS_NAMES =
 {
     { "storage-provider-test", { "com.canonical.StorageFramework.Provider.ProviderTest", "Test Provider" } },
-    { "com.canonical.scopes.mcloud_mcloud_mcloud", { "com.canonical.StorageFramework.Provider.McloudProvider", "mcloud" } },
+    { "storage-provider-mcloud", { "com.canonical.StorageFramework.Provider.McloudProvider", "mcloud" } },
     { "storage-provider-owncloud", { "com.canonical.StorageFramework.Provider.OwnCloud", "ownCloud" } },
     { "storage-provider-onedrive", { "com.canonical.StorageFramework.Provider.OnedriveProvider", "OneDrive" } },
+    { "storage-provider-gdrive", { "com.canonical.StorageFramework.Provider.GdriveProvider", "GDrive" } },
 };
 
 }  // namespace
@@ -98,6 +104,17 @@ void ListAccountsHandler::manager_ready()
 
         accounts.append(ad);
     }
+
+    // Add an entry for the local provider, which Online Accounts doesn't know about.
+    storage::internal::AccountDetails ad;
+    ad.busName = "com.canonical.StorageFramework.Provider.Local";
+    ad.objectPath = QDBusObjectPath(QStringLiteral("/provider/0"));
+    ad.id = 0;
+    ad.serviceId = "";
+    ad.displayName = g_get_user_name();
+    ad.providerName = "Local Provider";
+    ad.iconName = "";
+    accounts.append(ad);
 
     if (!conn_.send(msg_.createReply(QVariant::fromValue(accounts))))
     {

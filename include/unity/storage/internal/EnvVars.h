@@ -32,6 +32,9 @@ namespace internal
 constexpr char const* REGISTRY_IDLE_TIMEOUT = "SF_REGISTRY_IDLE_TIMEOUT";  // Seconds, 0 means "never"
 constexpr int REGISTRY_IDLE_TIMEOUT_DFLT = 30;
 
+constexpr char PROVIDER_IDLE_TIMEOUT[] = "SF_PROVIDER_IDLE_TIMEOUT";
+constexpr int PROVIDER_IDLE_TIMEOUT_DFLT = 30;
+
 // Helper class to make retrieval of environment variables type-safe and
 // to sanity check the setting, if applicable. Also returns a default
 // setting, if applicable.
@@ -40,10 +43,14 @@ class EnvVars
 {
 public:
     static int registry_timeout_ms();
+    static int provider_timeout_ms();
 
     // Returns value of var_name in the environment, if set, and an empty string otherwise.
     // Can be used for any environment variable, not just the ones defined above.
     static std::string get(char const* var_name);
+
+private:
+    static int get_timeout_ms(char const* var_name, int dflt);
 };
 
 }  // namespace internal

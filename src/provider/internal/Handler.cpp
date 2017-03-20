@@ -49,12 +49,42 @@ namespace internal
 Handler::Handler(shared_ptr<AccountData> const& account,
                  Callback const& callback,
                  QDBusConnection const& bus, QDBusMessage const& message)
-    : account_(account), callback_(callback), bus_(bus), message_(message)
+    : account_(account), callback_(callback), bus_(bus), message_(message),
+      activity_(account->inactivity_timer())
 {
 }
 
 void Handler::begin()
 {
+    // If we have already retrieved credentials from OnlineAccounts,
+    // and we aren't retrying the request, go to on_authenticated
+    // immediately.
+    if (account_->has_credentials() && !retry_)
+    {
+        on_authenticated();
+        return;
+    }
+
+    // Otherwise, try to authenticate and wait for the result.
+    account_->authenticate(true, retry_);
+    connect(account_.get(), &AccountData::authenticated,
+            this, &Handler::on_authenticated);
+}
+
+void Handler::on_authenticated()
+{
+    disconnect(account_.get(), &AccountData::authenticated,
+               this, &Handler::on_authenticated);
+    if (!account_->has_credentials())
+    {
+        string msg = "Handler::begin(): could not retrieve account credentials";
+        qDebug() << QString::fromStdString(msg);
+        auto ep = make_exception_ptr(UnauthorizedException(msg));
+        marshal_exception(ep);
+        QMetaObject::invokeMethod(this, "send_reply", Qt::QueuedConnection);
+        return;
+    }
+
     // Need to put security check in here.
     auto peer_future = account_->dbus_peer().get(message_.service());
     creds_future_ = peer_future.then(
@@ -71,9 +101,9 @@ void Handler::begin()
             }
             else
             {
-                string msg = "Handler::begin(): could not retrieve credentials";
+                string msg = "Handler::begin(): could not retrieve D-Bus peer credentials";
                 qDebug() << QString::fromStdString(msg);
-                auto ep = make_exception_ptr(PermissionException(msg));
+                auto ep = make_exception_ptr(UnauthorizedException(msg));
                 marshal_exception(ep);
                 QMetaObject::invokeMethod(this, "send_reply",
                                           Qt::QueuedConnection);
@@ -103,12 +133,35 @@ void Handler::credentials_received()
             {
                 reply_ = f.get();
             }
+            catch (UnauthorizedException const& e)
+            {
+                QMetaObject::invokeMethod(this, "handle_unauthorized",
+                                          Qt::QueuedConnection,
+                                          Q_ARG(std::exception_ptr, current_exception()));
+                return;
+            }
             catch (std::exception const& e)
             {
                 marshal_exception(current_exception());
             }
             QMetaObject::invokeMethod(this, "send_reply", Qt::QueuedConnection);
         });
+}
+
+void Handler::handle_unauthorized(exception_ptr ep)
+{
+    if (retry_)
+    {
+        // We've already retried once, so send error out as is.
+        marshal_exception(ep);
+        send_reply();
+    }
+    else
+    {
+        // Otherwise, restart the request with the retry_ flag set.
+        retry_ = true;
+        begin();
+    }
 }
 
 void Handler::send_reply()

@@ -27,10 +27,16 @@ BUS_NAME = "com.ubuntu.OnlineAccounts.Manager"
 OBJECT_PATH = "/com/ubuntu/OnlineAccounts/Manager"
 OA_IFACE = "com.ubuntu.OnlineAccounts.Manager"
 
+TEST_IFACE = "com.canonical.StorageFramework.Testing"
+
 AUTH_OAUTH1 = 1
 AUTH_OAUTH2 = 2
 AUTH_PASSWORD = 3
 AUTH_SASL = 4
+
+CHANGE_TYPE_ENABLED = 0
+CHANGE_TYPE_DISABLED = 1
+CHANGE_TYPE_CHANGED = 2
 
 class OAuth1:
     method = AUTH_OAUTH1
@@ -41,7 +47,7 @@ class OAuth1:
         self.token_secret = token_secret
         self.signature_method = signature_method
 
-    def serialise(self):
+    def serialise(self, interactive, invalidate):
         return dbus.Dictionary({
             "ConsumerKey": dbus.String(self.consumer_key),
             "ConsumerSecret": dbus.String(self.consumer_secret),
@@ -57,7 +63,7 @@ class OAuth2:
         self.expires_in = expires_in
         self.granted_scopes = granted_scopes
 
-    def serialise(self):
+    def serialise(self, interactive, invalidate):
         return dbus.Dictionary({
             "AccessToken": dbus.String(self.access_token),
             "ExpiresIn": dbus.Int32(self.expires_in),
@@ -70,20 +76,36 @@ class Password:
         self.username = username
         self.password = password
 
-    def serialise(self):
+    def serialise(self, interactive, invalidate):
         return dbus.Dictionary({
             "Username": dbus.String(self.username),
             "Password": dbus.String(self.password),
         }, signature="sv")
 
-# A version of Password that incorrectly serialises the credentials
-#   https://bugs.launchpad.net/bugs/1628473
-class Password_Bug1628473(Password):
-    def serialise(self):
-        return dbus.Dictionary({
-            "UserName": dbus.String(self.username),
-            "Secret": dbus.String(self.password),
-        }, signature="sv")
+class CredentialsError:
+    def __init__(self, method, error):
+        assert error in {"NoAccount", "UserCanceled",
+                         "PermissionDenied", "InteractionRequired"}
+        self.method = method
+        self.error = "com.ubuntu.OnlineAccounts.Error." + error
+
+    def serialise(self, interactive, invalidate):
+        raise dbus.DBusException("Error", name=self.error)
+
+class CredentialsByMode:
+    def __init__(self, noninteractive, interactive, refresh):
+        self.method = noninteractive.method
+        self.noninteractive = noninteractive
+        self.interactive = interactive
+        self.refresh = refresh
+
+    def serialise(self, interactive, invalidate):
+        if invalidate:
+            return self.refresh.serialise(interactive, invalidate)
+        elif interactive:
+            return self.interactive.serialise(interactive, invalidate)
+        else:
+            return self.noninteractive.serialise(interactive, invalidate)
 
 class Account:
     def __init__(self, account_id, name, service_id, credentials, settings=None):
@@ -114,7 +136,7 @@ class Manager(dbus.service.Object):
     def GetAccounts(self, filters):
         #print("GetAccounts %r" % filters)
         sys.stdout.flush()
-        return dbus.Array([a.serialise() for a in self.accounts],
+        return dbus.Array([a.serialise() for a in self.accounts.values()],
                           signature="a(ua{sv})"), dbus.Array(signature="a{sv}")
 
     @dbus.service.method(dbus_interface=OA_IFACE,
@@ -122,27 +144,51 @@ class Manager(dbus.service.Object):
     def Authenticate(self, account_id, service_id, interactive, invalidate, parameters):
         #print("Authenticate %r %r %r %r %r" % (account_id, service_id, interactive, invalidate, parameters))
         sys.stdout.flush()
-        for account in self.accounts:
-            if account.account_id == account_id and account.service_id == service_id:
-                return account.credentials.serialise()
-        else:
-            raise KeyError(repr((account_id, service_id)))
+        account = self.accounts[account_id, service_id]
+        return account.credentials.serialise(interactive, invalidate)
 
     @dbus.service.method(dbus_interface=OA_IFACE,
                          in_signature="sa{sv}", out_signature="(ua{sv})a{sv}")
     def RequestAccess(self, service_id, parameters):
         #print("RequestAccess %r %r" % (service_id, parameters))
         sys.stdout.flush()
-        for account in self.accounts:
+        for account in self.accounts.values():
             if account.service_id == service_id:
                 return (account.serialise(),
-                        account.credentials.serialise())
+                        account.credentials.serialise(True, False))
         else:
             raise KeyError(service_id)
 
+    @dbus.service.signal(dbus_interface=OA_IFACE,
+                         signature="s(ua{sv})")
+    def AccountChanged(self, service_id, account):
+        pass
+
+    @dbus.service.method(dbus_interface=TEST_IFACE,
+                         in_signature="s", out_signature="")
+    def UpdateAccount(self, account_data):
+        account = eval(account_data)
+        key = (account.account_id, account.service_id)
+        exists = key in self.accounts
+        self.accounts[key] = account
+        info = account.serialise()
+        info[1]["changeType"] = dbus.UInt32(
+            CHANGE_TYPE_CHANGED if exists else CHANGE_TYPE_ENABLED)
+        self.AccountChanged(account.service_id, info)
+
+    @dbus.service.method(dbus_interface=TEST_IFACE,
+                         in_signature="us", out_signature="")
+    def RemoveAccount(self, account_id, service_id):
+        account = self.accounts.pop((account_id, service_id), None)
+        if account is not None:
+            info = account.serialise()
+            info[1]["changeType"] = dbus.UInt32(CHANGE_TYPE_DISABLED)
+            self.AccountChanged(account.service_id, info)
+
 class Server:
     def __init__(self, accounts):
-        self.accounts = accounts
+        self.accounts = dict(((a.account_id, a.service_id), a)
+                             for a in accounts)
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self.main_loop = GLib.MainLoop()
         self.connection = dbus.SessionBus()
@@ -172,11 +218,19 @@ if __name__ == "__main__":
         Account(3, "Password account", "password-service",
                 Password("user", "pass")),
         Account(4, "Password host account", "password-host-service",
-                Password_Bug1628473("joe", "secret"),
+                Password("joe", "secret"),
                 {"host": "http://www.example.com/"}),
+        Account(10, "Mode dependent account", "mode-service",
+                CredentialsByMode(
+                    noninteractive=CredentialsError(AUTH_PASSWORD, "InteractionRequired"),
+                    interactive=Password("user", "interactive"),
+                    refresh=Password("user", "refresh")),
+                {"host": "http://www.example.com/"}),
+        Account(11, "User cancel account", "user-cancel-service",
+                CredentialsError(AUTH_PASSWORD, "UserCanceled")),
         Account(42, "Fake test account", "storage-provider-test",
                 OAuth2("fake-test-access-token", 0, [])),
-        Account(99, "Fake mcloud account", "com.canonical.scopes.mcloud_mcloud_mcloud",
+        Account(99, "Fake mcloud account", "storage-provider-mcloud",
                 OAuth2("fake-mcloud-access-token", 0, [])),
     ]
     server = Server(accounts)

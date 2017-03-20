@@ -48,7 +48,8 @@ static const QString ERROR_NAMES[StorageError::Type::__LAST_STORAGE_ERROR] =
     QStringLiteral("Cancelled"),
     QStringLiteral("LogicError"),
     QStringLiteral("InvalidArgument"),
-    QStringLiteral("ResourceError")
+    QStringLiteral("ResourceError"),
+    QStringLiteral("Unauthorized"),
 };
 
 }  // namespace
@@ -77,7 +78,6 @@ StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg)
            || type == StorageError::Type::Cancelled
            || type == StorageError::Type::LogicError
            || type == StorageError::Type::InvalidArgument);
-    assert(!msg.isEmpty());
 
     message_ = msg;
 }
@@ -86,7 +86,6 @@ StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg, 
     : StorageErrorImpl(type)
 {
     assert(type == StorageError::Type::NotExists);
-    assert(!msg.isEmpty());
 
     message_ = msg;
     item_id_ = key;
@@ -103,9 +102,6 @@ StorageErrorImpl::StorageErrorImpl(StorageError::Type type,
     : StorageErrorImpl(type)
 {
     assert(type == StorageError::Type::Exists);
-    assert(!msg.isEmpty());
-    assert(!item_id.isEmpty());
-    assert(!item_name.isEmpty());
 
     message_ = msg;
     item_id_ = item_id;
@@ -116,7 +112,6 @@ StorageErrorImpl::StorageErrorImpl(StorageError::Type type, QString const& msg, 
     : StorageErrorImpl(type)
 {
     assert(type == StorageError::Type::ResourceError);
-    assert(!msg.isEmpty());
 
     message_ = msg;
     error_code_ = error_code;

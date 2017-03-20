@@ -19,6 +19,7 @@
 #pragma once
 
 #include <unity/storage/provider/Server.h>
+#include <unity/storage/internal/InactivityTimer.h>
 #include <unity/storage/internal/TraceMessageHandler.h>
 #include <unity/storage/provider/internal/DBusPeerCache.h>
 #include <unity/storage/provider/internal/ProviderInterface.h>
@@ -49,19 +50,32 @@ public:
     ServerImpl(ServerBase* server, std::string const& bus_name, std::string const& account_service_id);
     ~ServerImpl();
 
-    void init(int& argc, char **argv);
-    void run();
+    void init(int& argc, char **argv, QDBusConnection *bus = nullptr);
+    int run();
 
 private Q_SLOTS:
-    void account_manager_ready();
+    void on_account_manager_ready();
+    void on_account_available(OnlineAccounts::Account* account);
+    void on_account_disabled();
+    void on_timeout();
+
+Q_SIGNALS:
+    void accountAdded();
+    void accountRemoved();
 
 private:
+    void register_bus_name();
+    void add_account(OnlineAccounts::Account* account);
+    void remove_account(OnlineAccounts::Account* account);
+
     ServerBase* const server_;
     std::string const bus_name_;
     std::string const service_id_;
     unity::storage::internal::TraceMessageHandler trace_message_handler_;
 
     std::unique_ptr<QCoreApplication> app_;
+    std::unique_ptr<QDBusConnection> bus_;
+    std::shared_ptr<unity::storage::internal::InactivityTimer> inactivity_timer_;
     std::unique_ptr<OnlineAccounts::Manager> manager_;
     std::shared_ptr<DBusPeerCache> dbus_peer_;
     std::map<OnlineAccounts::AccountId,std::unique_ptr<ProviderInterface>> interfaces_;
