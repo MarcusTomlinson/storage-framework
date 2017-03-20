@@ -8,9 +8,6 @@ set(subdirs
     unity/storage
     unity/storage/provider
     unity/storage/qt
-    unity/storage/qt/client
-    unity/storage/qt/client/internal/local_client
-    unity/storage/qt/client/internal/remote_client
 )
 
 set(extra_inc_dirs "${Qt5Core_INCLUDE_DIRS}")

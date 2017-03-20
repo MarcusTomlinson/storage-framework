@@ -1,5 +1,3 @@
-add_subdirectory(client)  # Old (v1) API
-
 set(includeprefix unity/storage/qt)
 file(GLOB public_hdrs *.h)
 set(convenience_hdr ${CMAKE_CURRENT_BINARY_DIR}/client-api.h)

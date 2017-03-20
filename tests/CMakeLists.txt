@@ -6,15 +6,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(utils)
 
 set(unit_test_dirs
-    registry
-    local-client
+    client
     local-provider
-    remote-client
-    remote-client-v1
     provider-AccountData
     provider-DBusPeerCache
     provider-ProviderInterface
     provider-Server
+    registry
 )
 
 set(slow_test_dirs

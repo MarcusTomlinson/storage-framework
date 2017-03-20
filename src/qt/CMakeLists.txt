@@ -1,5 +1,3 @@
-add_subdirectory(client)
-
 set_source_files_properties(${CMAKE_SOURCE_DIR}/data/provider.xml PROPERTIES
     CLASSNAME ProviderInterface
     INCLUDE unity/storage/internal/dbusmarshal.h
@@ -23,8 +21,8 @@ set_source_files_properties(${generated_files} dbusmarshal.cpp PROPERTIES
     GENERATED TRUE
 )
 
-# Sources for remote client V2 library.
-set(QT_CLIENT_LIB_V2_SRC
+# Sources for client library.
+set(QT_CLIENT_LIB_SRC
     Account.cpp
     AccountsJob.cpp
     Downloader.cpp
@@ -73,29 +71,29 @@ set(QT_CLIENT_LIB_V2_SRC
     ${CMAKE_SOURCE_DIR}/include/unity/storage/qt/internal/VoidJobImpl.h
 )
 
-add_library(storage-framework-qt-client-v2 SHARED
-    ${QT_CLIENT_LIB_V2_SRC}
+add_library(storage-framework-qt-client SHARED
+    ${QT_CLIENT_LIB_SRC}
     ${generated_files}
 )
-target_include_directories(storage-framework-qt-client-v2 PRIVATE
+target_include_directories(storage-framework-qt-client PRIVATE
     ${Qt5DBus_INCLUDE_DIRS}
     ${Qt5Network_INCLUDE_DIRS}
 )
-set_target_properties(storage-framework-qt-client-v2 PROPERTIES
+set_target_properties(storage-framework-qt-client PROPERTIES
     AUTOMOC TRUE
     LINK_FLAGS "-Wl,--no-undefined"
     OUTPUT_NAME "storage-framework-qt-client-${SF_CLIENT_API_VERSION}"
     SOVERSION ${SF_CLIENT_SOVERSION}
     VERSION ${SF_CLIENT_LIBVERSION}
 )
-target_link_libraries(storage-framework-qt-client-v2
+target_link_libraries(storage-framework-qt-client
     storage-framework-common-internal
     Qt5::Core
     Qt5::DBus
     Qt5::Network
 )
 install(
-    TARGETS storage-framework-qt-client-v2
+    TARGETS storage-framework-qt-client
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 

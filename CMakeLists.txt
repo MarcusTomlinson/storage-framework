@@ -139,14 +139,11 @@ add_subdirectory(tools)
 enable_coverage_report(
     TARGETS
         local-provider-lib
-        qt-client-lib-common
-        storage-framework-common-internal
-        storage-framework-qt-client
-        storage-framework-qt-client-v2
-        storage-framework-qt-local-client
-        sf-provider-objects
-        storage-framework-provider
         registry-static
+        sf-provider-objects
+        storage-framework-common-internal
+        storage-framework-provider
+        storage-framework-qt-client
         storage-framework-registry
         storage-provider-local
     FILTER

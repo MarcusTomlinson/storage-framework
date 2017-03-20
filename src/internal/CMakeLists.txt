@@ -8,7 +8,6 @@ set(src
     ${CMAKE_SOURCE_DIR}/include/unity/storage/internal/InactivityTimer.h
 )
 
-
 add_library(storage-framework-common-internal STATIC ${src})
 
 set_target_properties(storage-framework-common-internal PROPERTIES AUTOMOC TRUE)

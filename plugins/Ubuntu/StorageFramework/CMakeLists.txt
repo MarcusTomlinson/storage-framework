@@ -9,7 +9,8 @@ set_target_properties(storage-framework-qml PROPERTIES
 )
 
 target_link_libraries(storage-framework-qml
-  storage-framework-qt-client-v2
+  storage-framework-qt-client
+  Qt5::DBus
   Qt5::Qml
 )
 
