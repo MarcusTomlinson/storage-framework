@@ -21,6 +21,7 @@
 #include <unity/storage/provider/ProviderBase.h>
 
 #include <boost/filesystem.hpp>
+#include <QMimeDatabase>
 
 class LocalProvider : public unity::storage::provider::ProviderBase
 {
@@ -80,5 +81,8 @@ public:
                                              boost::filesystem::file_status const& st) const;
 
 private:
+    std::string get_content_type(std::string const& filename, unity::storage::ItemType type) const;
+
     boost::filesystem::path const root_;
+    QMimeDatabase mime_db_;
 };
