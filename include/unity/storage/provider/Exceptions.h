@@ -105,7 +105,7 @@ public:
 };
 
 /**
-\brief Indicates that an operation failed because the authentication credentials are invalid or expired.
+\brief Indicates that an operation failed because the credentials are invalid or have expired.
 
 A provider implementation must throw this exception if it cannot reach
 its provider because the credentials are invalid. Do not throw this
@@ -114,8 +114,7 @@ insufficient permission for an item (such as an attempt to write to a
 read-only file).
 
 Typically, this will cause the request to be retried after refreshing
-the authentication credentials, but may be returned to the client on
-repeated failures.
+the credentials, but may be returned to the client on repeated failures.
 
 \see PermissionException
 */

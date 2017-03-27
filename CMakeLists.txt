@@ -135,6 +135,7 @@ add_subdirectory(plugins/Ubuntu/StorageFramework)
 add_subdirectory(tests)
 add_subdirectory(demo)
 add_subdirectory(tools)
+add_subdirectory(doc)
 
 enable_coverage_report(
     TARGETS
