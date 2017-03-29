@@ -39,8 +39,11 @@ class UNITY_STORAGE_EXPORT StorageException : public std::exception
 {
 public:
     StorageException(std::string const& exception_type, std::string const& error_message);
+
+protected:
     ~StorageException();
 
+public:
     virtual char const* what() const noexcept override;
 
     std::string type() const;
