@@ -1,12 +1,13 @@
-/*!
-\mainpage Storage Framework
+/**
+\mainpage Tutorial
 
 \section overview Overview
 
 The storage framework provides a general-purpose file system abstraction that is independent of any physical storage
 mechanism and the APIs that are needed to manipulate different kinds of storage. This allows client applications to
-access and modify files that exist in remote storage mechanisms (such as Google Drive or Owncloud, as well
-as files in the local file system) through a common API.
+access and modify files that exist in remote storage mechanisms (such as
+<a href="https://www.google.com/drive/">Google Drive</a> or <a href="https://owncloud.org/">Owncloud</a>) as well
+as files in the local file system through a common API.
 
 The framework includes a provider for local files; to allow access to remote files, the framework
 requires a provider implementation for each cloud service that adapts the common API to that specific backend.
@@ -16,7 +17,7 @@ provides run-time support that takes care of DBus communications, error handling
 authorization, and so on. This allows providers to be created without having to handle these details, and enables
 the addition of new providers over time without disturbing existing provider implementations.
 
-Ubuntu provides a number of provider implementations, among them an
+Ubuntu includes a number of provider implementations, among them an
 <a href="https://code.launchpad.net/storage-provider-webdav">Owncloud provider</a> and an
 <a href="https://launchpad.net/mcloud">mCloud provider</a>.
 
@@ -79,7 +80,7 @@ remains invalid forever, even if the file is re-created with the same name. This
 to traditional file systems), it is possible for different files in the same folder to have the same name.
 
 Clients must not make assumptions about the structure of identities. Identities can look like path names,
-can be something like a UUID (universally unique identifier), can be integers, or any kind of identifier.
+can be something like a UUID (universally unique identifier), can be integers, or any other kind of identifier.
 Identities are strings can be safely compared for equality and less-than, but must otherwise be treated as opaque.
 
 Some providers do not support move semantics and implement move as a copy-and-delete operation.
@@ -104,6 +105,8 @@ without changing its name).
 <tt>Hello.txt</tt> as a valid name, but then change the name of the actual file to <tt>hello.txt</tt>. Do not
 assume that, just because a file could be created, it also has the name that was provided by the client. Instead,
 retrieve the name of the file after creating the file; that name reflects the actual name used by the provider.
+
+- Do not assume any particular name for a root folder. It might be "<code>/</code>", but can be something else.
 
 \subsection metadata Metadata
 Files and folders have metadata associated with them.
@@ -209,7 +212,7 @@ int main(int argc, char* argv[])
     {
         Server<MyCloudProvider> server(bus_name, account_service_id);
         server.init(argc, argv);
-        server.run();
+        return server.run();
     }
     catch (std::exception const& e)
     {
@@ -261,6 +264,8 @@ Conversely, the runtime is exception-safe. If you encounter an error during an o
 throws an exception and you let the exception escape, the runtime will intercept the exception, abort the
 operation, and marshal an appropriate error back to the client. (If you throw something unexpected, such as
 <tt>99</tt> or a <code>std::exception</code>, the client receives a generic error.)
+This means that, to indicate an error to the runtime, you can always throw an exception or, alternatively,
+for methods that return a future, return a future that contains the exception.
 
 The storage framework defines a small number of exceptions that indicate specific error conditions to the client.
 You <i>must</i> use these exception to indicate their respective error conditions, otherwise
@@ -398,6 +403,12 @@ If you receive a key that is not one of the keys defined in <code>common.h</code
 you recognize as provider-specific, do <i>not</i> return an error from the operation. Instead, write a log message
 with the details (your provider name, the identity and name of the file and folder, and the invalid key) and
 ignore the invalid key.
+
+Note that <code>common.h</code> defines symbolic constants for metadata keys. Use these symbolic constants
+instead of hard-coding the corresponding string literals.
+
+\note For files, the <code>SIZE_IN_BYTES</code> and <code>LAST_MODIFIED_TIME</code> metadata items are mandatory;
+you must always supply these, whether the client asks for them or not.
 
 \subsection authorization Authorization
 

@@ -63,6 +63,7 @@ public:
     static StorageError not_exists_error(QString const& msg, QString const& key);
     static StorageError exists_error(QString const& msg, QString const& item_id, QString const& item_name);
     static StorageError cancelled_error(QString const& msg);
+    static StorageError permission_error(QString const& msg);
     static StorageError logic_error(QString const& msg);
     static StorageError invalid_argument_error(QString const& msg);
     static StorageError resource_error(QString const& msg, int error_code);

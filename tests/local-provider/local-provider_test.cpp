@@ -141,6 +141,22 @@ const string file_contents =
     "nulla pariatur. Excepteur sint occaecat cupidatat non proident, "
     "sunt in culpa qui officia deserunt mollit anim id est laborum.\n";
 
+void make_hierarchy(string const& root_dir)
+{
+    // Make a small tree so we have something to test against.
+    ASSERT_EQ(0, mkdir((root_dir + "/a").c_str(), 0755));
+    ASSERT_EQ(0, mkdir((root_dir + "/a/b").c_str(), 0755));
+    string cmd = string("echo hello >") + root_dir + "/hello";
+    ASSERT_EQ(0, system(cmd.c_str()));
+    cmd = string("echo text >") + root_dir + "/a/foo.txt";
+    ASSERT_EQ(0, system(cmd.c_str()));
+    ASSERT_EQ(0, mknod((root_dir + "/a/pipe").c_str(), S_IFIFO | 06666, 0));
+    ASSERT_EQ(0, mkdir((root_dir + "/a/.storage-framework-").c_str(), 0755));
+    ASSERT_EQ(0, mkdir((root_dir + "/a/b/.storage-framework-").c_str(), 0755));
+    ASSERT_EQ(0, mknod((root_dir + "/a/b/pipe").c_str(), S_IFIFO | 06666, 0));
+    ASSERT_EQ(0, mkdir((root_dir + "/empty_dir").c_str(), 0755));
+}
+
 }  // namespace
 
 TEST(Directories, env_vars)
@@ -363,15 +379,17 @@ TEST_F(LocalProviderTest, delete_root)
     // Client-side API does not allow us to try to delete the root, so we talk to the provider directly.
     auto p = make_shared<LocalProvider>();
 
+    make_hierarchy(ROOT_DIR());
+
     auto fut = p->delete_item(ROOT_DIR(), provider::Context());
     try
     {
         fut.get();
         FAIL();
     }
-    catch (provider::LogicException const& e)
+    catch (provider::PermissionException const& e)
     {
-        EXPECT_STREQ("LogicException: delete_item(): cannot delete root", e.what());
+        EXPECT_STREQ("PermissionException: delete_item(): cannot delete root", e.what());
     }
 }
 
@@ -472,19 +490,24 @@ TEST_F(LocalProviderTest, list)
     EXPECT_EQ(5, child.metadata().size());
 }
 
-void make_hierarchy(string const& root_dir)
+TEST_F(LocalProviderTest, list_file)
 {
-    // Make a small tree so we have something to test with for move() and copy().
-    ASSERT_EQ(0, mkdir((root_dir + "/a").c_str(), 0755));
-    ASSERT_EQ(0, mkdir((root_dir + "/a/b").c_str(), 0755));
-    string cmd = string("echo hello >") + root_dir + "/hello";
-    ASSERT_EQ(0, system(cmd.c_str()));
-    cmd = string("echo text >") + root_dir + "/a/foo.txt";
-    ASSERT_EQ(0, system(cmd.c_str()));
-    ASSERT_EQ(0, mknod((root_dir + "/a/pipe").c_str(), S_IFIFO | 06666, 0));
-    ASSERT_EQ(0, mkdir((root_dir + "/a/.storage-framework-").c_str(), 0755));
-    ASSERT_EQ(0, mkdir((root_dir + "/a/b/.storage-framework-").c_str(), 0755));
-    ASSERT_EQ(0, mknod((root_dir + "/a/b/pipe").c_str(), S_IFIFO | 06666, 0));
+    // We can't try a list on a file via the client API, so we use the provider directly.
+
+    auto p = make_shared<LocalProvider>();
+
+    make_hierarchy(ROOT_DIR());
+
+    try
+    {
+        auto fut = p->list(ROOT_DIR() + "/hello", "", {}, provider::Context());
+        fut.get();
+        FAIL();
+    }
+    catch (provider::LogicException const& e)
+    {
+        EXPECT_EQ(string("LogicException: list(): \"") + ROOT_DIR() + "/hello\" is not a folder", e.what());
+    }
 }
 
 TEST_F(LocalProviderTest, move)
@@ -569,6 +592,26 @@ TEST_F(LocalProviderTest, move)
     ASSERT_EQ(ItemJob::Error, job->status()) << job->error().errorString().toStdString();
     EXPECT_EQ(string("Exists: move(): \"") + ROOT_DIR() + "/a\" exists already",
               job->error().errorString().toStdString());
+}
+
+TEST_F(LocalProviderTest, move_root)
+{
+    // We can't try to move a root via the client API, so we use the LocalDownloadJob directly.
+
+    auto p = make_shared<LocalProvider>();
+
+    make_hierarchy(ROOT_DIR());
+
+    auto fut = p->move(ROOT_DIR(), ROOT_DIR() + "/empty_dir", "moved_root", {}, provider::Context());
+    try
+    {
+        fut.get();
+        FAIL();
+    }
+    catch (provider::PermissionException const& e)
+    {
+        EXPECT_STREQ("PermissionException: move(): cannot move root", e.what());
+    }
 }
 
 TEST_F(LocalProviderTest, copy_file)
@@ -657,6 +700,44 @@ TEST_F(LocalProviderTest, copy_tree)
         EXPECT_EQ(string("Exists: copy(): \"") + ROOT_DIR() + "/a\" exists already",
                   job->error().errorString().toStdString());
     }
+}
+
+TEST_F(LocalProviderTest, copy_root)
+{
+    using namespace unity::storage::qt;
+    using namespace boost::filesystem;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    make_hierarchy(ROOT_DIR());
+
+    auto root = get_root(acc_);
+
+    qt::Item empty_dir;
+    {
+        unique_ptr<ItemListJob> job(root.lookup("empty_dir"));
+        auto items = get_items(job.get());
+        ASSERT_EQ(ItemListJob::Finished, job->status()) << job->error().errorString().toStdString();
+        ASSERT_EQ(1, items.size());
+        empty_dir = items.at(0);
+    }
+
+    {
+        unique_ptr<ItemJob> job(root.copy(empty_dir, "copied_root"));
+        wait(job.get());
+        ASSERT_EQ(ItemJob::Finished, job->status()) << job->error().errorString().toStdString();
+    }
+
+    // Check that we only copied regular files and directories, but not a pipe or anything starting with
+    // the temp file prefix.
+    EXPECT_TRUE(exists(ROOT_DIR() + "/empty_dir/copied_root/a/b"));
+    EXPECT_TRUE(exists(ROOT_DIR() + "/empty_dir/copied_root/hello"));
+    EXPECT_TRUE(exists(ROOT_DIR() + "/empty_dir/copied_root/a/foo.txt"));
+    EXPECT_TRUE(exists(ROOT_DIR() + "/empty_dir/copied_root/empty_dir"));
+    EXPECT_FALSE(exists(ROOT_DIR() + "/empty_dir/copied_root/a/pipe"));
+    EXPECT_FALSE(exists(ROOT_DIR() + "/empty_dir/copied_root/a/storage-framework-"));
+    EXPECT_FALSE(exists(ROOT_DIR() + "/empty_dir/copied_root/a/b/pipe"));
+    EXPECT_FALSE(exists(ROOT_DIR() + "/empty_dir/copied_root/a/b/storage-framework-"));
 }
 
 TEST_F(LocalProviderTest, download)
@@ -785,7 +866,7 @@ TEST_F(LocalProviderTest, download_etag_mismatch)
 
     auto error = downloader->error();
     EXPECT_EQ(qt::StorageError::Conflict, error.type());
-    EXPECT_EQ("download(): etag mismatch", error.message().toStdString());
+    EXPECT_EQ("download(): ETag mismatch", error.message().toStdString());
 }
 
 TEST_F(LocalProviderTest, download_wrong_file_type)
@@ -802,9 +883,9 @@ TEST_F(LocalProviderTest, download_wrong_file_type)
         LocalDownloadJob(p, dir, "some_etag");
         FAIL();
     }
-    catch (provider::InvalidArgumentException const& e)
+    catch (provider::LogicException const& e)
     {
-        EXPECT_EQ(string("InvalidArgumentException: download(): \"" + dir + "\" is not a file"), e.what());
+        EXPECT_EQ(string("LogicException: download(): \"" + dir + "\" is not a file"), e.what());
     }
 }
 
@@ -1013,7 +1094,7 @@ TEST_F(LocalProviderTest, update_file_touched_before_uploading)
     {
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
-    EXPECT_EQ("update(): etag mismatch", uploader->error().message().toStdString());
+    EXPECT_EQ("update(): ETag mismatch", uploader->error().message().toStdString());
 }
 
 TEST_F(LocalProviderTest, update_file_touched_while_uploading)
@@ -1062,7 +1143,56 @@ TEST_F(LocalProviderTest, update_file_touched_while_uploading)
         ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     }
     ASSERT_EQ(Uploader::Error, uploader->status());
-    EXPECT_EQ("update(): etag mismatch", uploader->error().message().toStdString());
+    EXPECT_EQ("update(): ETag mismatch", uploader->error().message().toStdString());
+}
+
+TEST_F(LocalProviderTest, update_folder_created_while_uploading)
+{
+    using namespace unity::storage::qt;
+
+    set_provider(unique_ptr<provider::ProviderBase>(new LocalProvider));
+
+    auto full_path = ROOT_DIR() + "/foo.txt";
+    auto cmd = string("echo hello >") + full_path;
+    ASSERT_EQ(0, system(cmd.c_str()));
+
+    unique_ptr<ItemJob> job(acc_.get(QString::fromStdString(full_path)));
+    wait(job.get());
+    EXPECT_TRUE(job->isValid());
+
+    auto file = job->item();
+    auto old_etag = file.etag();
+
+    int const segments = 50;
+    unique_ptr<Uploader> uploader(file.createUploader(Item::ErrorIfConflict, file_contents.size() * segments));
+
+    int count = 0;
+    QTimer timer;
+    timer.setSingleShot(false);
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&] {
+            uploader->write(&file_contents[0], file_contents.size());
+            count++;
+            if (count == segments / 2)
+            {
+                sleep(1);
+                cmd = string("rm ") + full_path + "; mkdir " + full_path;
+                ASSERT_EQ(0, system(cmd.c_str()));
+            }
+            else if (count == segments)
+            {
+                uploader->close();
+            }
+        });
+
+    QSignalSpy spy(uploader.get(), &Uploader::statusChanged);
+    timer.start();
+    while (uploader->status() != Uploader::Error)
+    {
+        ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    }
+    ASSERT_EQ(Uploader::Error, uploader->status());
+    EXPECT_EQ(string("update(): \"") + full_path + "\" exists already", uploader->error().message().toStdString());
 }
 
 TEST_F(LocalProviderTest, update_ignore_etag_mismatch)
@@ -1208,9 +1338,9 @@ TEST_F(LocalProviderTest, upload_wrong_file_type)
         LocalUploadJob(p, dir, 0, "");
         FAIL();
     }
-    catch (provider::InvalidArgumentException const& e)
+    catch (provider::LogicException const& e)
     {
-        EXPECT_EQ(string("InvalidArgumentException: update(): \"" + dir + "\" is not a file"), e.what());
+        EXPECT_EQ(string("LogicException: update(): \"" + dir + "\" is not a file"), e.what());
     }
 }
 

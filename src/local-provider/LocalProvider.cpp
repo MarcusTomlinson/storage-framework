@@ -229,6 +229,11 @@ boost::future<tuple<ItemList, string>> LocalProvider::list(string const& item_id
         using namespace boost::filesystem;
 
         This->throw_if_not_valid(method, item_id);
+        if (!is_directory(item_id))
+        {
+            string msg = method + ": \"" + item_id + "\" is not a folder";
+            throw boost::enable_current_exception(LogicException(msg));
+        }
         vector<Item> items;
         for (directory_iterator it(item_id); it != directory_iterator(); ++it)
         {
@@ -379,7 +384,7 @@ boost::future<void> LocalProvider::delete_item(string const& item_id, Context co
         if (canonical(item_id).native() == This->root_)
         {
             string msg = method + ": cannot delete root";
-            throw boost::enable_current_exception(LogicException(msg));
+            throw boost::enable_current_exception(PermissionException(msg));
         }
         remove_all(item_id);
     };
@@ -411,6 +416,11 @@ boost::future<Item> LocalProvider::move(string const& item_id,
         {
             string msg = method + ": \"" + target_path.native() + "\" exists already";
             throw boost::enable_current_exception(ExistsException(msg, target_path.native(), new_name));
+        }
+        if (canonical(item_id).native() == This->root_)
+        {
+            string msg = method + ": cannot move root";
+            throw boost::enable_current_exception(PermissionException(msg));
         }
 
         // Small race condition here: if exists() just said that the target does not exist, it is

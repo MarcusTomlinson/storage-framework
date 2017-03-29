@@ -2,7 +2,16 @@ find_package(DoxygenBuilder)
 
 add_doxygen(
     storage-framework-doc
-    INPUT ${CMAKE_CURRENT_SOURCE_DIR}
+    INPUT
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/include/unity/storage
+    STRIP_FROM_PATH
+        ${CMAKE_SOURCE_DIR}
+    STRIP_FROM_INC_PATH
+        ${CMAKE_SOURCE_DIR}/include
+    EXCLUDE_PATTERNS
+        */internal/*
+        */qt/*
     ALL
 )
 

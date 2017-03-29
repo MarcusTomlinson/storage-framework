@@ -235,7 +235,7 @@ VoidJob* ItemImpl::deleteItem() const
     }
     if (md_.type == storage::ItemType::root)
     {
-        auto e = StorageErrorImpl::logic_error(method + ": cannot delete root");
+        auto e = StorageErrorImpl::permission_error(method + ": cannot delete root");
         return VoidJobImpl::make_job(e);
     }
 

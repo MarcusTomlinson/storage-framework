@@ -23,11 +23,13 @@
 #include <memory>
 #include <string>
 
+//@cond
 namespace OnlineAccounts
 {
 class Account;
 }
 class QDBusConnection;
+//@endcond
 
 namespace unity
 {
