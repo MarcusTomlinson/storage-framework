@@ -323,6 +323,9 @@ TEST_F(LocalProviderTest, create_folder)
         ASSERT_EQ(ItemJob::Error, job->status()) << job->error().errorString().toStdString();
         EXPECT_EQ(string("Exists: create_folder(): \"") + ROOT_DIR() + "/child\" exists already",
                   job->error().errorString().toStdString());
+        EXPECT_EQ(ROOT_DIR() + "/child", job->error().itemId().toStdString());
+        EXPECT_EQ(ROOT_DIR() + "/child", job->error().itemId().toStdString());
+        EXPECT_EQ("child", job->error().itemName().toStdString());
 
         // Again, without write permission on the root dir, to get coverage for a filesystem_error in invoke_async().
         ASSERT_EQ(0, ::rmdir((ROOT_DIR() + "/child").c_str()));
@@ -453,6 +456,8 @@ TEST_F(LocalProviderTest, lookup)
     EXPECT_EQ(string("NotExists: lookup(): \"") + ROOT_DIR() + "/child\": boost::filesystem::canonical: "
               + "No such file or directory: \"" + ROOT_DIR() + "/child\"",
               job->error().errorString().toStdString());
+    EXPECT_EQ(qt::StorageError::NotExists, job->error().type());
+    EXPECT_EQ(ROOT_DIR() + "/child", job->error().itemId().toStdString());
 }
 
 TEST_F(LocalProviderTest, list)
