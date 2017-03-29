@@ -7,7 +7,7 @@ Source: storage-framework
 Section: libs
 Priority: optional
 Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
-Standards-Version: 3.9.6
+Standards-Version: 3.9.7
 Build-Depends: cmake,
                cmake-extras (>= 0.10),
                debhelper (>= 9),
@@ -63,6 +63,7 @@ Depends: ${misc:Depends},
          online-accounts-daemon,
 Description: Registry for the Storage Framework
  DBus service that provides access to provider account information.
+ Includes a local storage provider.
 
 Package: libstorage-framework-qt-client-2-0
 Architecture: any
