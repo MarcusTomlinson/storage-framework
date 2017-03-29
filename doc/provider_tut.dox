@@ -324,7 +324,7 @@ The concrete derived exceptions indicate error semantics as follows:
 - <code>UnauthorizedException</code>
 
   This exception indicates that the remote cloud service has indicated an authorization failure. Note that
-  you must throw this exception only if the cloud service indicates invalid credentials. Do not throw
+  you must throw this exception only if the cloud service indicates invalid credentials. Do <i>not</i> throw
   this exception for permission errors (such as an attempt to write to a read-only file).
 
   Some cloud providers use authorization tokens that expire after some time. If you detect an
@@ -335,7 +335,7 @@ The concrete derived exceptions indicate error semantics as follows:
 - <code>PermissionException</code>
 
   This exception indicates that a file or folder cannot be accessed due to insufficient permissions (such as an
-  attempt to write to a read-only file). Do not throw this exception for authorization errors.
+  attempt to write to a read-only file). Do <i>not</i> throw this exception for authorization errors.
 
 - <code>QuotaException</code>
 
@@ -366,7 +366,7 @@ The concrete derived exceptions indicate error semantics as follows:
   file descriptors, failure to locate a configuration file, or any other unexpected system error. You should
   provide as much contextual information about such errors as possible. In particular, unexpected errors
   typically need to be diagnosed from log files. This means that you should provide, at least, the full error
-  message you recevied from the cloud service (or the operating system), together with all other relevant
+  message you received from the cloud service (or the operating system), together with all other relevant
   details, such as the name of the file, the URL of a failed request, any HTTP error information, and so on.
 
 - <code>UnknownException</code>
