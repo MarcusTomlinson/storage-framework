@@ -24,15 +24,64 @@
 #include <gtest/gtest.h>
 #pragma GCC diagnostic pop
 
+#include <stdexcept>
+#include <string>
+
 using namespace unity::storage::provider;
 
-TEST(UtilsTest, convert_exception_ptr)
+// Helper function to create exceptions, with specialisations for
+// types with irregular constructors.
+template <typename Exception>
+Exception make_exception(std::string const& message)
 {
-    std::string const exc_message = "exception message";
-    int const exc_code = 42;
+    return Exception(message);
+}
+
+template<>
+NotExistsException make_exception<NotExistsException>(std::string const& message)
+{
+    return NotExistsException(message, "key");
+}
+
+template<>
+ExistsException make_exception<ExistsException>(std::string const& message)
+{
+    return ExistsException(message, "item_id", "name");
+}
+
+template<>
+ResourceException make_exception<ResourceException>(std::string const& message)
+{
+    return ResourceException(message, 0);
+}
+
+template <typename Ex>
+class ConvertExceptionTest : public ::testing::Test {
+};
+
+using ExceptionTypes = ::testing::Types<
+    RemoteCommsException,
+    NotExistsException,
+    ExistsException,
+    ConflictException,
+    UnauthorizedException,
+    PermissionException,
+    QuotaException,
+    CancelledException,
+    LogicException,
+    InvalidArgumentException,
+    ResourceException,
+    UnknownException>;
+
+TYPED_TEST_CASE(ConvertExceptionTest, ExceptionTypes);
+
+TYPED_TEST(ConvertExceptionTest, storage_exception)
+{
+    using Exception = TypeParam;
+    std::string const message = "exception message";
 
     std::exception_ptr sep = std::make_exception_ptr(
-        ResourceException(exc_message, exc_code));
+        make_exception<Exception>(message));
 
     boost::exception_ptr bep = internal::convert_exception_ptr(sep);
     try
@@ -40,10 +89,58 @@ TEST(UtilsTest, convert_exception_ptr)
         boost::rethrow_exception(bep);
         FAIL();
     }
-    catch (ResourceException const& e)
+    catch (Exception const& e)
     {
-        EXPECT_EQ(exc_message, e.error_message());
-        EXPECT_EQ(exc_code, e.error_code());
+        EXPECT_EQ(message, e.error_message());
+    }
+}
+
+class CustomException : public std::exception
+{
+public:
+    virtual char const* what() const noexcept override
+    {
+        return "custom message";
+    }
+};
+
+// Exceptions raised with boost::enable_current_exception() are preserved
+TEST(ConvertExceptionTest, enable_current_exception)
+{
+    std::exception_ptr sep = std::make_exception_ptr(
+        boost::enable_current_exception(CustomException()));
+
+    boost::exception_ptr bep = internal::convert_exception_ptr(sep);
+    try
+    {
+        boost::rethrow_exception(bep);
+        FAIL();
+    }
+    catch (CustomException const& e)
+    {
+        EXPECT_EQ("custom message", e.what());
+    }
+}
+
+TEST(ConvertExceptionTest, unknown_exception)
+{
+    std::exception_ptr sep = std::make_exception_ptr(CustomException());
+
+    boost::exception_ptr bep = internal::convert_exception_ptr(sep);
+    try
+    {
+        boost::rethrow_exception(bep);
+        FAIL();
+    }
+    catch (CustomException const& e)
+    {
+        // Boost can't convert exceptions that haven't been annotated
+        // with enable_current_exception().
+        FAIL();
+    }
+    catch (boost::unknown_exception const& e)
+    {
+        EXPECT_EQ("std::exception", std::string(e.what()));
     }
 }
 

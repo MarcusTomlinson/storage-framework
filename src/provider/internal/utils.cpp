@@ -35,7 +35,51 @@ boost::exception_ptr convert_exception_ptr(std::exception_ptr ep)
     {
         std::rethrow_exception(ep);
     }
-    catch (StorageException const& e)
+    catch (RemoteCommsException const& e)
+    {
+        return boost::copy_exception(e);
+    }
+    catch (NotExistsException const& e)
+    {
+        return boost::copy_exception(e);
+    }
+    catch (ExistsException const& e)
+    {
+        return boost::copy_exception(e);
+    }
+    catch (ConflictException const& e)
+    {
+        return boost::copy_exception(e);
+    }
+    catch (UnauthorizedException const& e)
+    {
+        return boost::copy_exception(e);
+    }
+    catch (PermissionException const& e)
+    {
+        return boost::copy_exception(e);
+    }
+    catch (QuotaException const& e)
+    {
+        return boost::copy_exception(e);
+    }
+    catch (CancelledException const& e)
+    {
+        return boost::copy_exception(e);
+    }
+    catch (LogicException const& e)
+    {
+        return boost::copy_exception(e);
+    }
+    catch (InvalidArgumentException const& e)
+    {
+        return boost::copy_exception(e);
+    }
+    catch (ResourceException const& e)
+    {
+        return boost::copy_exception(e);
+    }
+    catch (UnknownException const& e)
     {
         return boost::copy_exception(e);
     }
