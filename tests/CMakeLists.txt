@@ -15,6 +15,7 @@ set(unit_test_dirs
     provider-DBusPeerCache
     provider-ProviderInterface
     provider-Server
+    provider-utils
 )
 
 set(slow_test_dirs
