@@ -78,7 +78,7 @@ struct UNITY_STORAGE_EXPORT Item
     /**
     \brief The ETag of a file.
 
-    \note For folders, the ETag is often empty because not all providers support ETags for folders.
+    \note For folders, the ETag is may be empty because not all providers support ETags for folders.
     */
     std::string etag;
 

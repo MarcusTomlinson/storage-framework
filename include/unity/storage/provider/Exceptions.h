@@ -31,7 +31,8 @@ namespace provider
 
 // Note: Adding new exception types also requires updating the marshaling and
 //       unmarshaling code for exceptions in provider/internal/Handler.cpp and
-//       qt/internal/unmarshal_error.cpp.
+//       qt/internal/unmarshal_error.cpp, as well as the exception re-throwing
+//       code in provider/internal/utils.cpp.
 
 /**
 \brief Abstract base exception class for all server-side exceptions.

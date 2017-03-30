@@ -167,7 +167,6 @@ public:
 
     /**
     \brief Create a new file.
-
     \param parent_id The identity of the parent folder.
     \param name The name of the new file.
     \param size The size of the file contents in bytes.
@@ -180,6 +179,7 @@ public:
     \throws ExistsException A file with the given <code>name</code> exists already and
     <code>allow_overwrite</code> is <code>false</code>, or a folder with the given <code>name</code> exists already.
     */
+    // TODO: The runtime should check that size is non-negative, so the provider implementation can rely on this.
     virtual boost::future<std::unique_ptr<UploadJob>> create_file(std::string const& parent_id,
                                                                   std::string const& name,
                                                                   int64_t size,
@@ -200,6 +200,7 @@ public:
     \throws ConflictException The file's ETag does not match the given (non-empty) <code>old_etag</code>.
     \throws LogicException The <code>item_id</code> denotes a folder.
     */
+    // TODO: The runtime should check that size is non-negative, so the provider implementation can rely on this.
     virtual boost::future<std::unique_ptr<UploadJob>> update(std::string const& item_id,
                                                              int64_t size,
                                                              std::string const& old_etag,

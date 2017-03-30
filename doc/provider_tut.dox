@@ -373,7 +373,7 @@ The concrete derived exceptions indicate error semantics as follows:
 
   If your code throws an exception that does not derive from <code>StorageException</code>, it returns
   <code>UnknownException</code> to the client. Do not throw this exception explicitly; is is a "catch-all"
-  exception that the runtime uses to indicate that something cmopletely unexpected happened. (If a client
+  exception that the runtime uses to indicate that something completely unexpected happened. (If a client
   receives this exception from your provider, chances are that you have forgotten to handle an error condition
   somewhere.)
 
