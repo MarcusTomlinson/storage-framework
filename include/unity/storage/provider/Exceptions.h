@@ -42,7 +42,7 @@ class UNITY_STORAGE_EXPORT StorageException : public std::exception
 {
 public:
     /**
-    \brief Construct a StorageException.
+    \brief Constructs a StorageException.
     \param exception_type The concrete type name of the exception, such as "ConflictException".
     \param error_message The error message text for the exception.
     */
@@ -50,19 +50,19 @@ public:
     ~StorageException();
 
     /**
-    \brief Return an error string.
+    \brief Returns an error string.
     \return The error message prefixed by the exception type, such as "ConflictException: ETag mismatch".
     */
     virtual char const* what() const noexcept override;
 
     /**
-    \brief Return the exception type name.
+    \brief Returns the exception type name.
     \return The value of the <code>exception_type</code> parameter that was passed to the constructor.
     */
     std::string type() const;
 
     /**
-    \brief Return the except error message.
+    \brief Returns the except error message.
     \return The valaue of the <code>error_message</code> parameter that was passed to the constructor.
     */
     std::string error_message() const;

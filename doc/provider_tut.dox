@@ -106,7 +106,7 @@ without changing its name).
 assume that, just because a file could be created, it also has the name that was provided by the client. Instead,
 retrieve the name of the file after creating the file; that name reflects the actual name used by the provider.
 
-- Do not assume any particular name for a root folder. It might be "<code>/</code>", but can be something else.
+- Do not assume any particular name for a root folder. It might be <tt>/</tt>, but could be something else.
 
 \subsection metadata Metadata
 Files and folders have metadata associated with them.
@@ -118,7 +118,7 @@ size and modification time); other metadata may or may not be available, dependi
 not all providers maintain a modification time for directories.)
 
 The framework defines a number of well-known metadata keys that are used by the majority of providers (such as
-<tt>size_in_bytes</tt>. In addition, providers can also add provider-specific metadata. Clients can specify
+<tt>size_in_bytes</tt>). In addition, providers can also add provider-specific metadata. Clients can specify
 which metadata items should be returned by the provider. The requested metadata items are hints only: a provider
 may return fewer or more metadata items than were requested by the client.
 
@@ -156,7 +156,8 @@ Downloads work the same way as uploads, but with the read and write roles revers
 
 \subsection provider-overview Overview
 
-To implement a provider, you must create an implementation of the abstract <code>ProviderBase</code> class:
+To implement a provider, you must create an implementation of the abstract
+@ref unity::storage::provider::ProviderBase "ProviderBase" class:
 
 \code{.cpp}
 class ProviderBase : public std::enable_shared_from_this<ProviderBase>
@@ -175,8 +176,10 @@ public:
 };
 \endcode
 
-The base class defines a pure virtual method for each operation (such as <code>list</code>, <code>lookup</code>,
-<code>upload</code>, etc.)
+The base class defines a pure virtual method for each operation (such as
+@ref unity::storage::provider::ProviderBase::list "list()",
+@ref unity::storage::provider::ProviderBase::lookup "lookup()",
+@ref unity::storage::provider::ProviderBase::update "update()", etc.
 
 Note that each operation returns a <code>boost::future</code> to the storage framework runtime;
 your operation implementation must make the future ready once the result of the operation is available.
@@ -185,7 +188,8 @@ For this example, we assume that you want to create a provider for a (hypothetic
 storage service.
 
 To connect your implementation class to the runtime, you instantiate a <code>Server</code> instance and call its
-<code>init()</code> and <code>run()</code> methods:
+@ref unity::storage::provider::Server::init "init()" and
+@ref unity::storage::provider::Server::run "run()" methods:
 
 \code{.cpp}
 class MyCloudProvider : public ProviderBase
@@ -226,18 +230,21 @@ The <code>Server</code> class is a template that instantiates your <code>MyCloud
 You must provide a DBus name for your service, as well as the service ID with which your provider is
 known to Online Accounts.
 
-The call to <code>init()</code> initializes the storage framework runtime, connects the service to DBus and, once
-you call <code>run()</code>, starts an event loop that forwards incoming requests to the methods of your
+The call to @ref unity::storage::provider::Server::init "init()" initializes the storage framework runtime,
+connects the service to DBus and, once
+you call @ref unity::storage::provider::Server::run "run()",
+starts an event loop that forwards incoming requests to the methods of your
 <code>MyCloudProvider</code> class.
 
-The <code>run()</code> method returns after some period of inactivity (30 seconds, by default), so the provider
+The @ref unity::storage::provider::Server::run "run()"
+method returns after some period of inactivity (30 seconds, by default), so the provider
 process shuts down when it is not needed, and is started automatically if it is not running at the time a client
 request arrives.
 
 If you need to pass additional arguments to the <code>MyCloudProvider</code> constructor, you can do so
-by creating a server class of your own that derives from <code>unity::storage::provider::ServerBase</code>.
-That class has an abstract <code>make_provider()</code> factory method that you can override. The runtime
-calls the factyry method to instantiate your provider.
+by creating a server class of your own that derives from @ref unity::storage::provider::ServerBase "ServerBase".
+That class has an abstract @ref unity::storage::provider::ServerBase::make_provider() "make_provider()"
+factory method that you can override. The runtime calls the factory method to instantiate your provider.
 
 \subsection threading Threading Considerations
 
@@ -254,8 +261,8 @@ to the correct thread for marshaling.
 
 All error handling uses exceptions. If you call into the runtime and it detects a problem, the runtime throws
 an exception that derives from <code>std::exception</code> or, for specific well-known problems, from
-<code>unity::storage::provider::StorageException</code>. (The code in <code>main()</code> above relies on this
-behavior to report any errors and return non-zero exit status.)
+@ref unity::storage::provider::StorageException "StorageException". (The code in <code>main()</code> above
+relies on this behavior to report any errors and return non-zero exit status.)
 
 If your implementation uses a library that does not transparently handle exceptions (such Qt), you
 must catch exceptions and deal with them as appropriate when you call into the runtime.
@@ -291,37 +298,41 @@ class NotExistsException : public StorageException { ... };
 // etc...
 \endcode
 
-The <code>type()</code> method returns the name of the exception (such as <code>NotExistsException</code>), and
-<code>error_message()</code> returns a message you provide when you throw the exception. (<code>what()</code>
+The @ref unity::storage::provider::StorageException::type "type()"
+method returns the name of the exception (such as
+@ref unity::storage::provider::NotExistsException "NotExistsException", and
+@ref unity::storage::provider::StorageException::error_message "error_message()"
+returns a message you provide when you throw the exception.
+(@ref unity::storage::provider::StorageException::what "what()"
 returns a string that contains both the exception name and the error message.)
 
 The concrete derived exceptions indicate error semantics as follows:
 
-- <code>RemoteCommsException</code>
+- @ref unity::storage::provider::RemoteCommsException "RemoteCommsException"
 
   This exception indicates an (unexpected) error in the communication between your provider and the remote
   cloud service, such as the remote server being unreachable or returning garbled data.
 
-- <code>NotExistsException</code>
+- @ref unity::storage::provider::NotExistsException "NotExistsException"
 
   This exception indicates that a file or folder the client wants to access does not exist. You must
   use this exception only if the remote cloud service has <i>authoritatively</i> indicated non-existence
   (such as with an HTTP 404 response). Do not use this exception for non-authoritative errors, such as
   timeouts or similar.
 
-- <code>ExistsException</code>
+- @ref unity::storage::provider::ExistsException "ExistsException"
 
   This exception indicates that a file or folder already exists, preventing an operation (such as a create or copy)
   from completing. Use this exception only if the remote cloud service has <i>authoritatively</i>
   indicated this error. Do not use this exception for non-authoritative errors, such as timeouts
   or similar.
 
-- <code>ConflictException</code>
+- @ref unity::storage::provider::ConflictException "ConflictException"
 
   This exception indicates an ETag mismatch: the client asked for a file to be updated or downloaded, but
   the file's ETag has changed since.
 
-- <code>UnauthorizedException</code>
+- @ref unity::storage::provider::UnauthorizedException "UnauthorizedException"
 
   This exception indicates that the remote cloud service has indicated an authorization failure. Note that
   you must throw this exception only if the cloud service indicates invalid credentials. Do <i>not</i> throw
@@ -329,37 +340,39 @@ The concrete derived exceptions indicate error semantics as follows:
 
   Some cloud providers use authorization tokens that expire after some time. If you detect an
   authorization failure in your code and throw this exception, the runtime re-retrieves the token from Online
-  Accounts and transparently calls your operation again if the new token differs. If the runtime receives
-  an <code>UnauthorizedException</code> on this second attempt too, it returns the error to the client.
+  Accounts and transparently calls your operation again if the new token differs. If the runtime receives an
+  @ref unity::storage::provider::UnauthorizedException "UnauthorizedException" on this second attempt too,
+  it returns the error to the client.
 
-- <code>PermissionException</code>
+- @ref unity::storage::provider::PermissionException "PermissionException"
 
   This exception indicates that a file or folder cannot be accessed due to insufficient permissions (such as an
   attempt to write to a read-only file). Do <i>not</i> throw this exception for authorization errors.
 
-- <code>QuotaException</code>
+- @ref unity::storage::provider::QuotaException "QuotaException"
 
   This exception indicates that the provider has run out of space or that the maximum number of files and/or
   folders was exceeded.
 
-- <code>CancelledException</code>
+- @ref unity::storage::provider::CancelledException "CancelledException"
 
   This exception indicates that the client attempted to interact with an upload or download after it was cancelled.
   Due to the way the API is structured, you will not ever need to throw this exception. It is provided for
   completeness and to allow for provider implementations that do not use the storage framework API.
 
-- <code>LogicException</code>
+- @ref unity::storage::provider::LogicException "LogicException"
 
   This exception indicates that the client has used the API incorrectly, such as indicating that an upload has
-  completed before it has written all the data. In general, use <code>LogicException</code> for any errors
-  that relate to operations being called in the wrong order.
+  completed before it has written all the data. In general, use
+  @ref unity::storage::provider::LogicException "LogicException"
+  for any errors that relate to operations being called in the wrong order.
 
-- <code>InvalidArgumentException</code>
+- @ref unity::storage::provider::InvalidArgumentException "InvalidArgumentException"
 
   This exception indicates that the value of an argument supplied by the client is unacceptable, such as
   an empty string where a non-empty string was excepted, or a negative integer where a positive integer was expected.
 
-- <code>ResourceException</code>
+- @ref unity::storage::provider::ResourceException "ResourceException"
 
   This is a generic "catch-all" exception that you can throw to indicate unexpected errors that do not fit into
   any of the other categories. For example, <code>ResourceException</code> is appropriate to indicate out of
@@ -369,7 +382,7 @@ The concrete derived exceptions indicate error semantics as follows:
   message you received from the cloud service (or the operating system), together with all other relevant
   details, such as the name of the file, the URL of a failed request, any HTTP error information, and so on.
 
-- <code>UnknownException</code>
+- @ref unity::storage::provider::UnknownException "UnknownException"
 
   If your code throws an exception that does not derive from <code>StorageException</code>, it returns
   <code>UnknownException</code> to the client. Do not throw this exception explicitly; is is a "catch-all"
@@ -387,7 +400,8 @@ means that you should return whatever metadata you can cheaply receive from the 
 of bandwith and number of requests).
 
 If the vector contains a single entry <code>__ALL__</code>, you should return complete metadata. In particular,
-you should return as many of the well-known metadata items that are defined in <code>common.h</code> as possible, plus
+you should return as many of the well-known metadata items that are defined in
+common.h as possible, plus
 any provider-specific metadata items you may support (prefixed with a provider name, such as <tt>Mycloud:</tt>).
 
 If the client provides a specific list of keys, you should restrict the metadata to those items requested by the
@@ -412,7 +426,8 @@ you must always supply these, whether the client asks for them or not.
 
 \subsection authorization Authorization
 
-Each method of your provider has a trailing parameter of type <code>Context</code>:
+Each method of your provider has a trailing parameter of type
+@ref unity::storage::provider::Context "Context":
 
 \code{.cpp}
 struct Context
