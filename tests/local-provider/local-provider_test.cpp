@@ -259,12 +259,12 @@ TEST_F(LocalProviderTest, basic)
     ASSERT_EQ(5, root.metadata().size());
     auto free_space_bytes = root.metadata().value("free_space_bytes").toULongLong();
     cout << "free_space_bytes: " << free_space_bytes << endl;
-    EXPECT_GT(free_space_bytes, 0);
+    EXPECT_GT(free_space_bytes, uint64_t(0));
     auto used_space_bytes = root.metadata().value("used_space_bytes").toULongLong();
     cout << "used_space_bytes: " << used_space_bytes << endl;
-    EXPECT_GT(used_space_bytes, 0);
+    EXPECT_GT(used_space_bytes, uint64_t(0));
     auto content_type = root.metadata().value("content_type").toString();
-    EXPECT_EQ("inode/directory", content_type);
+    EXPECT_EQ("inode/directory", content_type.toStdString());
     auto writable = root.metadata().value("writable").toBool();
     EXPECT_TRUE(writable);
 
@@ -336,7 +336,7 @@ TEST_F(LocalProviderTest, delete_item)
         Item child = job->item();
         unique_ptr<VoidJob> delete_job(child.deleteItem());
         wait(delete_job.get());
-        ASSERT_EQ(ItemJob::Finished, delete_job->status()) << delete_job->error().errorString().toStdString();
+        ASSERT_EQ(VoidJob::Finished, delete_job->status()) << delete_job->error().errorString().toStdString();
 
         struct stat st;
         ASSERT_EQ(-1, stat(child.itemId().toStdString().c_str(), &st));
@@ -383,7 +383,7 @@ TEST_F(LocalProviderTest, metadata)
 
     auto fut = p->metadata(ROOT_DIR(), {}, provider::Context());
     auto item = fut.get();
-    EXPECT_EQ(5, item.metadata.size());
+    EXPECT_EQ(uint64_t(5), item.metadata.size());
 
     // Again, to get coverage for the "not file or folder" case in make_item().
     ASSERT_EQ(0, mknod((ROOT_DIR() + "/pipe").c_str(), S_IFIFO | 06666, 0));
@@ -431,7 +431,7 @@ TEST_F(LocalProviderTest, lookup)
 
     job.reset(root.lookup("child"));
     wait(job.get());
-    EXPECT_EQ(ItemJob::Error, job->status());
+    EXPECT_EQ(ItemListJob::Error, job->status());
     EXPECT_EQ(string("NotExists: lookup(): \"") + ROOT_DIR() + "/child\": boost::filesystem::canonical: "
               + "No such file or directory: \"" + ROOT_DIR() + "/child\"",
               job->error().errorString().toStdString());
@@ -1455,13 +1455,6 @@ TEST_F(LocalProviderTest, create_file_created_during_upload)
 int main(int argc, char** argv)
 {
     setenv("LANG", "C", true);
-
-    // Test test fixture repeatedly creates and tears down the dbus connection.
-    // The provider calls g_file_new_for_path() which talks to the GVfs backend
-    // via dbus. If the dbus connection disappears, that causes GIO to send a
-    // a SIGTERM, killing the test.
-    // Setting GIO_USE_VFS variable to "local" disables sending the signal.
-    setenv("GIO_USE_VFS", "local", true);
 
     QCoreApplication app(argc, argv);
 
