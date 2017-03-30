@@ -58,9 +58,9 @@ The storage framework is integrated with
 uses the framework, it first retrieves a list of available accounts from the framework. The application only receives
 those accounts for which the user has authorized access. The application then retrieves the root (or roots) for that
 account, and uses the root to access and modify files and folders underneath that root.
-On the server side, the runtime passes any required
+On the server side, the runtime passes any
 authorization token that is needed to access the cloud backend to the provider implementation; the runtime
-also handles re-authorization in case a token has expires.
+also handles re-authorization in case a token has expired.
 
 \subsection identity File and Folder Identity
 
@@ -153,6 +153,13 @@ for the file (or an error, if the upload failed).
 Downloads work the same way as uploads, but with the read and write roles reversed.
 
 \section provider Implementing a Provider
+
+This section provides an overview of the provider API and explains the semantics you are expected to adhere
+to in your provider implementation. We strongly recommend that you also read the source code
+for the <a href="https://code.launchpad.net/storage-provider-webdav">Owncloud provider</a>. It is useful
+to learn how to implement a provider that uses HTTP to access a cloud service. (While the details
+of the interactions with your provider will differ, the principles will be
+very similar.)
 
 \subsection provider-overview Overview
 
@@ -473,4 +480,97 @@ struct PasswordCredentials
 
 typedef boost::variant<boost::blank,OAuth1Credentials,OAuth2Credentials,PasswordCredentials> Credentials;
 \endcode
+
+If you receive an authorization error from the cloud provider with the credentials that are passed to you
+by the runtime, you must throw an @ref unity::storage::provider::UnauthorizedException "UnauthorizedException".
+This prompts the runtime to refresh the token if it may have expired and call your your method
+a second time with the new token. If that second attempt also throws
+@ref unity::storage::provider::UnauthorizedException "UnauthorizedException", the runtime propagates the
+error to the client.
+
+\subsection download-upload Downloads and Uploads
+
+To implement download and upload, you must create implementations of the abstract
+@ref unity::storage::provider::DownloadJob "DownloadJob" and @ref unity::storage::provider::UploadJob "UploadJob"
+classes and return them from your @ref unity::storage::provider::ProviderBase::download "download()" and
+@ref unity::storage::provider::ProviderBase::update "update()" (or
+@ref unity::storage::provider::ProviderBase::create_file "create_file()") methods, respectively.
+The two base classes are very similar, so we focus on @ref unity::storage::provider::DownloadJob "DownloadJob" here.
+
+\code{.cpp}
+class MyDownloadJob : public unity::storage::provider::DownloadJob
+{
+public:
+    MyDownloadJob(shared_ptr<MyCloudProvider> const& provider,
+                  string const& item_id,
+                  string const& match_etag);
+    virtual ~LocalDownloadJob();
+
+    boost::future<void> cancel() override;
+    boost::future<void> finish() override;
+
+private:
+    // ...
+};
+\endcode
+
+In the implementation of your constructor, you must initiate the download. The download must be able to proceed
+without blocking. How you do this is up to you. You can run the download in a separate thread, use the
+runtime's Qt event loop, or run a separate event loop. (The storage framework runtime does not care.)
+
+Your <code>MyDownloadJob</code> receives a socket that is open for writing and connected to the client by calling
+@ref unity::storage::provider::DownloadJob::write_socket "write_socket()" on its base class. You must write the
+data for the file to the socket (from which the client can read it).
+
+At some point, the runtime either calls your @ref unity::storage::provider::DownloadJob::cancel "cancel()" method,
+in which case you simply abort the download, or it calls @ref unity::storage::provider::DownloadJob::finish "finish()".
+The purpose of @ref unity::storage::provider::DownloadJob::finish "finish()" is to confirm whether the download
+completed successfully. At this point, you must check whether you have received <a>all</a> of the data for the file
+from the cloud provider and have successfully written it to the socket. If so, you return a ready future; if not,
+you return a future that holds the appropriate @ref unity::storage::provider::StorageException "StorageException"
+to indicate the nature of the error.
+
+@ref unity::storage::provider::DownloadJob "DownloadJob" and @ref unity::storage::provider::UploadJob "UploadJob"
+classes also provide a @ref unity::storage::provider::DownloadJob::report_error "report_error()" method that
+you can use to report any errors that arise while your downloader runs in the background. (If you call 
+@ref unity::storage::provider::DownloadJob::report_error "report_error()", neither
+@ref unity::storage::provider::DownloadJob::finish "finish()" nor 
+@ref unity::storage::provider::DownloadJob::cancel "cancel()" are called by the runtime.)
+
+The @ref unity::storage::provider::DownloadJob "DownloadJob" base class also provides a
+@ref unity::storage::provider::DownloadJob::report_complete "report_complete()" method that you call
+to indicate successful completion without having to wait for the call to 
+@ref unity::storage::provider::DownloadJob::finish "finish()".
+
+\subsection buffering Download and Upload Buffering
+
+When implementating your provider, you need to be aware of when (and when not) to buffer data.
+
+For downloads, you should write the data to the client socket as soon as you receive it from the cloud provider.
+This is necessary to enable streaming. (A media player should be able to start playing a song or video as soon
+as possible.)
+
+For uploads, the situation is the opposite, and you should buffer any uploads that are larger than than a few
+kilobytes in the file system before starting the upload with the provider.
+This is particularly important for mobile devices, where applications may be suspended for extended periods.
+If you write data to the cloud provider while the client is still writing it, and the client application is suspended,
+the upload gets stuck until the client application resumes (by which time your connection with the cloud provider
+may have timed out, or the user may have walked out of reach of the network).
+
+Note that, eventually, you will either receive the @ref unity::storage::provider::DownloadJob::finish "finish()"
+call to confirm whether or not there was an error (or a @ref unity::storage::provider::DownloadJob::cancel "cancel()"
+call if the client appliciation dies). This means that, if your cloud provider is able to resume a previously
+interrupted upload, you can re-start an upload that failed due to loss of the network. (Be judicious in how
+aggressively you try to resume though; on a battery-powered device, it is expensive to turn on the radio, so you
+should use a back-off algorithm and give up if the upload cannot be resumed within a reasonable period of time.)
+
+\section local-provider The Local Provider
+
+The storage framework includes a local provider that stores files in the local file system.
+In a classic environment, the root of the local files is <code>$XDG_DATA_DIR/storage-framework/local</code>;
+in a Snap environment, the root is <code>$SNAP_USER_COMMON/storage-framework/local</code>.
+You can set <code>$SF_LOCAL_PROVIDER_ROOT</code> to change the root directory. (This is intended mainly for testing.)
+
+The local provider uses <code>com.canonical.StorageFramework.Provider.Local</code> as the DBus name. The object path
+is <code>/provider/0</code>.
 */

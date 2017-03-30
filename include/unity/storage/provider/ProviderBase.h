@@ -170,7 +170,7 @@ public:
     \param parent_id The identity of the parent folder.
     \param name The name of the new file.
     \param size The size of the file contents in bytes.
-    \param content_type The mime type of the file.
+    \param content_type The mime type of the file. If empty, the provider may (or may not) determine the mime type automatically.
     \param allow_overwrite If true, the file will be created even if a file with the same name exists already.
     \param keys The keys of metadata items that the client wants to receive.
     \param context The security context of the operation.
