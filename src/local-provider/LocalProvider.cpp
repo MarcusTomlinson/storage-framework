@@ -27,12 +27,6 @@
 
 #include <boost/algorithm/string.hpp>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#include <gio/gio.h>
-#include <glib.h>
-#pragma GCC diagnostic pop
-
 using namespace unity::storage::provider;
 using namespace std;
 
@@ -139,34 +133,6 @@ string make_iso_date(int64_t nsecs_since_epoch)
     char buf[128];
     strftime(buf, sizeof(buf), FMT, &time);
     return buf;
-}
-
-string get_content_type(string const& filename)
-{
-    using namespace unity::storage::internal;
-
-    static string const unknown_content_type = "application/octet-stream";
-
-    gobj_ptr<GFile> file(g_file_new_for_path(filename.c_str()));
-    assert(file);  // Cannot fail according to doc.
-
-    GError* err = nullptr;
-    gobj_ptr<GFileInfo> full_info(g_file_query_info(file.get(),
-                                                    G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
-                                                    G_FILE_QUERY_INFO_NONE,
-                                                    /* cancellable */ NULL,
-                                                    &err));
-    if (!full_info)
-    {
-        return unknown_content_type;  // LCOV_EXCL_LINE
-    }
-
-    string content_type = g_file_info_get_attribute_string(full_info.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE);
-    if (content_type.empty())
-    {
-        return unknown_content_type;  // LCOV_EXCL_LINE
-    }
-    return content_type;
 }
 
 // Simple wrapper template that deals with exception handling so we don't
@@ -578,7 +544,7 @@ Item LocalProvider::make_item(string const& method,
     meta.insert({USED_SPACE_BYTES, int64_t(info.capacity - info.available)});
 
     meta.insert({LAST_MODIFIED_TIME, iso_mtime});
-    meta.insert({CONTENT_TYPE, get_content_type(item_id)});
+    meta.insert({CONTENT_TYPE, get_content_type(item_id, type)});
 
     auto perms = st.permissions();
     bool writable;
@@ -593,4 +559,20 @@ Item LocalProvider::make_item(string const& method,
     meta.insert({WRITABLE, writable});
 
     return Item{ item_id, parents, name, etag, type, meta };
+}
+
+string LocalProvider::get_content_type(string const& filename, unity::storage::ItemType type) const
+{
+    if (type != unity::storage::ItemType::file)
+    {
+        return "inode/directory";
+    }
+
+    auto mime_type = mime_db_.mimeTypeForFile(QString::fromStdString(filename), QMimeDatabase::MatchExtension);
+    if (!mime_type.isValid())
+    {
+        return "application/octet-stream";  // LCOV_EXCL_LINE
+    }
+
+    return mime_type.name().toStdString();
 }
