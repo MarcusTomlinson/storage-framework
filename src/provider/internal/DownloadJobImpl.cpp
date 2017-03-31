@@ -20,6 +20,7 @@
 #include <unity/storage/internal/safe_strerror.h>
 #include <unity/storage/provider/DownloadJob.h>
 #include <unity/storage/provider/Exceptions.h>
+#include <unity/storage/provider/internal/utils.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -133,19 +134,7 @@ void DownloadJobImpl::report_error(std::exception_ptr p)
 
     lock_guard<mutex> guard(completion_lock_);
     completed_ = true;
-    // Convert std::exception_ptr to boost::exception_ptr
-    try
-    {
-        std::rethrow_exception(p);
-    }
-    catch (StorageException const& e)
-    {
-        completion_promise_.set_exception(e);
-    }
-    catch (...)
-    {
-        completion_promise_.set_exception(boost::current_exception());
-    }
+    completion_promise_.set_exception(convert_exception_ptr(p));
 }
 
 boost::future<void> DownloadJobImpl::finish(DownloadJob& job)

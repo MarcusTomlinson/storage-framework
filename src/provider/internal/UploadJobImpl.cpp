@@ -21,6 +21,7 @@
 #include <unity/storage/provider/Exceptions.h>
 #include <unity/storage/provider/UploadJob.h>
 #include <unity/storage/provider/internal/MainLoopExecutor.h>
+#include <unity/storage/provider/internal/utils.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -123,19 +124,7 @@ void UploadJobImpl::report_error(exception_ptr p)
 
     lock_guard<mutex> guard(completion_lock_);
     completed_ = true;
-    // Convert std::exception_ptr to boost::exception_ptr
-    try
-    {
-        rethrow_exception(p);
-    }
-    catch (StorageException const& e)
-    {
-        completion_promise_.set_exception(e);
-    }
-    catch (...)
-    {
-        completion_promise_.set_exception(boost::current_exception());
-    }
+    completion_promise_.set_exception(convert_exception_ptr(p));
 }
 
 boost::future<Item> UploadJobImpl::finish(UploadJob& job)
