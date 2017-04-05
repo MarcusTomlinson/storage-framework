@@ -10,7 +10,7 @@ access and modify files that exist in remote storage mechanisms (such as
 as files in the local file system through a common API.
 
 The framework includes a provider for local files; to allow access to remote files, the framework
-requires a provider implementation for each cloud service that adapts the common API to that specific backend.
+requires provider implementations that adapt the common API to each cloud service.
 
 Each provider implementation runs as a separate DBus service on the session bus; the storage framework
 provides run-time support that takes care of DBus communications, error handling, sanitizing input parameters,
@@ -23,10 +23,12 @@ Ubuntu includes a number of provider implementations, among them an
 
 \section semantics File System Semantics
 
-The storage framework establishes common semantics that apply to all storage backends. The set of operations
-that are available is necessarily limited to those that can be supported by the majority of backends.
+The storage framework establishes common semantics that apply to all storage backends.
+Clients must not expect anything not guaranteed by these semantics, and providers must implement the semantics
+as faithfully as possible.
 
-The following operations are supported:
+The operations that are available are necessarily limited to those that can be supported by the
+majority of backends:
 
 - List the root folder (or root folders; some providers support multiple roots)
 
@@ -64,49 +66,49 @@ also handles re-authorization in case a token has expired.
 
 \subsection identity File and Folder Identity
 
-Each file and folder has an identity that is unique within the account that contains the file. The identity
-of files and folders is immutable during their life time. This means that clients can store identities in an external
-file or a database and expect them to continue to refer to the same file or folder even after a process re-start.
-However, identities are not globally unique; different files in different accounts may have the same identity.
-Identities also may not be unique across object life times. For example, the identity <tt>/work/schedule.txt</tt>
-may refer to a particular file now; if that file is deleted and later created with that same identity,
-<tt>/work/schedule.txt</tt> will then refer to the re-created file, not the original one (which no longer exists).
+Each file and folder has an identity that is unique within the account that contains the file.
+Identities are opaque strings that are assigned by the provider. (Clients cannot control the identity
+of files and folders).
 
-Clients must not make assumptions about the duration of identities. It depends on the specific provider whether
-or not a file that is destroyed and re-created with the same name later will have the same identity. For some
-providers, the path name to a file <i>is</i> its identity; for other providers, each file that is created gets
-a new identity that remains valid only for as long as the file exists and, once the file is destroyed,
-remains invalid forever, even if the file is re-created with the same name. This also means that (in constrast
-to traditional file systems), it is possible for different files in the same folder to have the same name.
+The identity of files and folders is immutable during their life time, and identities
+can be compared for equality and less-than.
+This means that clients can store identities in an external file or a database and expect them to
+continue to refer to the same file or folder even after a process re-start.
 
-Clients must not make assumptions about the structure of identities. Identities can look like path names,
-can be something like a UUID (universally unique identifier), can be integers, or any other kind of identifier.
-Identities are strings can be safely compared for equality and less-than, but must otherwise be treated as opaque.
+Identities are not globally unique; different files in different accounts may have the same identity.
 
-Some providers do not support move semantics and implement move as a copy-and-delete operation.
-If so, moving or renaming a file changes its identity. Do not assume that moves preserve identity; instead,
-check the identity after a move operation. For example, moving or renaming a file in the local provider <i>always</i>
-changes the identity because the path name to the file <i>is</i> its identity.
+Identities may not be unique across object life times. For example, if a client creates a file and deletes that
+file again, another file that is created later may get the identity that was used by the earlier file.
+Similarly, moving a file or folder may (or may not) change its identity.
+
+\subsection etags ETags
+
+Files have an associated <a href="https://en.wikipedia.org/wiki/HTTP_ETag">ETag</a>. The ETag for a file
+changes every time a file is updated. When uploading or downloading a file, a client can specify whether to check
+the ETag of a file. If the client requests the ETag to be checked, the provider performs the
+upload or download only if the ETag sent by the client matches the ETag of the file. This allows clients to ensure
+that a file has not been modified since the client last retrieved the file's metadata.
+
+ETags have no particular format; they simply are opaque strings that change each time a file changes.
 
 \subsection names File and Folder Names
 
-The client chooses the name of files and folders it creates. Different providers place different constraints
-on exactly which names are legal. This means, in order to remain independent of specific provider semantics,
-clients must take care when naming files. In particular:
+Clients choose the name of files and folders they create. However, providers may modify a name that is provided
+by a client, for example, a provider could map upper-case to lower-case letters.
+The actual name of a new file or folder is returned by the provider as part of the metadata.
 
-- Avoid using meta-characters in file and folder names because they may be disallowed by a
-particular provider. These characters include:
-<br><tt>/</tt>, <tt>\\</tt>, <tt>*</tt>, <tt>"</tt>, <tt>:</tt>, <tt>\<</tt>, <tt>\></tt>, <tt>|</tt>, <tt>?</tt>, <tt>#</tt>, and <tt>%</tt>.
-<br>It may be possible to create a file name containing one or more of these characters with one provider,
-but not with another provider (meaning that such a file cannot be copied from one provider to another
-without changing its name).
+Different providers place different restrictions on the characters that are allowed as part of a name.
+The following meta-characters are likely to cause problems and should not be used in file or folder names:
 
-- Some providers accept a file name but create the file with a different name. For example, a provider may accept
-<tt>Hello.txt</tt> as a valid name, but then change the name of the actual file to <tt>hello.txt</tt>. Do not
-assume that, just because a file could be created, it also has the name that was provided by the client. Instead,
-retrieve the name of the file after creating the file; that name reflects the actual name used by the provider.
+<tt>/</tt>, <tt>\\</tt>, <tt>*</tt>, <tt>"</tt>, <tt>:</tt>, <tt>\<</tt>, <tt>\></tt>, <tt>|</tt>, <tt>?</tt>, <tt>#</tt>, and <tt>%</tt>.
 
-- Do not assume any particular name for a root folder. It might be <tt>/</tt>, but could be something else.
+The name of a file or folder is not necessarily unique within its parent folder. (Some cloud services
+allow different files with the same name in the same folder.) Similarly, a single file or folder may
+have more than one name within the same parent folder. (The name of a file or folder does not indicate
+anything about its identity. If you want to establish whether a file is the same as another file, you must
+compare the files' identities, not their names.)
+
+The name of a root folder can be anything. (It might be <tt>/</tt>, but could be something else.)
 
 \subsection metadata Metadata
 Files and folders have metadata associated with them.
@@ -128,18 +130,8 @@ metadata, the provider returns a default set of items. (Clients can specify whic
 in order to minimize the amount of data that is copied over the network; some providers support extensive metadata
 that consumes considerable bandwidth.)
 
-If a provider can supply non-standard metadata items, the item keys have a provider-specific prefix, such as
+If a provider supplies non-standard metadata items, the item keys have a provider-specific prefix, such as
 <tt>mcloud:</tt> or <tt>gdrive:</tt>.
-
-\subsection etags ETags
-
-Files have an associated <a href="https://en.wikipedia.org/wiki/HTTP_ETag">ETag</a>. The ETag for a file
-changes every time a file is updated. When uploading or downloading a file, a client can specify whether to check
-the ETag of a file. If the client requests the ETag to be checked, the provider performs the
-upload or download only if the ETag sent by the client matches the ETag of the file. This allows clients to ensure
-that a file has not been modified since the client last retrieved the file's metadata.
-
-ETags have no particular format; they simply are opaque strings that change each time a file a changes.
 
 \subsection uploads-downloads Uploads and Downloads
 
@@ -186,7 +178,7 @@ public:
 The base class defines a pure virtual method for each operation (such as
 @ref unity::storage::provider::ProviderBase::list "list()",
 @ref unity::storage::provider::ProviderBase::lookup "lookup()",
-@ref unity::storage::provider::ProviderBase::update "update()", etc.
+@ref unity::storage::provider::ProviderBase::update "update()", etc.)
 
 Note that each operation returns a <code>boost::future</code> to the storage framework runtime;
 your operation implementation must make the future ready once the result of the operation is available.
@@ -260,6 +252,19 @@ The runtime invokes all methods of your provider implementation on the main thre
 immediately (within a few milliseconds), you <i>must</i> implement the method such that it can
 complete in the background (either using asynchronous I/O or a separate thread).
 
+The runtime uses <a href="http://doc.qt.io/qt-5/qcoreapplication.html"><code>QCoreApplication</code></a>,
+so your implementation can use anything that uses the Qt or glib event loop. (Alternatively, you can also
+run a separate event loop if you prefer.)
+
+When starting an async operation, create a
+<a href="http://www.boost.org/doc/libs/1_63_0/libs/fiber/doc/html/fiber/synchronization/futures/promise.html"><code>boost::promise</code></a> and return <code>promise::get_future()</code>; on completion,
+call <code>set_value()</code> or <code>set_exception()</code> to make the future ready.
+
+For a synchronous implementation, you can use
+<a href="http://www.boost.org/doc/libs/1_63_0/doc/html/thread/synchronization.html#thread.synchronization.futures.async"><code>boost::async()</code></a> to spawn a new thread. To indicate errors, call
+<a href="http://www.boost.org/doc/libs/1_63_0/libs/exception/doc/enable_current_exception.html"><code>boost::enable_current_exception()</code></a>
+or <a href="http://www.boost.org/doc/libs/master/libs/exception/doc/throw_exception.html"><code>boost::throw_exception</code></a>.
+
 The storage framework runtime is thread-safe, that is, you can up-call into the runtime (for example, to indicate
 an error during an upload) from any thread. The runtime takes care of any necessary locking and moving data
 to the correct thread for marshaling.
@@ -280,6 +285,10 @@ operation, and marshal an appropriate error back to the client. (If you throw so
 <tt>99</tt> or a <code>std::exception</code>, the client receives a generic error.)
 This means that, to indicate an error to the runtime, you can always throw an exception or, alternatively,
 for methods that return a future, return a future that contains the exception.
+
+When throwing an exception, be as detailed in the error message as possible and include any details you receive
+from the cloud provider, as well as the identity of the file. Without this, it may be impossible to
+diagnose a problem from log files.
 
 The storage framework defines a small number of exceptions that indicate specific error conditions to the client.
 You <i>must</i> use these exception to indicate their respective error conditions, otherwise
@@ -306,8 +315,7 @@ class NotExistsException : public StorageException { ... };
 \endcode
 
 The @ref unity::storage::provider::StorageException::type "type()"
-method returns the name of the exception (such as
-@ref unity::storage::provider::NotExistsException "NotExistsException", and
+method returns the name of the exception (such as "NotExistsException"), and
 @ref unity::storage::provider::StorageException::error_message "error_message()"
 returns a message you provide when you throw the exception.
 (@ref unity::storage::provider::StorageException::what "what()"
@@ -343,7 +351,9 @@ The concrete derived exceptions indicate error semantics as follows:
 
   This exception indicates that the remote cloud service has indicated an authorization failure. Note that
   you must throw this exception only if the cloud service indicates invalid credentials. Do <i>not</i> throw
-  this exception for permission errors (such as an attempt to write to a read-only file).
+  this exception for permission errors (such as an attempt to write to a read-only file). In particular,
+  do not throw this exception for an HTTP 403 error, which indicates that access to a particular resource
+  was denied even though the credentials were valid.
 
   Some cloud providers use authorization tokens that expire after some time. If you detect an
   authorization failure in your code and throw this exception, the runtime re-retrieves the token from Online
@@ -372,7 +382,8 @@ The concrete derived exceptions indicate error semantics as follows:
   This exception indicates that the client has used the API incorrectly, such as indicating that an upload has
   completed before it has written all the data. In general, use
   @ref unity::storage::provider::LogicException "LogicException"
-  for any errors that relate to operations being called in the wrong order.
+  for any errors that relate to operations being called in the wrong order, and for semantic errors
+  (such as an attempt to download a folder or to list a file).
 
 - @ref unity::storage::provider::InvalidArgumentException "InvalidArgumentException"
 
@@ -387,7 +398,8 @@ The concrete derived exceptions indicate error semantics as follows:
   provide as much contextual information about such errors as possible. In particular, unexpected errors
   typically need to be diagnosed from log files. This means that you should provide, at least, the full error
   message you received from the cloud service (or the operating system), together with all other relevant
-  details, such as the name of the file, the URL of a failed request, any HTTP error information, and so on.
+  details, such as the name and identity of the file, the URL of a failed request,
+  any HTTP error information, and so on.
 
 - @ref unity::storage::provider::UnknownException "UnknownException"
 
@@ -399,7 +411,7 @@ The concrete derived exceptions indicate error semantics as follows:
 
 \subsection metadata-keys Metadata Keys
 Each method of your provider has a <code>keys</code> parameter of type <code>vector<string></code>. The parameter
-is provided by the client indicates which metadata items you should include in the metadata your return
+is provided by the client and indicates which metadata items you should include in the metadata you return
 from the operation.
 
 If the vector is empty, this indicates that you should return a set of default metadata items. In practice, this

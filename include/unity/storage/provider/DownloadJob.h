@@ -58,9 +58,11 @@ public:
     /**
     \brief Construct a downloader.
     \param download_id An identifier for this particular download. You can use any non-empty string,
-    as long as it is unique among all downloads that are in progress within this provider.
+    as long as it is unique among all downloads that are in progress within the corresponding account.
+    (A simple incrementing counter will work fine, or you can use the download identifier you receive
+    from the cloud service.)
     The runtime uses the <code>download_id</code> to distinguish different downloads that may be
-    in progress concurrently.
+    in progress concurrently, and it ensures that each ID can be used only by its corresponding client.
     */
     DownloadJob(std::string const& download_id);
     virtual ~DownloadJob();
@@ -107,9 +109,7 @@ public:
     If you call report_error(), the runtime guarantees that neither finish() nor cancel() will be called, so
     you must reclaim any resources associated with the download before calling report_error().
 
-    \param storage_exception You <i>must</i> pass a StorageException to indicate the reason for the failure. Be as
-    detailed in the error message as possible and include any details you receive from the cloud provider, as well
-    as the identity of the file. Without this, it may be impossible to diagnose the problem from log files.
+    \param storage_exception You <i>must</i> pass a StorageException to indicate the reason for the failure.
     \see report_complete(), finish()
     */
     void report_error(std::exception_ptr storage_exception);
@@ -138,7 +138,7 @@ public:
     \brief Finalize this download.
 
     The runtime calls this method when a client finishes a download. Your implementation <i>must</i> verify
-    at this point that it has successfully written <i>all</i> of the file's data at this point.
+    that it has successfully written <i>all</i> of the file's data at this point.
     If not, it <i>must</i> store a LogicException
     in the returned future. (This is essential to make sure that the client can distinguish orderly socket
     closure from disorderly closure and has not received partial data for the file.)

@@ -62,9 +62,11 @@ public:
     /**
     \brief Construct an uploader.
     \param upload_id An identifier for this particular upload. You can use any non-empty string,
-    as long as it is unique among all uploads that are in progress within this provider.
+    as long as it is unique among all uploads that are in progress within the corresponding account.
+    (A simple incrementing counter will work fine, or you can use the upload identifier you receive
+    from the cloud service.)
     The runtime uses the <code>upload_id</code> to distinguish different uploads that may be
-    in progress concurrently.
+    in progress concurrently, and it ensures that each ID can be used only by its corresponding client.
     */
     UploadJob(std::string const& upload_id);
     virtual ~UploadJob();
@@ -96,9 +98,7 @@ public:
     If you call report_error(), the runtime guarantees that neither finish() nor cancel() will be called, so
     you must reclaim any resources associated with the upload before calling report_error().
 
-    \param storage_exception You <i>must</i> pass a StorageException to indicate the reason for the failure. Be as
-    detailed in the error message as possible and include any details you receive from the cloud provider, as well
-    as the identity of the file. Without this, it may be impossible to diagnose the problem from log files.
+    \param storage_exception You <i>must</i> pass a StorageException to indicate the reason for the failure.
     \see finish()
     */
     void report_error(std::exception_ptr storage_exception);
@@ -128,7 +128,7 @@ public:
 
     The runtime calls this method when a client finishes an upload. Your implementation <i>must</i> verify
     that it has successfully read <i>and</i> written the <i>exact</i> number of bytes that were passed
-    to ProviderBase::upload() or ProviderBase::create_file() before making the future ready.
+    to ProviderBase::update() or ProviderBase::create_file() before making the future ready.
     If too few or too many bytes were sent by the client, it <i>must</i> store a LogicException in the future.
     It must also verify that the cloud provider has received <i>all</i> of the file's data; otherwise,
     the file may end up being partially written in the cloud provider.

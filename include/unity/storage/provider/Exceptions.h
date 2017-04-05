@@ -181,8 +181,8 @@ exception if the credentials are valid, but an operation failed due to
 insufficient permission for an item (such as an attempt to write to a
 read-only file).
 
-This exception will cause the operation to be retried after refreshing
-the credentials; on repeated failure, the exception is returned to the client.
+Typically, this exception will cause the runtime to retry the operation after refreshing
+the credentials; the exception may be returned to the client on repeated failures.
 
 \see PermissionException
 */

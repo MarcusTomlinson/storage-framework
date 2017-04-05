@@ -55,10 +55,9 @@ namespace testing
 TestServer is a simple helper class that allows you to test a provider implementation
 on a separate DBus connection. The class requires access to
 an <a href="https://help.ubuntu.com/stable/ubuntu-help/accounts.html">Online Accounts</a>
-service. (You can find a
-<a href="http://bazaar.launchpad.net/~unity-api-team/storage-framework/trunk/view/head:/tests/utils/fake-online-accounts-daemon.py">
-mock implementation</a> of Online Accounts as part of the source code if you do not want to test with the installed Online Accounts
-service.
+service. If you do not want to test with the live Online Accounts service, you can pass
+<code>nullptr</code>, in which case your provider receives blank
+\link unity::storage::provider::Credentials Credentials\endlink.
 */
 
 class UNITY_STORAGE_EXPORT TestServer
@@ -67,7 +66,7 @@ public:
     /**
     \brief Constructs a TestServer instance.
     \param provider The provider implementation to be tested.
-    \param account The account for the provider.
+    \param account The account for the provider (or <code>nullptr</code>).
     \param connection The DBus connection to connect the provider to.
     \param object_path The DBus object path for the provider interface.
     */
