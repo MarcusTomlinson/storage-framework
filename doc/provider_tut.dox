@@ -126,7 +126,7 @@ A special metadata key (<tt>__ALL__</tt>)
 indicates that the provider should return all available metadata. If a client does not request any specific
 metadata, the provider returns a default set of items. (Clients can specify which metadata should be returned
 in order to minimize the amount of data that is copied over the network; some providers support extensive metadata
-that consumes considerable bandwith.)
+that consumes considerable bandwidth.)
 
 If a provider can supply non-standard metadata items, the item keys have a provider-specific prefix, such as
 <tt>mcloud:</tt> or <tt>gdrive:</tt>.
@@ -404,7 +404,7 @@ from the operation.
 
 If the vector is empty, this indicates that you should return a set of default metadata items. In practice, this
 means that you should return whatever metadata you can cheaply receive from the cloud provider (in terms
-of bandwith and number of requests).
+of bandwidth and number of requests).
 
 If the vector contains a single entry <code>__ALL__</code>, you should return complete metadata. In particular,
 you should return as many of the well-known metadata items that are defined in
@@ -544,7 +544,7 @@ to indicate successful completion without having to wait for the call to
 
 \subsection buffering Download and Upload Buffering
 
-When implementating your provider, you need to be aware of when (and when not) to buffer data.
+When implementing your provider, you need to be aware of when (and when not) to buffer data.
 
 For downloads, you should write the data to the client socket as soon as you receive it from the cloud provider.
 This is necessary to enable streaming. (A media player should be able to start playing a song or video as soon
@@ -559,7 +559,7 @@ may have timed out, or the user may have walked out of reach of the network).
 
 Note that, eventually, you will either receive the @ref unity::storage::provider::DownloadJob::finish "finish()"
 call to confirm whether or not there was an error (or a @ref unity::storage::provider::DownloadJob::cancel "cancel()"
-call if the client appliciation dies). This means that, if your cloud provider is able to resume a previously
+call if the client application dies). This means that, if your cloud provider is able to resume a previously
 interrupted upload, you can re-start an upload that failed due to loss of the network. (Be judicious in how
 aggressively you try to resume though; on a battery-powered device, it is expensive to turn on the radio, so you
 should use a back-off algorithm and give up if the upload cannot be resumed within a reasonable period of time.)

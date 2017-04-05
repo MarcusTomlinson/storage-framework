@@ -127,7 +127,7 @@ public:
     \brief Finalize this upload.
 
     The runtime calls this method when a client finishes an upload. Your implementation <i>must</i> verify
-    that it has succesfully read <i>and</i> written the <i>exact</i> number of bytes that were passed
+    that it has successfully read <i>and</i> written the <i>exact</i> number of bytes that were passed
     to ProviderBase::upload() or ProviderBase::create_file() before making the future ready.
     If too few or too many bytes were sent by the client, it <i>must</i> store a LogicException in the future.
     It must also verify that the cloud provider has received <i>all</i> of the file's data; otherwise,

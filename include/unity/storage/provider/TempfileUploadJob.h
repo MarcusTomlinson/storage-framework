@@ -41,7 +41,7 @@ class TempfileUploadJobImpl;
 
 For uploads, a provider implementation must decide whether to upload data to the cloud provider
 immediately (as soon as the data arrives from the client) or whether to buffer the data locally first
-and upload it to the cloud provider once the client succesfully finalizes the upload. Uploading
+and upload it to the cloud provider once the client successfully finalizes the upload. Uploading
 immediately has the down side that it is more likely to fail. This is an issue particularly
 for mobile devices, where applications may be suspended for extended periods, and where connectivity
 is often lost without warning. Uploads of large files (such as media files) are unlikely

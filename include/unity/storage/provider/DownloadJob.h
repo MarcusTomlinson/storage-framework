@@ -83,7 +83,7 @@ public:
 
     This method makes it unnecessary to wait for the runtime to call finish() in order to confirm
     whether a download completed successfully. You can call report_complete() as soon as you have
-    written all of a file's data to the download socket and closed it succesfully. This can be convenient
+    written all of a file's data to the download socket and closed it successfully. This can be convenient
     if a download runs in a separate thread or event loop because there is no need to store success/error state
     for use in finish().
 
@@ -138,7 +138,7 @@ public:
     \brief Finalize this download.
 
     The runtime calls this method when a client finishes a download. Your implementation <i>must</i> verify
-    at this point that it has succesfully written <i>all</i> of the file's data at this point.
+    at this point that it has successfully written <i>all</i> of the file's data at this point.
     If not, it <i>must</i> store a LogicException
     in the returned future. (This is essential to make sure that the client can distinguish orderly socket
     closure from disorderly closure and has not received partial data for the file.)

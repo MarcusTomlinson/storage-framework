@@ -63,7 +63,7 @@ public:
 
     /**
     \brief Returns the except error message.
-    \return The valaue of the <code>error_message</code> parameter that was passed to the constructor.
+    \return The value of the <code>error_message</code> parameter that was passed to the constructor.
     */
     std::string error_message() const;
 

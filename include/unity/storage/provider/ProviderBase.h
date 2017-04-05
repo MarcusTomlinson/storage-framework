@@ -71,7 +71,7 @@ by throwing exceptions (which are caught and handled by the runtime). Alternativ
 that stores an exception to indicate an error.
 
 \note Besides the explicitly listed exceptions for specific error conditions, all methods
-must indicate other errors by throwing an exception dervied from StorageException, such
+must indicate other errors by throwing an exception derived from StorageException, such
 as PermissionException or ResourceException (see <a href="index.html#provider-error-handling">Error Handling</a>).
 If an exception that does not derive from StorageException is thrown a provider method, the runtime returns a
 generic UnknownException to the client.
