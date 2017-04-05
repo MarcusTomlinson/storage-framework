@@ -29,10 +29,12 @@ namespace storage
 namespace provider
 {
 
-// Note: Adding new exception types also requires updating the marshaling and
-//       unmarshaling code for exceptions in provider/internal/Handler.cpp and
-//       qt/internal/unmarshal_error.cpp, as well as the exception re-throwing
-//       code in provider/internal/utils.cpp.
+// Note: Adding new exception types also requires updating the
+//       marshaling and unmarshaling code for exceptions in the client
+//       and server APIs.  In particular:
+//         - src/provider/internal/Handler.cpp
+//         - src/provider/internal/utils.cpp
+//         - src/qt/internal/unmarshal_error.cpp
 
 /**
 \brief Abstract base exception class for all server-side exceptions.
@@ -47,8 +49,11 @@ public:
     \param error_message The error message text for the exception.
     */
     StorageException(std::string const& exception_type, std::string const& error_message);
+
+protected:
     ~StorageException();
 
+public:
     /**
     \brief Returns an error string.
     \return The error message prefixed by the exception type, such as "ConflictException: ETag mismatch".
