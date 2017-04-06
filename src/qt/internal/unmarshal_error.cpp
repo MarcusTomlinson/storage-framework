@@ -84,11 +84,11 @@ static const map<QString, function<StorageError(QDBusPendingCallWatcher const& c
     { "ConflictException",        make_error<StorageError::Type::Conflict> },
     { "UnauthorizedException",    make_error<StorageError::Type::Unauthorized> },
     { "PermissionException",      make_error<StorageError::Type::PermissionDenied> },
+    { "QuotaException",           make_error<StorageError::Type::QuotaExceeded> },
     { "CancelledException",       make_error<StorageError::Type::Cancelled> },
     { "LogicException",           make_error<StorageError::Type::LogicError> },
     { "InvalidArgumentException", make_error<StorageError::Type::InvalidArgument> },
     { "ResourceException",        make_error<StorageError::Type::ResourceError> },
-    { "QuotaException",           make_error<StorageError::Type::QuotaExceeded> },
     { "UnknownException",         make_error<StorageError::Type::LocalCommsError> }  // Yes, LocalCommsError is intentional
 };
 

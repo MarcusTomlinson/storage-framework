@@ -23,11 +23,13 @@
 #include <memory>
 #include <string>
 
+//@cond
 namespace OnlineAccounts
 {
 class Account;
 }
 class QDBusConnection;
+//@endcond
 
 namespace unity
 {
@@ -46,16 +48,44 @@ class TestServerImpl;
 namespace testing
 {
 
+/**
+\brief Helper class to enable testing of provider implementations.
+
+
+TestServer is a simple helper class that allows you to test a provider implementation
+on a separate DBus connection. The class requires access to
+an <a href="https://help.ubuntu.com/stable/ubuntu-help/accounts.html">Online Accounts</a>
+service. If you do not want to test with the live Online Accounts service, you can pass
+<code>nullptr</code>, in which case your provider receives blank
+\link unity::storage::provider::Credentials Credentials\endlink.
+*/
+
 class UNITY_STORAGE_EXPORT TestServer
 {
 public:
+    /**
+    \brief Constructs a TestServer instance.
+    \param provider The provider implementation to be tested.
+    \param account The account for the provider (or <code>nullptr</code>).
+    \param connection The DBus connection to connect the provider to.
+    \param object_path The DBus object path for the provider interface.
+    */
     TestServer(std::shared_ptr<ProviderBase> const& provider,
                OnlineAccounts::Account* account,
                QDBusConnection const& connection,
                std::string const& object_path);
     ~TestServer();
 
+    /**
+    \brief Returns the DBus connection.
+    \return The value of the <code>connection</code> parameter that was passed to the constructor.
+    */
     QDBusConnection const& connection() const;
+
+    /**
+    \brief Returns the object path.
+    \return The value of the <code>object_path</code> parameter that was passed to the constructor.
+    */
     std::string const& object_path() const;
 
 private:

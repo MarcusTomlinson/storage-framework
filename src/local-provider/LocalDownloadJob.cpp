@@ -46,7 +46,7 @@ LocalDownloadJob::LocalDownloadJob(shared_ptr<LocalProvider> const& provider,
         auto st = status(item_id_);
         if (!is_regular_file(st))
         {
-            throw InvalidArgumentException(method + ": \"" + item_id_ + "\" is not a file");
+            throw LogicException(method + ": \"" + item_id_ + "\" is not a file");
         }
     }
     // LCOV_EXCL_START  // Too small a window to hit with a test.
@@ -60,7 +60,7 @@ LocalDownloadJob::LocalDownloadJob(shared_ptr<LocalProvider> const& provider,
         int64_t mtime = get_mtime_nsecs(method, item_id_);
         if (to_string(mtime) != match_etag)
         {
-            throw ConflictException(method + ": etag mismatch");
+            throw ConflictException(method + ": ETag mismatch");
         }
     }
 

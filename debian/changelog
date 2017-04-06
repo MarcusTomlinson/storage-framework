@@ -1,8 +1,12 @@
-storage-framework (0.4+17.04.20170320.1-0ubuntu2) UNRELEASED; urgency=medium
+storage-framework (0.4-0ubuntu2) UNRELEASED; urgency=medium
 
   [ Michi Henning ]
   * Removed the deprecated v1 client API.
   * Removed dependency on libgio.
+  * Added tutorial and provider reference documentation.
+
+  [ James Henstridge ]
+  * Add systemd units for registry and local provider D-Bus services.
 
  -- Michi Henning <michi.henning@canonical.com>  Wed, 29 Mar 2017 12:21:40 +1000
 

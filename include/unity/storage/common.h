@@ -23,35 +23,56 @@ namespace unity
 namespace storage
 {
 
+/**
+\brief Indicates the type of an item.
+*/
+
 enum class ItemType
 {
-    file,
-    folder,
-    root,
-    LAST_ENTRY__
+    file,         /*!< The item represents a file. */
+    folder,       /*!< The item represents a (non-root) folder. */
+    root,         /*!< The item represents a root folder. */
+    LAST_ENTRY__  /*!< End of enumeration marker. */
 };
+
+/**
+\brief Determines the behavior in case of an ETag mismatch.
+*/
 
 enum class ConflictPolicy
 {
-    error_if_conflict,
-    ignore_conflict
+    error_if_conflict,  /*!< Return an error if the ETag has changed. */
+    ignore_conflict,    /*!< Ignore ETag mismatch and overwrite or replace the file. */
 };
+
+/**
+\brief This namespace defines well-known metadata keys.
+
+See \ref common.h for details.
+*/
 
 namespace metadata
 {
 
-static char constexpr SIZE_IN_BYTES[] = "size_in_bytes";            // int64_t, >= 0
-static char constexpr CREATION_TIME[] = "creation_time";            // String, ISO 8601 format
-static char constexpr LAST_MODIFIED_TIME[] = "last_modified_time";  // String, ISO 8601 format
-static char constexpr CHILD_COUNT[] = "child_count";                // int64_t, >= 0
-static char constexpr DESCRIPTION[] = "description";                // String
-static char constexpr DISPLAY_NAME[] = "display_name";              // String
-static char constexpr FREE_SPACE_BYTES[] = "free_space_bytes";      // int64_t, >= 0
-static char constexpr USED_SPACE_BYTES[] = "used_space_bytes";      // int64_t, >= 0
-static char constexpr CONTENT_TYPE[] = "content_type";              // String
-static char constexpr WRITABLE[] = "writable";                      // Bool
-static char constexpr MD5[] = "md5";                                // String
-static char constexpr DOWNLOAD_URL[] = "download_url";              // String
+// Symbolic constants for well-known metadata keys.
+
+// Doxygen bug makes it impossible to document each constant.
+
+static char constexpr SIZE_IN_BYTES[] = "size_in_bytes";            // int64_t >= 0
+static char constexpr CREATION_TIME[] = "creation_time";            // string, ISO 8601 format
+static char constexpr LAST_MODIFIED_TIME[] = "last_modified_time";  // string, ISO 8601 format
+static char constexpr CHILD_COUNT[] = "child_count";                // int64_t >= 0
+static char constexpr DESCRIPTION[] = "description";                // string
+static char constexpr DISPLAY_NAME[] = "display_name";              // string
+static char constexpr FREE_SPACE_BYTES[] = "free_space_bytes";      // int64_t >= 0
+static char constexpr USED_SPACE_BYTES[] = "used_space_bytes";      // int64_t >= 0
+static char constexpr CONTENT_TYPE[] = "content_type";              // string
+static char constexpr WRITABLE[] = "writable";                      // int64_t, 0 or 1
+static char constexpr MD5[] = "md5";                                // string
+static char constexpr DOWNLOAD_URL[] = "download_url";              // string
+
+// A single-element vector containing the key ALL indicates that the client would like all available
+// metadata to be returned by the provider.
 
 static char constexpr ALL[] = "__ALL__";
 

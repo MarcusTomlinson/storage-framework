@@ -1,0 +1,588 @@
+/**
+\mainpage Tutorial
+
+\section overview Overview
+
+The storage framework provides a general-purpose file system abstraction that is independent of any physical storage
+mechanism and the APIs that are needed to manipulate different kinds of storage. This allows client applications to
+access and modify files that exist in remote storage mechanisms (such as
+<a href="https://www.google.com/drive/">Google Drive</a> or <a href="https://owncloud.org/">Owncloud</a>) as well
+as files in the local file system through a common API.
+
+The framework includes a provider for local files; to allow access to remote files, the framework
+requires provider implementations that adapt the common API to each cloud service.
+
+Each provider implementation runs as a separate DBus service on the session bus; the storage framework
+provides run-time support that takes care of DBus communications, error handling, sanitizing input parameters,
+authorization, and so on. This allows providers to be created without having to handle these details, and enables
+the addition of new providers over time without disturbing existing provider implementations.
+
+Ubuntu includes a number of provider implementations, among them an
+<a href="https://code.launchpad.net/storage-provider-webdav">Owncloud provider</a> and an
+<a href="https://launchpad.net/mcloud">mCloud provider</a>.
+
+\section semantics File System Semantics
+
+The storage framework establishes common semantics that apply to all storage backends.
+Clients must not expect anything not guaranteed by these semantics, and providers must implement the semantics
+as faithfully as possible.
+
+The operations that are available are necessarily limited to those that can be supported by the
+majority of backends:
+
+- List the root folder (or root folders; some providers support multiple roots)
+
+- Create and destroy folders or files
+
+- Move or copy a file or folder
+
+- List the contents of a folder
+
+- Look up a file or folder by name
+
+- Look up a file or folder by identity
+
+- Upload or download a file
+
+- Get additional metadata (such as modification time or mime type) for a file or folder
+
+Note that all data transfers can be performed only by uploading or downloading an entire file. The framework
+does not support random access to files.
+
+Move and copy operations can be performed only within the same account. If an application wants to copy or move files
+from one account to another, it must download the files from the source account and upload them to the target account
+(and, for a move, delete the source files after uploading them).
+
+\subsection accounts Accounts
+
+The storage framework is integrated with
+<a href="https://help.ubuntu.com/stable/ubuntu-help/accounts.html">Online Accounts</a>. When a client application
+uses the framework, it first retrieves a list of available accounts from the framework. The application only receives
+those accounts for which the user has authorized access. The application then retrieves the root (or roots) for that
+account, and uses the root to access and modify files and folders underneath that root.
+On the server side, the runtime passes any
+authorization token that is needed to access the cloud backend to the provider implementation; the runtime
+also handles re-authorization in case a token has expired.
+
+\subsection identity File and Folder Identity
+
+Each file and folder has an identity that is unique within the account that contains the file.
+Identities are opaque strings that are assigned by the provider. (Clients cannot control the identity
+of files and folders).
+
+The identity of files and folders is immutable during their life time, and identities
+can be compared for equality and less-than.
+This means that clients can store identities in an external file or a database and expect them to
+continue to refer to the same file or folder even after a process re-start.
+
+Identities are not globally unique; different files in different accounts may have the same identity.
+
+Identities may not be unique across object life times. For example, if a client creates a file and deletes that
+file again, another file that is created later may get the identity that was used by the earlier file.
+Similarly, moving a file or folder may (or may not) change its identity.
+
+\subsection etags ETags
+
+Files have an associated <a href="https://en.wikipedia.org/wiki/HTTP_ETag">ETag</a>. The ETag for a file
+changes every time a file is updated. When uploading or downloading a file, a client can specify whether to check
+the ETag of a file. If the client requests the ETag to be checked, the provider performs the
+upload or download only if the ETag sent by the client matches the ETag of the file. This allows clients to ensure
+that a file has not been modified since the client last retrieved the file's metadata.
+
+ETags have no particular format; they simply are opaque strings that change each time a file changes.
+
+\subsection names File and Folder Names
+
+Clients choose the name of files and folders they create. However, providers may modify a name that is provided
+by a client, for example, a provider could map upper-case to lower-case letters.
+The actual name of a new file or folder is returned by the provider as part of the metadata.
+
+Different providers place different restrictions on the characters that are allowed as part of a name.
+The following meta-characters are likely to cause problems and should not be used in file or folder names:
+
+<tt>/</tt>, <tt>\\</tt>, <tt>*</tt>, <tt>"</tt>, <tt>:</tt>, <tt>\<</tt>, <tt>\></tt>, <tt>|</tt>, <tt>?</tt>, <tt>#</tt>, and <tt>%</tt>.
+
+The name of a file or folder is not necessarily unique within its parent folder. (Some cloud services
+allow different files with the same name in the same folder.) Similarly, a single file or folder may
+have more than one name within the same parent folder. (The name of a file or folder does not indicate
+anything about its identity. If you want to establish whether a file is the same as another file, you must
+compare the files' identities, not their names.)
+
+The name of a root folder can be anything. (It might be <tt>/</tt>, but could be something else.)
+
+\subsection metadata Metadata
+Files and folders have metadata associated with them.
+Metadata items are key&ndash;value pairs. The key (a string) identifies the item and determines the type of
+the corresponding value (such as string or integer).
+
+Some metadata is guaranteed to always be present (such as file
+size and modification time); other metadata may or may not be available, depending on the provider. (For example,
+not all providers maintain a modification time for directories.)
+
+The framework defines a number of well-known metadata keys that are used by the majority of providers (such as
+<tt>size_in_bytes</tt>). In addition, providers can also add provider-specific metadata. Clients can specify
+which metadata items should be returned by the provider. The requested metadata items are hints only: a provider
+may return fewer or more metadata items than were requested by the client.
+
+A special metadata key (<tt>__ALL__</tt>)
+indicates that the provider should return all available metadata. If a client does not request any specific
+metadata, the provider returns a default set of items. (Clients can specify which metadata should be returned
+in order to minimize the amount of data that is copied over the network; some providers support extensive metadata
+that consumes considerable bandwidth.)
+
+If a provider supplies non-standard metadata items, the item keys have a provider-specific prefix, such as
+<tt>mcloud:</tt> or <tt>gdrive:</tt>.
+
+\subsection uploads-downloads Uploads and Downloads
+
+Uploads and downloads take place over a UNIX domain socket. When a client requests an upload, the runtime creates
+a socket pair and passes a socket that is open for writing to the client, and a socket that is open for reading
+to the provider. (For downloads, the read and write ends are reversed.) The client and provider write and read
+the data for the file to/from their respective sockets. Once the client has written all the data, it makes one
+final API call to check whether the provider has correctly received all the data. This call returns the new metadata
+for the file (or an error, if the upload failed).
+
+Downloads work the same way as uploads, but with the read and write roles reversed.
+
+\section provider Implementing a Provider
+
+This section provides an overview of the provider API and explains the semantics you are expected to adhere
+to in your provider implementation. We strongly recommend that you also read the source code
+for the <a href="https://code.launchpad.net/storage-provider-webdav">Owncloud provider</a>. It is useful
+to learn how to implement a provider that uses HTTP to access a cloud service. (While the details
+of the interactions with your provider will differ, the principles will be
+very similar.)
+
+\subsection provider-overview Overview
+
+To implement a provider, you must create an implementation of the abstract
+@ref unity::storage::provider::ProviderBase "ProviderBase" class:
+
+\code{.cpp}
+class ProviderBase : public std::enable_shared_from_this<ProviderBase>
+{
+public:
+    ProviderBase();
+    virtual ~ProviderBase();
+
+    virtual boost::future<ItemList> roots(vector<string> const& keys,
+                                          Context const& context) = 0;
+    virtual boost::future<ItemList> lookup(string const& parent_id,
+                                           string const& name,
+                                           vector<string> const& keys,
+                                           Context const& context) = 0;
+    // More methods here...
+};
+\endcode
+
+The base class defines a pure virtual method for each operation (such as
+@ref unity::storage::provider::ProviderBase::list "list()",
+@ref unity::storage::provider::ProviderBase::lookup "lookup()",
+@ref unity::storage::provider::ProviderBase::update "update()", etc.)
+
+Note that each operation returns a <code>boost::future</code> to the storage framework runtime;
+your operation implementation must make the future ready once the result of the operation is available.
+
+For this example, we assume that you want to create a provider for a (hypothetical) <code>MyCloud</code>
+storage service.
+
+To connect your implementation class to the runtime, you instantiate a <code>Server</code> instance and call its
+@ref unity::storage::provider::Server::init "init()" and
+@ref unity::storage::provider::Server::run "run()" methods:
+
+\code{.cpp}
+class MyCloudProvider : public ProviderBase
+{
+public:
+    MyCloudProvider();
+    virtual ~MyCloudProvider();
+
+    boost::future<ItemList> roots(vector<string> const& keys,
+                                  Context const& context) override;
+    boost::future<ItemList> lookup(string const& parent_id,
+                                   string const& name,
+                                   vector<string> const& keys,
+                                   Context const& context) override;
+    // More methods here...
+};
+
+int main(int argc, char* argv[])
+{
+    string const bus_name = "com.acme.StorageFramework.Provider.MyCloud";
+    string const account_service_id = "storage-provider-mycloud";
+
+    try
+    {
+        Server<MyCloudProvider> server(bus_name, account_service_id);
+        server.init(argc, argv);
+        return server.run();
+    }
+    catch (std::exception const& e)
+    {
+        cerr << argv[0] << ": " << e.what() << endl;
+        return 1;
+    }
+}
+\endcode
+
+The <code>Server</code> class is a template that instantiates your <code>MyCloudProvider</code> class.
+You must provide a DBus name for your service, as well as the service ID with which your provider is
+known to Online Accounts.
+
+The call to @ref unity::storage::provider::Server::init "init()" initializes the storage framework runtime,
+connects the service to DBus and, once
+you call @ref unity::storage::provider::Server::run "run()",
+starts an event loop that forwards incoming requests to the methods of your
+<code>MyCloudProvider</code> class.
+
+The @ref unity::storage::provider::Server::run "run()"
+method returns after some period of inactivity (30 seconds, by default), so the provider
+process shuts down when it is not needed, and is started automatically if it is not running at the time a client
+request arrives.
+
+If you need to pass additional arguments to the <code>MyCloudProvider</code> constructor, you can do so
+by creating a server class of your own that derives from @ref unity::storage::provider::ServerBase "ServerBase".
+That class has an abstract @ref unity::storage::provider::ServerBase::make_provider() "make_provider()"
+factory method that you can override. The runtime calls the factory method to instantiate your provider.
+
+\subsection threading Threading Considerations
+
+The runtime invokes all methods of your provider implementation on the main thread. Your methods
+<i>must not</i> block for any length of time. Unless you know that a method will return
+immediately (within a few milliseconds), you <i>must</i> implement the method such that it can
+complete in the background (either using asynchronous I/O or a separate thread).
+
+The runtime uses <a href="http://doc.qt.io/qt-5/qcoreapplication.html"><code>QCoreApplication</code></a>,
+so your implementation can use anything that uses the Qt or glib event loop. (Alternatively, you can also
+run a separate event loop if you prefer.)
+
+When starting an async operation, create a
+<a href="http://www.boost.org/doc/libs/1_63_0/libs/fiber/doc/html/fiber/synchronization/futures/promise.html"><code>boost::promise</code></a> and return <code>promise::get_future()</code>; on completion,
+call <code>set_value()</code> or <code>set_exception()</code> to make the future ready.
+
+For a synchronous implementation, you can use
+<a href="http://www.boost.org/doc/libs/1_63_0/doc/html/thread/synchronization.html#thread.synchronization.futures.async"><code>boost::async()</code></a> to spawn a new thread. To indicate errors, call
+<a href="http://www.boost.org/doc/libs/1_63_0/libs/exception/doc/enable_current_exception.html"><code>boost::enable_current_exception()</code></a>
+or <a href="http://www.boost.org/doc/libs/master/libs/exception/doc/throw_exception.html"><code>boost::throw_exception</code></a>.
+
+The storage framework runtime is thread-safe, that is, you can up-call into the runtime (for example, to indicate
+an error during an upload) from any thread. The runtime takes care of any necessary locking and moving data
+to the correct thread for marshaling.
+
+\subsection provider-error-handling Error Handling
+
+All error handling uses exceptions. If you call into the runtime and it detects a problem, the runtime throws
+an exception that derives from <code>std::exception</code> or, for specific well-known problems, from
+@ref unity::storage::provider::StorageException "StorageException". (The code in <code>main()</code> above
+relies on this behavior to report any errors and return non-zero exit status.)
+
+If your implementation uses a library that does not transparently handle exceptions (such Qt), you
+must catch exceptions and deal with them as appropriate when you call into the runtime.
+
+Conversely, the runtime is exception-safe. If you encounter an error during an operation that
+throws an exception and you let the exception escape, the runtime will intercept the exception, abort the
+operation, and marshal an appropriate error back to the client. (If you throw something unexpected, such as
+<tt>99</tt> or a <code>std::exception</code>, the client receives a generic error.)
+This means that, to indicate an error to the runtime, you can always throw an exception or, alternatively,
+for methods that return a future, return a future that contains the exception.
+
+When throwing an exception, be as detailed in the error message as possible and include any details you receive
+from the cloud provider, as well as the identity of the file. Without this, it may be impossible to
+diagnose a problem from log files.
+
+The storage framework defines a small number of exceptions that indicate specific error conditions to the client.
+You <i>must</i> use these exception to indicate their respective error conditions, otherwise
+the client only knows that something did not work, but does not know the real cause of the error. <i>All</i> providers
+<i>must</i> adhere to this common set of error semantics, otherwise clients cannot implement meaningful
+error messages and error recovery.
+
+All provider exceptions derive from a common abstract base exception class:
+
+\code{.cpp}
+class StorageException : public std::exception
+{
+public:
+    // ...
+    virtual char const* what() const noexcept override;
+
+    std::string type() const;
+    std::string error_message() const;
+};
+
+class RemoteCommsException : public StorageException { ... };
+class NotExistsException : public StorageException { ... };
+// etc...
+\endcode
+
+The @ref unity::storage::provider::StorageException::type "type()"
+method returns the name of the exception (such as "NotExistsException"), and
+@ref unity::storage::provider::StorageException::error_message "error_message()"
+returns a message you provide when you throw the exception.
+(@ref unity::storage::provider::StorageException::what "what()"
+returns a string that contains both the exception name and the error message.)
+
+The concrete derived exceptions indicate error semantics as follows:
+
+- @ref unity::storage::provider::RemoteCommsException "RemoteCommsException"
+
+  This exception indicates an (unexpected) error in the communication between your provider and the remote
+  cloud service, such as the remote server being unreachable or returning garbled data.
+
+- @ref unity::storage::provider::NotExistsException "NotExistsException"
+
+  This exception indicates that a file or folder the client wants to access does not exist. You must
+  use this exception only if the remote cloud service has <i>authoritatively</i> indicated non-existence
+  (such as with an HTTP 404 response). Do not use this exception for non-authoritative errors, such as
+  timeouts or similar.
+
+- @ref unity::storage::provider::ExistsException "ExistsException"
+
+  This exception indicates that a file or folder already exists, preventing an operation (such as a create or copy)
+  from completing. Use this exception only if the remote cloud service has <i>authoritatively</i>
+  indicated this error. Do not use this exception for non-authoritative errors, such as timeouts
+  or similar.
+
+- @ref unity::storage::provider::ConflictException "ConflictException"
+
+  This exception indicates an ETag mismatch: the client asked for a file to be updated or downloaded, but
+  the file's ETag has changed since.
+
+- @ref unity::storage::provider::UnauthorizedException "UnauthorizedException"
+
+  This exception indicates that the remote cloud service has indicated an authorization failure. Note that
+  you must throw this exception only if the cloud service indicates invalid credentials. Do <i>not</i> throw
+  this exception for permission errors (such as an attempt to write to a read-only file). In particular,
+  do not throw this exception for an HTTP 403 error, which indicates that access to a particular resource
+  was denied even though the credentials were valid.
+
+  Some cloud providers use authorization tokens that expire after some time. If you detect an
+  authorization failure in your code and throw this exception, the runtime re-retrieves the token from Online
+  Accounts and transparently calls your operation again if the new token differs. If the runtime receives an
+  @ref unity::storage::provider::UnauthorizedException "UnauthorizedException" on this second attempt too,
+  it returns the error to the client.
+
+- @ref unity::storage::provider::PermissionException "PermissionException"
+
+  This exception indicates that a file or folder cannot be accessed due to insufficient permissions (such as an
+  attempt to write to a read-only file). Do <i>not</i> throw this exception for authorization errors.
+
+- @ref unity::storage::provider::QuotaException "QuotaException"
+
+  This exception indicates that the provider has run out of space or that the maximum number of files and/or
+  folders was exceeded.
+
+- @ref unity::storage::provider::CancelledException "CancelledException"
+
+  This exception indicates that the client attempted to interact with an upload or download after it was cancelled.
+  Due to the way the API is structured, you will not ever need to throw this exception. It is provided for
+  completeness and to allow for provider implementations that do not use the storage framework API.
+
+- @ref unity::storage::provider::LogicException "LogicException"
+
+  This exception indicates that the client has used the API incorrectly, such as indicating that an upload has
+  completed before it has written all the data. In general, use
+  @ref unity::storage::provider::LogicException "LogicException"
+  for any errors that relate to operations being called in the wrong order, and for semantic errors
+  (such as an attempt to download a folder or to list a file).
+
+- @ref unity::storage::provider::InvalidArgumentException "InvalidArgumentException"
+
+  This exception indicates that the value of an argument supplied by the client is unacceptable, such as
+  an empty string where a non-empty string was excepted, or a negative integer where a positive integer was expected.
+
+- @ref unity::storage::provider::ResourceException "ResourceException"
+
+  This is a generic "catch-all" exception that you can throw to indicate unexpected errors that do not fit into
+  any of the other categories. For example, <code>ResourceException</code> is appropriate to indicate out of
+  file descriptors, failure to locate a configuration file, or any other unexpected system error. You should
+  provide as much contextual information about such errors as possible. In particular, unexpected errors
+  typically need to be diagnosed from log files. This means that you should provide, at least, the full error
+  message you received from the cloud service (or the operating system), together with all other relevant
+  details, such as the name and identity of the file, the URL of a failed request,
+  any HTTP error information, and so on.
+
+- @ref unity::storage::provider::UnknownException "UnknownException"
+
+  If your code throws an exception that does not derive from <code>StorageException</code>, it returns
+  <code>UnknownException</code> to the client. Do not throw this exception explicitly; is is a "catch-all"
+  exception that the runtime uses to indicate that something completely unexpected happened. (If a client
+  receives this exception from your provider, chances are that you have forgotten to handle an error condition
+  somewhere.)
+
+\subsection metadata-keys Metadata Keys
+Each method of your provider has a <code>keys</code> parameter of type <code>vector<string></code>. The parameter
+is provided by the client and indicates which metadata items you should include in the metadata you return
+from the operation.
+
+If the vector is empty, this indicates that you should return a set of default metadata items. In practice, this
+means that you should return whatever metadata you can cheaply receive from the cloud provider (in terms
+of bandwidth and number of requests).
+
+If the vector contains a single entry <code>__ALL__</code>, you should return complete metadata. In particular,
+you should return as many of the well-known metadata items that are defined in
+common.h as possible, plus
+any provider-specific metadata items you may support (prefixed with a provider name, such as <tt>Mycloud:</tt>).
+
+If the client provides a specific list of keys, you should restrict the metadata to those items requested by the
+client. This is useful to reduce traffic between your provider and the cloud service, if the cloud service
+requires additional requests for particular metadata items: you need to provide that metadata only if the client asks
+for it.
+
+The keys provided by the client are a hint only, that is, it is fine to provide more items than the client asked for
+(if you happen to have them available anyway at no extra cost), and it is legal to not provide all of the items
+the client asked for.
+
+If you receive a key that is not one of the keys defined in <code>common.h</code> and is not one of the keys
+you recognize as provider-specific, do <i>not</i> return an error from the operation. Instead, write a log message
+with the details (your provider name, the identity and name of the file and folder, and the invalid key) and
+ignore the invalid key.
+
+Note that <code>common.h</code> defines symbolic constants for metadata keys. Use these symbolic constants
+instead of hard-coding the corresponding string literals.
+
+\note For files, the <code>SIZE_IN_BYTES</code> and <code>LAST_MODIFIED_TIME</code> metadata items are mandatory;
+you must always supply these, whether the client asks for them or not.
+
+\subsection authorization Authorization
+
+Each method of your provider has a trailing parameter of type
+@ref unity::storage::provider::Context "Context":
+
+\code{.cpp}
+struct Context
+{
+    uid_t uid;
+    pid_t pid;
+    string security_label;
+
+    Credentials credentials;
+};
+\endcode
+
+The structure contains the user ID, process ID, and the
+<a href="https://help.ubuntu.com/lts/serverguide/apparmor.html">Apparmor</a> security label of the calling client,
+plus credentials that you can use for authorization with the cloud service. In turn, the credentials are a variant
+type that enables authorization with <a href="https://oauth.net/1/">OAuth1</a>,
+<a href="https://oauth.net/2/">OAuth2</a>, as well as with user name and password:
+
+\code{.cpp}
+struct NoCredentials
+{
+};
+
+struct OAuth1Credentials
+{
+    string consumer_key;
+    string consumer_secret;
+    string token;
+    string token_secret;
+};
+
+struct OAuth2Credentials
+{
+    string access_token;
+};
+
+struct PasswordCredentials
+{
+    string username;
+    string password;
+    string host;
+};
+
+typedef boost::variant<boost::blank,OAuth1Credentials,OAuth2Credentials,PasswordCredentials> Credentials;
+\endcode
+
+If you receive an authorization error from the cloud provider with the credentials that are passed to you
+by the runtime, you must throw an @ref unity::storage::provider::UnauthorizedException "UnauthorizedException".
+This prompts the runtime to refresh the token if it may have expired and call your your method
+a second time with the new token. If that second attempt also throws
+@ref unity::storage::provider::UnauthorizedException "UnauthorizedException", the runtime propagates the
+error to the client.
+
+\subsection download-upload Downloads and Uploads
+
+To implement download and upload, you must create implementations of the abstract
+@ref unity::storage::provider::DownloadJob "DownloadJob" and @ref unity::storage::provider::UploadJob "UploadJob"
+classes and return them from your @ref unity::storage::provider::ProviderBase::download "download()" and
+@ref unity::storage::provider::ProviderBase::update "update()" (or
+@ref unity::storage::provider::ProviderBase::create_file "create_file()") methods, respectively.
+The two base classes are very similar, so we focus on @ref unity::storage::provider::DownloadJob "DownloadJob" here.
+
+\code{.cpp}
+class MyDownloadJob : public unity::storage::provider::DownloadJob
+{
+public:
+    MyDownloadJob(shared_ptr<MyCloudProvider> const& provider,
+                  string const& item_id,
+                  string const& match_etag);
+    virtual ~LocalDownloadJob();
+
+    boost::future<void> cancel() override;
+    boost::future<void> finish() override;
+
+private:
+    // ...
+};
+\endcode
+
+In the implementation of your constructor, you must initiate the download. The download must be able to proceed
+without blocking. How you do this is up to you. You can run the download in a separate thread, use the
+runtime's Qt event loop, or run a separate event loop. (The storage framework runtime does not care.)
+
+Your <code>MyDownloadJob</code> receives a socket that is open for writing and connected to the client by calling
+@ref unity::storage::provider::DownloadJob::write_socket "write_socket()" on its base class. You must write the
+data for the file to the socket (from which the client can read it).
+
+At some point, the runtime either calls your @ref unity::storage::provider::DownloadJob::cancel "cancel()" method,
+in which case you simply abort the download, or it calls @ref unity::storage::provider::DownloadJob::finish "finish()".
+The purpose of @ref unity::storage::provider::DownloadJob::finish "finish()" is to confirm whether the download
+completed successfully. At this point, you must check whether you have received <a>all</a> of the data for the file
+from the cloud provider and have successfully written it to the socket. If so, you return a ready future; if not,
+you return a future that holds the appropriate @ref unity::storage::provider::StorageException "StorageException"
+to indicate the nature of the error.
+
+@ref unity::storage::provider::DownloadJob "DownloadJob" and @ref unity::storage::provider::UploadJob "UploadJob"
+classes also provide a @ref unity::storage::provider::DownloadJob::report_error "report_error()" method that
+you can use to report any errors that arise while your downloader runs in the background. (If you call 
+@ref unity::storage::provider::DownloadJob::report_error "report_error()", neither
+@ref unity::storage::provider::DownloadJob::finish "finish()" nor 
+@ref unity::storage::provider::DownloadJob::cancel "cancel()" are called by the runtime.)
+
+The @ref unity::storage::provider::DownloadJob "DownloadJob" base class also provides a
+@ref unity::storage::provider::DownloadJob::report_complete "report_complete()" method that you call
+to indicate successful completion without having to wait for the call to 
+@ref unity::storage::provider::DownloadJob::finish "finish()".
+
+\subsection buffering Download and Upload Buffering
+
+When implementing your provider, you need to be aware of when (and when not) to buffer data.
+
+For downloads, you should write the data to the client socket as soon as you receive it from the cloud provider.
+This is necessary to enable streaming. (A media player should be able to start playing a song or video as soon
+as possible.)
+
+For uploads, the situation is the opposite, and you should buffer any uploads that are larger than than a few
+kilobytes in the file system before starting the upload with the provider.
+This is particularly important for mobile devices, where applications may be suspended for extended periods.
+If you write data to the cloud provider while the client is still writing it, and the client application is suspended,
+the upload gets stuck until the client application resumes (by which time your connection with the cloud provider
+may have timed out, or the user may have walked out of reach of the network).
+
+Note that, eventually, you will either receive the @ref unity::storage::provider::DownloadJob::finish "finish()"
+call to confirm whether or not there was an error (or a @ref unity::storage::provider::DownloadJob::cancel "cancel()"
+call if the client application dies). This means that, if your cloud provider is able to resume a previously
+interrupted upload, you can re-start an upload that failed due to loss of the network. (Be judicious in how
+aggressively you try to resume though; on a battery-powered device, it is expensive to turn on the radio, so you
+should use a back-off algorithm and give up if the upload cannot be resumed within a reasonable period of time.)
+
+\section local-provider The Local Provider
+
+The storage framework includes a local provider that stores files in the local file system.
+In a classic environment, the root of the local files is <code>$XDG_DATA_DIR/storage-framework/local</code>;
+in a Snap environment, the root is <code>$SNAP_USER_COMMON/storage-framework/local</code>.
+You can set <code>$SF_LOCAL_PROVIDER_ROOT</code> to change the root directory. (This is intended mainly for testing.)
+
+The local provider uses <code>com.canonical.StorageFramework.Provider.Local</code> as the DBus name. The object path
+is <code>/provider/0</code>.
+*/

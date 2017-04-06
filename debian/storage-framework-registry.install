@@ -1,4 +1,4 @@
 usr/lib/*/*/storage-framework-registry
-usr/share/dbus-1/services/com.canonical.StorageFramework.Registry.service
 usr/lib/*/*/storage-provider-local
-usr/share/dbus-1/services/com.canonical.StorageFramework.Provider.Local.service
+usr/lib/systemd/user/*
+usr/share/dbus-1/services/*
