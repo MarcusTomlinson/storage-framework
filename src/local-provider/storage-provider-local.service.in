@@ -1,0 +1,7 @@
+[Unit]
+Description=Storage Framework local provider
+
+[Service]
+Type=dbus
+BusName=com.canonical.StorageFramework.Provider.Local
+ExecStart=@CMAKE_INSTALL_FULL_LIBDIR@/@PROJECT_NAME@/storage-provider-local
