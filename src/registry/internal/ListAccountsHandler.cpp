@@ -71,9 +71,10 @@ static map<QString, ProviderDetails> const BUS_NAMES =
 {
     { "storage-provider-test", { "com.canonical.StorageFramework.Provider.ProviderTest", "Test Provider" } },
     { "storage-provider-mcloud", { "com.canonical.StorageFramework.Provider.McloudProvider", "mcloud" } },
-    { "storage-provider-owncloud", { "com.canonical.StorageFramework.Provider.OwnCloud", "ownCloud" } },
+    { "storage-provider-owncloud", { "com.canonical.StorageFramework.Provider.OwnCloud", "OwnCloud" } },
     { "storage-provider-onedrive", { "com.canonical.StorageFramework.Provider.OnedriveProvider", "OneDrive" } },
     { "storage-provider-gdrive", { "com.canonical.StorageFramework.Provider.GdriveProvider", "GDrive" } },
+    { "storage-provider-nextcloud", { "com.canonical.StorageFramework.Provider.Nextcloud", "Nextcloud" } },
 };
 
 }  // namespace
