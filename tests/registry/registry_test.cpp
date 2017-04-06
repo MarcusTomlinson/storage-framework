@@ -27,9 +27,10 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #include <glib.h>
-#pragma GCC diagnostic pop
 #include <gtest/gtest.h>
+#pragma GCC diagnostic pop
 #include <QCoreApplication>
 #include <QDBusConnection>
 #include <QDBusMessage>

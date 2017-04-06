@@ -29,8 +29,12 @@ namespace storage
 namespace provider
 {
 
-// Note: Adding new exception types also requires updating the marshaling and
-//       unmarshaling code for exceptions in the client and server APIs.
+// Note: Adding new exception types also requires updating the
+//       marshaling and unmarshaling code for exceptions in the client
+//       and server APIs.  In particular:
+//         - src/provider/internal/Handler.cpp
+//         - src/provider/internal/utils.cpp
+//         - src/qt/internal/unmarshal_error.cpp
 
 /**
 \brief Base exception class for all server-side exceptions.
@@ -39,8 +43,11 @@ class UNITY_STORAGE_EXPORT StorageException : public std::exception
 {
 public:
     StorageException(std::string const& exception_type, std::string const& error_message);
+
+protected:
     ~StorageException();
 
+public:
     virtual char const* what() const noexcept override;
 
     std::string type() const;

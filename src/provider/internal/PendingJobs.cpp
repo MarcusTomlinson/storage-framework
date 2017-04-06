@@ -175,6 +175,9 @@ void PendingJobs::service_disconnected(QString const& service_name)
     }
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+
 template<typename Job>
 void PendingJobs::cancel_job(shared_ptr<Job> const& job, string const& identifier)
 {
@@ -202,6 +205,8 @@ void PendingJobs::cancel_job(shared_ptr<Job> const& job, string const& identifie
             MainLoopExecutor::instance().submit([fut]{});
         });
 }
+
+#pragma GCC diagnostic pop
 
 }
 }

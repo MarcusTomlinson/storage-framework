@@ -13,6 +13,7 @@ set(unit_test_dirs
     provider-ProviderInterface
     provider-Server
     registry
+    provider-utils
 )
 
 set(slow_test_dirs

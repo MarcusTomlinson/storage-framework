@@ -10,7 +10,6 @@ add_library(local-provider-lib STATIC
 target_include_directories(local-provider-lib PRIVATE
     ${Qt5Network_INCLUDE_DIRS}
     ${GLIB_DEPS_INCLUDE_DIRS}
-    ${GIO_DEPS_INCLUDE_DIRS}
 )
 
 set_target_properties(local-provider-lib PROPERTIES
@@ -27,7 +26,6 @@ target_link_libraries(storage-provider-local
     storage-framework-provider
     Qt5::Network
     ${GLIB_DEPS_LIBRARIES}
-    ${GIO_DEPS_LIBRARIES}
 )
 
 install(

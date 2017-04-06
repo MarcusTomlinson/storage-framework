@@ -34,6 +34,7 @@ add_library(sf-provider-objects OBJECT
   internal/TestServerImpl.cpp
   internal/UploadJobImpl.cpp
   internal/dbusmarshal.cpp
+  internal/utils.cpp
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/AccountData.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/DownloadJobImpl.h
   ${CMAKE_SOURCE_DIR}/include/unity/storage/provider/internal/FixedAccountData.h
