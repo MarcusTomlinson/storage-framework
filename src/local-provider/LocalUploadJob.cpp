@@ -83,7 +83,7 @@ LocalUploadJob::LocalUploadJob(shared_ptr<LocalProvider> const& provider,
         auto st = status(item_id);
         if (!is_regular_file(st))
         {
-            throw InvalidArgumentException(method_ + ": \"" + item_id + "\" is not a file");
+            throw LogicException(method_ + ": \"" + item_id + "\" is not a file");
         }
     }
     // LCOV_EXCL_START
@@ -99,7 +99,7 @@ LocalUploadJob::LocalUploadJob(shared_ptr<LocalProvider> const& provider,
         int64_t mtime = get_mtime_nsecs(method_, item_id);
         if (to_string(mtime) != old_etag)
         {
-            throw ConflictException(method_ + ": etag mismatch");
+            throw ConflictException(method_ + ": ETag mismatch");
         }
     }
     old_etag_ = old_etag;
@@ -184,14 +184,13 @@ boost::future<Item> LocalUploadJob::finish()
 
     try
     {
-        // We check again for an etag mismatch or overwrite, in case the file was updated after the upload started.
+        // We check again for an ETag mismatch or overwrite, in case the file was updated after the upload started.
         if (!parent_id_.empty())
         {
             // create_file()
             if (!allow_overwrite_ && boost::filesystem::exists(item_id_))
             {
                 string msg = method_ + ": \"" + item_id_ + "\" exists already";
-                boost::filesystem::path(item_id_).filename().native();
                 BOOST_THROW_EXCEPTION(
                     ExistsException(msg, item_id_, boost::filesystem::path(item_id_).filename().native()));
             }
@@ -199,10 +198,22 @@ boost::future<Item> LocalUploadJob::finish()
         else if (!old_etag_.empty())
         {
             // update()
+            using namespace boost::filesystem;
+            if (exists(item_id_) && !is_regular_file(item_id_))
+            {
+                // Yes, ExistsException, not LogicException. A folder is in the way
+                // and was created after the update started, meaning that the client correctly
+                // started the operation with an existing file, but then the file was removed
+                // and replaced with a folder with the same name.
+                string msg = method_ + ": \"" + item_id_ + "\" exists already";
+                BOOST_THROW_EXCEPTION(
+                    ExistsException(msg, item_id_, boost::filesystem::path(item_id_).filename().native()));
+            }
             int64_t mtime = get_mtime_nsecs(method_, item_id_);
             if (to_string(mtime) != old_etag_)
             {
-                BOOST_THROW_EXCEPTION(ConflictException(method_ + ": etag mismatch"));
+                // File was touched after the upload started.
+                BOOST_THROW_EXCEPTION(ConflictException(method_ + ": ETag mismatch"));
             }
         }
 

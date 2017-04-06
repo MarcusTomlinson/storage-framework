@@ -110,3 +110,11 @@ Depends: libstorage-framework-provider-1-5 (= ${binary:Version}),
          ${misc:Depends},
 Description: Header files for the Storage Framework provider library
  Development C++ headers for the provider API.
+
+Package: storage-framework-doc
+Section: doc
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends},
+Description: Documentation for storage-framework-dev
+ Tutorial and API reference.

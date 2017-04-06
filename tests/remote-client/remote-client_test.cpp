@@ -946,7 +946,7 @@ TEST_F(DeleteTest, delete_root)
     unique_ptr<VoidJob> j(item.deleteItem());
     EXPECT_FALSE(j->isValid());
     EXPECT_EQ(VoidJob::Status::Error, j->status());
-    EXPECT_EQ(StorageError::Type::LogicError, j->error().type());
+    EXPECT_EQ(StorageError::Type::PermissionDenied, j->error().type());
 
     // Signal must be received.
     QSignalSpy spy(j.get(), &VoidJob::statusChanged);

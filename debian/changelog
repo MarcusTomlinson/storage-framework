@@ -2,6 +2,7 @@ storage-framework (0.4-0ubuntu2) UNRELEASED; urgency=medium
 
   [ Michi Henning ]
   * Removed dependency on libgio.
+  * Added tutorial and provider reference documentation.
 
   [ James Henstridge ]
   * Add systemd units for registry and local provider D-Bus services.

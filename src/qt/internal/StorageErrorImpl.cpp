@@ -188,6 +188,12 @@ StorageError StorageErrorImpl::cancelled_error(QString const& msg)
     return StorageError(move(p));
 }
 
+StorageError StorageErrorImpl::permission_error(QString const& msg)
+{
+    unique_ptr<StorageErrorImpl> p(new StorageErrorImpl(StorageError::Type::PermissionDenied, msg));
+    return StorageError(move(p));
+}
+
 StorageError StorageErrorImpl::logic_error(QString const& msg)
 {
     unique_ptr<StorageErrorImpl> p(new StorageErrorImpl(StorageError::Type::LogicError, msg));
