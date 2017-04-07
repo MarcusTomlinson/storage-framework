@@ -18,8 +18,14 @@
 
 #pragma once
 
+/**
+\brief Top-level namespace for all things Unity-related.
+*/
 namespace unity
 {
+/**
+\brief Top-level namespace for the storage framework API.
+*/
 namespace storage
 {
 

@@ -11,7 +11,7 @@ add_doxygen(
         ${CMAKE_SOURCE_DIR}/include
     EXCLUDE_PATTERNS
         */internal/*
-        */qt/*
+        */registry/*
     ALL
 )
 
