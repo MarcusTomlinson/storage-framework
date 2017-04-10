@@ -171,8 +171,8 @@ public:
     /**
     \brief Compares Account instances for equality.
 
-    Two account instances are equal if all their details (bus name, object path, display name, provider name, and
-    icon name) are equal.
+    Account instances are equal if both are invalid or both are valid and all their details
+    (bus name, object path, display name, provider name, and icon name) are equal.
     \param other The account to compare this account with.
     \return If all details of the accounts match, <code>true</code> is returned; <code>false</code> otherwise.
     */
@@ -187,7 +187,7 @@ public:
     \brief Returns a hash value.
     \note The hash value is <i>not</i> necessarily the same as the one returned by
     \link unity::storage::qt::qHash(Account const& acc) qHash()\endlink, but <i>is</i> the same as the one returned by
-    \link std::hash<unity::storage::qt::Account> Account::hash()\endlink.
+    \link std::hash<unity::storage::qt::Account> std::hash<Account>()\endlink.
     \return A hash value for use with unordered containers.
     */
     size_t hash() const;
@@ -207,7 +207,7 @@ private:
 /**
 \brief Returns a hash value.
 \note The hash value is <i>not</i> necessarily the same as the one returned by
-\link std::hash<unity::storage::qt::Account> Account::hash()\endlink.
+\link Account::hash()\endlink.
 \return A hash value for use with unordered containers.
 */
 uint Q_DECL_EXPORT qHash(Account const& acc);
@@ -232,7 +232,7 @@ template<> struct Q_DECL_EXPORT hash<unity::storage::qt::Account>
     \brief Returns a hash value.
     \note The hash value is <i>not</i> necessarily the same as the one returned by
     \link unity::storage::qt::qHash(const Account& acc) qHash()\endlink (but <i>is</i> the same as the value returned
-    by \link unity::storage::qt::Account::hash()\endlink).
+    by \link unity::storage::qt::Account::hash() Account::hash()\endlink).
     \return A hash value for use with unordered containers.
     \see \link unity::storage::qt::Account::hash Account::hash()\endlink
     */
