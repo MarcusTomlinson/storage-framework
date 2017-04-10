@@ -353,6 +353,7 @@ public:
     \param name The name of the new folder within this folder.
     \param keys A list of metadata keys for metadata items that should be returned by the provider.
     If the list is empty, the provider returns a default set of metadata items.
+    \return A job that, once complete, provides access to the new folder.
     */
     Q_INVOKABLE unity::storage::qt::ItemJob* createFolder(QString const& name,
                                                           QStringList const& keys = QStringList()) const;
@@ -374,6 +375,8 @@ public:
     themselves (based on the file name or the file contents).
     \param keys A list of metadata keys for metadata items that should be returned by the provider.
     If the list is empty, the provider returns a default set of metadata items.
+    \return An uploader that, once ready, can be used to upload the data for this file.
+    \see \link uploads-downloads Uploads and Downloads\endlink
     */
     Q_INVOKABLE unity::storage::qt::Uploader* createFile(QString const& name,
                                                          ConflictPolicy policy,

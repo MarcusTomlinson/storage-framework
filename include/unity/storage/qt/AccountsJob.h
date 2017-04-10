@@ -87,7 +87,7 @@ public:
     virtual ~AccountsJob();
 
     /**
-    \brief Returns whether a job was successfully created.
+    \brief Returns whether this job was successfully created.
     \return If the job status is \link Error\endlink, the return value is <code>false</code>;
     <code>true</code> otherwise.
     */
@@ -113,11 +113,17 @@ public:
     QList<Account> accounts() const;
 
 Q_SIGNALS:
+    //@}
+
+    /** @name Signals
+    */
+    //{@
     /**
-    \brief This signal is emitted whenever a job transitions to the \link Finished\endlink or \link Error\endlink state.
+    \brief This signal is emitted whenever this job transitions to the \link Finished\endlink or \link Error\endlink state.
     \param status The status of the job.
     */
     void statusChanged(unity::storage::qt::AccountsJob::Status status) const;
+    //@}
 
 private:
     ///@cond

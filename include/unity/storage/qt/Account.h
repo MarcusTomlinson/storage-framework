@@ -41,11 +41,7 @@ class ItemJob;
 class ItemListJob;
 
 /**
-Class that provides account details.
-
-Account provides access to the details of an account, specifically, the DBus name and object path
-used to access the corresponding provider, as well as the details provided by
-<a href="https://help.ubuntu.com/stable/ubuntu-help/accounts.html">Online Accounts</a>.
+Class th provides access to account details.
 
 Note that this class is an immutable value type: if you retrieve the details of an account, and
 those details change in Online Accounts later, the change is not reflected in the Account
@@ -165,7 +161,7 @@ public:
     */
     Q_INVOKABLE unity::storage::qt::ItemJob* get(QString const& itemId, QStringList const& keys = QStringList()) const;
 
-    /** @name Comparison operators and hashing.
+    /** @name Comparison operators and hashing
     */
     //{@
     /**
