@@ -133,6 +133,8 @@ that consumes considerable bandwidth.)
 If a provider supplies non-standard metadata items, the item keys have a provider-specific prefix, such as
 <tt>mcloud:</tt> or <tt>gdrive:</tt>.
 
+Do not use hard-wired string literals as keys; instead use the symbolic constants defined in \ref common.h.
+
 \subsection uploads-downloads Uploads and Downloads
 
 Uploads and downloads take place over a UNIX domain socket. When a client requests an upload, the runtime creates
@@ -576,13 +578,37 @@ interrupted upload, you can re-start an upload that failed due to loss of the ne
 aggressively you try to resume though; on a battery-powered device, it is expensive to turn on the radio, so you
 should use a back-off algorithm and give up if the upload cannot be resumed within a reasonable period of time.)
 
-\section local-provider The Local Provider
+\section client Implementing a Client
+
+This section provides an overview of the client API and explains the semantics you can expect when interacting
+with a provider.
+
+\subsection client-overview Overview
+
+\page local-provider The Local Provider
 
 The storage framework includes a local provider that stores files in the local file system.
-In a classic environment, the root of the local files is <code>$XDG_DATA_DIR/storage-framework/local</code>;
-in a Snap environment, the root is <code>$SNAP_USER_COMMON/storage-framework/local</code>.
+The default root for local files is
+- <code>$XDG_DATA_DIR/storage-framework/local</code> (classic environment)
+- <code>$SNAP_USER_COMMON/storage-framework/local</code> (snap environment)
+
 You can set <code>$SF_LOCAL_PROVIDER_ROOT</code> to change the root directory. (This is intended mainly for testing.)
 
 The local provider uses <code>com.canonical.StorageFramework.Provider.Local</code> as the DBus name. The object path
 is <code>/provider/0</code>.
+
+\page environment-variables Environment Variables
+The storage framework uses the following environment variables.
+- <code>SF_REGISTRY_IDLE_TIMEOUT</code><br>
+  The idle timeout for the storage framework registry, in seconds. The default value is 30 seconds.<br>
+  Setting this variable to 0 disables the idle timeout.
+- <code>SF_PROVIDER_IDLE_TIMEOUT</code><br>
+  The idle timeout for providers, in seconds. The default value is 30 seconds.<br>
+  Setting this variable to 0 disables the idle timeout.
+- <code>SF_LOCAL_PROVIDER_ROOT</code><br>
+  The root directory for files accessed via the \link local-provider local provider\endlink.
+  (This is intended for testing.)<br>
+  If not set, the default value is
+ - <code>$XDG_DATA_DIR/storage-framework/local</code> (classic environment)
+ - <code>$SNAP_USER_COMMON/storage-framework/local</code> (snap environment)
 */

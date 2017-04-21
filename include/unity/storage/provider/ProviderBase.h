@@ -36,6 +36,9 @@ namespace unity
 {
 namespace storage
 {
+/**
+\brief This namespace contains the provider API.
+*/
 namespace provider
 {
 

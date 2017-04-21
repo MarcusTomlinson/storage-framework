@@ -20,9 +20,11 @@
 #include <unity/storage/qt/Runtime.h>
 #include <unity/storage/qt/Account.h>
 #include <unity/storage/qt/AccountsJob.h>
+#include <unity/storage/qt/Downloader.h>
 #include <unity/storage/qt/Item.h>
 #include <unity/storage/qt/ItemJob.h>
 #include <unity/storage/qt/ItemListJob.h>
+#include <unity/storage/qt/Uploader.h>
 
 using namespace unity::storage::qt;
 
@@ -41,6 +43,8 @@ void StorageFrameworkPlugin::registerTypes(const char* uri)
     qmlRegisterUncreatableType<Item>(uri, 0, 1, "Item", "");
     qmlRegisterUncreatableType<ItemJob>(uri, 0, 1, "ItemJob", "Use Account or another item to access items");
     qmlRegisterUncreatableType<ItemListJob>(uri, 0, 1, "ItemListJob", "Use Account or another item to access items");
+    qmlRegisterUncreatableType<Downloader>(uri, 0, 1, "Downloader", "Use another item to create a downloader");
+    qmlRegisterUncreatableType<Uploader>(uri, 0, 1, "Uploader", "Use another item to create an uploader");
 }
 
 }
