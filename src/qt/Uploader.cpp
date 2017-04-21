@@ -31,8 +31,6 @@ namespace storage
 namespace qt
 {
 
-Uploader::Uploader() = default;
-
 Uploader::Uploader(unique_ptr<internal::UploaderImpl> p)
     : p_(move(p))
 {

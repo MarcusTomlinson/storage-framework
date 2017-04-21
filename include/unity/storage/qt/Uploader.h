@@ -53,7 +53,6 @@ public:
     enum Status { Loading, Ready, Cancelled, Finished, Error };
     Q_ENUMS(Status)
 
-    Uploader();
     virtual ~Uploader();
 
     bool isValid() const;
