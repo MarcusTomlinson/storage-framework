@@ -31,8 +31,6 @@ namespace storage
 namespace qt
 {
 
-Downloader::Downloader() = default;
-
 Downloader::Downloader(unique_ptr<internal::DownloaderImpl> p)
     : p_(move(p))
 {
