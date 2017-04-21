@@ -183,7 +183,7 @@ public:
 
     Providers may silently modify the name of files and folders that are created. (For example, a provider
     may map upper-case letters to lower-case.) After creating an item,
-    always call name() to obtain the actual name of the item. 
+    always call name() to obtain the actual name of the item.
     \return The item's name.
     \see \link names File and Folder Names\endlink
     */
@@ -241,7 +241,7 @@ public:
     All operations are asynchronous and return a job that, once complete, provides the return value
     or error information.
     \note You <i>must</i> deallocate the returned instance by calling <code>delete</code> (or, alternatively,
-    calling <a href="http://doc.qt.io/qt-5/qobject.html#setParent">setParent()</a> to re-parent the job).
+    call <a href="http://doc.qt.io/qt-5/qobject.html#setParent">setParent()</a> to re-parent the job).
     Failing to do so causes a memory leak!
     */
     //{@

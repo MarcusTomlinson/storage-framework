@@ -36,16 +36,45 @@ class DownloaderImpl;
 
 }  // namespace internal
 
+/**
+\brief Class to download the contents of a file.
+*/
+
 class Q_DECL_EXPORT Downloader final : public QIODevice
 {
     Q_OBJECT
+
+    /**
+    \see \link isValid() const isValid()\endlink
+    */
     Q_PROPERTY(bool isValid READ isValid NOTIFY statusChanged FINAL)
+
+    /**
+    \see \link status() const status()\endlink
+    */
     Q_PROPERTY(unity::storage::qt::Downloader::Status status READ status NOTIFY statusChanged FINAL)
+
+    /**
+    \see \link error() const error()\endlink
+    */
     Q_PROPERTY(unity::storage::qt::StorageError error READ error NOTIFY statusChanged FINAL)
+
+    /**
+    \see \link item() const item()\endlink
+    */
     Q_PROPERTY(unity::storage::qt::Item item READ item NOTIFY statusChanged FINAL)
 
 public:
-    enum Status { Loading, Ready, Cancelled, Finished, Error };
+    /**
+    \brief Indicates the status of the job.
+    */
+    enum Status {
+        Loading,   /*!< The job is still executing. */
+        Ready,     /*!< The job is ready for reading data. */
+        Cancelled, /*!< The job was cancelled. */
+        Finished,  /*!< The job finished succesfully. */
+        Error      /*!< The job finished with an error. */
+    };
     Q_ENUMS(Status)
 
     Downloader();
@@ -68,9 +97,18 @@ public:
     Q_INVOKABLE bool waitForReadyRead(int msecs = 30000) override;
 
 Q_SIGNALS:
+    /** @name Signals
+    */
+    //{@
+    /**
+    \brief This signal is emitted whenever this job transitions to a new state.
+    \param status The status of the job.
+    */
     void statusChanged(unity::storage::qt::Downloader::Status status) const;
+    //@}
 
 private:
+    ///@cond
     Downloader(std::unique_ptr<internal::DownloaderImpl> p);
 
     qint64 readData(char* data, qint64 c);
@@ -79,6 +117,7 @@ private:
     std::unique_ptr<internal::DownloaderImpl> p_;
 
     friend class internal::DownloaderImpl;
+    ///@endcond
 };
 
 }  // namespace qt
