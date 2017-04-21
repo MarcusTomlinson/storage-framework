@@ -46,9 +46,22 @@ install(
     RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}
 )
 
-configure_file(com.canonical.StorageFramework.Registry.service.in com.canonical.StorageFramework.Registry.service)
+# D-Bus service activation file
+configure_file(
+    com.canonical.StorageFramework.Registry.service.in
+    com.canonical.StorageFramework.Registry.service)
 
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/com.canonical.StorageFramework.Registry.service
     DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/services
+)
+
+# systemd unit
+configure_file(
+    storage-framework-registry.service.in
+    storage-framework-registry.service)
+
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-framework-registry.service
+    DESTINATION "lib/systemd/user"
 )

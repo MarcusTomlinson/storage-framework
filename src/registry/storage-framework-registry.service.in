@@ -1,0 +1,7 @@
+[Unit]
+Description=Storage Framework registry
+
+[Service]
+Type=dbus
+BusName=com.canonical.StorageFramework.Registry
+ExecStart=@CMAKE_INSTALL_FULL_LIBDIR@/@PROJECT_NAME@/storage-framework-registry

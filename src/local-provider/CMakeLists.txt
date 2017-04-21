@@ -33,9 +33,22 @@ install(
     RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}
 )
 
-configure_file(com.canonical.StorageFramework.Provider.Local.service.in com.canonical.StorageFramework.Provider.Local.service)
+# D-Bus service activation file
+configure_file(
+    com.canonical.StorageFramework.Provider.Local.service.in
+    com.canonical.StorageFramework.Provider.Local.service)
 
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/com.canonical.StorageFramework.Provider.Local.service
     DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/services
+)
+
+# systemd unit
+configure_file(
+    storage-provider-local.service.in
+    storage-provider-local.service)
+
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/storage-provider-local.service
+    DESTINATION "lib/systemd/user"
 )

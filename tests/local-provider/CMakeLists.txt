@@ -9,7 +9,6 @@ target_link_libraries(local-provider_test
     Qt5::Test
     ${Boost_LIBRARIES}
     ${GLIB_DEPS_LIBRARIES}
-    ${GIO_DEPS_LIBRARIES}
     testutils
     gtest
 )

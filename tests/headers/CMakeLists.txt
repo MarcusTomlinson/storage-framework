@@ -16,7 +16,7 @@ set(subdirs
 set(extra_inc_dirs "${Qt5Core_INCLUDE_DIRS}")
 set(extra_inc_dirs "${extra_inc_dirs};${Qt5DBus_INCLUDE_DIRS}")
 set(extra_inc_dirs "${extra_inc_dirs};${Qt5Network_INCLUDE_DIRS}")
-set(extra_inc_dirs "${extra_inc_dirs};${GIO_DEPS_INCLUDE_DIRS}")
+set(extra_inc_dirs "${extra_inc_dirs};${GLIB_DEPS_INCLUDE_DIRS}")
 set(extra_inc_dirs "${extra_inc_dirs};${ONLINEACCOUNTS_DEPS_INCLUDE_DIRS}")
 
 set(extra_defines "-D BOOST_THREAD_VERSION=4")

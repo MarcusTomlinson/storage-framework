@@ -43,6 +43,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(include)
 include_directories(${CMAKE_BINARY_DIR}/include)  # For generated headers
 
+# Captures compile command lines in build/compile_commands.json. Useful for reference and YouCompleteMe.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC --std=c++14 -Wall -pedantic -Wextra -fvisibility=hidden")
 
 # Some additional warnings not included by the general flags set above.
