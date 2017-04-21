@@ -77,7 +77,6 @@ public:
     };
     Q_ENUMS(Status)
 
-    Downloader();
     virtual ~Downloader();
 
     bool isValid() const;
